@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+savedata/*
+!savedata/.gitkeep
+saves/*
+!saves/.gitkeep
+imports/acquire/*/
+!imports/acquire/.gitkeep
+imports/simulation/*/
+!imports/simulation/.gitkeep
