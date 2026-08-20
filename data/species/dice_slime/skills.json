@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "learnset": [
+    {
+      "level": 1,
+      "skill_id": "attack"
+    },
+    {
+      "level": 1,
+      "skill_id": "defend"
+    },
+    {
+      "level": 2,
+      "skill_id": "roll"
+    },
+    {
+      "level": 8,
+      "skill_id": "piora"
+    },
+    {
+      "level": 14,
+      "skill_id": "dice_strike"
+    },
+    {
+      "level": 34,
+      "skill_id": "dice_magic"
+    }
+  ]
+}
+

@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "max_stage": 10,
+  "stages": [
+    {
+      "stage": 1,
+      "options": [
+        {
+          "id": "kadoka_plus_1_mp",
+          "label": "mp +15",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 15
+        },
+        {
+          "id": "kadoka_plus_1_hp",
+          "label": "hp +13",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 13
+        },
+        {
+          "id": "kadoka_plus_1_special",
+          "label": "専用強化 1",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "options": [
+        {
+          "id": "kadoka_plus_2_mp",
+          "label": "mp +18",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 18,
+          "requires_any": [
+            "kadoka_plus_1_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_2_hp",
+          "label": "hp +16",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 16,
+          "requires_any": [
+            "kadoka_plus_1_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_2_special",
+          "label": "専用強化 2",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_1_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "options": [
+        {
+          "id": "kadoka_plus_3_mp",
+          "label": "mp +21",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 21,
+          "requires_any": [
+            "kadoka_plus_2_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_3_hp",
+          "label": "hp +19",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 19,
+          "requires_any": [
+            "kadoka_plus_2_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_3_special",
+          "label": "専用強化 3",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_2_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 4,
+      "options": [
+        {
+          "id": "kadoka_plus_4_mp",
+          "label": "mp +24",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 24,
+          "requires_any": [
+            "kadoka_plus_3_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_4_hp",
+          "label": "hp +22",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 22,
+          "requires_any": [
+            "kadoka_plus_3_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_4_special",
+          "label": "専用強化 4",
+          "kind": "skill",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_3_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 5,
+      "options": [
+        {
+          "id": "kadoka_plus_5_mp",
+          "label": "mp +27",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 27,
+          "requires_any": [
+            "kadoka_plus_4_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_5_hp",
+          "label": "hp +25",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 25,
+          "requires_any": [
+            "kadoka_plus_4_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_5_special",
+          "label": "専用強化 5",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_4_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 6,
+      "options": [
+        {
+          "id": "kadoka_plus_6_mp",
+          "label": "mp +30",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 30,
+          "requires_any": [
+            "kadoka_plus_5_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_6_hp",
+          "label": "hp +28",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 28,
+          "requires_any": [
+            "kadoka_plus_5_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_6_special",
+          "label": "専用強化 6",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_5_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 7,
+      "options": [
+        {
+          "id": "kadoka_plus_7_mp",
+          "label": "mp +33",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 33,
+          "requires_any": [
+            "kadoka_plus_6_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_7_hp",
+          "label": "hp +31",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 31,
+          "requires_any": [
+            "kadoka_plus_6_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_7_special",
+          "label": "専用強化 7",
+          "kind": "skill",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_6_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 8,
+      "options": [
+        {
+          "id": "kadoka_plus_8_mp",
+          "label": "mp +36",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 36,
+          "requires_any": [
+            "kadoka_plus_7_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_8_hp",
+          "label": "hp +34",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 34,
+          "requires_any": [
+            "kadoka_plus_7_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_8_special",
+          "label": "専用強化 8",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_7_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 9,
+      "options": [
+        {
+          "id": "kadoka_plus_9_mp",
+          "label": "mp +39",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 39,
+          "requires_any": [
+            "kadoka_plus_8_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_9_hp",
+          "label": "hp +37",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 37,
+          "requires_any": [
+            "kadoka_plus_8_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_9_special",
+          "label": "専用強化 9",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_8_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 10,
+      "options": [
+        {
+          "id": "kadoka_plus_10_mp",
+          "label": "mp +42",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 42,
+          "requires_any": [
+            "kadoka_plus_9_mp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_10_hp",
+          "label": "hp +40",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 40,
+          "requires_any": [
+            "kadoka_plus_9_hp"
+          ]
+        },
+        {
+          "id": "kadoka_plus_10_special",
+          "label": "専用強化 10",
+          "kind": "skill",
+          "skill_id": "pick_up_kadoka",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "kadoka_plus_9_special"
+          ]
+        }
+      ]
+    }
+  ]
+}
+

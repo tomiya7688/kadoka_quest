@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "id": "attack",
+      "display_name": "こうげき",
+      "kind": "physical",
+      "power": 1.0,
+      "mp_cost": 0
+    },
+    {
+      "id": "defend",
+      "display_name": "ぼうぎょ",
+      "kind": "defend",
+      "damage_multiplier": 0.5,
+      "mp_cost": 0
+    },
+    {
+      "id": "body_bash",
+      "display_name": "たいあたり",
+      "kind": "physical",
+      "power": 1.2,
+      "mp_cost": 3
+    },
+    {
+      "id": "roll",
+      "display_name": "ころがる",
+      "kind": "physical",
+      "power": 1.1,
+      "mp_cost": 2
+    },
+    {
+      "id": "small_heal",
+      "display_name": "小回復",
+      "kind": "heal",
+      "heal_ratio": 0.22,
+      "mp_cost": 6
+    },
+    {
+      "id": "weaken",
+      "display_name": "ちからぬき",
+      "kind": "magic",
+      "power": 0.55,
+      "element": "mental",
+      "mp_cost": 5
+    },
+    {
+      "id": "piora",
+      "display_name": "ピオラ",
+      "kind": "buff",
+      "speed_multiplier": 1.5,
+      "duration": [
+        3,
+        6
+      ],
+      "mp_cost": 5
+    },
+    {
+      "id": "fluid_defense",
+      "display_name": "流体防御",
+      "kind": "evade",
+      "physical": true,
+      "lock_physical_next_turn": true,
+      "mp_cost": 4
+    },
+    {
+      "id": "poke",
+      "display_name": "つつく",
+      "kind": "physical",
+      "power": 0.8,
+      "critical_multiplier": 2.0,
+      "mp_cost": 1
+    },
+    {
+      "id": "metal_burst",
+      "display_name": "メタルバースト",
+      "kind": "magic",
+      "power": 2.0,
+      "element": "metal",
+      "self_damage_ratio": 0.1,
+      "mp_cost": 18
+    },
+    {
+      "id": "avoid_light",
+      "display_name": "光を避ける",
+      "kind": "evade",
+      "element": "light",
+      "mp_cost": 3
+    },
+    {
+      "id": "vanish",
+      "display_name": "見えなくなる",
+      "kind": "evade",
+      "physical": true,
+      "mp_cost": 4
+    },
+    {
+      "id": "possess",
+      "display_name": "とりつく",
+      "kind": "drain_mp",
+      "power": 0.25,
+      "mp_power": 0.14,
+      "element": "mental",
+      "mp_cost": 5
+    },
+    {
+      "id": "pick_up_maru",
+      "display_name": "変なものを拾う",
+      "kind": "field",
+      "field_only": true,
+      "loot_table": "maru_junk",
+      "mp_cost": 5
+    },
+    {
+      "id": "pick_up_kadoka",
+      "display_name": "ものを拾う",
+      "kind": "field",
+      "field_only": true,
+      "loot_table": "kadoka_fruit",
+      "mp_cost": 5
+    },
+    {
+      "id": "dice_strike",
+      "display_name": "サイコロパンチ",
+      "kind": "random",
+      "roll_kind": "physical",
+      "power": 1.0,
+      "mp_cost": 6
+    },
+    {
+      "id": "dice_magic",
+      "display_name": "サイコロ魔法",
+      "kind": "random",
+      "roll_kind": "magic",
+      "element": "arcane",
+      "power": 1.0,
+      "mp_cost": 12
+    },
+    {
+      "id": "focus",
+      "display_name": "ためる",
+      "kind": "buff",
+      "target": "self",
+      "attack_multiplier": 1.5,
+      "mp_cost": 2
+    },
+    {
+      "id": "healy",
+      "display_name": "ヒアリー",
+      "kind": "heal",
+      "heal_ratio": 0.1,
+      "mp_cost": 5
+    },
+    {
+      "id": "counter",
+      "display_name": "反撃のかまえ",
+      "kind": "defend",
+      "damage_multiplier": 0.75,
+      "counter": true,
+      "mp_cost": 3
+    },
+    {
+      "id": "protect",
+      "display_name": "かばう",
+      "kind": "defend",
+      "damage_multiplier": 0.75,
+      "protect_ally": true,
+      "mp_cost": 3
+    },
+    {
+      "id": "cheer",
+      "display_name": "おうえん",
+      "kind": "buff",
+      "attack_multiplier": 1.2,
+      "mp_cost": 3
+    },
+    {
+      "id": "spirit_recover",
+      "display_name": "きあいでなおす",
+      "kind": "heal",
+      "heal_ratio": 0.03,
+      "status_cure_chance": 0.03,
+      "mp_cost": 4
+    }
+  ]
+}
+

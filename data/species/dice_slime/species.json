@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "id": "dice_slime",
+  "display_name": "サイコロスライム",
+  "description": "高水準だがサイコロ依存が強い、物語クリア後の特別なスライム。",
+  "family": "slime",
+  "appearance": {
+    "type": "color",
+    "value": "#F7F7F7",
+    "symbol": "⚄"
+  },
+  "equipment_categories": [
+    "sword",
+    "clothes",
+    "staff"
+  ],
+  "ai_profile": "dice",
+  "experience_curve": "normal",
+  "recruit": {
+    "scoutable": false,
+    "boss": false,
+    "reacquire_rule": "home_after_story",
+    "ownership_cap_for_reacquire": 1
+  },
+  "resistances": {
+    "mental": "normal"
+  },
+  "defeat_message": "サイコロスライムは目を回してしまった。",
+  "portrait_path": "characters/dice_slime/portrait.png",
+  "field_sprite_path": "characters/dice_slime/field.png",
+  "field_sprites": {
+    "front": "characters/dice_slime/field_front.png",
+    "right": "characters/dice_slime/field_right.png",
+    "left": "characters/dice_slime/field_left.png",
+    "back": "characters/dice_slime/field_back.png"
+  }
+}
+

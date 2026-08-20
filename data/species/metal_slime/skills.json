@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "learnset": [
+    {
+      "level": 1,
+      "skill_id": "attack"
+    },
+    {
+      "level": 1,
+      "skill_id": "defend"
+    },
+    {
+      "level": 5,
+      "skill_id": "fluid_defense"
+    },
+    {
+      "level": 9,
+      "skill_id": "poke"
+    },
+    {
+      "level": 16,
+      "skill_id": "piora"
+    },
+    {
+      "level": 35,
+      "skill_id": "metal_burst"
+    }
+  ]
+}
+

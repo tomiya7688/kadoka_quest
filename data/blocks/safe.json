@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "safe",
+  "display_name": "安全地帯",
+  "player_walkable": true,
+  "enemy_spawnable": false,
+  "enemy_walkable": false,
+  "appearance": {
+    "type": "color",
+    "value": "#8BCF9C"
+  }
+}
+

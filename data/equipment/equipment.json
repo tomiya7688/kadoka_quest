@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "equipment": [
+    {
+      "id": "ken",
+      "display_name": "けん",
+      "category": "sword",
+      "description": "通常攻撃を1.5倍で判定。",
+      "stat_multipliers": {
+        "speed": 0.8
+      },
+      "skill_modifiers": {
+        "attack": {
+          "power_multiplier": 1.5
+        }
+      }
+    },
+    {
+      "id": "light_cloth",
+      "display_name": "かるい服",
+      "category": "clothes",
+      "description": "軽い防具。",
+      "stat_multipliers": {
+        "defense": 1.15,
+        "speed": 0.92
+      }
+    },
+    {
+      "id": "wood_staff",
+      "display_name": "木の杖",
+      "category": "staff",
+      "description": "魔法を少し強める。",
+      "stat_multipliers": {
+        "magic": 1.2,
+        "speed": 0.9
+      }
+    },
+    {
+      "id": "metal_claw",
+      "display_name": "メタル爪",
+      "category": "sword",
+      "description": "メタル狩り用の固定追加ダメージ。",
+      "stat_multipliers": {
+        "attack": 1.05,
+        "speed": 0.88
+      },
+      "fixed_bonus_damage": 3
+    },
+    {
+      "id": "heavy_weight",
+      "display_name": "重り",
+      "category": "sword",
+      "description": "強力だがとても遅くなる。",
+      "stat_multipliers": {
+        "attack": 1.35,
+        "speed": 0.55
+      }
+    },
+    {
+      "id": "light_ward",
+      "display_name": "光よけの布",
+      "category": "clothes",
+      "description": "光への弱点を補う。",
+      "stat_multipliers": {
+        "speed": 0.88
+      },
+      "resistance_steps": {
+        "light": 1
+      }
+    }
+  ]
+}
+

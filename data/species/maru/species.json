@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "id": "maru",
+  "display_name": "まる",
+  "description": "戦闘ではかなり抜けている丸いおばけ。変な物を拾う探索要員。",
+  "family": "round_ghost",
+  "appearance": {
+    "type": "color",
+    "value": "#F6F2E8",
+    "symbol": "○"
+  },
+  "equipment_categories": [
+    "clothes",
+    "staff"
+  ],
+  "ai_profile": "maru",
+  "experience_curve": "very_easy",
+  "recruit": {
+    "scoutable": false,
+    "boss": false,
+    "reacquire_rule": "ghost_home_password",
+    "ownership_cap_for_reacquire": 1
+  },
+  "resistances": {
+    "light": "weak",
+    "mental": "strong"
+  },
+  "defeat_message": "まるはつかれて動けなくなった。",
+  "portrait_path": "characters/maru/portrait.png",
+  "field_sprite_path": "characters/maru/field.png",
+  "field_sprites": {
+    "front": "characters/maru/field_front.png",
+    "right": "characters/maru/field_right.png",
+    "left": "characters/maru/field_left.png",
+    "back": "characters/maru/field_back.png"
+  }
+}
+

@@ -1,0 +1,806 @@
+{
+  "schema_version": 1,
+  "levels": {
+    "1": {
+      "attack": 14,
+      "defense": 14,
+      "speed": 15,
+      "magic": 13,
+      "hp": 43,
+      "mp": 24
+    },
+    "2": {
+      "attack": 18,
+      "defense": 17,
+      "speed": 19,
+      "magic": 16,
+      "hp": 50,
+      "mp": 28
+    },
+    "3": {
+      "attack": 21,
+      "defense": 21,
+      "speed": 22,
+      "magic": 20,
+      "hp": 57,
+      "mp": 33
+    },
+    "4": {
+      "attack": 25,
+      "defense": 24,
+      "speed": 26,
+      "magic": 23,
+      "hp": 64,
+      "mp": 37
+    },
+    "5": {
+      "attack": 28,
+      "defense": 28,
+      "speed": 30,
+      "magic": 26,
+      "hp": 71,
+      "mp": 41
+    },
+    "6": {
+      "attack": 32,
+      "defense": 31,
+      "speed": 33,
+      "magic": 30,
+      "hp": 78,
+      "mp": 46
+    },
+    "7": {
+      "attack": 35,
+      "defense": 34,
+      "speed": 37,
+      "magic": 33,
+      "hp": 85,
+      "mp": 50
+    },
+    "8": {
+      "attack": 39,
+      "defense": 38,
+      "speed": 40,
+      "magic": 36,
+      "hp": 92,
+      "mp": 54
+    },
+    "9": {
+      "attack": 42,
+      "defense": 41,
+      "speed": 44,
+      "magic": 39,
+      "hp": 99,
+      "mp": 58
+    },
+    "10": {
+      "attack": 46,
+      "defense": 45,
+      "speed": 48,
+      "magic": 43,
+      "hp": 106,
+      "mp": 63
+    },
+    "11": {
+      "attack": 49,
+      "defense": 48,
+      "speed": 51,
+      "magic": 46,
+      "hp": 113,
+      "mp": 67
+    },
+    "12": {
+      "attack": 53,
+      "defense": 51,
+      "speed": 55,
+      "magic": 49,
+      "hp": 120,
+      "mp": 71
+    },
+    "13": {
+      "attack": 57,
+      "defense": 55,
+      "speed": 59,
+      "magic": 53,
+      "hp": 127,
+      "mp": 76
+    },
+    "14": {
+      "attack": 60,
+      "defense": 58,
+      "speed": 62,
+      "magic": 56,
+      "hp": 134,
+      "mp": 80
+    },
+    "15": {
+      "attack": 64,
+      "defense": 62,
+      "speed": 66,
+      "magic": 59,
+      "hp": 141,
+      "mp": 84
+    },
+    "16": {
+      "attack": 67,
+      "defense": 65,
+      "speed": 70,
+      "magic": 63,
+      "hp": 148,
+      "mp": 89
+    },
+    "17": {
+      "attack": 71,
+      "defense": 68,
+      "speed": 73,
+      "magic": 66,
+      "hp": 155,
+      "mp": 93
+    },
+    "18": {
+      "attack": 74,
+      "defense": 72,
+      "speed": 77,
+      "magic": 69,
+      "hp": 162,
+      "mp": 97
+    },
+    "19": {
+      "attack": 78,
+      "defense": 75,
+      "speed": 80,
+      "magic": 72,
+      "hp": 169,
+      "mp": 101
+    },
+    "20": {
+      "attack": 81,
+      "defense": 78,
+      "speed": 84,
+      "magic": 76,
+      "hp": 176,
+      "mp": 106
+    },
+    "21": {
+      "attack": 85,
+      "defense": 82,
+      "speed": 88,
+      "magic": 79,
+      "hp": 183,
+      "mp": 110
+    },
+    "22": {
+      "attack": 88,
+      "defense": 85,
+      "speed": 91,
+      "magic": 82,
+      "hp": 190,
+      "mp": 114
+    },
+    "23": {
+      "attack": 92,
+      "defense": 89,
+      "speed": 95,
+      "magic": 86,
+      "hp": 197,
+      "mp": 119
+    },
+    "24": {
+      "attack": 96,
+      "defense": 92,
+      "speed": 99,
+      "magic": 89,
+      "hp": 204,
+      "mp": 123
+    },
+    "25": {
+      "attack": 99,
+      "defense": 95,
+      "speed": 102,
+      "magic": 92,
+      "hp": 211,
+      "mp": 127
+    },
+    "26": {
+      "attack": 103,
+      "defense": 99,
+      "speed": 106,
+      "magic": 96,
+      "hp": 218,
+      "mp": 132
+    },
+    "27": {
+      "attack": 106,
+      "defense": 102,
+      "speed": 110,
+      "magic": 99,
+      "hp": 225,
+      "mp": 136
+    },
+    "28": {
+      "attack": 110,
+      "defense": 106,
+      "speed": 113,
+      "magic": 102,
+      "hp": 232,
+      "mp": 140
+    },
+    "29": {
+      "attack": 113,
+      "defense": 109,
+      "speed": 117,
+      "magic": 105,
+      "hp": 239,
+      "mp": 144
+    },
+    "30": {
+      "attack": 117,
+      "defense": 112,
+      "speed": 120,
+      "magic": 109,
+      "hp": 246,
+      "mp": 149
+    },
+    "31": {
+      "attack": 120,
+      "defense": 116,
+      "speed": 124,
+      "magic": 112,
+      "hp": 253,
+      "mp": 153
+    },
+    "32": {
+      "attack": 124,
+      "defense": 119,
+      "speed": 128,
+      "magic": 115,
+      "hp": 260,
+      "mp": 157
+    },
+    "33": {
+      "attack": 127,
+      "defense": 123,
+      "speed": 131,
+      "magic": 119,
+      "hp": 267,
+      "mp": 162
+    },
+    "34": {
+      "attack": 131,
+      "defense": 126,
+      "speed": 135,
+      "magic": 122,
+      "hp": 274,
+      "mp": 166
+    },
+    "35": {
+      "attack": 135,
+      "defense": 129,
+      "speed": 139,
+      "magic": 125,
+      "hp": 281,
+      "mp": 170
+    },
+    "36": {
+      "attack": 138,
+      "defense": 133,
+      "speed": 142,
+      "magic": 129,
+      "hp": 288,
+      "mp": 175
+    },
+    "37": {
+      "attack": 142,
+      "defense": 136,
+      "speed": 146,
+      "magic": 132,
+      "hp": 295,
+      "mp": 179
+    },
+    "38": {
+      "attack": 145,
+      "defense": 140,
+      "speed": 150,
+      "magic": 135,
+      "hp": 302,
+      "mp": 183
+    },
+    "39": {
+      "attack": 149,
+      "defense": 143,
+      "speed": 153,
+      "magic": 139,
+      "hp": 309,
+      "mp": 188
+    },
+    "40": {
+      "attack": 152,
+      "defense": 146,
+      "speed": 157,
+      "magic": 142,
+      "hp": 316,
+      "mp": 192
+    },
+    "41": {
+      "attack": 156,
+      "defense": 150,
+      "speed": 160,
+      "magic": 145,
+      "hp": 323,
+      "mp": 196
+    },
+    "42": {
+      "attack": 159,
+      "defense": 153,
+      "speed": 164,
+      "magic": 148,
+      "hp": 330,
+      "mp": 200
+    },
+    "43": {
+      "attack": 163,
+      "defense": 157,
+      "speed": 168,
+      "magic": 152,
+      "hp": 337,
+      "mp": 205
+    },
+    "44": {
+      "attack": 166,
+      "defense": 160,
+      "speed": 171,
+      "magic": 155,
+      "hp": 344,
+      "mp": 209
+    },
+    "45": {
+      "attack": 170,
+      "defense": 163,
+      "speed": 175,
+      "magic": 158,
+      "hp": 351,
+      "mp": 213
+    },
+    "46": {
+      "attack": 174,
+      "defense": 167,
+      "speed": 179,
+      "magic": 162,
+      "hp": 358,
+      "mp": 218
+    },
+    "47": {
+      "attack": 177,
+      "defense": 170,
+      "speed": 182,
+      "magic": 165,
+      "hp": 365,
+      "mp": 222
+    },
+    "48": {
+      "attack": 181,
+      "defense": 174,
+      "speed": 186,
+      "magic": 168,
+      "hp": 372,
+      "mp": 226
+    },
+    "49": {
+      "attack": 184,
+      "defense": 177,
+      "speed": 190,
+      "magic": 172,
+      "hp": 379,
+      "mp": 231
+    },
+    "50": {
+      "attack": 188,
+      "defense": 180,
+      "speed": 193,
+      "magic": 175,
+      "hp": 386,
+      "mp": 235
+    },
+    "51": {
+      "attack": 191,
+      "defense": 184,
+      "speed": 197,
+      "magic": 178,
+      "hp": 392,
+      "mp": 239
+    },
+    "52": {
+      "attack": 195,
+      "defense": 187,
+      "speed": 200,
+      "magic": 181,
+      "hp": 399,
+      "mp": 243
+    },
+    "53": {
+      "attack": 198,
+      "defense": 190,
+      "speed": 204,
+      "magic": 185,
+      "hp": 406,
+      "mp": 248
+    },
+    "54": {
+      "attack": 202,
+      "defense": 194,
+      "speed": 208,
+      "magic": 188,
+      "hp": 413,
+      "mp": 252
+    },
+    "55": {
+      "attack": 205,
+      "defense": 197,
+      "speed": 211,
+      "magic": 191,
+      "hp": 420,
+      "mp": 256
+    },
+    "56": {
+      "attack": 209,
+      "defense": 201,
+      "speed": 215,
+      "magic": 195,
+      "hp": 427,
+      "mp": 261
+    },
+    "57": {
+      "attack": 213,
+      "defense": 204,
+      "speed": 219,
+      "magic": 198,
+      "hp": 434,
+      "mp": 265
+    },
+    "58": {
+      "attack": 216,
+      "defense": 207,
+      "speed": 222,
+      "magic": 201,
+      "hp": 441,
+      "mp": 269
+    },
+    "59": {
+      "attack": 220,
+      "defense": 211,
+      "speed": 226,
+      "magic": 205,
+      "hp": 448,
+      "mp": 274
+    },
+    "60": {
+      "attack": 223,
+      "defense": 214,
+      "speed": 230,
+      "magic": 208,
+      "hp": 455,
+      "mp": 278
+    },
+    "61": {
+      "attack": 227,
+      "defense": 218,
+      "speed": 233,
+      "magic": 211,
+      "hp": 462,
+      "mp": 282
+    },
+    "62": {
+      "attack": 230,
+      "defense": 221,
+      "speed": 237,
+      "magic": 214,
+      "hp": 469,
+      "mp": 286
+    },
+    "63": {
+      "attack": 234,
+      "defense": 224,
+      "speed": 240,
+      "magic": 218,
+      "hp": 476,
+      "mp": 291
+    },
+    "64": {
+      "attack": 237,
+      "defense": 228,
+      "speed": 244,
+      "magic": 221,
+      "hp": 483,
+      "mp": 295
+    },
+    "65": {
+      "attack": 241,
+      "defense": 231,
+      "speed": 248,
+      "magic": 224,
+      "hp": 490,
+      "mp": 299
+    },
+    "66": {
+      "attack": 244,
+      "defense": 235,
+      "speed": 251,
+      "magic": 228,
+      "hp": 497,
+      "mp": 304
+    },
+    "67": {
+      "attack": 248,
+      "defense": 238,
+      "speed": 255,
+      "magic": 231,
+      "hp": 504,
+      "mp": 308
+    },
+    "68": {
+      "attack": 252,
+      "defense": 241,
+      "speed": 259,
+      "magic": 234,
+      "hp": 511,
+      "mp": 312
+    },
+    "69": {
+      "attack": 255,
+      "defense": 245,
+      "speed": 262,
+      "magic": 238,
+      "hp": 518,
+      "mp": 317
+    },
+    "70": {
+      "attack": 259,
+      "defense": 248,
+      "speed": 266,
+      "magic": 241,
+      "hp": 525,
+      "mp": 321
+    },
+    "71": {
+      "attack": 262,
+      "defense": 252,
+      "speed": 270,
+      "magic": 244,
+      "hp": 532,
+      "mp": 325
+    },
+    "72": {
+      "attack": 266,
+      "defense": 255,
+      "speed": 273,
+      "magic": 248,
+      "hp": 539,
+      "mp": 330
+    },
+    "73": {
+      "attack": 269,
+      "defense": 258,
+      "speed": 277,
+      "magic": 251,
+      "hp": 546,
+      "mp": 334
+    },
+    "74": {
+      "attack": 273,
+      "defense": 262,
+      "speed": 280,
+      "magic": 254,
+      "hp": 553,
+      "mp": 338
+    },
+    "75": {
+      "attack": 276,
+      "defense": 265,
+      "speed": 284,
+      "magic": 257,
+      "hp": 560,
+      "mp": 342
+    },
+    "76": {
+      "attack": 280,
+      "defense": 269,
+      "speed": 288,
+      "magic": 261,
+      "hp": 567,
+      "mp": 347
+    },
+    "77": {
+      "attack": 283,
+      "defense": 272,
+      "speed": 291,
+      "magic": 264,
+      "hp": 574,
+      "mp": 351
+    },
+    "78": {
+      "attack": 287,
+      "defense": 275,
+      "speed": 295,
+      "magic": 267,
+      "hp": 581,
+      "mp": 355
+    },
+    "79": {
+      "attack": 291,
+      "defense": 279,
+      "speed": 299,
+      "magic": 271,
+      "hp": 588,
+      "mp": 360
+    },
+    "80": {
+      "attack": 294,
+      "defense": 282,
+      "speed": 302,
+      "magic": 274,
+      "hp": 595,
+      "mp": 364
+    },
+    "81": {
+      "attack": 298,
+      "defense": 286,
+      "speed": 306,
+      "magic": 277,
+      "hp": 602,
+      "mp": 368
+    },
+    "82": {
+      "attack": 301,
+      "defense": 289,
+      "speed": 310,
+      "magic": 281,
+      "hp": 609,
+      "mp": 373
+    },
+    "83": {
+      "attack": 305,
+      "defense": 292,
+      "speed": 313,
+      "magic": 284,
+      "hp": 616,
+      "mp": 377
+    },
+    "84": {
+      "attack": 308,
+      "defense": 296,
+      "speed": 317,
+      "magic": 287,
+      "hp": 623,
+      "mp": 381
+    },
+    "85": {
+      "attack": 312,
+      "defense": 299,
+      "speed": 320,
+      "magic": 290,
+      "hp": 630,
+      "mp": 385
+    },
+    "86": {
+      "attack": 315,
+      "defense": 302,
+      "speed": 324,
+      "magic": 294,
+      "hp": 637,
+      "mp": 390
+    },
+    "87": {
+      "attack": 319,
+      "defense": 306,
+      "speed": 328,
+      "magic": 297,
+      "hp": 644,
+      "mp": 394
+    },
+    "88": {
+      "attack": 322,
+      "defense": 309,
+      "speed": 331,
+      "magic": 300,
+      "hp": 651,
+      "mp": 398
+    },
+    "89": {
+      "attack": 326,
+      "defense": 313,
+      "speed": 335,
+      "magic": 304,
+      "hp": 658,
+      "mp": 403
+    },
+    "90": {
+      "attack": 330,
+      "defense": 316,
+      "speed": 339,
+      "magic": 307,
+      "hp": 665,
+      "mp": 407
+    },
+    "91": {
+      "attack": 333,
+      "defense": 319,
+      "speed": 342,
+      "magic": 310,
+      "hp": 672,
+      "mp": 411
+    },
+    "92": {
+      "attack": 337,
+      "defense": 323,
+      "speed": 346,
+      "magic": 314,
+      "hp": 679,
+      "mp": 416
+    },
+    "93": {
+      "attack": 340,
+      "defense": 326,
+      "speed": 350,
+      "magic": 317,
+      "hp": 686,
+      "mp": 420
+    },
+    "94": {
+      "attack": 344,
+      "defense": 330,
+      "speed": 353,
+      "magic": 320,
+      "hp": 693,
+      "mp": 424
+    },
+    "95": {
+      "attack": 347,
+      "defense": 333,
+      "speed": 357,
+      "magic": 323,
+      "hp": 700,
+      "mp": 428
+    },
+    "96": {
+      "attack": 351,
+      "defense": 336,
+      "speed": 360,
+      "magic": 327,
+      "hp": 707,
+      "mp": 433
+    },
+    "97": {
+      "attack": 354,
+      "defense": 340,
+      "speed": 364,
+      "magic": 330,
+      "hp": 714,
+      "mp": 437
+    },
+    "98": {
+      "attack": 358,
+      "defense": 343,
+      "speed": 368,
+      "magic": 333,
+      "hp": 721,
+      "mp": 441
+    },
+    "99": {
+      "attack": 361,
+      "defense": 347,
+      "speed": 371,
+      "magic": 337,
+      "hp": 728,
+      "mp": 446
+    },
+    "100": {
+      "attack": 365,
+      "defense": 350,
+      "speed": 375,
+      "magic": 340,
+      "hp": 735,
+      "mp": 450
+    }
+  }
+}
+

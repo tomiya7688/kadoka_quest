@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "town",
+  "display_name": "街の石畳",
+  "player_walkable": true,
+  "enemy_spawnable": false,
+  "enemy_walkable": false,
+  "appearance": {
+    "type": "color",
+    "value": "#C7BDA5"
+  }
+}
+

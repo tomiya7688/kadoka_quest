@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "learnset": [
+    {
+      "level": 1,
+      "skill_id": "attack"
+    },
+    {
+      "level": 1,
+      "skill_id": "pick_up_kadoka"
+    },
+    {
+      "level": 5,
+      "skill_id": "vanish"
+    },
+    {
+      "level": 18,
+      "skill_id": "possess"
+    }
+  ]
+}
+

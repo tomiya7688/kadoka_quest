@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "ghost",
+  "display_name": "ふつうのおばけ",
+  "description": "防御と光に弱いが、回避とMP妨害に優れる通常のおばけ。",
+  "family": "ghost",
+  "appearance": {
+    "type": "color",
+    "value": "#B39DDB",
+    "symbol": "G"
+  },
+  "equipment_categories": [
+    "clothes",
+    "staff"
+  ],
+  "ai_profile": "trickster",
+  "experience_curve": "normal",
+  "recruit": {
+    "scoutable": true,
+    "boss": false
+  },
+  "resistances": {
+    "light": "weak",
+    "dark": "strong",
+    "mental": "strong"
+  },
+  "defeat_message": null,
+  "portrait_path": "characters/ghost/portrait.png",
+  "field_sprite_path": "characters/ghost/field.png",
+  "field_sprites": {
+    "front": "characters/ghost/field_front.png",
+    "right": "characters/ghost/field_right.png",
+    "left": "characters/ghost/field_left.png",
+    "back": "characters/ghost/field_back.png"
+  }
+}
+

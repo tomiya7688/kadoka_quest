@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "learnset": [
+    {
+      "level": 1,
+      "skill_id": "attack"
+    },
+    {
+      "level": 3,
+      "skill_id": "defend"
+    },
+    {
+      "level": 7,
+      "skill_id": "body_bash"
+    },
+    {
+      "level": 18,
+      "skill_id": "small_heal"
+    }
+  ]
+}
+

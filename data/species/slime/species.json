@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "slime",
+  "display_name": "スライム",
+  "description": "癖が少なく安定した標準的なスライム。",
+  "family": "slime",
+  "appearance": {
+    "type": "color",
+    "value": "#42A5F5",
+    "symbol": "S"
+  },
+  "equipment_categories": [
+    "clothes",
+    "staff"
+  ],
+  "ai_profile": "normal",
+  "experience_curve": "normal",
+  "recruit": {
+    "scoutable": true,
+    "boss": false
+  },
+  "resistances": {
+    "ice": "strong",
+    "fire": "weak"
+  },
+  "defeat_message": null,
+  "portrait_path": "characters/slime/portrait.png",
+  "field_sprite_path": "characters/slime/field.png",
+  "field_sprites": {
+    "front": "characters/slime/field_front.png",
+    "right": "characters/slime/field_right.png",
+    "left": "characters/slime/field_left.png",
+    "back": "characters/slime/field_back.png"
+  }
+}
+

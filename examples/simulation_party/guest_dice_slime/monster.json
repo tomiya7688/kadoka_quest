@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "guest_dice_slime_001",
+  "species_id": "dice_slime",
+  "name": "ゲストサイコロ",
+  "level": 12,
+  "experience": 0,
+  "plus_choices": [],
+  "equipment_id": null,
+  "source": "example_import"
+}
+
+

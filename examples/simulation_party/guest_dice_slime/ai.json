@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "profile": "dice",
+  "tactic": "variety",
+  "weights": {
+    "damage": 0.55,
+    "survival": 0.45,
+    "support": 0.5,
+    "mp_care": 0.4
+  },
+  "kind_preferences": {
+    "random": 0.3
+  },
+  "action_preferences": {
+    "dice_strike": 0.2
+  },
+  "battles": 18,
+  "actions": 74
+}
+
+

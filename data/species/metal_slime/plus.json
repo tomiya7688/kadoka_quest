@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "max_stage": 10,
+  "stages": [
+    {
+      "stage": 1,
+      "options": [
+        {
+          "id": "metal_slime_plus_1_defense",
+          "label": "defense +15",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 15
+        },
+        {
+          "id": "metal_slime_plus_1_speed",
+          "label": "speed +13",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 13
+        },
+        {
+          "id": "metal_slime_plus_1_special",
+          "label": "専用強化 1",
+          "kind": "stat_multiplier",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "options": [
+        {
+          "id": "metal_slime_plus_2_defense",
+          "label": "defense +18",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 18,
+          "requires_any": [
+            "metal_slime_plus_1_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_2_speed",
+          "label": "speed +16",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 16,
+          "requires_any": [
+            "metal_slime_plus_1_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_2_special",
+          "label": "専用強化 2",
+          "kind": "stat_multiplier",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_1_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "options": [
+        {
+          "id": "metal_slime_plus_3_defense",
+          "label": "defense +21",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 21,
+          "requires_any": [
+            "metal_slime_plus_2_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_3_speed",
+          "label": "speed +19",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 19,
+          "requires_any": [
+            "metal_slime_plus_2_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_3_special",
+          "label": "専用強化 3",
+          "kind": "stat_multiplier",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_2_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 4,
+      "options": [
+        {
+          "id": "metal_slime_plus_4_defense",
+          "label": "defense +24",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 24,
+          "requires_any": [
+            "metal_slime_plus_3_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_4_speed",
+          "label": "speed +22",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 22,
+          "requires_any": [
+            "metal_slime_plus_3_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_4_special",
+          "label": "専用強化 4",
+          "kind": "skill",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_3_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 5,
+      "options": [
+        {
+          "id": "metal_slime_plus_5_defense",
+          "label": "defense +27",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 27,
+          "requires_any": [
+            "metal_slime_plus_4_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_5_speed",
+          "label": "speed +25",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 25,
+          "requires_any": [
+            "metal_slime_plus_4_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_5_special",
+          "label": "専用強化 5",
+          "kind": "stat_multiplier",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_4_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 6,
+      "options": [
+        {
+          "id": "metal_slime_plus_6_defense",
+          "label": "defense +30",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 30,
+          "requires_any": [
+            "metal_slime_plus_5_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_6_speed",
+          "label": "speed +28",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 28,
+          "requires_any": [
+            "metal_slime_plus_5_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_6_special",
+          "label": "専用強化 6",
+          "kind": "stat_multiplier",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_5_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 7,
+      "options": [
+        {
+          "id": "metal_slime_plus_7_defense",
+          "label": "defense +33",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 33,
+          "requires_any": [
+            "metal_slime_plus_6_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_7_speed",
+          "label": "speed +31",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 31,
+          "requires_any": [
+            "metal_slime_plus_6_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_7_special",
+          "label": "専用強化 7",
+          "kind": "skill",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_6_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 8,
+      "options": [
+        {
+          "id": "metal_slime_plus_8_defense",
+          "label": "defense +36",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 36,
+          "requires_any": [
+            "metal_slime_plus_7_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_8_speed",
+          "label": "speed +34",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 34,
+          "requires_any": [
+            "metal_slime_plus_7_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_8_special",
+          "label": "専用強化 8",
+          "kind": "stat_multiplier",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_7_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 9,
+      "options": [
+        {
+          "id": "metal_slime_plus_9_defense",
+          "label": "defense +39",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 39,
+          "requires_any": [
+            "metal_slime_plus_8_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_9_speed",
+          "label": "speed +37",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 37,
+          "requires_any": [
+            "metal_slime_plus_8_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_9_special",
+          "label": "専用強化 9",
+          "kind": "stat_multiplier",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_8_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 10,
+      "options": [
+        {
+          "id": "metal_slime_plus_10_defense",
+          "label": "defense +42",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 42,
+          "requires_any": [
+            "metal_slime_plus_9_defense"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_10_speed",
+          "label": "speed +40",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 40,
+          "requires_any": [
+            "metal_slime_plus_9_speed"
+          ]
+        },
+        {
+          "id": "metal_slime_plus_10_special",
+          "label": "専用強化 10",
+          "kind": "skill",
+          "skill_id": "metal_burst",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "metal_slime_plus_9_special"
+          ]
+        }
+      ]
+    }
+  ]
+}
+

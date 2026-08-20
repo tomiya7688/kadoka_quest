@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "max_stage": 10,
+  "stages": [
+    {
+      "stage": 1,
+      "options": [
+        {
+          "id": "maru_plus_1_hp",
+          "label": "hp +15",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 15
+        },
+        {
+          "id": "maru_plus_1_mp",
+          "label": "mp +13",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 13
+        },
+        {
+          "id": "maru_plus_1_special",
+          "label": "専用強化 1",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "options": [
+        {
+          "id": "maru_plus_2_hp",
+          "label": "hp +18",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 18,
+          "requires_any": [
+            "maru_plus_1_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_2_mp",
+          "label": "mp +16",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 16,
+          "requires_any": [
+            "maru_plus_1_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_2_special",
+          "label": "専用強化 2",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_1_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "options": [
+        {
+          "id": "maru_plus_3_hp",
+          "label": "hp +21",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 21,
+          "requires_any": [
+            "maru_plus_2_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_3_mp",
+          "label": "mp +19",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 19,
+          "requires_any": [
+            "maru_plus_2_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_3_special",
+          "label": "専用強化 3",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_2_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 4,
+      "options": [
+        {
+          "id": "maru_plus_4_hp",
+          "label": "hp +24",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 24,
+          "requires_any": [
+            "maru_plus_3_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_4_mp",
+          "label": "mp +22",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 22,
+          "requires_any": [
+            "maru_plus_3_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_4_special",
+          "label": "専用強化 4",
+          "kind": "skill",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_3_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 5,
+      "options": [
+        {
+          "id": "maru_plus_5_hp",
+          "label": "hp +27",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 27,
+          "requires_any": [
+            "maru_plus_4_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_5_mp",
+          "label": "mp +25",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 25,
+          "requires_any": [
+            "maru_plus_4_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_5_special",
+          "label": "専用強化 5",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_4_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 6,
+      "options": [
+        {
+          "id": "maru_plus_6_hp",
+          "label": "hp +30",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 30,
+          "requires_any": [
+            "maru_plus_5_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_6_mp",
+          "label": "mp +28",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 28,
+          "requires_any": [
+            "maru_plus_5_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_6_special",
+          "label": "専用強化 6",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_5_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 7,
+      "options": [
+        {
+          "id": "maru_plus_7_hp",
+          "label": "hp +33",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 33,
+          "requires_any": [
+            "maru_plus_6_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_7_mp",
+          "label": "mp +31",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 31,
+          "requires_any": [
+            "maru_plus_6_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_7_special",
+          "label": "専用強化 7",
+          "kind": "skill",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_6_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 8,
+      "options": [
+        {
+          "id": "maru_plus_8_hp",
+          "label": "hp +36",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 36,
+          "requires_any": [
+            "maru_plus_7_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_8_mp",
+          "label": "mp +34",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 34,
+          "requires_any": [
+            "maru_plus_7_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_8_special",
+          "label": "専用強化 8",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_7_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 9,
+      "options": [
+        {
+          "id": "maru_plus_9_hp",
+          "label": "hp +39",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 39,
+          "requires_any": [
+            "maru_plus_8_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_9_mp",
+          "label": "mp +37",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 37,
+          "requires_any": [
+            "maru_plus_8_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_9_special",
+          "label": "専用強化 9",
+          "kind": "stat_multiplier",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_8_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 10,
+      "options": [
+        {
+          "id": "maru_plus_10_hp",
+          "label": "hp +42",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 42,
+          "requires_any": [
+            "maru_plus_9_hp"
+          ]
+        },
+        {
+          "id": "maru_plus_10_mp",
+          "label": "mp +40",
+          "kind": "stat_add",
+          "stat": "mp",
+          "value": 40,
+          "requires_any": [
+            "maru_plus_9_mp"
+          ]
+        },
+        {
+          "id": "maru_plus_10_special",
+          "label": "専用強化 10",
+          "kind": "skill",
+          "skill_id": "pick_up_maru",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "maru_plus_9_special"
+          ]
+        }
+      ]
+    }
+  ]
+}
+

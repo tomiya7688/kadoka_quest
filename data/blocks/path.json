@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "path",
+  "display_name": "道",
+  "player_walkable": true,
+  "enemy_spawnable": false,
+  "enemy_walkable": true,
+  "appearance": {
+    "type": "color",
+    "value": "#C8B27D"
+  }
+}
+

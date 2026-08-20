@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "max_stage": 10,
+  "stages": [
+    {
+      "stage": 1,
+      "options": [
+        {
+          "id": "hero_plus_1_attack",
+          "label": "attack +15",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 15
+        },
+        {
+          "id": "hero_plus_1_hp",
+          "label": "hp +13",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 13
+        },
+        {
+          "id": "hero_plus_1_special",
+          "label": "専用強化 1",
+          "kind": "stat_multiplier",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "options": [
+        {
+          "id": "hero_plus_2_attack",
+          "label": "attack +18",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 18,
+          "requires_any": [
+            "hero_plus_1_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_2_hp",
+          "label": "hp +16",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 16,
+          "requires_any": [
+            "hero_plus_1_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_2_special",
+          "label": "専用強化 2",
+          "kind": "stat_multiplier",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_1_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "options": [
+        {
+          "id": "hero_plus_3_attack",
+          "label": "attack +21",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 21,
+          "requires_any": [
+            "hero_plus_2_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_3_hp",
+          "label": "hp +19",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 19,
+          "requires_any": [
+            "hero_plus_2_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_3_special",
+          "label": "専用強化 3",
+          "kind": "stat_multiplier",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_2_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 4,
+      "options": [
+        {
+          "id": "hero_plus_4_attack",
+          "label": "attack +24",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 24,
+          "requires_any": [
+            "hero_plus_3_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_4_hp",
+          "label": "hp +22",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 22,
+          "requires_any": [
+            "hero_plus_3_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_4_special",
+          "label": "専用強化 4",
+          "kind": "skill",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_3_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 5,
+      "options": [
+        {
+          "id": "hero_plus_5_attack",
+          "label": "attack +27",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 27,
+          "requires_any": [
+            "hero_plus_4_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_5_hp",
+          "label": "hp +25",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 25,
+          "requires_any": [
+            "hero_plus_4_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_5_special",
+          "label": "専用強化 5",
+          "kind": "stat_multiplier",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_4_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 6,
+      "options": [
+        {
+          "id": "hero_plus_6_attack",
+          "label": "attack +30",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 30,
+          "requires_any": [
+            "hero_plus_5_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_6_hp",
+          "label": "hp +28",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 28,
+          "requires_any": [
+            "hero_plus_5_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_6_special",
+          "label": "専用強化 6",
+          "kind": "stat_multiplier",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_5_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 7,
+      "options": [
+        {
+          "id": "hero_plus_7_attack",
+          "label": "attack +33",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 33,
+          "requires_any": [
+            "hero_plus_6_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_7_hp",
+          "label": "hp +31",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 31,
+          "requires_any": [
+            "hero_plus_6_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_7_special",
+          "label": "専用強化 7",
+          "kind": "skill",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_6_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 8,
+      "options": [
+        {
+          "id": "hero_plus_8_attack",
+          "label": "attack +36",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 36,
+          "requires_any": [
+            "hero_plus_7_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_8_hp",
+          "label": "hp +34",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 34,
+          "requires_any": [
+            "hero_plus_7_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_8_special",
+          "label": "専用強化 8",
+          "kind": "stat_multiplier",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_7_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 9,
+      "options": [
+        {
+          "id": "hero_plus_9_attack",
+          "label": "attack +39",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 39,
+          "requires_any": [
+            "hero_plus_8_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_9_hp",
+          "label": "hp +37",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 37,
+          "requires_any": [
+            "hero_plus_8_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_9_special",
+          "label": "専用強化 9",
+          "kind": "stat_multiplier",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_8_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 10,
+      "options": [
+        {
+          "id": "hero_plus_10_attack",
+          "label": "attack +42",
+          "kind": "stat_add",
+          "stat": "attack",
+          "value": 42,
+          "requires_any": [
+            "hero_plus_9_attack"
+          ]
+        },
+        {
+          "id": "hero_plus_10_hp",
+          "label": "hp +40",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 40,
+          "requires_any": [
+            "hero_plus_9_hp"
+          ]
+        },
+        {
+          "id": "hero_plus_10_special",
+          "label": "専用強化 10",
+          "kind": "skill",
+          "skill_id": "attack",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "hero_plus_9_special"
+          ]
+        }
+      ]
+    }
+  ]
+}
+

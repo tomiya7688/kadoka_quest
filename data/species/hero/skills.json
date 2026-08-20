@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "learnset": [
+    {
+      "level": 1,
+      "skill_id": "attack"
+    },
+    {
+      "level": 3,
+      "skill_id": "defend"
+    },
+    {
+      "level": 8,
+      "skill_id": "focus"
+    },
+    {
+      "level": 14,
+      "skill_id": "healy"
+    },
+    {
+      "level": 22,
+      "skill_id": "counter"
+    },
+    {
+      "level": 30,
+      "skill_id": "protect"
+    },
+    {
+      "level": 42,
+      "skill_id": "cheer"
+    },
+    {
+      "level": 60,
+      "skill_id": "spirit_recover"
+    }
+  ]
+}
+

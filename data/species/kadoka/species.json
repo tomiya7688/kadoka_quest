@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "id": "kadoka",
+  "display_name": "かどか",
+  "description": "みかんをよく拾い、まれに柿を持ってくる丸いおばけ。",
+  "family": "round_ghost",
+  "appearance": {
+    "type": "color",
+    "value": "#D9F0FF",
+    "symbol": "K"
+  },
+  "equipment_categories": [
+    "clothes",
+    "staff"
+  ],
+  "ai_profile": "kadoka",
+  "experience_curve": "very_easy",
+  "recruit": {
+    "scoutable": false,
+    "boss": false,
+    "reacquire_rule": "ghost_home_password",
+    "ownership_cap_for_reacquire": 1
+  },
+  "resistances": {
+    "light": "weak",
+    "mental": "strong"
+  },
+  "defeat_message": "かどかは疲れてしまった。",
+  "portrait_path": "characters/kadoka/portrait.png",
+  "field_sprite_path": "characters/kadoka/field.png",
+  "field_sprites": {
+    "front": "characters/kadoka/field_front.png",
+    "right": "characters/kadoka/field_right.png",
+    "left": "characters/kadoka/field_left.png",
+    "back": "characters/kadoka/field_back.png"
+  }
+}
+

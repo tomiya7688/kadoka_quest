@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "max_stage": 10,
+  "stages": [
+    {
+      "stage": 1,
+      "options": [
+        {
+          "id": "slime_plus_1_hp",
+          "label": "hp +15",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 15
+        },
+        {
+          "id": "slime_plus_1_defense",
+          "label": "defense +13",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 13
+        },
+        {
+          "id": "slime_plus_1_special",
+          "label": "専用強化 1",
+          "kind": "stat_multiplier",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "options": [
+        {
+          "id": "slime_plus_2_hp",
+          "label": "hp +18",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 18,
+          "requires_any": [
+            "slime_plus_1_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_2_defense",
+          "label": "defense +16",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 16,
+          "requires_any": [
+            "slime_plus_1_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_2_special",
+          "label": "専用強化 2",
+          "kind": "stat_multiplier",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_1_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "options": [
+        {
+          "id": "slime_plus_3_hp",
+          "label": "hp +21",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 21,
+          "requires_any": [
+            "slime_plus_2_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_3_defense",
+          "label": "defense +19",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 19,
+          "requires_any": [
+            "slime_plus_2_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_3_special",
+          "label": "専用強化 3",
+          "kind": "stat_multiplier",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_2_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 4,
+      "options": [
+        {
+          "id": "slime_plus_4_hp",
+          "label": "hp +24",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 24,
+          "requires_any": [
+            "slime_plus_3_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_4_defense",
+          "label": "defense +22",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 22,
+          "requires_any": [
+            "slime_plus_3_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_4_special",
+          "label": "専用強化 4",
+          "kind": "skill",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_3_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 5,
+      "options": [
+        {
+          "id": "slime_plus_5_hp",
+          "label": "hp +27",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 27,
+          "requires_any": [
+            "slime_plus_4_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_5_defense",
+          "label": "defense +25",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 25,
+          "requires_any": [
+            "slime_plus_4_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_5_special",
+          "label": "専用強化 5",
+          "kind": "stat_multiplier",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_4_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 6,
+      "options": [
+        {
+          "id": "slime_plus_6_hp",
+          "label": "hp +30",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 30,
+          "requires_any": [
+            "slime_plus_5_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_6_defense",
+          "label": "defense +28",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 28,
+          "requires_any": [
+            "slime_plus_5_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_6_special",
+          "label": "専用強化 6",
+          "kind": "stat_multiplier",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_5_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 7,
+      "options": [
+        {
+          "id": "slime_plus_7_hp",
+          "label": "hp +33",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 33,
+          "requires_any": [
+            "slime_plus_6_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_7_defense",
+          "label": "defense +31",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 31,
+          "requires_any": [
+            "slime_plus_6_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_7_special",
+          "label": "専用強化 7",
+          "kind": "skill",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_6_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 8,
+      "options": [
+        {
+          "id": "slime_plus_8_hp",
+          "label": "hp +36",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 36,
+          "requires_any": [
+            "slime_plus_7_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_8_defense",
+          "label": "defense +34",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 34,
+          "requires_any": [
+            "slime_plus_7_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_8_special",
+          "label": "専用強化 8",
+          "kind": "stat_multiplier",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_7_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 9,
+      "options": [
+        {
+          "id": "slime_plus_9_hp",
+          "label": "hp +39",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 39,
+          "requires_any": [
+            "slime_plus_8_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_9_defense",
+          "label": "defense +37",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 37,
+          "requires_any": [
+            "slime_plus_8_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_9_special",
+          "label": "専用強化 9",
+          "kind": "stat_multiplier",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_8_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 10,
+      "options": [
+        {
+          "id": "slime_plus_10_hp",
+          "label": "hp +42",
+          "kind": "stat_add",
+          "stat": "hp",
+          "value": 42,
+          "requires_any": [
+            "slime_plus_9_hp"
+          ]
+        },
+        {
+          "id": "slime_plus_10_defense",
+          "label": "defense +40",
+          "kind": "stat_add",
+          "stat": "defense",
+          "value": 40,
+          "requires_any": [
+            "slime_plus_9_defense"
+          ]
+        },
+        {
+          "id": "slime_plus_10_special",
+          "label": "専用強化 10",
+          "kind": "skill",
+          "skill_id": "body_bash",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "slime_plus_9_special"
+          ]
+        }
+      ]
+    }
+  ]
+}
+

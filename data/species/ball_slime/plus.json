@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "max_stage": 10,
+  "stages": [
+    {
+      "stage": 1,
+      "options": [
+        {
+          "id": "ball_slime_plus_1_speed",
+          "label": "speed +15",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 15
+        },
+        {
+          "id": "ball_slime_plus_1_magic",
+          "label": "magic +13",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 13
+        },
+        {
+          "id": "ball_slime_plus_1_special",
+          "label": "専用強化 1",
+          "kind": "stat_multiplier",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "options": [
+        {
+          "id": "ball_slime_plus_2_speed",
+          "label": "speed +18",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 18,
+          "requires_any": [
+            "ball_slime_plus_1_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_2_magic",
+          "label": "magic +16",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 16,
+          "requires_any": [
+            "ball_slime_plus_1_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_2_special",
+          "label": "専用強化 2",
+          "kind": "stat_multiplier",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_1_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "options": [
+        {
+          "id": "ball_slime_plus_3_speed",
+          "label": "speed +21",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 21,
+          "requires_any": [
+            "ball_slime_plus_2_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_3_magic",
+          "label": "magic +19",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 19,
+          "requires_any": [
+            "ball_slime_plus_2_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_3_special",
+          "label": "専用強化 3",
+          "kind": "stat_multiplier",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_2_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 4,
+      "options": [
+        {
+          "id": "ball_slime_plus_4_speed",
+          "label": "speed +24",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 24,
+          "requires_any": [
+            "ball_slime_plus_3_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_4_magic",
+          "label": "magic +22",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 22,
+          "requires_any": [
+            "ball_slime_plus_3_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_4_special",
+          "label": "専用強化 4",
+          "kind": "skill",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_3_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 5,
+      "options": [
+        {
+          "id": "ball_slime_plus_5_speed",
+          "label": "speed +27",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 27,
+          "requires_any": [
+            "ball_slime_plus_4_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_5_magic",
+          "label": "magic +25",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 25,
+          "requires_any": [
+            "ball_slime_plus_4_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_5_special",
+          "label": "専用強化 5",
+          "kind": "stat_multiplier",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_4_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 6,
+      "options": [
+        {
+          "id": "ball_slime_plus_6_speed",
+          "label": "speed +30",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 30,
+          "requires_any": [
+            "ball_slime_plus_5_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_6_magic",
+          "label": "magic +28",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 28,
+          "requires_any": [
+            "ball_slime_plus_5_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_6_special",
+          "label": "専用強化 6",
+          "kind": "stat_multiplier",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_5_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 7,
+      "options": [
+        {
+          "id": "ball_slime_plus_7_speed",
+          "label": "speed +33",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 33,
+          "requires_any": [
+            "ball_slime_plus_6_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_7_magic",
+          "label": "magic +31",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 31,
+          "requires_any": [
+            "ball_slime_plus_6_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_7_special",
+          "label": "専用強化 7",
+          "kind": "skill",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_6_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 8,
+      "options": [
+        {
+          "id": "ball_slime_plus_8_speed",
+          "label": "speed +36",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 36,
+          "requires_any": [
+            "ball_slime_plus_7_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_8_magic",
+          "label": "magic +34",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 34,
+          "requires_any": [
+            "ball_slime_plus_7_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_8_special",
+          "label": "専用強化 8",
+          "kind": "stat_multiplier",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_7_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 9,
+      "options": [
+        {
+          "id": "ball_slime_plus_9_speed",
+          "label": "speed +39",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 39,
+          "requires_any": [
+            "ball_slime_plus_8_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_9_magic",
+          "label": "magic +37",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 37,
+          "requires_any": [
+            "ball_slime_plus_8_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_9_special",
+          "label": "専用強化 9",
+          "kind": "stat_multiplier",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_8_special"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 10,
+      "options": [
+        {
+          "id": "ball_slime_plus_10_speed",
+          "label": "speed +42",
+          "kind": "stat_add",
+          "stat": "speed",
+          "value": 42,
+          "requires_any": [
+            "ball_slime_plus_9_speed"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_10_magic",
+          "label": "magic +40",
+          "kind": "stat_add",
+          "stat": "magic",
+          "value": 40,
+          "requires_any": [
+            "ball_slime_plus_9_magic"
+          ]
+        },
+        {
+          "id": "ball_slime_plus_10_special",
+          "label": "専用強化 10",
+          "kind": "skill",
+          "skill_id": "small_heal",
+          "stat": "speed",
+          "value": 1.04,
+          "requires_any": [
+            "ball_slime_plus_9_special"
+          ]
+        }
+      ]
+    }
+  ]
+}
+

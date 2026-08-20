@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "grass",
+  "display_name": "草地",
+  "player_walkable": true,
+  "enemy_spawnable": true,
+  "enemy_walkable": true,
+  "appearance": {
+    "type": "color",
+    "value": "#4E9F3D"
+  }
+}
+

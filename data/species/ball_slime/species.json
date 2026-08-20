@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "id": "ball_slime",
+  "display_name": "ボールスライム",
+  "description": "能力値は低めだが素早く器用。最初の相棒で、所有ゼロなら再獲得できる。",
+  "family": "slime",
+  "appearance": {
+    "type": "color",
+    "value": "#F28C28",
+    "symbol": "B"
+  },
+  "equipment_categories": [
+    "sword",
+    "clothes",
+    "staff"
+  ],
+  "ai_profile": "support",
+  "experience_curve": "easy",
+  "recruit": {
+    "scoutable": false,
+    "boss": false,
+    "reacquire_rule": "home_from_start",
+    "ownership_cap_for_reacquire": 1
+  },
+  "resistances": {
+    "wind": "strong"
+  },
+  "defeat_message": null,
+  "portrait_path": "characters/ball_slime/portrait.png",
+  "field_sprite_path": "characters/ball_slime/field.png",
+  "field_sprites": {
+    "front": "characters/ball_slime/field_front.png",
+    "right": "characters/ball_slime/field_right.png",
+    "left": "characters/ball_slime/field_left.png",
+    "back": "characters/ball_slime/field_back.png"
+  }
+}
+

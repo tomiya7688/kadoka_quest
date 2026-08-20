@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "water",
+  "display_name": "水",
+  "player_walkable": false,
+  "enemy_spawnable": false,
+  "enemy_walkable": false,
+  "appearance": {
+    "type": "color",
+    "value": "#2878B5"
+  }
+}
+
