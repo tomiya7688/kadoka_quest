@@ -951,6 +951,7 @@
       "x": 0,
       "y": 12,
       "type": "transition",
+      "activation": "step",
       "target": {
         "map_id": "fresh_forest",
         "x": 46,

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "black_out",
+  "display_name": "新しいブロック",
+  "player_walkable": true,
+  "enemy_spawnable": false,
+  "enemy_walkable": true,
+  "appearance": {
+    "type": "path",
+    "value": "appearance/blocks/black_out.png"
+  }
+}

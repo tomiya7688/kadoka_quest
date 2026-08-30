@@ -1667,6 +1667,7 @@
       "x": 0,
       "y": 15,
       "type": "transition",
+      "activation": "step",
       "target": {
         "map_id": "greenwood",
         "x": 46,
@@ -1678,6 +1679,7 @@
       "x": 47,
       "y": 15,
       "type": "transition",
+      "activation": "step",
       "target": {
         "map_id": "rokuta_village",
         "x": 2,

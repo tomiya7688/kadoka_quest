@@ -9,10 +9,6 @@
     "value": "#D9F0FF",
     "symbol": "K"
   },
-  "equipment_categories": [
-    "clothes",
-    "staff"
-  ],
   "ai_profile": "kadoka",
   "experience_curve": "very_easy",
   "recruit": {
@@ -30,9 +26,8 @@
   "field_sprite_path": "characters/kadoka/field.png",
   "field_sprites": {
     "front": "characters/kadoka/field_front.png",
-    "right": "characters/kadoka/field_right.png",
-    "left": "characters/kadoka/field_left.png",
+    "right": "characters/kadoka/field_right_round.png",
+    "left": "characters/kadoka/field_left_round.png",
     "back": "characters/kadoka/field_back.png"
   }
 }
-

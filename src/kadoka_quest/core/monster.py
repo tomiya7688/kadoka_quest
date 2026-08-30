@@ -37,6 +37,11 @@ class MonsterRecord:
         return str(value) if value else None
 
 
+def equipment_allows_species(equipment: dict[str, Any], species_id: str) -> bool:
+    """装備品側の許可リストだけを装備可否の正とする。"""
+    return str(species_id) in {str(item) for item in equipment.get("allowed_species_ids", [])}
+
+
 def calculate_stats(repository: GameRepository, record: MonsterRecord) -> dict[str, int]:
     stats = repository.stats_at(record.species_id, record.level)
     bundle = repository.get_species(record.species_id)
@@ -57,12 +62,10 @@ def calculate_stats(repository: GameRepository, record: MonsterRecord) -> dict[s
 
     if record.equipment_id:
         equipment = repository.get_equipment().get(record.equipment_id)
-        if equipment:
-            allowed = set(bundle.definition.get("equipment_categories", []))
-            if equipment.get("category") in allowed:
-                for stat, multiplier in equipment.get("stat_multipliers", {}).items():
-                    if stat in stats:
-                        stats[stat] = round(stats[stat] * float(multiplier))
+        if equipment and equipment_allows_species(equipment, record.species_id):
+            for stat, multiplier in equipment.get("stat_multipliers", {}).items():
+                if stat in stats:
+                    stats[stat] = round(stats[stat] * float(multiplier))
 
     return {key: max(1, int(stats[key])) for key in STAT_KEYS}
 

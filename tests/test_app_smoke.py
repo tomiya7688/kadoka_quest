@@ -21,7 +21,7 @@ class AppSmokeTests(unittest.TestCase):
             environment["SDL_AUDIODRIVER"] = "dummy"
             environment["KADOKA_SAVE_DIR"] = str(Path(temporary) / "save")
             environment["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
-            for script in ("launcher.py", "block_editor.py", "map_editor.py", "monster_editor.py", "manage.py", "game.py"):
+            for script in ("launcher.py", "block_editor.py", "map_editor.py", "monster_editor.py", "data_creator.py", "manage.py", "game.py"):
                 completed = subprocess.run(
                     [sys.executable, str(PROJECT_ROOT / script), "--smoke", "2"],
                     cwd=PROJECT_ROOT,

@@ -9,10 +9,6 @@
     "value": "#B39DDB",
     "symbol": "G"
   },
-  "equipment_categories": [
-    "clothes",
-    "staff"
-  ],
   "ai_profile": "trickster",
   "experience_curve": "normal",
   "recruit": {

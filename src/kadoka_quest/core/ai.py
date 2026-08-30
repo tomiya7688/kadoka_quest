@@ -28,6 +28,8 @@ def default_ai(profile: str = "normal", tactic: str = "balanced") -> dict[str, A
         },
         "kind_preferences": profile_bias,
         "action_preferences": {},
+        "context_preferences": {},
+        "context_actions": {},
         "battles": 0,
         "actions": 0,
     }
@@ -50,12 +52,15 @@ def choose_skill(
     ally_missing_hp_ratio: float,
     mp_ratio: float,
     rng: random.Random,
+    context_tags: Iterable[str] = (),
 ) -> dict[str, Any] | None:
     candidates: list[tuple[float, dict[str, Any]]] = []
     tactic = str(ai.get("tactic", "balanced"))
     profile = str(ai.get("profile", "normal"))
     preferences = ai.get("action_preferences", {})
     kind_preferences = ai.get("kind_preferences", {})
+    context_preferences = ai.get("context_preferences", {})
+    context_tags = tuple(str(tag) for tag in context_tags)
 
     for skill in skills:
         if skill.get("field_only"):
@@ -65,6 +70,11 @@ def choose_skill(
         score += _tactic_bonus(tactic, kind)
         score += float(preferences.get(skill.get("id"), 0.0))
         score += float(kind_preferences.get(kind, 0.0))
+        context_bonus = sum(
+            float(context_preferences.get(tag, {}).get(skill.get("id"), 0.0))
+            for tag in context_tags
+        )
+        score += max(-1.0, min(1.0, context_bonus))
         mp_cost = int(skill.get("mp_cost", 0))
         if mp_cost and mp_ratio < 0.25:
             score -= 0.8 * float(ai.get("weights", {}).get("mp_care", 0.5))
@@ -91,10 +101,22 @@ def choose_skill(
     return candidates[0][1]
 
 
-def learn_from_action(ai: dict[str, Any], skill_id: str, reward: float) -> None:
+def learn_from_action(
+    ai: dict[str, Any],
+    skill_id: str,
+    reward: float,
+    context_tags: Iterable[str] = (),
+) -> None:
     preferences = ai.setdefault("action_preferences", {})
     current = float(preferences.get(skill_id, 0.0))
     preferences[skill_id] = round(max(-1.0, min(1.0, current + reward * 0.015)), 4)
+    context_preferences = ai.setdefault("context_preferences", {})
+    context_actions = ai.setdefault("context_actions", {})
+    for tag in dict.fromkeys(str(tag) for tag in context_tags):
+        tag_preferences = context_preferences.setdefault(tag, {})
+        contextual = float(tag_preferences.get(skill_id, 0.0))
+        tag_preferences[skill_id] = round(max(-0.6, min(0.6, contextual + reward * 0.01)), 4)
+        context_actions[tag] = int(context_actions.get(tag, 0)) + 1
     ai["actions"] = int(ai.get("actions", 0)) + 1
 
 

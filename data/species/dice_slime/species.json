@@ -9,11 +9,6 @@
     "value": "#F7F7F7",
     "symbol": "⚄"
   },
-  "equipment_categories": [
-    "sword",
-    "clothes",
-    "staff"
-  ],
   "ai_profile": "dice",
   "experience_curve": "normal",
   "recruit": {

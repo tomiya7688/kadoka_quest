@@ -50,6 +50,58 @@ class GameRepository:
         map_id = str(map_data["id"])
         write_json(self.root / "maps" / map_id / "map.json", map_data)
 
+    def create_map(self, map_id: str, display_name: str, width: int, height: int, fill_block_id: str) -> dict[str, Any]:
+        map_id = str(map_id).strip()
+        display_name = str(display_name).strip()
+        width, height = int(width), int(height)
+        if not map_id or any(char not in "abcdefghijklmnopqrstuvwxyz0123456789_-" for char in map_id):
+            raise ValueError("Map id may contain only lowercase letters, digits, _ and -")
+        if (self.root / "maps" / map_id / "map.json").exists():
+            raise ValueError(f"Map already exists: {map_id}")
+        if not display_name:
+            raise ValueError("Map display name is required")
+        if not (5 <= width <= 200 and 5 <= height <= 200):
+            raise ValueError("Map width and height must be between 5 and 200")
+        self.get_block(fill_block_id)
+        payload: dict[str, Any] = {
+            "schema_version": 1,
+            "id": map_id,
+            "display_name": display_name,
+            "width": width,
+            "height": height,
+            "tile_size": 32,
+            "start": {"x": width // 2, "y": height // 2},
+            "tiles": [[fill_block_id for _ in range(width)] for _ in range(height)],
+            "spawns": [],
+            "fixed_mobs": [],
+            "events": [],
+        }
+        self.save_map(payload)
+        return payload
+
+    def create_map_from_document(self, map_data: dict[str, Any]) -> dict[str, Any]:
+        map_id = str(map_data["id"]).strip()
+        display_name = str(map_data["display_name"]).strip()
+        if not map_id or any(char not in "abcdefghijklmnopqrstuvwxyz0123456789_-" for char in map_id):
+            raise ValueError("Map id may contain only lowercase letters, digits, _ and -")
+        if (self.root / "maps" / map_id / "map.json").exists():
+            raise ValueError(f"Map already exists: {map_id}")
+        if not display_name:
+            raise ValueError("Map display name is required")
+        width, height = int(map_data["width"]), int(map_data["height"])
+        tiles = map_data["tiles"]
+        if not (5 <= width <= 200 and 5 <= height <= 200):
+            raise ValueError("Map width and height must be between 5 and 200")
+        if len(tiles) != height or any(len(row) != width for row in tiles):
+            raise ValueError("Map tile dimensions do not match width and height")
+        known_blocks = {str(block["id"]) for block in self.list_blocks()}
+        unknown_blocks = {str(block_id) for row in tiles for block_id in row} - known_blocks
+        if unknown_blocks:
+            raise ValueError(f"Map references unknown blocks: {', '.join(sorted(unknown_blocks))}")
+        payload = dict(map_data)
+        self.save_map(payload)
+        return payload
+
     def list_species_ids(self) -> list[str]:
         return sorted(path.parent.name for path in (self.root / "species").glob("*/species.json"))
 

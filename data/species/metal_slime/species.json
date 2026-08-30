@@ -9,10 +9,6 @@
     "value": "#AAB4BE",
     "symbol": "M"
   },
-  "equipment_categories": [
-    "sword",
-    "clothes"
-  ],
   "ai_profile": "normal",
   "experience_curve": "hard",
   "recruit": {
@@ -32,7 +28,7 @@
   },
   "defeat_message": null,
   "portrait_path": "characters/metal_slime/portrait.png",
-  "field_sprite_path": "characters/metal_slime/field.png",
+  "field_sprite_path": "characters/metal_slime/field_front.png",
   "field_sprites": {
     "front": "characters/metal_slime/field_front.png",
     "right": "characters/metal_slime/field_right.png",
@@ -40,4 +36,3 @@
     "back": "characters/metal_slime/field_back.png"
   }
 }
-

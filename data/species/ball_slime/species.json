@@ -9,11 +9,6 @@
     "value": "#F28C28",
     "symbol": "B"
   },
-  "equipment_categories": [
-    "sword",
-    "clothes",
-    "staff"
-  ],
   "ai_profile": "support",
   "experience_curve": "easy",
   "recruit": {
@@ -27,7 +22,7 @@
   },
   "defeat_message": null,
   "portrait_path": "characters/ball_slime/portrait.png",
-  "field_sprite_path": "characters/ball_slime/field.png",
+  "field_sprite_path": "characters/ball_slime/field_front.png",
   "field_sprites": {
     "front": "characters/ball_slime/field_front.png",
     "right": "characters/ball_slime/field_right.png",
@@ -35,4 +30,3 @@
     "back": "characters/ball_slime/field_back.png"
   }
 }
-

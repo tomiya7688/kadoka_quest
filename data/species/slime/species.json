@@ -9,10 +9,6 @@
     "value": "#42A5F5",
     "symbol": "S"
   },
-  "equipment_categories": [
-    "clothes",
-    "staff"
-  ],
   "ai_profile": "normal",
   "experience_curve": "normal",
   "recruit": {

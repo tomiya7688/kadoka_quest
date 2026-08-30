@@ -8,5 +8,3 @@ from kadoka_quest.apps.manage import main
 
 if __name__ == "__main__":
     main()
-
-

@@ -5,7 +5,8 @@ import random
 from typing import Any
 
 from kadoka_quest.core.ai import choose_skill, learn_from_action
-from kadoka_quest.core.monster import MonsterRecord, available_skill_ids, calculate_stats
+from kadoka_quest.core.battle_context import describe_battle_context
+from kadoka_quest.core.monster import MonsterRecord, available_skill_ids, calculate_stats, equipment_allows_species
 from kadoka_quest.data.repository import GameRepository
 
 
@@ -16,6 +17,7 @@ RESISTANCE_MULTIPLIER = {
     "normal": 1.0,
     "weak": 1.4,
 }
+NORMAL_ATTACK_CRITICAL_CHANCE = 1 / 16
 
 
 @dataclass
@@ -29,6 +31,7 @@ class Combatant:
     mp: int = 0
     guard: float = 1.0
     evade_physical: bool = False
+    evade_physical_source: str | None = None
     evade_element: str | None = None
     speed_multiplier: float = 1.0
     attack_multiplier: float = 1.0
@@ -77,6 +80,8 @@ class BattleEngine:
         skill_ids = available_skill_ids(self.repository, record)
         skills = [self.skill_catalog[item] for item in skill_ids if item in self.skill_catalog]
         equipment = self.equipment_catalog.get(record.equipment_id or "")
+        if equipment and not equipment_allows_species(equipment, record.species_id):
+            equipment = None
         resistances = dict(bundle.definition.get("resistances", {}))
         if equipment:
             scale = ["weak", "normal", "strong", "immune", "absorb"]
@@ -120,6 +125,7 @@ class BattleEngine:
         for member in self.allies + self.enemies:
             member.guard = 1.0
             member.evade_physical = False
+            member.evade_physical_source = None
             member.evade_element = None
             if member.physical_locked:
                 member.physical_locked -= 1
@@ -133,6 +139,16 @@ class BattleEngine:
         if actor.physical_locked:
             usable = [skill for skill in usable if skill.get("kind") != "physical"]
         missing = max((1.0 - friend.hp / friend.stats["hp"] for friend in friends), default=0.0)
+        context_tags = describe_battle_context(
+            actor.hp / actor.stats["hp"],
+            missing,
+            actor.mp / actor.stats["mp"],
+            len(friends),
+            len(foes),
+            min((foe.hp / foe.stats["hp"] for foe in foes), default=1.0),
+            actor.record.level,
+            max((foe.record.level for foe in foes), default=actor.record.level),
+        )
         chosen = choose_skill(
             actor.record.ai,
             usable,
@@ -140,6 +156,7 @@ class BattleEngine:
             missing,
             actor.mp / actor.stats["mp"],
             self.rng,
+            context_tags,
         )
         if not chosen:
             self.log.append(f"{actor.name}は様子を見ている。")
@@ -165,6 +182,7 @@ class BattleEngine:
             self.log.append(f"{actor.name}は防御した。")
         elif kind == "evade":
             actor.evade_physical = bool(chosen.get("physical", False))
+            actor.evade_physical_source = str(chosen.get("id")) if actor.evade_physical else None
             actor.evade_element = chosen.get("element")
             if chosen.get("lock_physical_next_turn"):
                 actor.physical_locked = 2
@@ -187,7 +205,7 @@ class BattleEngine:
             self.log.append(f"{actor.name}の{chosen['display_name']}。{target.name}の{effect}が強くなった。")
 
         if self.learning_enabled:
-            learn_from_action(actor.record.ai, str(chosen["id"]), reward)
+            learn_from_action(actor.record.ai, str(chosen["id"]), reward, context_tags)
 
     def _attack(self, actor: Combatant, target: Combatant, skill: dict[str, Any]) -> float:
         kind = str(skill.get("kind"))
@@ -200,7 +218,13 @@ class BattleEngine:
             self.log.append(f"{actor.name}のサイコロは{roll}！")
         element = str(skill.get("element", "physical"))
         if actual_kind == "physical" and target.evade_physical:
-            self.log.append(f"{target.name}は{skill['display_name']}をすり抜けた。")
+            if target.record.species_id in {"maru", "kadoka"}:
+                message = f"{target.name}は{skill['display_name']}をすり抜けた。"
+            elif target.evade_physical_source == "fluid_defense":
+                message = f"{target.name}は流体防御で{skill['display_name']}を受け流した。"
+            else:
+                message = f"{target.name}は{skill['display_name']}をかわした。"
+            self.log.append(message)
             return 0.0
         if target.evade_element == element:
             self.log.append(f"{target.name}は{element}属性を避けた。")
@@ -215,13 +239,20 @@ class BattleEngine:
             if actor.equipment:
                 modifier = actor.equipment.get("skill_modifiers", {}).get(str(skill.get("id")), {})
                 power *= float(modifier.get("power_multiplier", 1.0))
-            damage = int(attack * power - target.stats["defense"] * 0.42)
-            if self.rng.random() < 0.05 * float(skill.get("critical_multiplier", 1.0)):
-                damage = int(damage * 1.5)
-                self.log.append("会心！")
+            critical_chance = min(
+                1.0,
+                NORMAL_ATTACK_CRITICAL_CHANCE * float(skill.get("critical_multiplier", 1.0)),
+            )
+            critical = self.rng.random() < critical_chance
+            if critical:
+                damage = int(attack * power)
+                self.log.append("会心！相手の防御力を無視した！")
+            else:
+                damage = int(attack * power - target.stats["defense"] * 0.42)
         if actor.equipment:
             damage += int(actor.equipment.get("fixed_bonus_damage", 0))
-        damage = max(1, int(damage * target.guard * self.rng.uniform(0.92, 1.08)))
+        guard_multiplier = target.guard if actual_kind == "physical" else 1.0
+        damage = max(1, int(damage * guard_multiplier * self.rng.uniform(0.92, 1.08)))
         before = target.hp
         target.hp = max(0, target.hp - damage)
         dealt = before - target.hp

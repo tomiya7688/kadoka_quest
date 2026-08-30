@@ -3,7 +3,25 @@ from __future__ import annotations
 import pygame
 
 from kadoka_quest.data.repository import GameRepository
-from kadoka_quest.ui.common import ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, Button, TextField, draw_text, draw_wrapped, init_pygame, smoke_frames
+from kadoka_quest.paths import ASSET_ROOT
+from kadoka_quest.ui.common import (
+    ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT,
+    Button, ScrollBar, TextField, draw_status_bar, draw_text, handle_fields,
+    init_pygame, smoke_frames,
+)
+from kadoka_quest.ui.pixel_editor import PALETTE, PixelArtEditor
+
+
+PIXEL_CANVAS = pygame.Rect(300, 170, 448, 448)
+PALETTE_RECTS = {
+    color: pygame.Rect(800 + (index % 2) * 105, 220 + (index // 2) * 62, 85, 48)
+    for index, color in enumerate(PALETTE)
+}
+TOOL_RECTS = {
+    "pen": pygame.Rect(790, 115, 90, 40),
+    "pan": pygame.Rect(890, 115, 105, 40),
+}
+UNDO_RECT = pygame.Rect(1005, 115, 70, 40)
 
 
 class BlockEditor:
@@ -11,6 +29,8 @@ class BlockEditor:
         self.repository = GameRepository()
         self.blocks: list[dict] = []
         self.selected = 0
+        self.list_offset = 0
+        self.visual_mode = False
         self.status = "左からブロックを選び、ゲームが読むJSONを直接編集します。"
         self.id_field = TextField(pygame.Rect(350, 130, 260, 42))
         self.name_field = TextField(pygame.Rect(650, 130, 280, 42))
@@ -21,6 +41,7 @@ class BlockEditor:
             "enemy_spawnable": True,
             "enemy_walkable": True,
         }
+        self.visuals = PixelArtEditor(ASSET_ROOT)
         self.refresh()
 
     def refresh(self) -> None:
@@ -44,23 +65,23 @@ class BlockEditor:
         while f"new_block_{index}" in existing:
             index += 1
         self.load({
-            "id": f"new_block_{index}",
-            "display_name": "新しいブロック",
-            "player_walkable": True,
-            "enemy_spawnable": False,
-            "enemy_walkable": True,
+            "id": f"new_block_{index}", "display_name": "新しいブロック",
+            "player_walkable": True, "enemy_spawnable": False, "enemy_walkable": True,
             "appearance": {"type": "color", "value": "#808080"},
         })
         self.status = "新規ブロック。保存すると data/blocks に追加されます。"
 
-    def save(self) -> None:
-        block = {
+    def payload(self) -> dict:
+        return {
             "schema_version": 1,
             "id": self.id_field.value.strip(),
             "display_name": self.name_field.value.strip() or self.id_field.value.strip(),
             **self.flags,
             "appearance": {"type": self.appearance_type, "value": self.appearance_field.value.strip()},
         }
+
+    def save(self) -> None:
+        block = self.payload()
         try:
             self.repository.save_block(block)
             self.status = f"{block['id']}.json を保存しました。"
@@ -69,22 +90,79 @@ class BlockEditor:
         except (OSError, ValueError, KeyError) as exc:
             self.status = f"保存できません: {exc}"
 
+    @staticmethod
+    def _color(value: str) -> tuple[int, int, int]:
+        try:
+            color = pygame.Color(value)
+            return color.r, color.g, color.b
+        except ValueError:
+            return 128, 128, 128
+
+    def open_visual_editor(self) -> None:
+        block_id = self.id_field.value.strip() or "new_block"
+        current_color = self._color(self.appearance_field.value) if self.appearance_type == "color" else (128, 128, 128)
+        relative = self.appearance_field.value.strip() if self.appearance_type == "path" else f"appearance/blocks/{block_id}.png"
+        if not relative.lower().endswith(".png"):
+            relative = f"appearance/blocks/{block_id}.png"
+        self.appearance_type = "path"
+        self.appearance_field.value = relative
+        self.visuals.load_block(relative, current_color)
+        self.visual_mode = True
+        self.status = "モンスターエディタと同じドットエディターでブロック画像を編集しています。"
+
+    def save_visual(self) -> None:
+        self.visuals.save_images()
+        self.appearance_type = "path"
+        self.appearance_field.value = self.visuals.paths["appearance"]
+        self.save()
+        self.status = f"64×64 PNG と {self.id_field.value}.json を保存しました。"
+
+    def scroll_list(self, amount: int) -> None:
+        self.list_offset = max(0, min(max(0, len(self.blocks) - 10), self.list_offset + amount))
+
+
+def draw_visual_editor(screen: pygame.Surface, editor: BlockEditor) -> None:
+    draw_text(screen, f"ブロック見た目編集：{editor.name_field.value}", (28, 25), 32, ACCENT, True)
+    draw_text(screen, "ペン: 左描画・右透明 / 表示移動: ドラッグ / Ctrl+Z: 元に戻す", (470, 37), 16, MUTED)
+    editor.visuals.draw_canvas(screen, PIXEL_CANVAS)
+    for mode, rect in TOOL_RECTS.items():
+        pygame.draw.rect(screen, SELECTED if editor.visuals.tool_mode == mode else PANEL_ALT, rect, border_radius=6)
+        draw_text(screen, "ペン" if mode == "pen" else "表示移動", (rect.x + 14, rect.y + 11), 15, TEXT, True)
+    pygame.draw.rect(screen, PANEL_ALT, UNDO_RECT, border_radius=6)
+    draw_text(screen, "戻す", (UNDO_RECT.x + 17, UNDO_RECT.y + 11), 15, TEXT, True)
+    draw_text(screen, "色", (800, 175), 21, MUTED, True)
+    for color, rect in PALETTE_RECTS.items():
+        if color[3] == 0:
+            PixelArtEditor.draw_checker(screen, rect, 9)
+            draw_text(screen, "透明", (rect.x + 18, rect.y + 14), 14, BG, True)
+        else:
+            pygame.draw.rect(screen, color, rect, border_radius=5)
+        pygame.draw.rect(screen, ACCENT if color == editor.visuals.brush else MUTED, rect, 3, border_radius=5)
+    draw_text(screen, f"64×64px / 表示 {editor.visuals.zoom_percent}%", (790, 550), 17, ACCENT, True)
+    draw_text(screen, "保存先", (790, 582), 15, MUTED, True)
+    draw_text(screen, editor.appearance_field.value, (790, 607), 13, TEXT)
+
 
 def main() -> None:
-    screen = init_pygame("kadoka quest - ブロックエディタ", (1000, 700))
+    screen = init_pygame("kadoka quest - ブロックエディタ", (1100, 760))
     clock = pygame.time.Clock()
     editor = BlockEditor()
     running = True
     frames = 0
     smoke = smoke_frames()
 
-    def toggle_flag(key: str) -> None:
-        editor.flags[key] = not editor.flags[key]
-
     buttons = [
         Button(pygame.Rect(350, 305, 180, 45), "見た目: 色/パス", lambda: setattr(editor, "appearance_type", "path" if editor.appearance_type == "color" else "color")),
+        Button(pygame.Rect(550, 305, 180, 45), "ドット絵編集", editor.open_visual_editor),
         Button(pygame.Rect(350, 445, 180, 48), "新規", editor.new),
         Button(pygame.Rect(550, 445, 180, 48), "保存", editor.save),
+    ]
+    visual_buttons = [
+        Button(pygame.Rect(30, 685, 170, 45), "設定画面へ戻る", lambda: setattr(editor, "visual_mode", False)),
+        Button(pygame.Rect(760, 685, 55, 45), "－", editor.visuals.zoom_out),
+        Button(pygame.Rect(825, 685, 75, 45), "等倍", editor.visuals.reset_zoom),
+        Button(pygame.Rect(910, 685, 55, 45), "＋", editor.visuals.zoom_in),
+        Button(pygame.Rect(975, 685, 100, 45), "保存", editor.save_visual),
     ]
     flag_rects = {
         "player_walkable": pygame.Rect(350, 380, 175, 42),
@@ -92,47 +170,120 @@ def main() -> None:
         "enemy_walkable": pygame.Rect(730, 380, 175, 42),
     }
     flag_labels = {"player_walkable": "自機が移動可能", "enemy_spawnable": "敵が湧く", "enemy_walkable": "敵が移動可能"}
+    list_scroll = ScrollBar(pygame.Rect(292, 125, 8, 480), total=len(editor.blocks), page=10)
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
-            handled = editor.id_field.handle(event) or editor.name_field.handle(event) or editor.appearance_field.handle(event)
+                if editor.visual_mode:
+                    editor.visual_mode = False
+                else:
+                    running = False
+            if editor.visual_mode:
+                handled = any(button.handle(event) for button in visual_buttons)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_z and event.mod & pygame.KMOD_CTRL:
+                    editor.visuals.undo()
+                    handled = True
+                if event.type == pygame.MOUSEWHEEL and PIXEL_CANVAS.collidepoint(pygame.mouse.get_pos()):
+                    editor.visuals.zoom_in() if event.y > 0 else editor.visuals.zoom_out()
+                    handled = True
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    for mode, rect in TOOL_RECTS.items():
+                        if rect.collidepoint(event.pos):
+                            editor.visuals.set_tool_mode(mode)
+                            handled = True
+                    if UNDO_RECT.collidepoint(event.pos):
+                        editor.visuals.undo()
+                        handled = True
+                    for color, rect in PALETTE_RECTS.items():
+                        if rect.collidepoint(event.pos):
+                            editor.visuals.brush = color
+                            handled = True
+                if not handled and event.type == pygame.MOUSEBUTTONDOWN:
+                    if editor.visuals.tool_mode == "pen" and event.button in {1, 3}:
+                        editor.visuals.begin_stroke()
+                        editor.visuals.paint(event.pos, PIXEL_CANVAS, erase=event.button == 3)
+                    elif editor.visuals.tool_mode == "pan" and event.button == 1:
+                        editor.visuals.begin_pan(event.pos, PIXEL_CANVAS)
+                elif event.type == pygame.MOUSEMOTION:
+                    if editor.visuals.tool_mode == "pen" and any(event.buttons):
+                        editor.visuals.paint(event.pos, PIXEL_CANVAS, erase=bool(event.buttons[2]))
+                    elif editor.visuals.tool_mode == "pan" and event.buttons[0]:
+                        editor.visuals.pan_to(event.pos, PIXEL_CANVAS)
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button in {1, 3}:
+                        editor.visuals.end_stroke()
+                    if event.button == 1:
+                        editor.visuals.end_pan()
+                continue
+            if event.type == pygame.KEYDOWN and event.mod & pygame.KMOD_CTRL:
+                if event.key == pygame.K_s:
+                    editor.save()
+                elif event.key == pygame.K_n:
+                    editor.new()
+            list_scroll.configure(len(editor.blocks), 10)
+            list_scroll.value = editor.list_offset
+            scroll_handled = list_scroll.handle(event)
+            editor.list_offset = list_scroll.value
+            handled = handle_fields([editor.id_field, editor.name_field, editor.appearance_field], event) or scroll_handled
             for button in buttons:
                 handled = button.handle(event) or handled
             if not handled and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if event.pos[0] < 305 and 105 <= event.pos[1] < 105 + len(editor.blocks) * 48:
-                    index = (event.pos[1] - 105) // 48
+                if event.pos[0] < 305 and 125 <= event.pos[1] < 605:
+                    index = editor.list_offset + (event.pos[1] - 125) // 48
                     if 0 <= index < len(editor.blocks):
                         editor.selected = index
                         editor.load(editor.blocks[index])
                 for key, rect in flag_rects.items():
                     if rect.collidepoint(event.pos):
-                        toggle_flag(key)
+                        editor.flags[key] = not editor.flags[key]
+            if event.type == pygame.MOUSEWHEEL and pygame.mouse.get_pos()[0] < 310:
+                editor.scroll_list(-event.y)
 
         screen.fill(BG)
+        if editor.visual_mode:
+            draw_visual_editor(screen, editor)
+            for button in visual_buttons:
+                button.draw(screen, pygame.mouse.get_pos())
+            pygame.display.flip()
+            clock.tick(60)
+            frames += 1
+            if smoke is not None and frames >= smoke:
+                running = False
+            continue
+
         draw_text(screen, "ブロックエディタ", (35, 25), 36, ACCENT, True)
         draw_text(screen, "通行・出現・見た目を1ファイルで定義", (350, 72), 19, MUTED)
+        draw_text(screen, "Ctrl+N 新規 / Ctrl+S 保存 / Esc 終了", (680, 32), 15, MUTED)
         pygame.draw.rect(screen, PANEL, pygame.Rect(25, 90, 285, 570), border_radius=10)
-        for index, block in enumerate(editor.blocks):
-            rect = pygame.Rect(38, 105 + index * 48, 260, 40)
-            pygame.draw.rect(screen, (52, 82, 105) if index == editor.selected else PANEL_ALT, rect, border_radius=6)
-            draw_text(screen, block.get("display_name", block.get("id")), (50, rect.y + 8), 19)
+        draw_text(screen, f"ブロック一覧  {len(editor.blocks)}件", (40, 96), 15, MUTED, True)
+        for row, block in enumerate(editor.blocks[editor.list_offset:editor.list_offset + 10]):
+            index = editor.list_offset + row
+            rect = pygame.Rect(38, 125 + row * 48, 246, 40)
+            pygame.draw.rect(screen, SELECTED if index == editor.selected else PANEL_ALT, rect, border_radius=6)
+            appearance = block.get("appearance", {})
+            swatch = editor._color(str(appearance.get("value", "#808080"))) if appearance.get("type") == "color" else (110, 95, 125)
+            pygame.draw.rect(screen, swatch, pygame.Rect(rect.x + 8, rect.y + 8, 24, 24), border_radius=4)
+            draw_text(screen, block.get("display_name", block.get("id")), (rect.x + 42, rect.y + 5), 17)
+            draw_text(screen, block.get("id", ""), (rect.x + 42, rect.y + 24), 11, MUTED)
+        list_scroll.configure(len(editor.blocks), 10)
+        list_scroll.value = editor.list_offset
+        if list_scroll.maximum:
+            list_scroll.draw(screen, pygame.mouse.get_pos())
 
-        pygame.draw.rect(screen, PANEL, pygame.Rect(330, 90, 645, 570), border_radius=10)
+        pygame.draw.rect(screen, PANEL, pygame.Rect(330, 90, 745, 570), border_radius=10)
         editor.id_field.draw(screen, "ID（半角英小文字）")
         editor.name_field.draw(screen, "表示名")
         editor.appearance_field.draw(screen, f"見た目の値（{editor.appearance_type}）")
+        draw_text(screen, "地形ルール", (350, 350), 17, MUTED, True)
         for key, rect in flag_rects.items():
             pygame.draw.rect(screen, GOOD if editor.flags[key] else BAD, rect, border_radius=7)
-            draw_text(screen, flag_labels[key], (rect.x + 10, rect.y + 10), 17, BG, True)
-        mouse = pygame.mouse.get_pos()
+            draw_text(screen, f"{'ON' if editor.flags[key] else 'OFF'}  {flag_labels[key]}", (rect.x + 9, rect.y + 10), 15, BG, True)
         for button in buttons:
-            button.draw(screen, mouse)
-        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(350, 535, 580, 90), border_radius=8)
-        draw_wrapped(screen, editor.status, pygame.Rect(368, 551, 545, 60), 18)
+            button.draw(screen, pygame.mouse.get_pos())
+        draw_status_bar(screen, editor.status, pygame.Rect(350, 575, 680, 55), warning=editor.status.startswith("保存できません"))
         pygame.display.flip()
         clock.tick(60)
         frames += 1
@@ -143,5 +294,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-

@@ -9,6 +9,11 @@
     "x": 2,
     "y": 9
   },
+  "block_color_overrides": {
+    "safe": "#101B3A",
+    "wall": "#070E22",
+    "water": "#163A62"
+  },
   "tiles": [
     [
       "wall",
@@ -480,6 +485,53 @@
     ]
   ],
   "spawns": [],
+  "fixed_mobs": [
+    {
+      "id": "maru_home",
+      "species_id": "maru",
+      "name": "まる",
+      "x": 10,
+      "y": 7,
+      "direction": "front",
+      "enabled": true,
+      "level": 1,
+      "ai": "random",
+      "interaction": "talk",
+      "move_interval_ms": 450,
+      "move_chance": 100,
+      "despawn_after_interaction": false,
+      "respawn_on_map_enter": true,
+      "dialogue": [
+        "これひろった",
+        "みずの音、きれい",
+        "きょうはいっぱい歩く",
+        "かどかもいっしょ",
+        "ここ、へいわ"
+      ]
+    },
+    {
+      "id": "kadoka_home",
+      "species_id": "kadoka",
+      "name": "かどか",
+      "x": 12,
+      "y": 10,
+      "direction": "front",
+      "enabled": true,
+      "level": 1,
+      "ai": "random",
+      "interaction": "talk",
+      "move_interval_ms": 900,
+      "move_chance": 45,
+      "despawn_after_interaction": false,
+      "respawn_on_map_enter": true,
+      "dialogue": [
+        "こんなものを拾ったのだ",
+        "まるは今日も元気なのだ",
+        "水の湧き場には秘密があるのだ",
+        "ここならゆっくりできるのだ"
+      ]
+    }
+  ],
   "events": [
     {
       "id": "ghost_spring",
@@ -493,6 +545,7 @@
       "x": 0,
       "y": 9,
       "type": "transition",
+      "activation": "step",
       "target": {
         "map_id": "fresh_forest",
         "x": 22,

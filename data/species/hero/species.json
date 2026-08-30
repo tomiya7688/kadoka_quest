@@ -9,11 +9,6 @@
     "value": "#F4D35E",
     "symbol": "H"
   },
-  "equipment_categories": [
-    "sword",
-    "clothes",
-    "staff"
-  ],
   "ai_profile": "normal",
   "experience_curve": "normal",
   "recruit": {
@@ -24,13 +19,13 @@
     "mental": "immune"
   },
   "defeat_message": null,
-  "portrait_path": "characters/hero/portrait.png",
-  "field_sprite_path": "characters/hero/field.png",
+  "portrait_path": "characters/hero/portrait_square.png",
+  "field_sprite_path": "characters/hero/field_front_square_64.png",
   "field_sprites": {
-    "front": "characters/hero/field_front.png",
-    "right": "characters/hero/field_right.png",
-    "left": "characters/hero/field_left.png",
-    "back": "characters/hero/field_back.png"
+    "front": "characters/hero/field_front_square_64.png",
+    "right": "characters/hero/field_right_square_64.png",
+    "left": "characters/hero/field_left_square_64.png",
+    "back": "characters/hero/field_back_square_64.png"
   }
 }
 

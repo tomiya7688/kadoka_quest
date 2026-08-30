@@ -9,10 +9,6 @@
     "value": "#F6F2E8",
     "symbol": "○"
   },
-  "equipment_categories": [
-    "clothes",
-    "staff"
-  ],
   "ai_profile": "maru",
   "experience_curve": "very_easy",
   "recruit": {
@@ -27,12 +23,11 @@
   },
   "defeat_message": "まるはつかれて動けなくなった。",
   "portrait_path": "characters/maru/portrait.png",
-  "field_sprite_path": "characters/maru/field.png",
+  "field_sprite_path": "characters/maru/field_front.png",
   "field_sprites": {
     "front": "characters/maru/field_front.png",
-    "right": "characters/maru/field_right.png",
-    "left": "characters/maru/field_left.png",
+    "right": "characters/maru/field_right_round_v4.png",
+    "left": "characters/maru/field_left_round_v4.png",
     "back": "characters/maru/field_back.png"
   }
 }
-

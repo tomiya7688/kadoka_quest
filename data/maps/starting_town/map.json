@@ -972,6 +972,7 @@
       "x": 35,
       "y": 14,
       "type": "transition",
+      "activation": "step",
       "target": {
         "map_id": "greenwood",
         "x": 1,

@@ -633,6 +633,7 @@
       "x": 14,
       "y": 19,
       "type": "transition",
+      "activation": "step",
       "target": {
         "map_id": "starting_town",
         "x": 8,

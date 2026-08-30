@@ -82,7 +82,8 @@ def main() -> None:
         Button(pygame.Rect(410, 235, 260, 58), "ブロックエディタ", lambda: launch("block_editor.py")),
         Button(pygame.Rect(705, 235, 260, 58), "マップエディタ", lambda: launch("map_editor.py")),
         Button(pygame.Rect(410, 325, 260, 58), "モンスターエディタ", lambda: launch("monster_editor.py")),
-        Button(pygame.Rect(705, 325, 260, 58), "終了", stop),
+        Button(pygame.Rect(705, 325, 260, 58), "データクリエイター", lambda: launch("data_creator.py")),
+        Button(pygame.Rect(410, 415, 555, 58), "終了", stop),
     ]
     smoke = smoke_frames()
     frames = 0
@@ -111,13 +112,13 @@ def main() -> None:
             draw_text(screen, ("● " if name == active else "  ") + name, (66, rect.y + 8), 15, GOOD if name == active else TEXT, name == active)
         draw_text(screen, "● は現在読み込むデータ", (58, 650), 14, MUTED)
 
-        pygame.draw.rect(screen, PANEL, pygame.Rect(385, 115, 605, 300), border_radius=12)
-        draw_text(screen, f"選択中: {selected_name()}", (410, 425), 20, GOOD, True)
+        pygame.draw.rect(screen, PANEL, pygame.Rect(385, 115, 605, 380), border_radius=12)
+        draw_text(screen, f"選択中: {selected_name()}", (410, 505), 20, GOOD, True)
         mouse = pygame.mouse.get_pos()
         for button in buttons:
             button.draw(screen, mouse)
-        pygame.draw.rect(screen, PANEL, pygame.Rect(385, 465, 605, 130), border_radius=10)
-        draw_wrapped(screen, "各セーブは savedata/セーブ名/ の中に state.json、monsters、items、parties を持ちます。JSONは直接編集できます。", pygame.Rect(410, 485, 555, 90), 17, MUTED)
+        pygame.draw.rect(screen, PANEL, pygame.Rect(385, 540, 605, 70), border_radius=10)
+        draw_wrapped(screen, "各セーブは state.json、monsters、items、parties を持ち、JSONを直接編集できます。", pygame.Rect(410, 555, 555, 45), 16, MUTED)
         pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(385, 620, 605, 60), border_radius=8)
         draw_wrapped(screen, status, pygame.Rect(405, 632, 565, 40), 16)
         pygame.display.flip()

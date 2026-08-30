@@ -3,9 +3,15 @@
   "equipment": [
     {
       "id": "ken",
-      "display_name": "けん",
+      "display_name": "スライムのけん",
       "category": "sword",
-      "description": "通常攻撃を1.5倍で判定。",
+      "allowed_species_ids": [
+        "slime",
+        "ball_slime",
+        "dice_slime",
+        "metal_slime"
+      ],
+      "description": "スライム系専用。通常攻撃を1.5倍で判定。",
       "stat_multipliers": {
         "speed": 0.8
       },
@@ -19,6 +25,16 @@
       "id": "light_cloth",
       "display_name": "かるい服",
       "category": "clothes",
+      "allowed_species_ids": [
+        "hero",
+        "slime",
+        "ball_slime",
+        "dice_slime",
+        "metal_slime",
+        "ghost",
+        "maru",
+        "kadoka"
+      ],
       "description": "軽い防具。",
       "stat_multipliers": {
         "defense": 1.15,
@@ -29,6 +45,12 @@
       "id": "wood_staff",
       "display_name": "木の杖",
       "category": "staff",
+      "allowed_species_ids": [
+        "hero",
+        "ghost",
+        "maru",
+        "kadoka"
+      ],
       "description": "魔法を少し強める。",
       "stat_multipliers": {
         "magic": 1.2,
@@ -39,6 +61,12 @@
       "id": "metal_claw",
       "display_name": "メタル爪",
       "category": "sword",
+      "allowed_species_ids": [
+        "slime",
+        "ball_slime",
+        "dice_slime",
+        "metal_slime"
+      ],
       "description": "メタル狩り用の固定追加ダメージ。",
       "stat_multipliers": {
         "attack": 1.05,
@@ -50,6 +78,13 @@
       "id": "heavy_weight",
       "display_name": "重り",
       "category": "sword",
+      "allowed_species_ids": [
+        "hero",
+        "slime",
+        "ball_slime",
+        "dice_slime",
+        "metal_slime"
+      ],
       "description": "強力だがとても遅くなる。",
       "stat_multipliers": {
         "attack": 1.35,
@@ -60,6 +95,11 @@
       "id": "light_ward",
       "display_name": "光よけの布",
       "category": "clothes",
+      "allowed_species_ids": [
+        "ghost",
+        "maru",
+        "kadoka"
+      ],
       "description": "光への弱点を補う。",
       "stat_multipliers": {
         "speed": 0.88

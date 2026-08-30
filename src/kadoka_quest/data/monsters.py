@@ -16,7 +16,8 @@ class MonsterStore:
     """One directory per individual. There is intentionally no ownership limit."""
 
     def __init__(self, root: Path | None = None, repository: GameRepository | None = None) -> None:
-        ensure_runtime_directories()
+        if root is None:
+            ensure_runtime_directories()
         self.root = Path(root or (SAVE_ROOT / "monsters"))
         self.root.mkdir(parents=True, exist_ok=True)
         self.repository = repository or GameRepository()
