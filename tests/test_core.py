@@ -20,6 +20,7 @@ from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.battle_context import describe_battle_context
 from kadoka_quest.core.field_engine import FieldEngine
 from kadoka_quest.core.grid_movement import GridMovement
+from kadoka_quest.apps.block_editor import BlockEditor
 from kadoka_quest.apps.game import FIELD_RECT, TILE, KadokaQuest, draw_field
 from kadoka_quest.apps.map_editor import MapEditor
 from kadoka_quest.apps.monster_editor import NEW_SPECIES_ID, MonsterEditor
@@ -208,6 +209,39 @@ class DataFormatTests(unittest.TestCase):
 
 
 class UiWidgetTests(unittest.TestCase):
+    def test_shared_pixel_palette_adds_selects_and_safely_removes_colors(self) -> None:
+        editor = PixelArtEditor(PROJECT_ROOT / "assets")
+        original_count = len(editor.palette)
+
+        added = editor.add_palette_color("#1234ab")
+        self.assertEqual(added, (18, 52, 171, 255))
+        self.assertEqual(editor.brush, added)
+        self.assertEqual(len(editor.palette), original_count + 1)
+        self.assertEqual(editor.color_to_hex(added), "#1234AB")
+
+        self.assertEqual(editor.add_palette_color("1234AB"), added)
+        self.assertEqual(len(editor.palette), original_count + 1)
+        self.assertEqual(len(editor.palette_rects((10, 20), 4, (30, 25))), len(editor.palette))
+        with self.assertRaises(ValueError):
+            editor.add_palette_color("blue")
+
+        self.assertTrue(editor.remove_palette_color())
+        self.assertNotIn(added, editor.palette)
+        transparent = editor.palette[0]
+        editor.brush = transparent
+        self.assertFalse(editor.remove_palette_color())
+        self.assertIn(transparent, editor.palette)
+
+    def test_monster_and_block_editors_use_the_same_editable_palette_api(self) -> None:
+        for owner in (MonsterEditor(), BlockEditor()):
+            with self.subTest(editor=type(owner).__name__):
+                owner.palette_color_field.value = "#654321"
+                owner.add_palette_color()
+                self.assertEqual(owner.visuals.brush, (101, 67, 33, 255))
+                self.assertIn(owner.visuals.brush, owner.visuals.palette)
+                owner.remove_palette_color()
+                self.assertNotIn((101, 67, 33, 255), owner.visuals.palette)
+
     def test_monster_editor_lists_new_first_and_creates_complete_species(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

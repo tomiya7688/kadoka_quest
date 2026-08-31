@@ -9,7 +9,7 @@ from kadoka_quest.data.repository import GameRepository, STAT_KEYS
 from kadoka_quest.data.species_creator import SpeciesCreator
 from kadoka_quest.paths import ASSET_ROOT
 from kadoka_quest.ui.common import ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, ScrollBar, TextField, draw_status_bar, draw_text, draw_wrapped, handle_fields, init_pygame, smoke_frames
-from kadoka_quest.ui.pixel_editor import PALETTE, VISUAL_SLOTS, PixelArtEditor
+from kadoka_quest.ui.pixel_editor import VISUAL_SLOTS, PixelArtEditor
 
 
 STAT_LABELS = {"attack": "攻撃", "defense": "防御", "speed": "素早さ", "magic": "魔法", "hp": "HP", "mp": "MP"}
@@ -28,7 +28,9 @@ SKILL_KIND_LABELS = {
 SKILL_ROWS = 9
 PIXEL_CANVAS = pygame.Rect(390, 275, 384, 384)
 PREVIEW_RECTS = {slot: pygame.Rect(330 + index * 165, 105, 145, 130) for index, (slot, _, _) in enumerate(VISUAL_SLOTS)}
-PALETTE_RECTS = {color: pygame.Rect(835 + (index % 2) * 88, 320 + (index // 2) * 58, 70, 45) for index, color in enumerate(PALETTE)}
+PALETTE_ORIGIN = (805, 315)
+PALETTE_COLUMNS = 4
+PALETTE_SWATCH_SIZE = (70, 34)
 TOOL_RECTS = {
     "pen": pygame.Rect(805, 250, 95, 38),
     "pan": pygame.Rect(910, 250, 105, 38),
@@ -53,6 +55,7 @@ class MonsterEditor:
         self.id_field = TextField(pygame.Rect(945, 130, 190, 42))
         self.name_field = TextField(pygame.Rect(350, 130, 300, 42))
         self.color_field = TextField(pygame.Rect(690, 130, 230, 42))
+        self.palette_color_field = TextField(pygame.Rect(805, 525, 145, 38), "#808080")
         self.stat_fields = {
             key: TextField(pygame.Rect(350 + (index % 3) * 190, 270 + (index // 3) * 78, 160, 42), numeric=True)
             for index, key in enumerate(STAT_KEYS)
@@ -243,6 +246,23 @@ class MonsterEditor:
         self.repository.save_species_definition(self.definition)
         self.status = "戦闘立ち絵と前後左右のドット絵を保存しました。"
 
+    def add_palette_color(self) -> None:
+        try:
+            color = self.visuals.add_palette_color(self.palette_color_field.value)
+        except ValueError as error:
+            self.status = str(error)
+            return
+        self.palette_color_field.value = self.visuals.color_to_hex(color)
+        self.status = f"ペン色 {self.palette_color_field.value} を選択しました。"
+
+    def remove_palette_color(self) -> None:
+        removed = self.visuals.brush
+        if not self.visuals.remove_palette_color():
+            self.status = "透明色と最後のペン色は削除できません。"
+            return
+        self.palette_color_field.value = self.visuals.color_to_hex(self.visuals.brush)
+        self.status = f"ペン色 {self.visuals.color_to_hex(removed)} を削除しました。"
+
 
 def draw_checker(screen: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
     PixelArtEditor.draw_checker(screen, rect, cell)
@@ -270,14 +290,15 @@ def draw_visual_editor(screen: pygame.Surface, editor: MonsterEditor) -> None:
     pygame.draw.rect(screen, PANEL_ALT, UNDO_RECT, border_radius=6)
     draw_text(screen, "元に戻す", (UNDO_RECT.x + 22, UNDO_RECT.y + 10), 15, TEXT, True)
 
-    draw_text(screen, "色", (835, 294), 22, MUTED, True)
-    for color, rect in PALETTE_RECTS.items():
+    draw_text(screen, f"色  {len(editor.visuals.palette)}/16", (805, 292), 20, MUTED, True)
+    for color, rect in editor.visuals.palette_rects(PALETTE_ORIGIN, PALETTE_COLUMNS, PALETTE_SWATCH_SIZE):
         if color[3] == 0:
             draw_checker(screen, rect, 9)
             draw_text(screen, "透明", (rect.x + 14, rect.y + 12), 14, BG, True)
         else:
             pygame.draw.rect(screen, color, rect, border_radius=5)
         pygame.draw.rect(screen, ACCENT if color == editor.visuals.brush else MUTED, rect, 3, border_radius=5)
+    editor.palette_color_field.draw(screen, "追加する色")
     size = editor.visuals.logical_size
     draw_text(screen, f"表示倍率: {editor.visuals.zoom_percent}%", (805, 578), 15, WARN, True)
     draw_text(screen, f"編集中: {size}×{size}px（保存時もこの解像度）", (805, 600), 15, ACCENT, True)
@@ -366,6 +387,8 @@ def main() -> None:
         Button(pygame.Rect(845, 690, 65, 45), "等倍", editor.visuals.reset_zoom),
         Button(pygame.Rect(915, 690, 50, 45), "＋", editor.visuals.zoom_in),
         Button(pygame.Rect(970, 690, 190, 45), "5種類を保存", editor.save_visuals),
+        Button(pygame.Rect(960, 525, 85, 38), "色追加", editor.add_palette_color),
+        Button(pygame.Rect(1055, 525, 105, 38), "選択色削除", editor.remove_palette_color),
     ]
     species_scroll = ScrollBar(pygame.Rect(288, 120, 8, 540), total=len(editor.species_ids), page=10)
     available_scroll = ScrollBar(pygame.Rect(559, 135, 8, SKILL_ROWS * 50 - 6), total=len(editor.repository.get_skills()), page=SKILL_ROWS)
@@ -421,7 +444,7 @@ def main() -> None:
                         editor.learned_skill_offset = max(0, min(learned_scroll.maximum, editor.learned_skill_offset - event.y))
                 continue
             if editor.visual_mode:
-                handled = False
+                handled = handle_fields([editor.palette_color_field], event)
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_z and event.mod & pygame.KMOD_CTRL:
                     editor.visuals.undo()
                     handled = True
@@ -443,9 +466,11 @@ def main() -> None:
                             if rect.collidepoint(event.pos):
                                 editor.visuals.select(slot)
                                 handled = True
-                        for color, rect in PALETTE_RECTS.items():
+                        for color, rect in editor.visuals.palette_rects(PALETTE_ORIGIN, PALETTE_COLUMNS, PALETTE_SWATCH_SIZE):
                             if rect.collidepoint(event.pos):
                                 editor.visuals.brush = color
+                                if color[3] > 0:
+                                    editor.palette_color_field.value = editor.visuals.color_to_hex(color)
                                 handled = True
                     if not handled and editor.visuals.tool_mode == "pen" and event.button in {1, 3}:
                         editor.visuals.begin_stroke()

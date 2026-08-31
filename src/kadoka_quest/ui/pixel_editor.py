@@ -33,6 +33,7 @@ PALETTE = (
 ZOOM_LEVELS = (0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0)
 TOOL_MODES = ("pen", "pan")
 UNDO_LIMIT = 50
+PALETTE_LIMIT = 16
 
 
 class PixelArtEditor:
@@ -42,7 +43,8 @@ class PixelArtEditor:
         self.asset_root = asset_root
         self.targets: dict[str, PixelTarget] = {}
         self.selected = ""
-        self.brush = PALETTE[1]
+        self.palette = list(PALETTE)
+        self.brush = self.palette[1]
         self.images: dict[str, pygame.Surface] = {}
         self.paths: dict[str, str] = {}
         self.dirty: set[str] = set()
@@ -156,6 +158,68 @@ class PixelArtEditor:
         self.end_pan()
         self.tool_mode = mode
         return True
+
+    @staticmethod
+    def color_to_hex(color: tuple[int, int, int, int]) -> str:
+        return f"#{color[0]:02X}{color[1]:02X}{color[2]:02X}"
+
+    @staticmethod
+    def parse_palette_color(value: str) -> tuple[int, int, int, int]:
+        clean = str(value).strip().lstrip("#")
+        if len(clean) != 6:
+            raise ValueError("色は #RRGGBB 形式で入力してください。")
+        try:
+            red, green, blue = (int(clean[index:index + 2], 16) for index in (0, 2, 4))
+        except ValueError as error:
+            raise ValueError("色は #RRGGBB 形式で入力してください。") from error
+        return red, green, blue, 255
+
+    def add_palette_color(self, value: str) -> tuple[int, int, int, int]:
+        color = self.parse_palette_color(value)
+        if color in self.palette:
+            self.brush = color
+            return color
+        if len(self.palette) >= PALETTE_LIMIT:
+            raise ValueError(f"パレットは最大{PALETTE_LIMIT}色です。不要な色を削除してください。")
+        self.palette.append(color)
+        self.brush = color
+        return color
+
+    def remove_palette_color(self, color: tuple[int, int, int, int] | None = None) -> bool:
+        target = color or self.brush
+        if target not in self.palette or target[3] == 0:
+            return False
+        if sum(item[3] > 0 for item in self.palette) <= 1:
+            return False
+        index = self.palette.index(target)
+        self.palette.remove(target)
+        if self.brush == target:
+            replacement_index = min(index, len(self.palette) - 1)
+            self.brush = self.palette[replacement_index]
+        return True
+
+    def palette_rects(
+        self,
+        origin: tuple[int, int],
+        columns: int,
+        swatch_size: tuple[int, int],
+        gap: tuple[int, int] = (8, 8),
+    ) -> list[tuple[tuple[int, int, int, int], pygame.Rect]]:
+        columns = max(1, int(columns))
+        width, height = swatch_size
+        gap_x, gap_y = gap
+        return [
+            (
+                color,
+                pygame.Rect(
+                    origin[0] + (index % columns) * (width + gap_x),
+                    origin[1] + (index // columns) * (height + gap_y),
+                    width,
+                    height,
+                ),
+            )
+            for index, color in enumerate(self.palette)
+        ]
 
     def zoom_in(self) -> bool:
         old = self.zoom_index

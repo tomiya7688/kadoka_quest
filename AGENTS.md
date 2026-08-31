@@ -25,7 +25,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `data/map_presets.py`: map-schema presets saved outside the playable map catalog.
 - `data/species_creator.py`: validates and creates complete four-JSON species scaffolds plus five dependency-free 64x64 PNG placeholders.
 - `data/monsters.py`, `developer_monster_creator.py`, `parties.py`, `savedata.py`, `state.py`: save folders, developer outputs, and individual data.
-- `ui/pixel_editor.py`: the one shared pixel editor for monster art and block art.
+- `ui/pixel_editor.py`: the one shared pixel editor for monster art and block art. It owns the mutable session palette; editor apps only supply controls and layout.
 - `ui/field_renderer.py`: pygame-only field rendering; it must not decide collisions, events or encounters.
 - `data/`: mod-friendly source of truth. `assets/`: PNG files. `savedata/<name>/`: player-owned state.
 
@@ -38,6 +38,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - Monster editor species list begins with `+ new`; creation must reject duplicate IDs and generate all four JSON files plus portrait/front/right/left/back PNGs.
 - Equipment owns `allowed_species_ids`; species do not own equipment-category permissions.
 - All portraits and front/right/left/back source images use exact 64x64 PNG canvases and nearest-neighbour scaling.
+- Pixel-editor palettes are session UI state, accept `#RRGGBB`, hold at most 16 colors, and are not serialized into species/block JSON or PNG metadata.
 - Save layout: `savedata/<name>/{state.json,items/items.json,monsters/<id>/{monster,ai}.json,parties/*.json}`.
 - Developer monster outputs use the same individual format and may target the active save, `imports/acquire`, or `imports/simulation`; never overwrite an existing individual ID.
 - Normal battles may learn individual AI; simulation battles must use `learning_enabled=False`. AI reset must not reset identity, level or plus choices.

@@ -9,14 +9,13 @@ from kadoka_quest.ui.common import (
     Button, ScrollBar, TextField, draw_status_bar, draw_text, handle_fields,
     init_pygame, smoke_frames,
 )
-from kadoka_quest.ui.pixel_editor import PALETTE, PixelArtEditor
+from kadoka_quest.ui.pixel_editor import PixelArtEditor
 
 
 PIXEL_CANVAS = pygame.Rect(300, 170, 448, 448)
-PALETTE_RECTS = {
-    color: pygame.Rect(800 + (index % 2) * 105, 220 + (index // 2) * 62, 85, 48)
-    for index, color in enumerate(PALETTE)
-}
+PALETTE_ORIGIN = (790, 205)
+PALETTE_COLUMNS = 4
+PALETTE_SWATCH_SIZE = (60, 36)
 TOOL_RECTS = {
     "pen": pygame.Rect(790, 115, 90, 40),
     "pan": pygame.Rect(890, 115, 105, 40),
@@ -35,6 +34,7 @@ class BlockEditor:
         self.id_field = TextField(pygame.Rect(350, 130, 260, 42))
         self.name_field = TextField(pygame.Rect(650, 130, 280, 42))
         self.appearance_field = TextField(pygame.Rect(350, 235, 580, 42))
+        self.palette_color_field = TextField(pygame.Rect(790, 420, 130, 38), "#808080")
         self.appearance_type = "color"
         self.flags = {
             "player_walkable": True,
@@ -117,6 +117,23 @@ class BlockEditor:
         self.save()
         self.status = f"64×64 PNG と {self.id_field.value}.json を保存しました。"
 
+    def add_palette_color(self) -> None:
+        try:
+            color = self.visuals.add_palette_color(self.palette_color_field.value)
+        except ValueError as error:
+            self.status = str(error)
+            return
+        self.palette_color_field.value = self.visuals.color_to_hex(color)
+        self.status = f"ペン色 {self.palette_color_field.value} を選択しました。"
+
+    def remove_palette_color(self) -> None:
+        removed = self.visuals.brush
+        if not self.visuals.remove_palette_color():
+            self.status = "透明色と最後のペン色は削除できません。"
+            return
+        self.palette_color_field.value = self.visuals.color_to_hex(self.visuals.brush)
+        self.status = f"ペン色 {self.visuals.color_to_hex(removed)} を削除しました。"
+
     def scroll_list(self, amount: int) -> None:
         self.list_offset = max(0, min(max(0, len(self.blocks) - 10), self.list_offset + amount))
 
@@ -130,14 +147,15 @@ def draw_visual_editor(screen: pygame.Surface, editor: BlockEditor) -> None:
         draw_text(screen, "ペン" if mode == "pen" else "表示移動", (rect.x + 14, rect.y + 11), 15, TEXT, True)
     pygame.draw.rect(screen, PANEL_ALT, UNDO_RECT, border_radius=6)
     draw_text(screen, "戻す", (UNDO_RECT.x + 17, UNDO_RECT.y + 11), 15, TEXT, True)
-    draw_text(screen, "色", (800, 175), 21, MUTED, True)
-    for color, rect in PALETTE_RECTS.items():
+    draw_text(screen, f"色  {len(editor.visuals.palette)}/16", (790, 175), 21, MUTED, True)
+    for color, rect in editor.visuals.palette_rects(PALETTE_ORIGIN, PALETTE_COLUMNS, PALETTE_SWATCH_SIZE):
         if color[3] == 0:
             PixelArtEditor.draw_checker(screen, rect, 9)
             draw_text(screen, "透明", (rect.x + 18, rect.y + 14), 14, BG, True)
         else:
             pygame.draw.rect(screen, color, rect, border_radius=5)
         pygame.draw.rect(screen, ACCENT if color == editor.visuals.brush else MUTED, rect, 3, border_radius=5)
+    editor.palette_color_field.draw(screen, "追加する色")
     draw_text(screen, f"64×64px / 表示 {editor.visuals.zoom_percent}%", (790, 550), 17, ACCENT, True)
     draw_text(screen, "保存先", (790, 582), 15, MUTED, True)
     draw_text(screen, editor.appearance_field.value, (790, 607), 13, TEXT)
@@ -163,6 +181,8 @@ def main() -> None:
         Button(pygame.Rect(825, 685, 75, 45), "等倍", editor.visuals.reset_zoom),
         Button(pygame.Rect(910, 685, 55, 45), "＋", editor.visuals.zoom_in),
         Button(pygame.Rect(975, 685, 100, 45), "保存", editor.save_visual),
+        Button(pygame.Rect(930, 420, 65, 38), "色追加", editor.add_palette_color),
+        Button(pygame.Rect(1005, 420, 70, 38), "削除", editor.remove_palette_color),
     ]
     flag_rects = {
         "player_walkable": pygame.Rect(350, 380, 175, 42),
@@ -182,7 +202,8 @@ def main() -> None:
                 else:
                     running = False
             if editor.visual_mode:
-                handled = any(button.handle(event) for button in visual_buttons)
+                handled = handle_fields([editor.palette_color_field], event)
+                handled = any(button.handle(event) for button in visual_buttons) or handled
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_z and event.mod & pygame.KMOD_CTRL:
                     editor.visuals.undo()
                     handled = True
@@ -197,9 +218,11 @@ def main() -> None:
                     if UNDO_RECT.collidepoint(event.pos):
                         editor.visuals.undo()
                         handled = True
-                    for color, rect in PALETTE_RECTS.items():
+                    for color, rect in editor.visuals.palette_rects(PALETTE_ORIGIN, PALETTE_COLUMNS, PALETTE_SWATCH_SIZE):
                         if rect.collidepoint(event.pos):
                             editor.visuals.brush = color
+                            if color[3] > 0:
+                                editor.palette_color_field.value = editor.visuals.color_to_hex(color)
                             handled = True
                 if not handled and event.type == pygame.MOUSEBUTTONDOWN:
                     if editor.visuals.tool_mode == "pen" and event.button in {1, 3}:

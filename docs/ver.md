@@ -136,3 +136,23 @@
 
 - `docs/モンスター種族新規作成機能説明書.md`
 - `src/kadoka_quest/data/species_creator.py`
+
+# 7. ドットエディターの編集可能パレット
+
+モンスターとブロックで共有するドットエディターへ、`#RRGGBB` によるペン色の追加、重複色の選択、選択色の削除を追加。最大16色とし、透明色および最後の不透明色は削除できないようにした。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/block_editor.py`
+- `src/kadoka_quest/apps/monster_editor.py`
+- `src/kadoka_quest/ui/pixel_editor.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/ドットエディターパレット機能説明書.md`
