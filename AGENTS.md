@@ -14,7 +14,9 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 
 ## Architecture
 
+- `application/app_command.py`, `command_bus.py`: pygame-independent semantic command contract and one-target router. Runtime screens communicate by `target/action/payload`, never pygame events or surfaces.
 - `src/kadoka_quest/apps/game.py`: input and orchestration for field, encounters, saves and battle presentation.
+- `apps/field_command_app.py`, `battle_command_app.py`, `password_command_app.py`: independent pygame-free command boundaries. The pygame loop translates input to commands and may read state for rendering, but must not invoke screen actions directly.
 - `apps/map_editor.py`, `block_editor.py`, `monster_editor.py`, `manage.py`: direct editors; no export format.
 - `apps/data_creator.py`: developer-facing individual generator UI; keep generation logic outside the pygame layer.
 - `core/battle.py`, `core/monster.py`, `core/ai.py`: combat calculations and individual AI learning.
@@ -76,3 +78,4 @@ Fixed mobs spawn at their initial point whenever the map loads, cannot share a t
 - Do not modify user save data during tests; use a temporary `KADOKA_SAVE_DIR`.
 - The user prefers terminal Git. Do not push unless explicitly asked; verify the remote result before saying an upload completed.
 - Remote: `https://github.com/tomiya7688/kadoka_quest.git`, branch `main`.
+- Keep command payloads plain (`str/int/float/bool/list/dict/None`) so applications can later move to processes or another engine. Add commands at an application boundary instead of importing pygame into command apps.

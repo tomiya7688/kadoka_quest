@@ -106,6 +106,20 @@ JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値
 
 固定モブはプレイヤーと同じマスへ移動しません。プレイヤーが正面にいる間も移動しないため、そのまま話しかけられます。
 
+## 実行時アプリ間コマンド
+
+実行時コマンドは保存JSONではなく、アプリ間の一時的なメッセージです。形式は `target`、`action`、`payload` の3要素で、payloadには文字列・数値・真偽値・リスト・辞書・null相当だけを渡します。pygameのイベント、キーコード、`Rect`、`Surface` は渡しません。
+
+```json
+{
+  "target": "field",
+  "action": "move.start",
+  "payload": {"direction": "left", "now": 1200}
+}
+```
+
+`target` は現在 `field`、`battle`、`password` の3種類です。不明な対象や各アプリが対応しないactionはエラーにして黙って無視しません。
+
 ## Species folder
 
 `data/species/<species_id>/` は起動時にフォルダ単位で発見されます。

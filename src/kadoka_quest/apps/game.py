@@ -8,6 +8,10 @@ from uuid import uuid4
 
 import pygame
 
+from kadoka_quest.application import AppCommand, CommandBus
+from kadoka_quest.apps.battle_command_app import BattleCommandApplication
+from kadoka_quest.apps.field_command_app import FieldCommandApplication
+from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.core.ai import TACTICS, default_ai
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.field_engine import FieldEngine
@@ -25,16 +29,23 @@ from kadoka_quest.ui.field_renderer import FIELD_RECT, TILE, draw_field
 SCREEN_SIZE = (1120, 740)
 PASSWORD = "へいわなすみか"
 KANA_KEYS = tuple("あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん")
-MOVE_KEY_VECTORS = {
-    pygame.K_LEFT: (-1, 0),
-    pygame.K_a: (-1, 0),
-    pygame.K_RIGHT: (1, 0),
-    pygame.K_d: (1, 0),
-    pygame.K_UP: (0, -1),
-    pygame.K_w: (0, -1),
-    pygame.K_DOWN: (0, 1),
-    pygame.K_s: (0, 1),
+MOVE_DIRECTION_VECTORS = {
+    "left": (-1, 0),
+    "right": (1, 0),
+    "back": (0, -1),
+    "front": (0, 1),
 }
+MOVE_KEY_DIRECTIONS = {
+    pygame.K_LEFT: "left",
+    pygame.K_a: "left",
+    pygame.K_RIGHT: "right",
+    pygame.K_d: "right",
+    pygame.K_UP: "back",
+    pygame.K_w: "back",
+    pygame.K_DOWN: "front",
+    pygame.K_s: "front",
+}
+MOVE_KEY_VECTORS = {key: MOVE_DIRECTION_VECTORS[direction] for key, direction in MOVE_KEY_DIRECTIONS.items()}
 MOVE_REPEAT_DELAY_MS = 180
 MOVE_REPEAT_INTERVAL_MS = 90
 PLAYER_MOVE_DURATION_MS = 120
@@ -104,6 +115,7 @@ class KadokaQuest:
         self.image_cache: dict[tuple[str, str, int, int], pygame.Surface | None] = {}
         self.manager_process: subprocess.Popen | None = None
         self.held_move_key: int | None = None
+        self.held_move_direction: str | None = None
         self.next_move_tick = 0
         self.reset_hidden_monsters()
         self.reset_home_npcs()
@@ -181,10 +193,17 @@ class KadokaQuest:
         return self.field.front_position(self.player_x, self.player_y, self.player_direction)
 
     def start_held_move(self, key: int, now: int) -> bool:
-        vector = MOVE_KEY_VECTORS.get(key)
-        if vector is None or self.mode != "field":
+        direction = MOVE_KEY_DIRECTIONS.get(key)
+        if direction is None:
             return False
         self.held_move_key = key
+        return self.start_held_direction(direction, now)
+
+    def start_held_direction(self, direction: str, now: int) -> bool:
+        vector = MOVE_DIRECTION_VECTORS.get(direction)
+        if vector is None or self.mode != "field":
+            return False
+        self.held_move_direction = direction
         self.next_move_tick = int(now) + MOVE_REPEAT_DELAY_MS
         self.move(*vector, now=now)
         return True
@@ -192,14 +211,21 @@ class KadokaQuest:
     def stop_held_move(self, key: int) -> None:
         if key == self.held_move_key:
             self.held_move_key = None
+            self.held_move_direction = None
+
+    def stop_held_direction(self, direction: str) -> None:
+        if direction == self.held_move_direction:
+            self.held_move_key = None
+            self.held_move_direction = None
 
     def update_held_move(self, now: int) -> bool:
-        if self.mode != "field" or self.held_move_key not in MOVE_KEY_VECTORS:
+        if self.mode != "field" or self.held_move_direction not in MOVE_DIRECTION_VECTORS:
             self.held_move_key = None
+            self.held_move_direction = None
             return False
         if int(now) < self.next_move_tick:
             return False
-        self.move(*MOVE_KEY_VECTORS[self.held_move_key], now=now)
+        self.move(*MOVE_DIRECTION_VECTORS[self.held_move_direction], now=now)
         self.next_move_tick = int(now) + MOVE_REPEAT_INTERVAL_MS
         return True
 
@@ -916,14 +942,22 @@ def main() -> None:
     screen = init_pygame("kadoka quest", SCREEN_SIZE)
     clock = pygame.time.Clock()
     game = KadokaQuest()
+    commands = CommandBus()
+    commands.register("field", FieldCommandApplication(game).handle)
+    commands.register("battle", BattleCommandApplication(game).handle)
+    commands.register("password", PasswordCommandApplication(game).handle)
+
+    def dispatch(target: str, action: str, **payload) -> object:
+        return commands.dispatch(AppCommand(target, action, payload))
+
     running = True
     smoke = smoke_frames()
     frames = 0
     battle_buttons = [
-        Button(pygame.Rect(355, 650, 95, 48), "戦う", lambda: game.handle_battle_command("fight")),
-        Button(pygame.Rect(460, 650, 95, 48), "スカウト", lambda: game.handle_battle_command("scout")),
-        Button(pygame.Rect(565, 650, 95, 48), "道具", lambda: game.handle_battle_command("item")),
-        Button(pygame.Rect(670, 650, 95, 48), "逃げる", lambda: game.handle_battle_command("run")),
+        Button(pygame.Rect(355, 650, 95, 48), "戦う", lambda: dispatch("battle", "execute", command="fight")),
+        Button(pygame.Rect(460, 650, 95, 48), "スカウト", lambda: dispatch("battle", "execute", command="scout")),
+        Button(pygame.Rect(565, 650, 95, 48), "道具", lambda: dispatch("battle", "execute", command="item")),
+        Button(pygame.Rect(670, 650, 95, 48), "逃げる", lambda: dispatch("battle", "execute", command="run")),
     ]
 
     while running:
@@ -933,82 +967,86 @@ def main() -> None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     if game.mode == "password":
-                        game.cancel_password()
+                        dispatch("password", "cancel")
                     elif game.mode == "battle":
                         if game.battle and game.battle.outcome and not game.battle_playback:
-                            game.return_to_field()
+                            dispatch("battle", "return")
                         else:
-                            game.auto_battle = False
-                            game.status = "戦闘中です。Aでオート戦闘を切り替えられます。"
+                            dispatch("battle", "cancel")
                     else:
                         running = False
                 elif game.mode == "field":
-                    if event.key in MOVE_KEY_VECTORS:
+                    if event.key in MOVE_KEY_DIRECTIONS:
                         if not getattr(event, "repeat", False):
-                            game.start_held_move(event.key, pygame.time.get_ticks())
+                            dispatch(
+                                "field",
+                                "move.start",
+                                direction=MOVE_KEY_DIRECTIONS[event.key],
+                                now=pygame.time.get_ticks(),
+                            )
                     elif event.key == pygame.K_SPACE:
-                        game.interact()
+                        dispatch("field", "interact")
                     elif event.key == pygame.K_l:
-                        game.field_pickup()
+                        dispatch("field", "pickup")
                     elif pygame.K_1 <= event.key <= pygame.K_4:
-                        game.selected_party = event.key - pygame.K_1
+                        dispatch("field", "party.select", index=event.key - pygame.K_1)
                     elif event.key == pygame.K_t:
-                        game.cycle_tactic()
+                        dispatch("field", "tactic.cycle")
                     elif event.key == pygame.K_r:
-                        game.reset_selected_ai()
+                        dispatch("field", "ai.reset")
                     elif event.key == pygame.K_F5:
-                        game.scan_acquire()
+                        dispatch("field", "acquire.scan")
                     elif event.key == pygame.K_F6:
-                        game.start_simulation()
+                        dispatch("field", "simulation.start")
                     elif event.key == pygame.K_F7:
-                        game.save_preset()
+                        dispatch("field", "party.save_preset")
                     elif event.key == pygame.K_F8:
-                        game.load_next_preset()
+                        dispatch("field", "party.load_next_preset")
                 elif game.mode == "battle":
                     if game.battle and game.battle.outcome and not game.battle_playback and event.key in {pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE}:
-                        game.return_to_field()
+                        dispatch("battle", "return")
                     elif event.key == pygame.K_a:
-                        game.toggle_auto_battle()
+                        dispatch("battle", "auto.toggle")
                     elif event.key in {pygame.K_LEFT, pygame.K_UP}:
-                        game.battle_selection = (game.battle_selection - 1) % 4
+                        dispatch("battle", "selection.move", amount=-1)
                     elif event.key in {pygame.K_RIGHT, pygame.K_DOWN}:
-                        game.battle_selection = (game.battle_selection + 1) % 4
+                        dispatch("battle", "selection.move", amount=1)
                     elif event.key in {pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE}:
-                        game.handle_battle_command(game.selected_battle_command())
+                        dispatch("battle", "execute.selected")
                     elif pygame.K_1 <= event.key <= pygame.K_4:
-                        game.battle_selection = event.key - pygame.K_1
-                        game.handle_battle_command(game.selected_battle_command())
+                        dispatch("battle", "selection.set", index=event.key - pygame.K_1)
+                        dispatch("battle", "execute.selected")
                 elif game.mode == "password":
                     if event.key == pygame.K_BACKSPACE:
-                        game.backspace_password()
+                        dispatch("password", "backspace")
                     elif event.key in {pygame.K_RETURN, pygame.K_KP_ENTER}:
-                        game.submit_password()
+                        dispatch("password", "submit")
                     elif event.unicode:
-                        game.append_password(event.unicode)
-            if event.type == pygame.KEYUP and event.key in MOVE_KEY_VECTORS:
-                game.stop_held_move(event.key)
+                        dispatch("password", "append", character=event.unicode)
+            if event.type == pygame.KEYUP and event.key in MOVE_KEY_DIRECTIONS:
+                dispatch("field", "move.stop", direction=MOVE_KEY_DIRECTIONS[event.key])
             if game.mode == "password" and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 keys, erase, decide, cancel = password_controls()
                 for character, rect in keys:
                     if rect.collidepoint(event.pos):
-                        game.append_password(character)
+                        dispatch("password", "append", character=character)
                         break
                 if erase.collidepoint(event.pos):
-                    game.backspace_password()
+                    dispatch("password", "backspace")
                 elif decide.collidepoint(event.pos):
-                    game.submit_password()
+                    dispatch("password", "submit")
                 elif cancel.collidepoint(event.pos):
-                    game.cancel_password()
+                    dispatch("password", "cancel")
             elif game.mode == "battle":
                 for button in battle_buttons:
                     button.handle(event)
 
-        game.refresh_manager_if_closed()
+        dispatch("field", "manager.refresh")
         now = pygame.time.get_ticks()
-        game.update_field_mobs(now)
-        game.update_held_move(now)
-        game.update_battle_playback()
-        game.update_auto_battle()
+        if game.mode == "field":
+            dispatch("field", "tick", now=now)
+        elif game.mode == "battle":
+            dispatch("battle", "tick", now=now)
         screen.fill(BG)
         if game.mode == "field":
             draw_text(screen, "kadoka quest", (20, 18), 34, ACCENT, True)

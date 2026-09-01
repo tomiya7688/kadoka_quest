@@ -15,6 +15,10 @@ import pygame
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from kadoka_quest.application import AppCommand, CommandBus
+from kadoka_quest.apps.battle_command_app import BattleCommandApplication
+from kadoka_quest.apps.field_command_app import FieldCommandApplication
+from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.core.ai import choose_skill, default_ai, learn_from_action
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.battle_context import describe_battle_context
@@ -73,6 +77,57 @@ class JsonIoTests(unittest.TestCase):
 
             self.assertEqual(read_json(path), {"x": 3})
             self.assertEqual(list(Path(temporary).glob("*.tmp")), [])
+
+
+class CommandApplicationTests(unittest.TestCase):
+    def test_command_bus_routes_one_target_and_rejects_unknown_or_duplicate_targets(self) -> None:
+        handler = mock.Mock()
+        handler.handle.return_value = "handled"
+        bus = CommandBus()
+        bus.register("field", handler.handle)
+        command = AppCommand("field", "interact")
+
+        self.assertEqual(bus.dispatch(command), "handled")
+        handler.handle.assert_called_once_with(command)
+        with self.assertRaises(ValueError):
+            bus.register("field", handler.handle)
+        with self.assertRaises(ValueError):
+            bus.dispatch(AppCommand("missing", "noop"))
+
+    def test_runtime_applications_receive_plain_semantic_commands(self) -> None:
+        session = SimpleNamespace(
+            selected_party=0,
+            battle_selection=0,
+            auto_battle=False,
+            status="",
+            start_held_direction=mock.Mock(return_value=True),
+            stop_held_direction=mock.Mock(),
+            handle_battle_command=mock.Mock(),
+            selected_battle_command=mock.Mock(return_value="scout"),
+            append_password=mock.Mock(),
+        )
+        bus = CommandBus()
+        bus.register("field", FieldCommandApplication(session).handle)
+        bus.register("battle", BattleCommandApplication(session).handle)
+        bus.register("password", PasswordCommandApplication(session).handle)
+
+        self.assertTrue(bus.dispatch(AppCommand("field", "move.start", {"direction": "left", "now": 120})))
+        session.start_held_direction.assert_called_once_with("left", 120)
+        self.assertEqual(bus.dispatch(AppCommand("battle", "selection.move", {"amount": -1})), 3)
+        bus.dispatch(AppCommand("battle", "execute.selected"))
+        session.handle_battle_command.assert_called_once_with("scout")
+        bus.dispatch(AppCommand("password", "append", {"character": "へ"}))
+        session.append_password.assert_called_once_with("へ")
+
+    def test_runtime_command_applications_do_not_depend_on_pygame(self) -> None:
+        for relative in (
+            "src/kadoka_quest/application/app_command.py",
+            "src/kadoka_quest/application/command_bus.py",
+            "src/kadoka_quest/apps/field_command_app.py",
+            "src/kadoka_quest/apps/battle_command_app.py",
+            "src/kadoka_quest/apps/password_command_app.py",
+        ):
+            self.assertNotIn("import pygame", (PROJECT_ROOT / relative).read_text(encoding="utf-8"))
 
 
 class DataFormatTests(unittest.TestCase):

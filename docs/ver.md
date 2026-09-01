@@ -177,3 +177,27 @@
 
 - `docs/ドットエディター画像編集機能説明書.md`
 - `src/kadoka_quest/ui/pixel_operations.py`
+
+# 9. コマンド駆動アプリ基盤 第1段階
+
+pygame入力ループからフィールド・戦闘・暗号入力処理への直接呼出しを廃止し、`target / action / payload` の共通コマンドへ変換して対象アプリへ配送する基盤を追加。移動方向もキーコードではなく意味名で渡し、各コマンドアプリをpygame非依存にした。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `src/kadoka_quest/application/__init__.py`
+- `src/kadoka_quest/application/app_command.py`
+- `src/kadoka_quest/application/command_bus.py`
+- `src/kadoka_quest/apps/field_command_app.py`
+- `src/kadoka_quest/apps/battle_command_app.py`
+- `src/kadoka_quest/apps/password_command_app.py`
