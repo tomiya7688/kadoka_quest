@@ -15,21 +15,24 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 ## Architecture
 
 - `application/app_command.py`, `command_bus.py`: pygame-independent semantic command contract and one-target router. Runtime screens communicate by `target/action/payload`, never pygame events or surfaces.
-- `src/kadoka_quest/apps/game.py`: input and orchestration for field, encounters, saves and battle presentation.
+- `src/kadoka_quest/apps/game.py`: input and orchestration for field, encounters and saves; battle drawing is not allowed here.
 - `apps/field_command_app.py`, `battle_command_app.py`, `password_command_app.py`: independent pygame-free command boundaries. The pygame loop translates input to commands and may read state for rendering, but must not invoke screen actions directly.
 - `apps/map_editor.py`, `block_editor.py`, `monster_editor.py`, `manage.py`: direct editors; no export format.
 - `apps/data_creator.py`: developer-facing individual generator UI; keep generation logic outside the pygame layer.
-- `core/battle.py`, `core/monster.py`, `core/ai.py`: combat calculations and individual AI learning.
+- `core/battle.py`: combat calculation coordinator. It receives `BattleDataLoader`, `BattleInference`, and `BattleLearning`; do not move their responsibilities back into the engine.
+- `core/combatant.py`: runtime combat state only. `core/battle_inference.py` selects actions without mutation; `core/battle_learning.py` mutates sparse AI learning. `core/ai.py` is their backward-compatible public facade plus default AI creation.
 - `core/battle_context.py`: engine-independent fixed battle-context tags; do not store combinatorial board states.
 - `core/grid_movement.py`: pygame-independent visual interpolation between integer grid positions.
 - `core/field_engine.py`: pygame/file-I/O-independent field rules. Inputs and results stay plain dict/list/int/string/bool values for GDScript/Lua parity.
 - `data/repository.py`: species, blocks, maps, equipment and skills.
+- `data/battle_data.py`: the only battle-time loader for combatants, species definitions, skills, stats, resistances and equipment.
 - `data/map_presets.py`: map-schema presets saved outside the playable map catalog.
 - `data/species_creator.py`: validates and creates complete four-JSON species scaffolds plus five dependency-free 64x64 PNG placeholders.
 - `data/monsters.py`, `developer_monster_creator.py`, `parties.py`, `savedata.py`, `state.py`: save folders, developer outputs, and individual data.
 - `ui/pixel_editor.py`: the one shared pixel editor for monster art and block art. It owns the mutable session palette; editor apps only supply controls and layout.
 - `ui/pixel_operations.py`: shared pygame-surface processing for outline-bounded flood fill, RGB-distance color reduction, and nearest-neighbour image fitting; no screen/event responsibilities.
 - `ui/field_renderer.py`: pygame-only field rendering; it must not decide collisions, events or encounters.
+- `ui/battle_renderer.py`: pygame-only battle rendering; it reads session state but cannot run rounds, infer actions, learn, or load battle data.
 - `data/`: mod-friendly source of truth. `assets/`: PNG files. `savedata/<name>/`: player-owned state.
 
 ## Data contracts

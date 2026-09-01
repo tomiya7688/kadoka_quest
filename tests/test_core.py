@@ -22,6 +22,8 @@ from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.core.ai import choose_skill, default_ai, learn_from_action
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.battle_context import describe_battle_context
+from kadoka_quest.core.battle_inference import BattleInference
+from kadoka_quest.core.battle_learning import BattleLearning
 from kadoka_quest.core.field_engine import FieldEngine
 from kadoka_quest.core.grid_movement import GridMovement
 from kadoka_quest.apps.block_editor import BlockEditor
@@ -30,6 +32,7 @@ from kadoka_quest.apps.map_editor import MapEditor
 from kadoka_quest.apps.monster_editor import NEW_SPECIES_ID, MonsterEditor
 from kadoka_quest.core.monster import calculate_stats
 from kadoka_quest.data.developer_monster_creator import DeveloperMonsterCreator
+from kadoka_quest.data.battle_data import BattleDataLoader
 from kadoka_quest.data.jsonio import read_json, write_json
 from kadoka_quest.data.map_presets import MapPresetStore
 from kadoka_quest.data.monsters import MonsterStore
@@ -773,6 +776,56 @@ class BattleTests(unittest.TestCase):
         learned_contexts = [member.record.ai.get("context_preferences", {}) for member in engine.allies]
         self.assertTrue(any(contexts for contexts in learned_contexts))
         self.assertTrue(all(len(contexts) <= 6 for contexts in learned_contexts))
+
+    def test_engine_delegates_data_inference_and_learning_to_injected_responsibilities(self) -> None:
+        ally = self.monsters.create("hero", level=10)
+        enemy = self.monsters.create("slime", level=8)
+        loader = BattleDataLoader(self.repository)
+        inference = mock.create_autospec(BattleInference, instance=True)
+        inference.choose.side_effect = lambda _ai, skills, *_args: next(
+            (skill for skill in skills if skill.get("kind") == "physical"),
+            skills[0] if skills else None,
+        )
+        learning = mock.create_autospec(BattleLearning, instance=True)
+
+        with mock.patch.object(loader, "build_combatant", wraps=loader.build_combatant) as build:
+            engine = BattleEngine(
+                self.repository,
+                [ally],
+                [enemy],
+                random.Random(21),
+                learning_enabled=True,
+                data_loader=loader,
+                inference=inference,
+                learning=learning,
+            )
+        self.assertEqual(build.call_count, 2)
+        engine.run_round()
+        self.assertTrue(inference.choose.called)
+        self.assertTrue(learning.learn.called)
+
+        learning.reset_mock()
+        simulation = BattleEngine(
+            self.repository,
+            [ally],
+            [enemy],
+            random.Random(22),
+            learning_enabled=False,
+            data_loader=loader,
+            inference=inference,
+            learning=learning,
+        )
+        simulation.run_round()
+        learning.learn.assert_not_called()
+
+    def test_battle_modules_keep_screen_data_inference_and_learning_boundaries(self) -> None:
+        engine_source = (PROJECT_ROOT / "src/kadoka_quest/core/battle.py").read_text(encoding="utf-8")
+        renderer_source = (PROJECT_ROOT / "src/kadoka_quest/ui/battle_renderer.py").read_text(encoding="utf-8")
+        self.assertNotIn("choose_skill", engine_source)
+        self.assertNotIn("learn_from_action", engine_source)
+        self.assertNotIn(".get_species(", engine_source)
+        self.assertNotIn("run_round", renderer_source)
+        self.assertNotIn(".learn(", renderer_source)
 
     def test_simulation_battle_never_updates_ai(self) -> None:
         ally = self.monsters.create("metal_slime", level=20)

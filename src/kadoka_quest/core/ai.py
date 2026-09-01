@@ -3,8 +3,13 @@ from __future__ import annotations
 import random
 from typing import Any, Iterable
 
+from kadoka_quest.core.battle_inference import BattleInference
+from kadoka_quest.core.battle_learning import BattleLearning
+
 
 TACTICS = ("balanced", "aggressive", "careful", "variety")
+_INFERENCE = BattleInference()
+_LEARNING = BattleLearning()
 
 
 def default_ai(profile: str = "normal", tactic: str = "balanced") -> dict[str, Any]:
@@ -35,16 +40,6 @@ def default_ai(profile: str = "normal", tactic: str = "balanced") -> dict[str, A
     }
 
 
-def _tactic_bonus(tactic: str, kind: str) -> float:
-    table = {
-        "aggressive": {"physical": 0.65, "magic": 0.65, "random": 0.35, "heal": -0.25, "defend": -0.3},
-        "careful": {"heal": 0.75, "defend": 0.55, "evade": 0.5, "physical": -0.1},
-        "variety": {"drain_mp": 0.45, "buff": 0.45, "random": 0.45, "evade": 0.3},
-        "balanced": {},
-    }
-    return float(table.get(tactic, {}).get(kind, 0.0))
-
-
 def choose_skill(
     ai: dict[str, Any],
     skills: Iterable[dict[str, Any]],
@@ -54,51 +49,7 @@ def choose_skill(
     rng: random.Random,
     context_tags: Iterable[str] = (),
 ) -> dict[str, Any] | None:
-    candidates: list[tuple[float, dict[str, Any]]] = []
-    tactic = str(ai.get("tactic", "balanced"))
-    profile = str(ai.get("profile", "normal"))
-    preferences = ai.get("action_preferences", {})
-    kind_preferences = ai.get("kind_preferences", {})
-    context_preferences = ai.get("context_preferences", {})
-    context_tags = tuple(str(tag) for tag in context_tags)
-
-    for skill in skills:
-        if skill.get("field_only"):
-            continue
-        kind = str(skill.get("kind", "physical"))
-        score = 1.0
-        score += _tactic_bonus(tactic, kind)
-        score += float(preferences.get(skill.get("id"), 0.0))
-        score += float(kind_preferences.get(kind, 0.0))
-        context_bonus = sum(
-            float(context_preferences.get(tag, {}).get(skill.get("id"), 0.0))
-            for tag in context_tags
-        )
-        score += max(-1.0, min(1.0, context_bonus))
-        mp_cost = int(skill.get("mp_cost", 0))
-        if mp_cost and mp_ratio < 0.25:
-            score -= 0.8 * float(ai.get("weights", {}).get("mp_care", 0.5))
-        if kind == "heal":
-            score += ally_missing_hp_ratio * 2.4 - 0.65
-        elif kind in {"defend", "evade"}:
-            score += max(0.0, 0.55 - hp_ratio) * 2.0
-        elif kind in {"physical", "magic", "drain_mp", "random"}:
-            score += 0.25
-        elif kind == "buff":
-            score += 0.12
-        score += rng.uniform(-0.12, 0.12)
-        if profile == "maru":
-            score += rng.uniform(-0.9, 0.9)
-        elif profile == "kadoka":
-            score += rng.uniform(-0.35, 0.35)
-        candidates.append((score, skill))
-
-    if not candidates:
-        return None
-    candidates.sort(key=lambda pair: pair[0], reverse=True)
-    if profile == "maru" and len(candidates) > 1 and rng.random() < 0.38:
-        return rng.choice(candidates[1:])[1]
-    return candidates[0][1]
+    return _INFERENCE.choose(ai, skills, hp_ratio, ally_missing_hp_ratio, mp_ratio, rng, context_tags)
 
 
 def learn_from_action(
@@ -107,16 +58,6 @@ def learn_from_action(
     reward: float,
     context_tags: Iterable[str] = (),
 ) -> None:
-    preferences = ai.setdefault("action_preferences", {})
-    current = float(preferences.get(skill_id, 0.0))
-    preferences[skill_id] = round(max(-1.0, min(1.0, current + reward * 0.015)), 4)
-    context_preferences = ai.setdefault("context_preferences", {})
-    context_actions = ai.setdefault("context_actions", {})
-    for tag in dict.fromkeys(str(tag) for tag in context_tags):
-        tag_preferences = context_preferences.setdefault(tag, {})
-        contextual = float(tag_preferences.get(skill_id, 0.0))
-        tag_preferences[skill_id] = round(max(-0.6, min(0.6, contextual + reward * 0.01)), 4)
-        context_actions[tag] = int(context_actions.get(tag, 0)) + 1
-    ai["actions"] = int(ai.get("actions", 0)) + 1
+    _LEARNING.learn(ai, skill_id, reward, context_tags)
 
 

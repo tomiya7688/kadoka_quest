@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import random
 from typing import Any
 
-from kadoka_quest.core.ai import choose_skill, learn_from_action
+from kadoka_quest.core.battle_inference import BattleInference
+from kadoka_quest.core.battle_learning import BattleLearning
 from kadoka_quest.core.battle_context import describe_battle_context
-from kadoka_quest.core.monster import MonsterRecord, available_skill_ids, calculate_stats, equipment_allows_species
+from kadoka_quest.core.combatant import Combatant
+from kadoka_quest.core.monster import MonsterRecord
+from kadoka_quest.data.battle_data import BattleDataLoader
 from kadoka_quest.data.repository import GameRepository
 
 
@@ -20,41 +22,6 @@ RESISTANCE_MULTIPLIER = {
 NORMAL_ATTACK_CRITICAL_CHANCE = 1 / 16
 
 
-@dataclass
-class Combatant:
-    record: MonsterRecord
-    stats: dict[str, int]
-    skills: list[dict[str, Any]]
-    resistances: dict[str, str]
-    equipment: dict[str, Any] | None = None
-    hp: int = 0
-    mp: int = 0
-    guard: float = 1.0
-    evade_physical: bool = False
-    evade_physical_source: str | None = None
-    evade_element: str | None = None
-    speed_multiplier: float = 1.0
-    attack_multiplier: float = 1.0
-    physical_locked: int = 0
-    action_history: list[str] = field(default_factory=list)
-
-    def __post_init__(self) -> None:
-        self.hp = self.hp or self.stats["hp"]
-        self.mp = self.mp or self.stats["mp"]
-
-    @property
-    def alive(self) -> bool:
-        return self.hp > 0
-
-    @property
-    def name(self) -> str:
-        return self.record.name
-
-    @property
-    def speed(self) -> int:
-        return max(1, int(self.stats["speed"] * self.speed_multiplier))
-
-
 class BattleEngine:
     def __init__(
         self,
@@ -63,33 +30,23 @@ class BattleEngine:
         enemies: list[MonsterRecord],
         rng: random.Random | None = None,
         learning_enabled: bool = True,
+        data_loader: BattleDataLoader | None = None,
+        inference: BattleInference | None = None,
+        learning: BattleLearning | None = None,
     ) -> None:
         self.repository = repository
         self.rng = rng or random.Random()
         self.learning_enabled = learning_enabled
-        self.skill_catalog = repository.get_skills()
-        self.equipment_catalog = repository.get_equipment()
-        self.allies = [self._build(record) for record in allies[:4]]
-        self.enemies = [self._build(record) for record in enemies[:4]]
+        self.data_loader = data_loader or BattleDataLoader(repository)
+        self.skill_catalog = self.data_loader.skill_catalog
+        self.equipment_catalog = self.data_loader.equipment_catalog
+        self.inference = inference or BattleInference()
+        self.learning = learning or BattleLearning()
+        self.allies = [self.data_loader.build_combatant(record) for record in allies[:4]]
+        self.enemies = [self.data_loader.build_combatant(record) for record in enemies[:4]]
         self.log: list[str] = ["戦闘開始。個体AIが行動を決めます。"]
         self.round_number = 0
         self.outcome: str | None = None
-
-    def _build(self, record: MonsterRecord) -> Combatant:
-        bundle = self.repository.get_species(record.species_id)
-        skill_ids = available_skill_ids(self.repository, record)
-        skills = [self.skill_catalog[item] for item in skill_ids if item in self.skill_catalog]
-        equipment = self.equipment_catalog.get(record.equipment_id or "")
-        if equipment and not equipment_allows_species(equipment, record.species_id):
-            equipment = None
-        resistances = dict(bundle.definition.get("resistances", {}))
-        if equipment:
-            scale = ["weak", "normal", "strong", "immune", "absorb"]
-            for element, steps in equipment.get("resistance_steps", {}).items():
-                current = resistances.get(element, "normal")
-                index = scale.index(current) if current in scale else 1
-                resistances[element] = scale[max(0, min(len(scale) - 1, index + int(steps)))]
-        return Combatant(record, calculate_stats(self.repository, record), skills, resistances, equipment)
 
     @staticmethod
     def _living(team: list[Combatant]) -> list[Combatant]:
@@ -149,7 +106,7 @@ class BattleEngine:
             actor.record.level,
             max((foe.record.level for foe in foes), default=actor.record.level),
         )
-        chosen = choose_skill(
+        chosen = self.inference.choose(
             actor.record.ai,
             usable,
             actor.hp / actor.stats["hp"],
@@ -205,7 +162,7 @@ class BattleEngine:
             self.log.append(f"{actor.name}の{chosen['display_name']}。{target.name}の{effect}が強くなった。")
 
         if self.learning_enabled:
-            learn_from_action(actor.record.ai, str(chosen["id"]), reward, context_tags)
+            self.learning.learn(actor.record.ai, str(chosen["id"]), reward, context_tags)
 
     def _attack(self, actor: Combatant, target: Combatant, skill: dict[str, Any]) -> float:
         kind = str(skill.get("kind"))
@@ -268,7 +225,7 @@ class BattleEngine:
         else:
             self.log.append(f"{actor.name}の{skill['display_name']}。{target.name}に{dealt}ダメージ。")
         if not target.alive:
-            message = self.repository.get_species(target.record.species_id).definition.get("defeat_message")
+            message = self.data_loader.species_definition(target.record.species_id).get("defeat_message")
             self.log.append(str(message or f"{target.name}はたおれた！"))
         return dealt / max(1, target.stats["hp"])
 
@@ -278,7 +235,7 @@ class BattleEngine:
         target = next((item for item in self.enemies if item.alive), None)
         if not target:
             return False, None, 0.0
-        definition = self.repository.get_species(target.record.species_id).definition
+        definition = self.data_loader.species_definition(target.record.species_id)
         if not bool(definition.get("recruit", {}).get("scoutable", True)):
             self.log.append(f"{target.name}はスカウトできない。")
             return False, None, 0.0

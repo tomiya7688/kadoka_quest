@@ -201,3 +201,29 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 - `src/kadoka_quest/apps/field_command_app.py`
 - `src/kadoka_quest/apps/battle_command_app.py`
 - `src/kadoka_quest/apps/password_command_app.py`
+
+# 10. 戦闘責務分離 第2段階
+
+戦闘画面描画、計算、AI学習、AI推論、データ読込を独立モジュールへ分離。BattleEngineは各責務を注入可能にし、通常戦だけが学習する契約と既存の公開関数・カタログ属性を維持した。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `src/kadoka_quest/core/ai.py`
+- `src/kadoka_quest/core/battle.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/戦闘責務分離機能説明書.md`
+- `src/kadoka_quest/core/battle_inference.py`
+- `src/kadoka_quest/core/battle_learning.py`
+- `src/kadoka_quest/core/combatant.py`
+- `src/kadoka_quest/data/battle_data.py`
+- `src/kadoka_quest/ui/battle_renderer.py`

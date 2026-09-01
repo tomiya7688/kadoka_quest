@@ -120,6 +120,10 @@ JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値
 
 `target` は現在 `field`、`battle`、`password` の3種類です。不明な対象や各アプリが対応しないactionはエラーにして黙って無視しません。
 
+### 戦闘内部の責務境界
+
+戦闘計算は `BattleEngine`、戦闘用データ読込は `BattleDataLoader`、行動選択は `BattleInference`、学習更新は `BattleLearning`、画面描画は `BattleRenderer` が担当します。これらの間で保存用の派生JSONは作らず、従来の種族JSONと個体AI JSONをそのまま使います。`learning_enabled: false` の模擬戦は、注入された学習処理を一度も呼びません。
+
 ## Species folder
 
 `data/species/<species_id>/` は起動時にフォルダ単位で発見されます。
