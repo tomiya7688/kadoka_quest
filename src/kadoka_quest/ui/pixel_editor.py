@@ -6,6 +6,8 @@ from typing import Iterable
 
 import pygame
 
+from kadoka_quest.ui.pixel_operations import fit_imported_image, flood_fill_copy, reduce_similar_colors
+
 
 @dataclass(frozen=True)
 class PixelTarget:
@@ -31,7 +33,7 @@ PALETTE = (
     (120, 220, 140, 255),
 )
 ZOOM_LEVELS = (0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0)
-TOOL_MODES = ("pen", "pan")
+TOOL_MODES = ("pen", "fill", "pan")
 UNDO_LIMIT = 50
 PALETTE_LIMIT = 16
 
@@ -174,6 +176,16 @@ class PixelArtEditor:
             raise ValueError("色は #RRGGBB 形式で入力してください。") from error
         return red, green, blue, 255
 
+    @staticmethod
+    def parse_tolerance(value: str) -> int:
+        try:
+            tolerance = int(str(value).strip())
+        except ValueError as error:
+            raise ValueError("近似色のしきい値は0〜255の整数にしてください。") from error
+        if not 0 <= tolerance <= 255:
+            raise ValueError("近似色のしきい値は0〜255の整数にしてください。")
+        return tolerance
+
     def add_palette_color(self, value: str) -> tuple[int, int, int, int]:
         color = self.parse_palette_color(value)
         if color in self.palette:
@@ -303,6 +315,40 @@ class PixelArtEditor:
         self.dirty.add(self.selected)
         return True
 
+    def _replace_selected_image(self, image: pygame.Surface) -> None:
+        self.end_stroke()
+        stack = self.undo_stacks.setdefault(self.selected, [])
+        stack.append(self.images[self.selected].copy())
+        if len(stack) > UNDO_LIMIT:
+            del stack[0]
+        self.images[self.selected] = image
+        self.dirty.add(self.selected)
+
+    def import_image(self, value: str, tolerance: int = 24) -> int:
+        if not self.selected:
+            raise ValueError("編集する画像が選択されていません。")
+        path = Path(str(value).strip()).expanduser()
+        if not path.is_absolute():
+            path = self.asset_root.parent / path
+        if not path.is_file():
+            raise ValueError("読み込む画像ファイルが見つかりません。")
+        try:
+            source = pygame.image.load(str(path))
+        except (OSError, pygame.error) as error:
+            raise ValueError("画像ファイルを読み込めませんでした。") from error
+        fitted = fit_imported_image(source, self.logical_size)
+        reduced, changed = reduce_similar_colors(fitted, tolerance)
+        self._replace_selected_image(reduced)
+        return changed
+
+    def merge_similar_colors(self, tolerance: int = 24) -> int:
+        if not self.selected:
+            return 0
+        reduced, changed = reduce_similar_colors(self.images[self.selected], tolerance)
+        if changed:
+            self._replace_selected_image(reduced)
+        return changed
+
     @staticmethod
     def draw_checker(surface: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
         for y in range(rect.y, rect.bottom, cell):
@@ -364,6 +410,21 @@ class PixelArtEditor:
         if automatic_stroke:
             self.end_stroke()
         return True
+
+    def fill(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> int:
+        if self.tool_mode != "fill" or not canvas.collidepoint(position) or not self.selected:
+            return 0
+        image_rect = self.image_rect(canvas)
+        if not image_rect.collidepoint(position):
+            return 0
+        size = self.logical_size
+        x = int((position[0] - image_rect.x) * size / image_rect.width)
+        y = int((position[1] - image_rect.y) * size / image_rect.height)
+        replacement = (0, 0, 0, 0) if erase else self.brush
+        result, changed = flood_fill_copy(self.images[self.selected], (x, y), replacement)
+        if changed:
+            self._replace_selected_image(result)
+        return changed
 
     def save_images(self) -> None:
         for key in tuple(self.dirty):

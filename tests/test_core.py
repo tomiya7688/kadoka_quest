@@ -242,6 +242,65 @@ class UiWidgetTests(unittest.TestCase):
                 owner.remove_palette_color()
                 self.assertNotIn((101, 67, 33, 255), owner.visuals.palette)
 
+    def test_shared_pixel_fill_stops_at_outlines_and_is_undoable(self) -> None:
+        editor = PixelArtEditor(PROJECT_ROOT / "assets")
+        editor.set_targets((PixelTarget("front", "正面", "unused.png", 8),))
+        image = pygame.Surface((8, 8), pygame.SRCALPHA)
+        image.fill((255, 255, 255, 255))
+        pygame.draw.rect(image, (0, 0, 0, 255), pygame.Rect(1, 1, 6, 6), 1)
+        editor.images["front"] = image
+        editor.brush = (255, 0, 0, 255)
+        editor.set_tool_mode("fill")
+
+        changed = editor.fill((35, 35), pygame.Rect(0, 0, 80, 80))
+
+        self.assertEqual(changed, 16)
+        self.assertEqual(tuple(editor.images["front"].get_at((3, 3))), (255, 0, 0, 255))
+        self.assertEqual(tuple(editor.images["front"].get_at((1, 1))), (0, 0, 0, 255))
+        self.assertEqual(tuple(editor.images["front"].get_at((0, 0))), (255, 255, 255, 255))
+        self.assertTrue(editor.undo())
+        self.assertEqual(tuple(editor.images["front"].get_at((3, 3))), (255, 255, 255, 255))
+
+    def test_shared_pixel_editor_merges_near_colors_with_configurable_tolerance(self) -> None:
+        editor = PixelArtEditor(PROJECT_ROOT / "assets")
+        editor.set_targets((PixelTarget("front", "正面", "unused.png", 4),))
+        image = pygame.Surface((4, 4), pygame.SRCALPHA)
+        image.fill((40, 80, 120, 255))
+        image.set_at((3, 3), (44, 82, 117, 255))
+        image.set_at((0, 0), (0, 0, 0, 0))
+        editor.images["front"] = image
+
+        self.assertEqual(editor.merge_similar_colors(5), 0)
+        self.assertEqual(editor.merge_similar_colors(6), 1)
+        self.assertEqual(tuple(editor.images["front"].get_at((3, 3))), (40, 80, 120, 255))
+        self.assertEqual(tuple(editor.images["front"].get_at((0, 0))), (0, 0, 0, 0))
+        self.assertTrue(editor.undo())
+        self.assertEqual(tuple(editor.images["front"].get_at((3, 3))), (44, 82, 117, 255))
+        with self.assertRaises(ValueError):
+            editor.parse_tolerance("256")
+
+    def test_shared_pixel_editor_imports_with_nearest_downscale_and_color_reduction(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = pygame.Surface((128, 32), pygame.SRCALPHA)
+            source.fill((10, 20, 30, 255), pygame.Rect(0, 0, 64, 32))
+            source.fill((15, 20, 30, 255), pygame.Rect(64, 0, 64, 32))
+            source_path = root / "wide.png"
+            pygame.image.save(source, str(source_path))
+            editor = PixelArtEditor(root / "assets")
+            editor.set_targets((PixelTarget("front", "正面", "unused.png"),))
+            editor.images["front"] = pygame.Surface((64, 64), pygame.SRCALPHA)
+
+            changed = editor.import_image(str(source_path), 5)
+
+            self.assertGreater(changed, 0)
+            self.assertEqual(editor.images["front"].get_size(), (64, 64))
+            self.assertEqual(editor.images["front"].get_at((0, 0)).a, 0)
+            self.assertEqual(tuple(editor.images["front"].get_at((0, 24))), (10, 20, 30, 255))
+            self.assertEqual(tuple(editor.images["front"].get_at((63, 39))), (10, 20, 30, 255))
+            self.assertTrue(editor.undo())
+            self.assertEqual(editor.images["front"].get_at((0, 24)).a, 0)
+
     def test_monster_editor_lists_new_first_and_creates_complete_species(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

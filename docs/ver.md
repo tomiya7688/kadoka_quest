@@ -156,3 +156,24 @@
 追加したファイル
 
 - `docs/ドットエディターパレット機能説明書.md`
+
+# 8. ドットエディターの画像編集基本機能
+
+共通ドットエディターへ、輪郭内の連続領域を塗るバケツ、しきい値指定の近似色統合、縦横比維持・最近傍縮小・中央配置による画像読込を追加。モンスターとブロックの両画面で利用でき、各操作をCtrl+Zで戻せるようにした。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/block_editor.py`
+- `src/kadoka_quest/apps/monster_editor.py`
+- `src/kadoka_quest/ui/pixel_editor.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/ドットエディター画像編集機能説明書.md`
+- `src/kadoka_quest/ui/pixel_operations.py`

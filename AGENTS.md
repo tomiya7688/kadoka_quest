@@ -26,6 +26,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `data/species_creator.py`: validates and creates complete four-JSON species scaffolds plus five dependency-free 64x64 PNG placeholders.
 - `data/monsters.py`, `developer_monster_creator.py`, `parties.py`, `savedata.py`, `state.py`: save folders, developer outputs, and individual data.
 - `ui/pixel_editor.py`: the one shared pixel editor for monster art and block art. It owns the mutable session palette; editor apps only supply controls and layout.
+- `ui/pixel_operations.py`: shared pygame-surface processing for outline-bounded flood fill, RGB-distance color reduction, and nearest-neighbour image fitting; no screen/event responsibilities.
 - `ui/field_renderer.py`: pygame-only field rendering; it must not decide collisions, events or encounters.
 - `data/`: mod-friendly source of truth. `assets/`: PNG files. `savedata/<name>/`: player-owned state.
 
@@ -39,6 +40,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - Equipment owns `allowed_species_ids`; species do not own equipment-category permissions.
 - All portraits and front/right/left/back source images use exact 64x64 PNG canvases and nearest-neighbour scaling.
 - Pixel-editor palettes are session UI state, accept `#RRGGBB`, hold at most 16 colors, and are not serialized into species/block JSON or PNG metadata.
+- Image import never enlarges a source, preserves aspect ratio, centres it on the target canvas, uses nearest-neighbour scaling, then applies the selected 0-255 color tolerance. Import, fill, and color reduction each create one undo step.
 - Save layout: `savedata/<name>/{state.json,items/items.json,monsters/<id>/{monster,ai}.json,parties/*.json}`.
 - Developer monster outputs use the same individual format and may target the active save, `imports/acquire`, or `imports/simulation`; never overwrite an existing individual ID.
 - Normal battles may learn individual AI; simulation battles must use `learning_enabled=False`. AI reset must not reset identity, level or plus choices.

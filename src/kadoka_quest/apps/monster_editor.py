@@ -32,10 +32,12 @@ PALETTE_ORIGIN = (805, 315)
 PALETTE_COLUMNS = 4
 PALETTE_SWATCH_SIZE = (70, 34)
 TOOL_RECTS = {
-    "pen": pygame.Rect(805, 250, 95, 38),
-    "pan": pygame.Rect(910, 250, 105, 38),
+    "pen": pygame.Rect(805, 250, 70, 38),
+    "fill": pygame.Rect(883, 250, 82, 38),
+    "pan": pygame.Rect(973, 250, 92, 38),
 }
-UNDO_RECT = pygame.Rect(1025, 250, 125, 38)
+TOOL_LABELS = {"pen": "ペン", "fill": "塗りつぶし", "pan": "表示移動"}
+UNDO_RECT = pygame.Rect(1073, 250, 87, 38)
 NEW_SPECIES_ID = "__new_species__"
 
 
@@ -56,6 +58,8 @@ class MonsterEditor:
         self.name_field = TextField(pygame.Rect(350, 130, 300, 42))
         self.color_field = TextField(pygame.Rect(690, 130, 230, 42))
         self.palette_color_field = TextField(pygame.Rect(805, 525, 145, 38), "#808080")
+        self.image_path_field = TextField(pygame.Rect(180, 690, 340, 42))
+        self.color_tolerance_field = TextField(pygame.Rect(530, 690, 65, 42), "24", numeric=True)
         self.stat_fields = {
             key: TextField(pygame.Rect(350 + (index % 3) * 190, 270 + (index // 3) * 78, 160, 42), numeric=True)
             for index, key in enumerate(STAT_KEYS)
@@ -263,6 +267,24 @@ class MonsterEditor:
         self.palette_color_field.value = self.visuals.color_to_hex(self.visuals.brush)
         self.status = f"ペン色 {self.visuals.color_to_hex(removed)} を削除しました。"
 
+    def import_visual_image(self) -> None:
+        try:
+            tolerance = self.visuals.parse_tolerance(self.color_tolerance_field.value)
+            changed = self.visuals.import_image(self.image_path_field.value, tolerance)
+        except ValueError as error:
+            self.status = str(error)
+            return
+        self.status = f"画像を64×64内へ読み込み、近似色を{changed}ピクセル統合しました。"
+
+    def merge_visual_colors(self) -> None:
+        try:
+            tolerance = self.visuals.parse_tolerance(self.color_tolerance_field.value)
+        except ValueError as error:
+            self.status = str(error)
+            return
+        changed = self.visuals.merge_similar_colors(tolerance)
+        self.status = f"近似色を{changed}ピクセル統合しました。"
+
 
 def draw_checker(screen: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
     PixelArtEditor.draw_checker(screen, rect, cell)
@@ -270,7 +292,7 @@ def draw_checker(screen: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> No
 
 def draw_visual_editor(screen: pygame.Surface, editor: MonsterEditor) -> None:
     draw_text(screen, f"見た目編集：{editor.definition.get('display_name', editor.species_id)}", (25, 22), 32, ACCENT, True)
-    draw_text(screen, "ペン: 左描画・右透明 / 表示移動: ドラッグ / Ctrl+Z: 元に戻す", (515, 32), 16, MUTED)
+    draw_text(screen, "ペン・塗りつぶし: 左着色/右透明 / 表示移動: ドラッグ / Ctrl+Z", (505, 32), 16, MUTED)
     mouse = pygame.mouse.get_pos()
     for slot, label, _ in VISUAL_SLOTS:
         rect = PREVIEW_RECTS[slot]
@@ -286,7 +308,7 @@ def draw_visual_editor(screen: pygame.Surface, editor: MonsterEditor) -> None:
 
     for mode, rect in TOOL_RECTS.items():
         pygame.draw.rect(screen, SELECTED if editor.visuals.tool_mode == mode else PANEL_ALT, rect, border_radius=6)
-        draw_text(screen, "ペン" if mode == "pen" else "表示移動", (rect.x + 17, rect.y + 10), 15, TEXT, True)
+        draw_text(screen, TOOL_LABELS[mode], (rect.x + 9, rect.y + 10), 14, TEXT, True)
     pygame.draw.rect(screen, PANEL_ALT, UNDO_RECT, border_radius=6)
     draw_text(screen, "元に戻す", (UNDO_RECT.x + 22, UNDO_RECT.y + 10), 15, TEXT, True)
 
@@ -303,6 +325,8 @@ def draw_visual_editor(screen: pygame.Surface, editor: MonsterEditor) -> None:
     draw_text(screen, f"表示倍率: {editor.visuals.zoom_percent}%", (805, 578), 15, WARN, True)
     draw_text(screen, f"編集中: {size}×{size}px（保存時もこの解像度）", (805, 600), 15, ACCENT, True)
     draw_text(screen, "画像はPNGとして保存され、ゲームへすぐ反映されます。", (805, 630), 15, MUTED)
+    editor.image_path_field.draw(screen, "読み込む画像パス")
+    editor.color_tolerance_field.draw(screen, "色差")
 
 
 def draw_skill_editor(
@@ -389,6 +413,8 @@ def main() -> None:
         Button(pygame.Rect(970, 690, 190, 45), "5種類を保存", editor.save_visuals),
         Button(pygame.Rect(960, 525, 85, 38), "色追加", editor.add_palette_color),
         Button(pygame.Rect(1055, 525, 105, 38), "選択色削除", editor.remove_palette_color),
+        Button(pygame.Rect(605, 690, 100, 45), "画像読込", editor.import_visual_image),
+        Button(pygame.Rect(712, 690, 73, 45), "色統合", editor.merge_visual_colors),
     ]
     species_scroll = ScrollBar(pygame.Rect(288, 120, 8, 540), total=len(editor.species_ids), page=10)
     available_scroll = ScrollBar(pygame.Rect(559, 135, 8, SKILL_ROWS * 50 - 6), total=len(editor.repository.get_skills()), page=SKILL_ROWS)
@@ -444,7 +470,10 @@ def main() -> None:
                         editor.learned_skill_offset = max(0, min(learned_scroll.maximum, editor.learned_skill_offset - event.y))
                 continue
             if editor.visual_mode:
-                handled = handle_fields([editor.palette_color_field], event)
+                handled = handle_fields(
+                    [editor.palette_color_field, editor.image_path_field, editor.color_tolerance_field],
+                    event,
+                )
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_z and event.mod & pygame.KMOD_CTRL:
                     editor.visuals.undo()
                     handled = True
@@ -475,6 +504,8 @@ def main() -> None:
                     if not handled and editor.visuals.tool_mode == "pen" and event.button in {1, 3}:
                         editor.visuals.begin_stroke()
                         editor.visuals.paint(event.pos, PIXEL_CANVAS, erase=event.button == 3)
+                    elif not handled and editor.visuals.tool_mode == "fill" and event.button in {1, 3}:
+                        editor.visuals.fill(event.pos, PIXEL_CANVAS, erase=event.button == 3)
                     elif not handled and editor.visuals.tool_mode == "pan" and event.button == 1:
                         editor.visuals.begin_pan(event.pos, PIXEL_CANVAS)
                 elif event.type == pygame.MOUSEMOTION:

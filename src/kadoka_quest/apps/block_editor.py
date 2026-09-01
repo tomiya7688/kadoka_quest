@@ -17,10 +17,12 @@ PALETTE_ORIGIN = (790, 205)
 PALETTE_COLUMNS = 4
 PALETTE_SWATCH_SIZE = (60, 36)
 TOOL_RECTS = {
-    "pen": pygame.Rect(790, 115, 90, 40),
-    "pan": pygame.Rect(890, 115, 105, 40),
+    "pen": pygame.Rect(790, 115, 60, 40),
+    "fill": pygame.Rect(858, 115, 70, 40),
+    "pan": pygame.Rect(936, 115, 70, 40),
 }
-UNDO_RECT = pygame.Rect(1005, 115, 70, 40)
+TOOL_LABELS = {"pen": "ペン", "fill": "塗る", "pan": "移動"}
+UNDO_RECT = pygame.Rect(1014, 115, 61, 40)
 
 
 class BlockEditor:
@@ -35,6 +37,8 @@ class BlockEditor:
         self.name_field = TextField(pygame.Rect(650, 130, 280, 42))
         self.appearance_field = TextField(pygame.Rect(350, 235, 580, 42))
         self.palette_color_field = TextField(pygame.Rect(790, 420, 130, 38), "#808080")
+        self.image_path_field = TextField(pygame.Rect(210, 690, 305, 42))
+        self.color_tolerance_field = TextField(pygame.Rect(525, 690, 60, 42), "24", numeric=True)
         self.appearance_type = "color"
         self.flags = {
             "player_walkable": True,
@@ -134,17 +138,35 @@ class BlockEditor:
         self.palette_color_field.value = self.visuals.color_to_hex(self.visuals.brush)
         self.status = f"ペン色 {self.visuals.color_to_hex(removed)} を削除しました。"
 
+    def import_visual_image(self) -> None:
+        try:
+            tolerance = self.visuals.parse_tolerance(self.color_tolerance_field.value)
+            changed = self.visuals.import_image(self.image_path_field.value, tolerance)
+        except ValueError as error:
+            self.status = str(error)
+            return
+        self.status = f"画像を64×64内へ読み込み、近似色を{changed}ピクセル統合しました。"
+
+    def merge_visual_colors(self) -> None:
+        try:
+            tolerance = self.visuals.parse_tolerance(self.color_tolerance_field.value)
+        except ValueError as error:
+            self.status = str(error)
+            return
+        changed = self.visuals.merge_similar_colors(tolerance)
+        self.status = f"近似色を{changed}ピクセル統合しました。"
+
     def scroll_list(self, amount: int) -> None:
         self.list_offset = max(0, min(max(0, len(self.blocks) - 10), self.list_offset + amount))
 
 
 def draw_visual_editor(screen: pygame.Surface, editor: BlockEditor) -> None:
     draw_text(screen, f"ブロック見た目編集：{editor.name_field.value}", (28, 25), 32, ACCENT, True)
-    draw_text(screen, "ペン: 左描画・右透明 / 表示移動: ドラッグ / Ctrl+Z: 元に戻す", (470, 37), 16, MUTED)
+    draw_text(screen, "ペン・塗りつぶし: 左着色/右透明 / 表示移動: ドラッグ / Ctrl+Z", (430, 37), 16, MUTED)
     editor.visuals.draw_canvas(screen, PIXEL_CANVAS)
     for mode, rect in TOOL_RECTS.items():
         pygame.draw.rect(screen, SELECTED if editor.visuals.tool_mode == mode else PANEL_ALT, rect, border_radius=6)
-        draw_text(screen, "ペン" if mode == "pen" else "表示移動", (rect.x + 14, rect.y + 11), 15, TEXT, True)
+        draw_text(screen, TOOL_LABELS[mode], (rect.x + 12, rect.y + 11), 14, TEXT, True)
     pygame.draw.rect(screen, PANEL_ALT, UNDO_RECT, border_radius=6)
     draw_text(screen, "戻す", (UNDO_RECT.x + 17, UNDO_RECT.y + 11), 15, TEXT, True)
     draw_text(screen, f"色  {len(editor.visuals.palette)}/16", (790, 175), 21, MUTED, True)
@@ -159,6 +181,8 @@ def draw_visual_editor(screen: pygame.Surface, editor: BlockEditor) -> None:
     draw_text(screen, f"64×64px / 表示 {editor.visuals.zoom_percent}%", (790, 550), 17, ACCENT, True)
     draw_text(screen, "保存先", (790, 582), 15, MUTED, True)
     draw_text(screen, editor.appearance_field.value, (790, 607), 13, TEXT)
+    editor.image_path_field.draw(screen, "読み込む画像パス")
+    editor.color_tolerance_field.draw(screen, "色差")
 
 
 def main() -> None:
@@ -183,6 +207,8 @@ def main() -> None:
         Button(pygame.Rect(975, 685, 100, 45), "保存", editor.save_visual),
         Button(pygame.Rect(930, 420, 65, 38), "色追加", editor.add_palette_color),
         Button(pygame.Rect(1005, 420, 70, 38), "削除", editor.remove_palette_color),
+        Button(pygame.Rect(595, 690, 80, 45), "画像読込", editor.import_visual_image),
+        Button(pygame.Rect(682, 690, 68, 45), "色統合", editor.merge_visual_colors),
     ]
     flag_rects = {
         "player_walkable": pygame.Rect(350, 380, 175, 42),
@@ -202,7 +228,10 @@ def main() -> None:
                 else:
                     running = False
             if editor.visual_mode:
-                handled = handle_fields([editor.palette_color_field], event)
+                handled = handle_fields(
+                    [editor.palette_color_field, editor.image_path_field, editor.color_tolerance_field],
+                    event,
+                )
                 handled = any(button.handle(event) for button in visual_buttons) or handled
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_z and event.mod & pygame.KMOD_CTRL:
                     editor.visuals.undo()
@@ -228,6 +257,8 @@ def main() -> None:
                     if editor.visuals.tool_mode == "pen" and event.button in {1, 3}:
                         editor.visuals.begin_stroke()
                         editor.visuals.paint(event.pos, PIXEL_CANVAS, erase=event.button == 3)
+                    elif editor.visuals.tool_mode == "fill" and event.button in {1, 3}:
+                        editor.visuals.fill(event.pos, PIXEL_CANVAS, erase=event.button == 3)
                     elif editor.visuals.tool_mode == "pan" and event.button == 1:
                         editor.visuals.begin_pan(event.pos, PIXEL_CANVAS)
                 elif event.type == pygame.MOUSEMOTION:
