@@ -18,6 +18,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from kadoka_quest.application import AppCommand, CommandBus
 from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.field_command_app import FieldCommandApplication
+from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.core.ai import choose_skill, default_ai, learn_from_action
 from kadoka_quest.core.battle import BattleEngine
@@ -28,6 +29,7 @@ from kadoka_quest.core.field_engine import FieldEngine
 from kadoka_quest.core.fixed_mob_controller import FixedMobController
 from kadoka_quest.core.grid_movement import GridMovement
 from kadoka_quest.core.hidden_enemy_controller import HiddenEnemyController
+from kadoka_quest.core.player_field_controller import PlayerFieldController
 from kadoka_quest.apps.block_editor import BlockEditor
 from kadoka_quest.apps.game import FIELD_RECT, TILE, KadokaQuest, draw_field
 from kadoka_quest.apps.map_editor import MapEditor
@@ -35,6 +37,8 @@ from kadoka_quest.apps.monster_editor import NEW_SPECIES_ID, MonsterEditor
 from kadoka_quest.core.monster import calculate_stats
 from kadoka_quest.data.developer_monster_creator import DeveloperMonsterCreator
 from kadoka_quest.data.battle_data import BattleDataLoader
+from kadoka_quest.data.field_data import FieldDataLoader
+from kadoka_quest.data.field_progress import FieldProgressStore
 from kadoka_quest.data.jsonio import read_json, write_json
 from kadoka_quest.data.map_presets import MapPresetStore
 from kadoka_quest.data.monsters import MonsterStore
@@ -1080,6 +1084,85 @@ class FieldActorControllerTests(unittest.TestCase):
         runtime = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("self.fixed_mobs.update(", runtime)
         self.assertIn("self.hidden_enemies.update(", runtime)
+
+
+class FieldSessionSeparationTests(unittest.TestCase):
+    def test_player_controller_owns_grid_position_facing_and_repeat_state(self) -> None:
+        map_data = {
+            "width": 3,
+            "height": 1,
+            "tiles": [["floor", "floor", "floor"]],
+            "events": [],
+        }
+        field = FieldEngine(
+            map_data,
+            {"floor": {"player_walkable": True, "enemy_walkable": True}},
+        )
+        player = PlayerFieldController(0, 0, 120, 180, 90)
+
+        result = player.attempt_move(field, 1, 0, [], [], 1000)
+        self.assertEqual(result["kind"], "moved")
+        self.assertEqual((player.x, player.y, player.direction), (1, 0, "right"))
+        self.assertEqual(player.begin_hold("right", 1100), (1, 0))
+        self.assertIsNone(player.repeated_vector(1279))
+        self.assertEqual(player.repeated_vector(1280), (1, 0))
+        self.assertEqual(player.next_move_tick, 1370)
+
+    def test_event_application_emits_one_plain_effect_for_cross_app_work(self) -> None:
+        events = FieldEventApplication()
+        npc = {
+            "id": "boss",
+            "species_id": "ghost",
+            "name": "boss ghost",
+            "direction": "left",
+            "interaction": "battle",
+            "level": 12,
+        }
+
+        battle = events.resolve_interaction(npc, None, "right", "fight")
+        self.assertEqual(battle["kind"], "npc_battle")
+        self.assertEqual(battle["spawn"]["min_level"], 12)
+        self.assertEqual(npc["direction"], "left")
+        church = events.resolve_interaction(
+            None,
+            {"type": "church", "text": "registered", "revive": {"map_id": "town", "x": 2, "y": 3}},
+            "front",
+        )
+        self.assertEqual(church["kind"], "register_church")
+        self.assertEqual(church["revive"]["map_id"], "town")
+
+    def test_field_data_and_progress_own_loading_clamping_and_persistence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = GameRepository(PROJECT_ROOT / "data")
+            loader = FieldDataLoader(repository)
+            loaded = loader.load_map("greenwood", -10, 999)
+            self.assertEqual(loaded["x"], 0)
+            self.assertEqual(loaded["y"], loaded["map"]["height"] - 1)
+
+            states = StateStore(Path(temporary) / "state.json")
+            progress = FieldProgressStore(states)
+            state = {}
+            progress.save_position(state, "greenwood", 4, 5)
+            progress.register_church(state, {"map_id": "town", "x": 1, "y": 2})
+            progress.add_item(state, "orange")
+            self.assertEqual(states.load()["player"], {"x": 4, "y": 5})
+            self.assertEqual(states.load()["revive_point"]["map_id"], "town")
+            self.assertEqual(states.load()["inventory"]["orange"], 1)
+
+    def test_runtime_delegates_all_four_field_session_responsibilities(self) -> None:
+        runtime = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        for call in (
+            "self.player_field.attempt_move(",
+            "self.field_events.resolve_interaction(",
+            "self.field_progress.save_position(",
+            "self.field_data.load_map(",
+        ):
+            self.assertIn(call, runtime)
+        for relative in (
+            "src/kadoka_quest/core/player_field_controller.py",
+            "src/kadoka_quest/apps/field_event_app.py",
+        ):
+            self.assertNotIn("import pygame", (PROJECT_ROOT / relative).read_text(encoding="utf-8"))
 
 
 class GridMovementTests(unittest.TestCase):

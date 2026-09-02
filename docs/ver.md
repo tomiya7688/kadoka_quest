@@ -248,3 +248,27 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 - `docs/フィールドアクター責務分離機能説明書.md`
 - `src/kadoka_quest/core/fixed_mob_controller.py`
 - `src/kadoka_quest/core/hidden_enemy_controller.py`
+
+# 12. フィールドセッション責務分離 第4段階
+
+主人公の整数座標・向き・長押し移動・表示補間、NPC/イベントの効果解釈、現在地・復活地点・拾得品・進行状態の保存、マップ/ブロック読込と入口座標補正を4つの独立責務へ分離。既存のゲーム本体属性とメソッドは互換窓口として維持した。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/フィールドアクター責務分離機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/フィールドセッション責務分離機能説明書.md`
+- `src/kadoka_quest/apps/field_event_app.py`
+- `src/kadoka_quest/core/player_field_controller.py`
+- `src/kadoka_quest/data/field_data.py`
+- `src/kadoka_quest/data/field_progress.py`

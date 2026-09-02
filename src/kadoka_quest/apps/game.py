@@ -11,6 +11,7 @@ import pygame
 from kadoka_quest.application import AppCommand, CommandBus
 from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.field_command_app import FieldCommandApplication
+from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.core.ai import TACTICS, default_ai
 from kadoka_quest.core.battle import BattleEngine
@@ -19,6 +20,9 @@ from kadoka_quest.core.fixed_mob_controller import FixedMobController
 from kadoka_quest.core.grid_movement import GridMovement
 from kadoka_quest.core.hidden_enemy_controller import HiddenEnemyController
 from kadoka_quest.core.monster import MonsterRecord
+from kadoka_quest.core.player_field_controller import PlayerFieldController
+from kadoka_quest.data.field_data import FieldDataLoader
+from kadoka_quest.data.field_progress import FieldProgressStore
 from kadoka_quest.data.monsters import MonsterStore
 from kadoka_quest.data.parties import PartyStore
 from kadoka_quest.data.repository import GameRepository
@@ -32,12 +36,6 @@ from kadoka_quest.ui.field_renderer import FIELD_RECT, TILE, draw_field
 SCREEN_SIZE = (1120, 740)
 PASSWORD = "へいわなすみか"
 KANA_KEYS = tuple("あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん")
-MOVE_DIRECTION_VECTORS = {
-    "left": (-1, 0),
-    "right": (1, 0),
-    "back": (0, -1),
-    "front": (0, 1),
-}
 MOVE_KEY_DIRECTIONS = {
     pygame.K_LEFT: "left",
     pygame.K_a: "left",
@@ -48,7 +46,6 @@ MOVE_KEY_DIRECTIONS = {
     pygame.K_DOWN: "front",
     pygame.K_s: "front",
 }
-MOVE_KEY_VECTORS = {key: MOVE_DIRECTION_VECTORS[direction] for key, direction in MOVE_KEY_DIRECTIONS.items()}
 MOVE_REPEAT_DELAY_MS = 180
 MOVE_REPEAT_INTERVAL_MS = 90
 PLAYER_MOVE_DURATION_MS = 120
@@ -80,8 +77,16 @@ class KadokaQuest:
         self.states.ensure_starters(self.state, self.monsters)
         self.parties = parties or PartyStore()
         self.rng = rng or random.Random()
-        self.map_data = self.repository.get_map(str(self.state.get("map_id", "starting_town")))
-        self.blocks = {item["id"]: item for item in self.repository.list_blocks()}
+        self.field_data = FieldDataLoader(self.repository)
+        self.field_progress = FieldProgressStore(self.states)
+        saved_player = self.state.get("player", {})
+        initial_world = self.field_data.load_map(
+            str(self.state.get("map_id", "starting_town")),
+            saved_player.get("x"),
+            saved_player.get("y"),
+        )
+        self.map_data = initial_world["map"]
+        self.blocks = self.field_data.blocks()
         self.field = FieldEngine(self.map_data, self.blocks)
         self.fixed_mobs = FixedMobController(self.field, self.rng, FIXED_MOB_MOVE_DURATION_MS)
         self.hidden_enemies = HiddenEnemyController(
@@ -92,10 +97,14 @@ class KadokaQuest:
             HIDDEN_VISION_RANGE,
         )
         self.hidden_enemies.set_world(self.map_data, self.blocks)
-        self.player_x = int(self.state.get("player", {}).get("x", self.map_data["start"]["x"]))
-        self.player_y = int(self.state.get("player", {}).get("y", self.map_data["start"]["y"]))
-        self.player_movement = GridMovement(self.player_x, self.player_y, PLAYER_MOVE_DURATION_MS)
-        self.player_direction = "front"
+        self.player_field = PlayerFieldController(
+            initial_world["x"],
+            initial_world["y"],
+            PLAYER_MOVE_DURATION_MS,
+            MOVE_REPEAT_DELAY_MS,
+            MOVE_REPEAT_INTERVAL_MS,
+        )
+        self.field_events = FieldEventApplication()
         self.mode = "field"
         self.battle: BattleEngine | None = None
         self.battle_finalized = False
@@ -117,8 +126,6 @@ class KadokaQuest:
         self.image_cache: dict[tuple[str, str, int, int], pygame.Surface | None] = {}
         self.manager_process: subprocess.Popen | None = None
         self.held_move_key: int | None = None
-        self.held_move_direction: str | None = None
-        self.next_move_tick = 0
         self.reset_hidden_monsters()
         self.reset_home_npcs()
 
@@ -140,21 +147,67 @@ class KadokaQuest:
     def hidden_monsters(self, value: list[dict]) -> None:
         self.hidden_enemies.monsters = value
 
+    @property
+    def player_x(self) -> int:
+        return self.player_field.x
+
+    @player_x.setter
+    def player_x(self, value: int) -> None:
+        self.player_field.x = int(value)
+
+    @property
+    def player_y(self) -> int:
+        return self.player_field.y
+
+    @player_y.setter
+    def player_y(self, value: int) -> None:
+        self.player_field.y = int(value)
+
+    @property
+    def player_direction(self) -> str:
+        return self.player_field.direction
+
+    @player_direction.setter
+    def player_direction(self, value: str) -> None:
+        self.player_field.direction = str(value)
+
+    @property
+    def player_movement(self) -> GridMovement:
+        return self.player_field.visual
+
+    @property
+    def held_move_direction(self) -> str | None:
+        return self.player_field.held_direction
+
+    @held_move_direction.setter
+    def held_move_direction(self, value: str | None) -> None:
+        self.player_field.held_direction = value
+
+    @property
+    def next_move_tick(self) -> int:
+        return self.player_field.next_move_tick
+
+    @next_move_tick.setter
+    def next_move_tick(self, value: int) -> None:
+        self.player_field.next_move_tick = int(value)
+
     def party(self) -> list[MonsterRecord]:
         return StateStore.party_records(self.state, self.monsters)
 
     def save_position(self) -> None:
-        self.state["map_id"] = str(self.map_data["id"])
-        self.state["player"] = {"x": self.player_x, "y": self.player_y}
-        self.states.save(self.state)
+        self.field_progress.save_position(
+            self.state,
+            str(self.map_data["id"]),
+            self.player_x,
+            self.player_y,
+        )
 
     def change_map(self, map_id: str, x: int, y: int, message: str | None = None) -> None:
-        self.map_data = self.repository.get_map(map_id)
+        loaded = self.field_data.load_map(map_id, x, y)
+        self.map_data = loaded["map"]
         self.field.set_world(self.map_data, self.blocks)
         self.hidden_enemies.set_world(self.map_data, self.blocks)
-        self.player_x = max(0, min(int(self.map_data["width"]) - 1, int(x)))
-        self.player_y = max(0, min(int(self.map_data["height"]) - 1, int(y)))
-        self.player_movement.snap(self.player_x, self.player_y)
+        self.player_field.snap(loaded["x"], loaded["y"])
         self.save_position()
         self.reset_hidden_monsters()
         self.reset_home_npcs()
@@ -163,16 +216,14 @@ class KadokaQuest:
     def move(self, dx: int, dy: int, now: int | None = None) -> None:
         now = pygame.time.get_ticks() if now is None else int(now)
         self.field.set_world(self.map_data, self.blocks)
-        result = self.field.resolve_player_move(
-            self.player_x,
-            self.player_y,
+        result = self.player_field.attempt_move(
+            self.field,
             dx,
             dy,
-            self.player_direction,
             self.home_npcs,
             self.hidden_monsters,
+            now,
         )
-        self.player_direction = str(result["direction"])
         reason = result["reason"]
         if reason == "hidden_character":
             hidden = result["character"]
@@ -192,8 +243,6 @@ class KadokaQuest:
             return
         if result["kind"] != "moved":
             return
-        self.player_x, self.player_y = int(result["x"]), int(result["y"])
-        self.player_movement.move_to(self.player_x, self.player_y, now)
         self.save_position()
         if self.handle_step_event():
             return
@@ -221,11 +270,11 @@ class KadokaQuest:
         return self.start_held_direction(direction, now)
 
     def start_held_direction(self, direction: str, now: int) -> bool:
-        vector = MOVE_DIRECTION_VECTORS.get(direction)
-        if vector is None or self.mode != "field":
+        if self.mode != "field":
             return False
-        self.held_move_direction = direction
-        self.next_move_tick = int(now) + MOVE_REPEAT_DELAY_MS
+        vector = self.player_field.begin_hold(direction, now)
+        if vector is None:
+            return False
         self.move(*vector, now=now)
         return True
 
@@ -235,27 +284,27 @@ class KadokaQuest:
             self.held_move_direction = None
 
     def stop_held_direction(self, direction: str) -> None:
-        if direction == self.held_move_direction:
+        if self.player_field.stop_hold(direction):
             self.held_move_key = None
-            self.held_move_direction = None
 
     def update_held_move(self, now: int) -> bool:
-        if self.mode != "field" or self.held_move_direction not in MOVE_DIRECTION_VECTORS:
+        if self.mode != "field":
             self.held_move_key = None
-            self.held_move_direction = None
+            self.player_field.clear_hold()
             return False
-        if int(now) < self.next_move_tick:
+        vector = self.player_field.repeated_vector(now)
+        if vector is None:
             return False
-        self.move(*MOVE_DIRECTION_VECTORS[self.held_move_direction], now=now)
-        self.next_move_tick = int(now) + MOVE_REPEAT_INTERVAL_MS
+        self.move(*vector, now=now)
         return True
 
     def handle_step_event(self) -> bool:
         self.field.set_world(self.map_data, self.blocks)
         event = self.field.step_transition_at(self.player_x, self.player_y)
-        if event is None:
+        effect = self.field_events.resolve_step(event)
+        if effect["kind"] != "transition":
             return False
-        target = event["target"]
+        target = effect["target"]
         self.change_map(str(target["map_id"]), int(target["x"]), int(target["y"]))
         return True
 
@@ -265,38 +314,38 @@ class KadokaQuest:
 
     def interact(self) -> None:
         npc = self.nearby_home_npc()
-        if npc:
-            npc["direction"] = {"left": "right", "right": "left", "back": "front", "front": "back"}.get(self.player_direction, "front")
-            self.status = f"{npc.get('name', npc['species_id'])}『{self.next_npc_dialogue(npc)}』"
-            if npc.get("interaction", "talk") == "battle":
-                level = max(1, min(100, int(npc.get("level", 1))))
-                self.start_wild_battle({"species_id": npc["species_id"], "min_level": level, "max_level": level})
-                if self.mode == "battle":
-                    self.fixed_mob_battle_id = str(npc["id"])
-            elif npc.get("despawn_after_interaction", npc.get("despawn_after_talk", False)):
-                self.despawn_fixed_mob(npc)
-            return
-        event = self.nearby_event()
-        if not event:
-            self.status = "近くに調べられるものはありません。"
-            return
-        event_type = str(event.get("type", "message"))
-        self.status = str(event.get("text", "何もない。"))
-        if event_type == "transition" and event.get("activation") == "interact":
-            target = event["target"]
-            message = self.status
-            self.change_map(str(target["map_id"]), int(target["x"]), int(target["y"]), message)
-        elif event_type == "church":
-            self.state["revive_point"] = dict(event["revive"])
-            self.states.save(self.state)
-        elif event_type == "password_spring":
+        event = None if npc is not None else self.nearby_event()
+        dialogue = self.next_npc_dialogue(npc) if npc is not None else None
+        effect = self.field_events.resolve_interaction(
+            npc,
+            event,
+            self.player_direction,
+            dialogue,
+        )
+        self.status = str(effect.get("status", self.status))
+        kind = effect["kind"]
+        if kind == "npc_battle":
+            self.start_wild_battle(effect["spawn"])
+            if self.mode == "battle":
+                self.fixed_mob_battle_id = str(effect["npc"]["id"])
+        elif kind == "npc_despawn":
+            self.despawn_fixed_mob(effect["npc"])
+        elif kind == "transition":
+            target = effect["target"]
+            self.change_map(
+                str(target["map_id"]),
+                int(target["x"]),
+                int(target["y"]),
+                str(effect.get("status", "")) or None,
+            )
+        elif kind == "register_church":
+            self.field_progress.register_church(self.state, effect["revive"])
+        elif kind == "open_password":
             self.open_password_input()
-        elif event_type == "open_manager":
+        elif kind == "open_manager":
             self.open_manager()
-        elif event.get("id") == "orange_tree":
-            inventory = self.state.setdefault("inventory", {})
-            inventory["orange"] = int(inventory.get("orange", 0)) + 1
-            self.states.save(self.state)
+        elif kind == "gain_item":
+            self.field_progress.add_item(self.state, str(effect["item"]))
 
     def reacquire_ghosts(self) -> None:
         added = []
@@ -304,8 +353,7 @@ class KadokaQuest:
             if not any(record.species_id == species_id for record in self.monsters.list_records()):
                 record = self.monsters.create(species_id, level=1, source="ghost_home_password")
                 added.append(record.name)
-        self.state.setdefault("flags", {})["ghost_entrance_open"] = True
-        self.states.save(self.state)
+        self.field_progress.set_flag(self.state, "ghost_entrance_open", True)
         self.status = "へいわなすみか。" + (f" 牧場に {'・'.join(added)} が増えました。" if added else " 2匹とも既にいます。")
 
     def open_password_input(self) -> None:
@@ -361,10 +409,7 @@ class KadokaQuest:
         self.fixed_mobs.remove(npc)
         if not npc.get("respawn_on_map_enter", True):
             key = f"{self.map_data['id']}:{npc['id']}"
-            despawned = self.state.setdefault("despawned_fixed_mobs", [])
-            if key not in despawned:
-                despawned.append(key)
-            self.states.save(self.state)
+            self.field_progress.mark_despawned(self.state, key)
 
     @staticmethod
     def npc_front_position(npc: dict) -> tuple[int, int]:
@@ -417,14 +462,12 @@ class KadokaQuest:
         if not picker:
             self.status = "まるかかどかをパーティに入れると『ものを拾う』を使えます。"
             return
-        inventory = self.state.setdefault("inventory", {})
         if picker.species_id == "maru":
             item = self.rng.choice(["小石", "曲がった釘", "空き瓶", "変な布", "木の枝"])
         else:
             roll = self.rng.random()
             item = "柿" if roll < 0.05 else "みかん" if roll < 0.8 else "小石"
-        inventory[item] = int(inventory.get(item, 0)) + 1
-        self.states.save(self.state)
+        self.field_progress.add_item(self.state, item)
         self.status = f"{picker.name}が{item}を拾ってきました。"
 
     def spawn_options(self) -> list[dict]:
@@ -687,7 +730,7 @@ class KadokaQuest:
                 self.reset_hidden_monsters()
 
     def revive_at_church(self) -> None:
-        revive = self.state.get("revive_point", {"map_id": "starting_town", "x": 18, "y": 11, "name": "はじまりの街の教会"})
+        revive = self.field_progress.revive_point(self.state)
         self.change_map(str(revive["map_id"]), int(revive["x"]), int(revive["y"]), f"全滅しました。{revive.get('name', '教会')}から復活しました。")
 
     def scan_acquire(self) -> None:

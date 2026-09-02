@@ -128,6 +128,8 @@ JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値
 
 固定モブの実行時状態、会話デッキ、向き、占有、移動周期は `FixedMobController`、画面に出ない野生敵の出現候補、個体配置、視認、追跡・徘徊周期は `HiddenEnemyController` が担当します。どちらも既存の `map.json` とブロック定義を入力に使い、追加の保存JSONは作りません。非復活固定モブの永続化は従来どおり `state.json.despawned_fixed_mobs` です。
 
+主人公の整数座標、向き、長押し再入力、表示補間は `PlayerFieldController`、NPCとイベントから実行効果への変換は `FieldEventApplication`、マップ・ブロック読込と入口座標の範囲補正は `FieldDataLoader`、現在地・復活地点・拾得品・進行フラグ・固定モブ消滅の保存は `FieldProgressStore` が担当します。これらも既存JSONをそのまま読み書きし、新しい保存形式は追加しません。
+
 ## Species folder
 
 `data/species/<species_id>/` は起動時にフォルダ単位で発見されます。

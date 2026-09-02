@@ -17,6 +17,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `application/app_command.py`, `command_bus.py`: pygame-independent semantic command contract and one-target router. Runtime screens communicate by `target/action/payload`, never pygame events or surfaces.
 - `src/kadoka_quest/apps/game.py`: input and orchestration for field, encounters and saves; battle drawing is not allowed here.
 - `apps/field_command_app.py`, `battle_command_app.py`, `password_command_app.py`: independent pygame-free command boundaries. The pygame loop translates input to commands and may read state for rendering, but must not invoke screen actions directly.
+- `apps/field_event_app.py`: pygame-free field interaction state machine. It translates NPC, transition, church, spring, manager, and pickup interactions into one plain-data effect.
 - `apps/map_editor.py`, `block_editor.py`, `monster_editor.py`, `manage.py`: direct editors; no export format.
 - `apps/data_creator.py`: developer-facing individual generator UI; keep generation logic outside the pygame layer.
 - `core/battle.py`: combat calculation coordinator. It receives `BattleDataLoader`, `BattleInference`, and `BattleLearning`; do not move their responsibilities back into the engine.
@@ -26,8 +27,11 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `core/field_engine.py`: pygame/file-I/O-independent field rules. Inputs and results stay plain dict/list/int/string/bool values for GDScript/Lua parity.
 - `core/fixed_mob_controller.py`: pygame/file-I/O-independent fixed-mob runtime state, dialogue decks, occupancy, facing pauses, and timed movement.
 - `core/hidden_enemy_controller.py`: pygame/file-I/O-independent hidden-enemy population, spawn filtering, vision, occupancy, and chase/wander timing.
+- `core/player_field_controller.py`: pygame/file-I/O-independent player grid position, facing, held-key repeat state, and visual interpolation.
 - `data/repository.py`: species, blocks, maps, equipment and skills.
 - `data/battle_data.py`: the only battle-time loader for combatants, species definitions, skills, stats, resistances and equipment.
+- `data/field_data.py`: the only runtime field map/block loader and entry-position clamp.
+- `data/field_progress.py`: field-only persistence for position, revival, inventory pickup, flags, and fixed-mob despawn state.
 - `data/map_presets.py`: map-schema presets saved outside the playable map catalog.
 - `data/species_creator.py`: validates and creates complete four-JSON species scaffolds plus five dependency-free 64x64 PNG placeholders.
 - `data/monsters.py`, `developer_monster_creator.py`, `parties.py`, `savedata.py`, `state.py`: save folders, developer outputs, and individual data.
