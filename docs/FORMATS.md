@@ -124,6 +124,10 @@ JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値
 
 戦闘計算は `BattleEngine`、戦闘用データ読込は `BattleDataLoader`、行動選択は `BattleInference`、学習更新は `BattleLearning`、画面描画は `BattleRenderer` が担当します。これらの間で保存用の派生JSONは作らず、従来の種族JSONと個体AI JSONをそのまま使います。`learning_enabled: false` の模擬戦は、注入された学習処理を一度も呼びません。
 
+### フィールドアクター内部の責務境界
+
+固定モブの実行時状態、会話デッキ、向き、占有、移動周期は `FixedMobController`、画面に出ない野生敵の出現候補、個体配置、視認、追跡・徘徊周期は `HiddenEnemyController` が担当します。どちらも既存の `map.json` とブロック定義を入力に使い、追加の保存JSONは作りません。非復活固定モブの永続化は従来どおり `state.json.despawned_fixed_mobs` です。
+
 ## Species folder
 
 `data/species/<species_id>/` は起動時にフォルダ単位で発見されます。

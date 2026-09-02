@@ -227,3 +227,24 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 - `src/kadoka_quest/core/combatant.py`
 - `src/kadoka_quest/data/battle_data.py`
 - `src/kadoka_quest/ui/battle_renderer.py`
+
+# 11. フィールドアクター責務分離 第3段階
+
+固定モブの実行時状態・会話・占有・移動と、非表示エンカウント敵の出現・視認・追跡・徘徊を、pygameおよび保存I/Oに依存しない2つの状態機械へ分離。ゲーム本体の既存公開メソッドとリスト属性は互換窓口として維持した。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/フィールドアクター責務分離機能説明書.md`
+- `src/kadoka_quest/core/fixed_mob_controller.py`
+- `src/kadoka_quest/core/hidden_enemy_controller.py`

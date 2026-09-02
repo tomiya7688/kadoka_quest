@@ -15,7 +15,9 @@ from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.core.ai import TACTICS, default_ai
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.field_engine import FieldEngine
+from kadoka_quest.core.fixed_mob_controller import FixedMobController
 from kadoka_quest.core.grid_movement import GridMovement
+from kadoka_quest.core.hidden_enemy_controller import HiddenEnemyController
 from kadoka_quest.core.monster import MonsterRecord
 from kadoka_quest.data.monsters import MonsterStore
 from kadoka_quest.data.parties import PartyStore
@@ -81,6 +83,15 @@ class KadokaQuest:
         self.map_data = self.repository.get_map(str(self.state.get("map_id", "starting_town")))
         self.blocks = {item["id"]: item for item in self.repository.list_blocks()}
         self.field = FieldEngine(self.map_data, self.blocks)
+        self.fixed_mobs = FixedMobController(self.field, self.rng, FIXED_MOB_MOVE_DURATION_MS)
+        self.hidden_enemies = HiddenEnemyController(
+            self.field,
+            self.rng,
+            HIDDEN_CHASE_MOVE_INTERVAL_MS,
+            HIDDEN_WANDER_MOVE_INTERVAL_MS,
+            HIDDEN_VISION_RANGE,
+        )
+        self.hidden_enemies.set_world(self.map_data, self.blocks)
         self.player_x = int(self.state.get("player", {}).get("x", self.map_data["start"]["x"]))
         self.player_y = int(self.state.get("player", {}).get("y", self.map_data["start"]["y"]))
         self.player_movement = GridMovement(self.player_x, self.player_y, PLAYER_MOVE_DURATION_MS)
@@ -100,8 +111,6 @@ class KadokaQuest:
         self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
         self.selected_party = 0
         self.preset_index = 0
-        self.hidden_monsters: list[dict] = []
-        self.home_npcs: list[dict] = []
         self.fixed_mob_battle_id: str | None = None
         self.password_input = ""
         self.password_message = ""
@@ -112,6 +121,24 @@ class KadokaQuest:
         self.next_move_tick = 0
         self.reset_hidden_monsters()
         self.reset_home_npcs()
+
+    @property
+    def home_npcs(self) -> list[dict]:
+        """Compatibility view of fixed-mob runtime state."""
+        return self.fixed_mobs.npcs
+
+    @home_npcs.setter
+    def home_npcs(self, value: list[dict]) -> None:
+        self.fixed_mobs.npcs = value
+
+    @property
+    def hidden_monsters(self) -> list[dict]:
+        """Compatibility view of invisible-enemy runtime state."""
+        return self.hidden_enemies.monsters
+
+    @hidden_monsters.setter
+    def hidden_monsters(self, value: list[dict]) -> None:
+        self.hidden_enemies.monsters = value
 
     def party(self) -> list[MonsterRecord]:
         return StateStore.party_records(self.state, self.monsters)
@@ -124,6 +151,7 @@ class KadokaQuest:
     def change_map(self, map_id: str, x: int, y: int, message: str | None = None) -> None:
         self.map_data = self.repository.get_map(map_id)
         self.field.set_world(self.map_data, self.blocks)
+        self.hidden_enemies.set_world(self.map_data, self.blocks)
         self.player_x = max(0, min(int(self.map_data["width"]) - 1, int(x)))
         self.player_y = max(0, min(int(self.map_data["height"]) - 1, int(y)))
         self.player_movement.snap(self.player_x, self.player_y)
@@ -307,62 +335,30 @@ class KadokaQuest:
         self.password_input = ""
         self.status = "水の湧き場から離れました。"
 
-    def reset_home_npcs(self) -> None:
-        self.home_npcs = []
-        now = pygame.time.get_ticks()
-        despawned = set(self.state.get("despawned_fixed_mobs", []))
-        for source in self.map_data.get("fixed_mobs", []):
-            key = f"{self.map_data['id']}:{source.get('id', '')}"
-            if not source.get("enabled", True) or (not source.get("respawn_on_map_enter", True) and key in despawned):
-                continue
-            npc = dict(source)
-            npc.setdefault("id", f"fixed_mob_{len(self.home_npcs) + 1}")
-            npc.setdefault("name", self.repository.get_species(str(npc["species_id"])).definition.get("display_name", npc["species_id"]))
-            npc.setdefault("direction", "front")
-            npc.setdefault("ai", "idle")
-            npc.setdefault("move_interval_ms", 900)
-            npc.setdefault("move_chance", 100)
-            npc.setdefault("dialogue", ["……"])
-            npc["move_count"] = 0
-            npc["next_move_tick"] = now + max(100, int(npc["move_interval_ms"]))
-            npc["dialogue_remaining"] = []
-            npc["last_dialogue"] = None
-            self.home_npcs.append(npc)
+    def reset_home_npcs(self, now: int | None = None) -> None:
+        now = pygame.time.get_ticks() if now is None else int(now)
 
-        occupied = {(self.player_x, self.player_y)}
-        for npc in self.home_npcs:
-            if (int(npc["x"]), int(npc["y"])) in occupied:
-                replacement = next((
-                    (x, y)
-                    for y, row in enumerate(self.map_data["tiles"])
-                    for x, block_id in enumerate(row)
-                    if self.blocks.get(block_id, {}).get("player_walkable") and (x, y) not in occupied
-                ), None)
-                if replacement:
-                    npc["x"], npc["y"] = replacement
-            occupied.add((int(npc["x"]), int(npc["y"])))
-        for npc in self.home_npcs:
-            npc["_movement"] = GridMovement(int(npc["x"]), int(npc["y"]), FIXED_MOB_MOVE_DURATION_MS)
+        def species_name(species_id: str) -> str:
+            definition = self.repository.get_species(species_id).definition
+            return str(definition.get("display_name", species_id))
+
+        self.fixed_mobs.reset(
+            self.map_data,
+            self.blocks,
+            set(self.state.get("despawned_fixed_mobs", [])),
+            (self.player_x, self.player_y),
+            now,
+            species_name,
+        )
 
     def nearby_home_npc(self) -> dict | None:
-        front = self.player_front_position()
-        return next((npc for npc in self.home_npcs if (int(npc["x"]), int(npc["y"])) == front), None)
+        return self.fixed_mobs.nearby(self.player_front_position())
 
     def next_npc_dialogue(self, npc: dict) -> str:
-        deck = [str(line).strip() for line in npc.get("dialogue", []) if str(line).strip()] or ["……"]
-        remaining = npc.setdefault("dialogue_remaining", [])
-        if not remaining:
-            remaining.extend(deck)
-            self.rng.shuffle(remaining)
-            if len(remaining) > 1 and remaining[-1] == npc.get("last_dialogue"):
-                remaining[0], remaining[-1] = remaining[-1], remaining[0]
-        line = remaining.pop()
-        npc["last_dialogue"] = line
-        return line
+        return self.fixed_mobs.next_dialogue(npc)
 
     def despawn_fixed_mob(self, npc: dict) -> None:
-        if npc in self.home_npcs:
-            self.home_npcs.remove(npc)
+        self.fixed_mobs.remove(npc)
         if not npc.get("respawn_on_map_enter", True):
             key = f"{self.map_data['id']}:{npc['id']}"
             despawned = self.state.setdefault("despawned_fixed_mobs", [])
@@ -372,63 +368,22 @@ class KadokaQuest:
 
     @staticmethod
     def npc_front_position(npc: dict) -> tuple[int, int]:
-        vectors = {"left": (-1, 0), "right": (1, 0), "back": (0, -1), "front": (0, 1)}
-        dx, dy = vectors.get(str(npc.get("direction", "front")), (0, 1))
-        return int(npc["x"]) + dx, int(npc["y"]) + dy
+        return FixedMobController.front_position(npc)
 
     def npc_faces_player(self, npc: dict) -> bool:
-        return self.npc_front_position(npc) == (self.player_x, self.player_y)
+        return self.fixed_mobs.faces_player(npc, (self.player_x, self.player_y))
 
     def move_home_npcs(self) -> None:
         if self.mode != "field" or not self.home_npcs:
             return
-        for npc in self.home_npcs:
-            self.move_home_npc(npc)
+        self.fixed_mobs.move_all(
+            (self.player_x, self.player_y),
+            pygame.time.get_ticks(),
+        )
 
     def move_home_npc(self, npc: dict, now: int | None = None) -> bool:
         now = pygame.time.get_ticks() if now is None else int(now)
-        ai = str(npc.get("ai", "idle"))
-        if ai == "idle" or self.npc_faces_player(npc):
-            return False
-        chance = max(0, min(100, int(npc.get("move_chance", 100))))
-        if self.rng.randrange(100) >= chance:
-            return False
-        occupied = {(self.player_x, self.player_y)} | {
-            (int(other["x"]), int(other["y"])) for other in self.home_npcs if other is not npc
-        }
-        if ai == "chase":
-            mx, my = int(npc["x"]), int(npc["y"])
-            horizontal = (1 if self.player_x > mx else -1 if self.player_x < mx else 0, 0)
-            vertical = (0, 1 if self.player_y > my else -1 if self.player_y < my else 0)
-            directions = [direction for direction in (horizontal, vertical) if direction != (0, 0)]
-            fallback = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-            self.rng.shuffle(fallback)
-            directions.extend(direction for direction in fallback if direction not in directions)
-        else:
-            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-            self.rng.shuffle(directions)
-        for dx, dy in directions:
-            x, y = int(npc["x"]) + dx, int(npc["y"]) + dy
-            self.field.set_world(self.map_data, self.blocks)
-            if self.field.tile_allows(x, y, "player_walkable") and (x, y) not in occupied:
-                npc["x"], npc["y"] = x, y
-                movement = npc.get("_movement")
-                if not isinstance(movement, GridMovement):
-                    movement = GridMovement(x - dx, y - dy, FIXED_MOB_MOVE_DURATION_MS)
-                    npc["_movement"] = movement
-                movement.move_to(x, y, now)
-                if dx or dy:
-                    npc["move_count"] = int(npc.get("move_count", 0)) + 1
-                if dx < 0:
-                    npc["direction"] = "left"
-                elif dx > 0:
-                    npc["direction"] = "right"
-                elif dy < 0:
-                    npc["direction"] = "back"
-                elif dy > 0:
-                    npc["direction"] = "front"
-                return bool(dx or dy)
-        return False
+        return self.fixed_mobs.move(npc, (self.player_x, self.player_y), now)
 
     def character_image(self, species_id: str, kind: str, size: tuple[int, int]) -> pygame.Surface | None:
         key = (species_id, kind, size[0], size[1])
@@ -473,100 +428,55 @@ class KadokaQuest:
         self.status = f"{picker.name}が{item}を拾ってきました。"
 
     def spawn_options(self) -> list[dict]:
-        flags = self.state.get("flags", {})
-        return [
-            entry for entry in self.map_data.get("spawns", [])
-            if entry.get("species_id") != "ball_slime"
-            and (not entry.get("requires_flag") or flags.get(entry["requires_flag"], False))
-        ]
+        self.hidden_enemies.set_world(self.map_data, self.blocks)
+        return self.hidden_enemies.spawn_options(self.state.get("flags", {}))
 
-    def reset_hidden_monsters(self) -> None:
-        self.hidden_monsters = []
-        options = self.spawn_options()
-        if not options:
-            return
-        spawn_tiles = [
-            (x, y)
-            for y, row in enumerate(self.map_data["tiles"])
-            for x, block_id in enumerate(row)
-            if self.blocks.get(block_id, {}).get("enemy_spawnable")
-            and self.blocks.get(block_id, {}).get("enemy_walkable")
-            and (x, y) != (self.player_x, self.player_y)
-        ]
-        self.rng.shuffle(spawn_tiles)
-        population = min(len(spawn_tiles), max(12, min(24, int(self.map_data["width"] * self.map_data["height"]) // 60)))
-        weights = [int(item.get("weight", 1)) for item in options]
-        for x, y in spawn_tiles[:population]:
-            spawn = self.rng.choices(options, weights=weights)[0]
-            self.hidden_monsters.append({"x": x, "y": y, "spawn": dict(spawn), "next_move_tick": pygame.time.get_ticks() + HIDDEN_WANDER_MOVE_INTERVAL_MS})
+    def reset_hidden_monsters(self, now: int | None = None) -> None:
+        now = pygame.time.get_ticks() if now is None else int(now)
+        self.hidden_enemies.set_world(self.map_data, self.blocks)
+        self.hidden_enemies.reset(
+            (self.player_x, self.player_y),
+            self.state.get("flags", {}),
+            now,
+        )
 
     def move_hidden_monsters(self) -> None:
         if self.mode != "field":
             return
-        for monster in list(self.hidden_monsters):
-            self.move_hidden_monster(monster)
-            if self.check_hidden_collision():
-                return
+        self.hidden_enemies.move_all(
+            (self.player_x, self.player_y),
+            {(int(npc["x"]), int(npc["y"])) for npc in self.home_npcs},
+        )
+        self.check_hidden_collision()
 
     def monster_sees_player(self, monster: dict) -> bool:
-        mx, my = int(monster["x"]), int(monster["y"])
-        if mx != self.player_x and my != self.player_y:
-            return False
-        distance = abs(mx - self.player_x) + abs(my - self.player_y)
-        if distance > HIDDEN_VISION_RANGE:
-            return False
-        self.field.set_world(self.map_data, self.blocks)
-        return self.field.has_clear_axis_path((mx, my), (self.player_x, self.player_y), "enemy_walkable")
+        return self.hidden_enemies.sees_player(monster, (self.player_x, self.player_y))
 
     def move_hidden_monster(self, monster: dict) -> bool:
-        sees_player = self.monster_sees_player(monster)
-        mx, my = int(monster["x"]), int(monster["y"])
-        if sees_player:
-            dx = 0 if mx == self.player_x else (1 if self.player_x > mx else -1)
-            dy = 0 if my == self.player_y else (1 if self.player_y > my else -1)
-            directions = [(dx, dy), (0, 0)]
-        else:
-            directions = [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]
-            self.rng.shuffle(directions)
-        occupied = {(self.player_x, self.player_y)} | {
-            (int(other["x"]), int(other["y"])) for other in self.hidden_monsters if other is not monster
-        } | {(int(npc["x"]), int(npc["y"])) for npc in self.home_npcs}
-        for dx, dy in directions:
-            x, y = mx + dx, my + dy
-            self.field.set_world(self.map_data, self.blocks)
-            if self.field.tile_allows(x, y, "enemy_walkable") and (x, y) not in occupied:
-                monster["x"], monster["y"] = x, y
-                monster["sees_player"] = sees_player
-                return bool(dx or dy)
-        monster["sees_player"] = sees_player
-        return False
+        return self.hidden_enemies.move(
+            monster,
+            (self.player_x, self.player_y),
+            {(int(npc["x"]), int(npc["y"])) for npc in self.home_npcs},
+        )
 
     def update_field_mobs(self, now: int) -> bool:
         if self.mode != "field":
             return False
-        moved = False
-        for npc in self.home_npcs:
-            interval = max(100, int(npc.get("move_interval_ms", 900)))
-            if int(now) >= int(npc.get("next_move_tick", 0)):
-                moved = self.move_home_npc(npc, now) or moved
-                npc["next_move_tick"] = int(now) + interval
-        for monster in list(self.hidden_monsters):
-            if int(now) < int(monster.get("next_move_tick", 0)):
-                continue
-            moved = self.move_hidden_monster(monster) or moved
-            interval = HIDDEN_CHASE_MOVE_INTERVAL_MS if monster.get("sees_player") else HIDDEN_WANDER_MOVE_INTERVAL_MS
-            monster["next_move_tick"] = int(now) + interval
-            if self.check_hidden_collision():
-                return True
-        return moved
+        moved = self.fixed_mobs.update((self.player_x, self.player_y), int(now))
+        visible_positions = {(int(npc["x"]), int(npc["y"])) for npc in self.home_npcs}
+        moved = self.hidden_enemies.update(
+            (self.player_x, self.player_y),
+            visible_positions,
+            int(now),
+        ) or moved
+        return self.check_hidden_collision() or moved
 
     def check_hidden_collision(self) -> bool:
-        front = self.player_front_position()
-        for monster in self.hidden_monsters:
-            if (int(monster["x"]), int(monster["y"])) == front:
-                self.start_wild_battle(monster["spawn"], monster)
-                return True
-        return False
+        monster = self.hidden_enemies.find_at(self.player_front_position())
+        if monster is None:
+            return False
+        self.start_wild_battle(monster["spawn"], monster)
+        return True
 
     def make_wild(self, spawn: dict) -> MonsterRecord:
         species_id = str(spawn["species_id"])
@@ -592,8 +502,8 @@ class KadokaQuest:
         if spawn is None:
             spawn = self.rng.choices(options, weights=[int(item.get("weight", 1)) for item in options])[0]
         enemies = [self.make_wild(spawn)]
-        if hidden_monster in self.hidden_monsters:
-            self.hidden_monsters.remove(hidden_monster)
+        if hidden_monster is not None:
+            self.hidden_enemies.remove(hidden_monster)
         self.battle = BattleEngine(self.repository, self.party(), enemies, self.rng, learning_enabled=True)
         self.reset_battle_presentation()
         self.mode = "battle"

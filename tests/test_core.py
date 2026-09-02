@@ -25,7 +25,9 @@ from kadoka_quest.core.battle_context import describe_battle_context
 from kadoka_quest.core.battle_inference import BattleInference
 from kadoka_quest.core.battle_learning import BattleLearning
 from kadoka_quest.core.field_engine import FieldEngine
+from kadoka_quest.core.fixed_mob_controller import FixedMobController
 from kadoka_quest.core.grid_movement import GridMovement
+from kadoka_quest.core.hidden_enemy_controller import HiddenEnemyController
 from kadoka_quest.apps.block_editor import BlockEditor
 from kadoka_quest.apps.game import FIELD_RECT, TILE, KadokaQuest, draw_field
 from kadoka_quest.apps.map_editor import MapEditor
@@ -1008,6 +1010,76 @@ class FieldEngineTests(unittest.TestCase):
         self.assertEqual(self.engine.step_transition_at(1, 2)["id"], "exit")
         self.assertTrue(self.engine.has_clear_axis_path((0, 0), (3, 0), "enemy_walkable"))
         self.assertFalse(self.engine.has_clear_axis_path((3, 0), (3, 2), "enemy_walkable"))
+
+
+class FieldActorControllerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.map_data = {
+            "id": "actor_test",
+            "width": 4,
+            "height": 3,
+            "tiles": [["floor"] * 4 for _ in range(3)],
+            "fixed_mobs": [
+                {
+                    "id": "guide",
+                    "species_id": "ghost",
+                    "x": 1,
+                    "y": 1,
+                    "ai": "idle",
+                    "dialogue": ["one", "two"],
+                }
+            ],
+            "spawns": [
+                {"species_id": "ball_slime", "weight": 99},
+                {"species_id": "slime", "weight": 1},
+            ],
+        }
+        self.blocks = {
+            "floor": {
+                "player_walkable": True,
+                "enemy_spawnable": True,
+                "enemy_walkable": True,
+            }
+        }
+        self.field = FieldEngine(self.map_data, self.blocks)
+
+    def test_fixed_mob_controller_owns_runtime_state_and_dialogue_deck(self) -> None:
+        controller = FixedMobController(self.field, random.Random(3))
+        controller.reset(
+            self.map_data,
+            self.blocks,
+            set(),
+            (1, 1),
+            100,
+            lambda species_id: species_id.upper(),
+        )
+
+        self.assertEqual(len(controller.npcs), 1)
+        npc = controller.npcs[0]
+        self.assertNotEqual((npc["x"], npc["y"]), (1, 1))
+        self.assertEqual(npc["name"], "GHOST")
+        self.assertNotEqual(controller.next_dialogue(npc), controller.next_dialogue(npc))
+
+    def test_hidden_enemy_controller_excludes_starter_and_owns_timers(self) -> None:
+        controller = HiddenEnemyController(self.field, random.Random(4), 320, 950, 8)
+        controller.set_world(self.map_data, self.blocks)
+        controller.reset((0, 0), {}, 100)
+
+        self.assertTrue(controller.monsters)
+        self.assertEqual({item["spawn"]["species_id"] for item in controller.monsters}, {"slime"})
+        self.assertTrue(all(item["next_move_tick"] == 1050 for item in controller.monsters))
+
+    def test_actor_controllers_are_portable_and_runtime_delegates_to_them(self) -> None:
+        for relative in (
+            "src/kadoka_quest/core/fixed_mob_controller.py",
+            "src/kadoka_quest/core/hidden_enemy_controller.py",
+        ):
+            source = (PROJECT_ROOT / relative).read_text(encoding="utf-8")
+            self.assertNotIn("import pygame", source)
+            self.assertNotIn("kadoka_quest.data", source)
+        runtime = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("self.fixed_mobs.update(", runtime)
+        self.assertIn("self.hidden_enemies.update(", runtime)
 
 
 class GridMovementTests(unittest.TestCase):

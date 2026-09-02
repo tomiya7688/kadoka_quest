@@ -24,6 +24,8 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `core/battle_context.py`: engine-independent fixed battle-context tags; do not store combinatorial board states.
 - `core/grid_movement.py`: pygame-independent visual interpolation between integer grid positions.
 - `core/field_engine.py`: pygame/file-I/O-independent field rules. Inputs and results stay plain dict/list/int/string/bool values for GDScript/Lua parity.
+- `core/fixed_mob_controller.py`: pygame/file-I/O-independent fixed-mob runtime state, dialogue decks, occupancy, facing pauses, and timed movement.
+- `core/hidden_enemy_controller.py`: pygame/file-I/O-independent hidden-enemy population, spawn filtering, vision, occupancy, and chase/wander timing.
 - `data/repository.py`: species, blocks, maps, equipment and skills.
 - `data/battle_data.py`: the only battle-time loader for combatants, species definitions, skills, stats, resistances and equipment.
 - `data/map_presets.py`: map-schema presets saved outside the playable map catalog.
