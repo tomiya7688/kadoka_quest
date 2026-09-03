@@ -8,11 +8,8 @@ from uuid import uuid4
 
 import pygame
 
-from kadoka_quest.application import AppCommand, CommandBus
-from kadoka_quest.apps.battle_command_app import BattleCommandApplication
-from kadoka_quest.apps.field_command_app import FieldCommandApplication
+from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
 from kadoka_quest.apps.field_event_app import FieldEventApplication
-from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.core.ai import TACTICS, default_ai
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.field_engine import FieldEngine
@@ -105,7 +102,7 @@ class KadokaQuest:
             MOVE_REPEAT_INTERVAL_MS,
         )
         self.field_events = FieldEventApplication()
-        self.mode = "field"
+        self.runtime = RuntimeOrchestrator(self)
         self.battle: BattleEngine | None = None
         self.battle_finalized = False
         self.battle_selection = 0
@@ -190,6 +187,14 @@ class KadokaQuest:
     @next_move_tick.setter
     def next_move_tick(self, value: int) -> None:
         self.player_field.next_move_tick = int(value)
+
+    @property
+    def mode(self) -> str:
+        return self.runtime.mode
+
+    @mode.setter
+    def mode(self, value: str) -> None:
+        self.runtime.transition_to(value)
 
     def party(self) -> list[MonsterRecord]:
         return StateStore.party_records(self.state, self.monsters)
@@ -304,8 +309,7 @@ class KadokaQuest:
         effect = self.field_events.resolve_step(event)
         if effect["kind"] != "transition":
             return False
-        target = effect["target"]
-        self.change_map(str(target["map_id"]), int(target["x"]), int(target["y"]))
+        self.runtime.apply_field_effect(effect)
         return True
 
     def nearby_event(self) -> dict | None:
@@ -322,30 +326,7 @@ class KadokaQuest:
             self.player_direction,
             dialogue,
         )
-        self.status = str(effect.get("status", self.status))
-        kind = effect["kind"]
-        if kind == "npc_battle":
-            self.start_wild_battle(effect["spawn"])
-            if self.mode == "battle":
-                self.fixed_mob_battle_id = str(effect["npc"]["id"])
-        elif kind == "npc_despawn":
-            self.despawn_fixed_mob(effect["npc"])
-        elif kind == "transition":
-            target = effect["target"]
-            self.change_map(
-                str(target["map_id"]),
-                int(target["x"]),
-                int(target["y"]),
-                str(effect.get("status", "")) or None,
-            )
-        elif kind == "register_church":
-            self.field_progress.register_church(self.state, effect["revive"])
-        elif kind == "open_password":
-            self.open_password_input()
-        elif kind == "open_manager":
-            self.open_manager()
-        elif kind == "gain_item":
-            self.field_progress.add_item(self.state, str(effect["item"]))
+        self.runtime.apply_field_effect(effect)
 
     def reacquire_ghosts(self) -> None:
         added = []
@@ -410,6 +391,19 @@ class KadokaQuest:
         if not npc.get("respawn_on_map_enter", True):
             key = f"{self.map_data['id']}:{npc['id']}"
             self.field_progress.mark_despawned(self.state, key)
+
+    def despawn_fixed_mob_by_id(self, npc_id: str) -> bool:
+        npc = next((item for item in self.home_npcs if str(item.get("id")) == str(npc_id)), None)
+        if npc is None:
+            return False
+        self.despawn_fixed_mob(npc)
+        return True
+
+    def register_church(self, revive: dict) -> None:
+        self.field_progress.register_church(self.state, revive)
+
+    def gain_field_item(self, item_id: str) -> int:
+        return self.field_progress.add_item(self.state, item_id)
 
     @staticmethod
     def npc_front_position(npc: dict) -> tuple[int, int]:
@@ -829,13 +823,9 @@ def main() -> None:
     clock = pygame.time.Clock()
     game = KadokaQuest()
     battle_renderer = BattleRenderer()
-    commands = CommandBus()
-    commands.register("field", FieldCommandApplication(game).handle)
-    commands.register("battle", BattleCommandApplication(game).handle)
-    commands.register("password", PasswordCommandApplication(game).handle)
 
     def dispatch(target: str, action: str, **payload) -> object:
-        return commands.dispatch(AppCommand(target, action, payload))
+        return game.runtime.dispatch(target, action, **payload)
 
     running = True
     smoke = smoke_frames()
@@ -928,7 +918,7 @@ def main() -> None:
                 for button in battle_buttons:
                     button.handle(event)
 
-        dispatch("field", "manager.refresh")
+        dispatch("manager", "refresh")
         now = pygame.time.get_ticks()
         if game.mode == "field":
             dispatch("field", "tick", now=now)

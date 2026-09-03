@@ -118,7 +118,9 @@ JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値
 }
 ```
 
-`target` は現在 `field`、`battle`、`password` の3種類です。不明な対象や各アプリが対応しないactionはエラーにして黙って無視しません。
+`target` は現在 `field`、`battle`、`password`、`manager` の4種類です。不明な対象や各アプリが対応しないactionはエラーにして黙って無視しません。画面モードと配送先登録は `RuntimeOrchestrator` が一元管理します。
+
+フィールドイベントが別アプリを必要とするときは、まず `FieldEventApplication` がプレーン辞書の効果を返し、`RuntimeOrchestrator` が対応するコマンドへ変換します。固定モブ実体や `GridMovement` などの実行時オブジェクトはpayloadへ入れず、`npc_id`、座標、移動先、出現定義だけを渡します。
 
 ### 戦闘内部の責務境界
 

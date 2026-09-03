@@ -272,3 +272,30 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 - `src/kadoka_quest/core/player_field_controller.py`
 - `src/kadoka_quest/data/field_data.py`
 - `src/kadoka_quest/data/field_progress.py`
+
+# 13. 実行時オーケストレーター 第5段階
+
+画面モード、共通コマンドバス、実行時アプリ登録、フィールド効果から別アプリへの配送を `RuntimeOrchestrator` へ集約。管理画面にも独立コマンド境界を追加し、固定モブ実体などの実行時オブジェクトをコマンドpayloadへ含めない契約に変更した。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/フィールドセッション責務分離機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/application/__init__.py`
+- `src/kadoka_quest/apps/battle_command_app.py`
+- `src/kadoka_quest/apps/field_command_app.py`
+- `src/kadoka_quest/apps/field_event_app.py`
+- `src/kadoka_quest/apps/game.py`
+- `src/kadoka_quest/apps/password_command_app.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/実行時オーケストレーター機能説明書.md`
+- `src/kadoka_quest/application/runtime_orchestrator.py`
+- `src/kadoka_quest/apps/manager_command_app.py`

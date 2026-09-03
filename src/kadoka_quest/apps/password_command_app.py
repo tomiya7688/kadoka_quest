@@ -12,6 +12,8 @@ class PasswordCommandApplication:
         self.session = session
 
     def handle(self, command: AppCommand) -> Any:
+        if command.action == "open":
+            return self.session.open_password_input()
         if command.action == "append":
             return self.session.append_password(str(command.payload["character"]))
         if command.action == "backspace":

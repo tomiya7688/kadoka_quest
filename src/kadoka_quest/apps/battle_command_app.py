@@ -13,6 +13,11 @@ class BattleCommandApplication:
 
     def handle(self, command: AppCommand) -> Any:
         payload = command.payload
+        if command.action == "start.wild":
+            self.session.start_wild_battle(dict(payload["spawn"]))
+            if self.session.mode == "battle":
+                self.session.fixed_mob_battle_id = str(payload["fixed_mob_id"])
+            return self.session.battle
         if command.action == "execute":
             return self.session.handle_battle_command(str(payload["command"]))
         if command.action == "execute.selected":

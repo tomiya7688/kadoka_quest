@@ -35,7 +35,7 @@ class FieldEventApplication:
                     {
                         "kind": "npc_battle",
                         "status": status,
-                        "npc": npc,
+                        "npc_id": str(npc["id"]),
                         "spawn": {
                             "species_id": npc["species_id"],
                             "min_level": level,
@@ -44,7 +44,9 @@ class FieldEventApplication:
                     }
                 )
             if npc.get("despawn_after_interaction", npc.get("despawn_after_talk", False)):
-                return self._finish({"kind": "npc_despawn", "status": status, "npc": npc})
+                return self._finish(
+                    {"kind": "npc_despawn", "status": status, "npc_id": str(npc["id"])}
+                )
             return self._finish({"kind": "message", "status": status})
 
         if event is None:

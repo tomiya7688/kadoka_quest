@@ -20,6 +20,19 @@ class FieldCommandApplication:
             return True
         if command.action == "interact":
             return self.session.interact()
+        if command.action == "map.change":
+            return self.session.change_map(
+                str(payload["map_id"]),
+                int(payload["x"]),
+                int(payload["y"]),
+                payload.get("message"),
+            )
+        if command.action == "mob.despawn":
+            return self.session.despawn_fixed_mob_by_id(str(payload["npc_id"]))
+        if command.action == "church.register":
+            return self.session.register_church(dict(payload["revive"]))
+        if command.action == "item.gain":
+            return self.session.gain_field_item(str(payload["item_id"]))
         if command.action == "pickup":
             return self.session.field_pickup()
         if command.action == "party.select":
@@ -37,8 +50,6 @@ class FieldCommandApplication:
             return self.session.save_preset()
         if command.action == "party.load_next_preset":
             return self.session.load_next_preset()
-        if command.action == "manager.refresh":
-            return self.session.refresh_manager_if_closed()
         if command.action == "tick":
             now = int(payload["now"])
             moved = self.session.update_field_mobs(now)

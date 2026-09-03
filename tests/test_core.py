@@ -16,9 +16,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from kadoka_quest.application import AppCommand, CommandBus
+from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
 from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.field_command_app import FieldCommandApplication
 from kadoka_quest.apps.field_event_app import FieldEventApplication
+from kadoka_quest.apps.manager_command_app import ManagerCommandApplication
 from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.core.ai import choose_skill, default_ai, learn_from_action
 from kadoka_quest.core.battle import BattleEngine
@@ -135,8 +137,61 @@ class CommandApplicationTests(unittest.TestCase):
             "src/kadoka_quest/apps/field_command_app.py",
             "src/kadoka_quest/apps/battle_command_app.py",
             "src/kadoka_quest/apps/password_command_app.py",
+            "src/kadoka_quest/apps/manager_command_app.py",
+            "src/kadoka_quest/application/runtime_orchestrator.py",
         ):
             self.assertNotIn("import pygame", (PROJECT_ROOT / relative).read_text(encoding="utf-8"))
+
+    def test_runtime_orchestrator_owns_modes_and_routes_cross_app_effects(self) -> None:
+        session = SimpleNamespace(
+            status="",
+            mode="field",
+            change_map=mock.Mock(),
+            register_church=mock.Mock(),
+            gain_field_item=mock.Mock(),
+            despawn_fixed_mob_by_id=mock.Mock(),
+            open_password_input=mock.Mock(),
+            open_manager=mock.Mock(),
+            refresh_manager_if_closed=mock.Mock(),
+        )
+        runtime = RuntimeOrchestrator(session)
+
+        self.assertEqual(runtime.transition_to("password"), "password")
+        self.assertEqual(runtime.previous_mode, "field")
+        with self.assertRaises(ValueError):
+            runtime.transition_to("unknown")
+        runtime.apply_field_effect(
+            {
+                "kind": "transition",
+                "status": "move",
+                "target": {"map_id": "greenwood", "x": 4, "y": 5},
+            }
+        )
+        session.change_map.assert_called_once_with("greenwood", 4, 5, "move")
+        runtime.apply_field_effect({"kind": "open_password", "status": "spring"})
+        session.open_password_input.assert_called_once_with()
+        runtime.apply_field_effect({"kind": "open_manager", "status": "ranch"})
+        session.open_manager.assert_called_once_with()
+        runtime.dispatch("manager", "refresh")
+        session.refresh_manager_if_closed.assert_called_once_with()
+
+    def test_field_effect_payload_never_contains_runtime_objects(self) -> None:
+        npc = {
+            "id": "guide",
+            "species_id": "ghost",
+            "name": "guide",
+            "interaction": "battle",
+            "level": 3,
+            "_movement": object(),
+        }
+        effect = FieldEventApplication().resolve_interaction(npc, None, "front", "hello")
+
+        self.assertNotIn("npc", effect)
+        self.assertEqual(effect["npc_id"], "guide")
+        self.assertEqual(
+            set(type(value) for value in effect.values()),
+            {str, dict},
+        )
 
 
 class DataFormatTests(unittest.TestCase):
