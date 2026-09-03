@@ -321,3 +321,24 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 
 - `docs/戦闘セッション責務分離機能説明書.md`
 - `src/kadoka_quest/apps/battle_session.py`
+
+# 15. 暗号入力セッション責務分離 第7段階
+
+水の湧き場の仮想キーボードについて、許可文字、7文字上限、入力文字列、案内・誤答メッセージ、正解判定、取消状態をpygame非依存の `PasswordSession` へ集約。正解後のまる・かどか獲得と進行保存はゲーム進行側に維持した。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/暗号入力セッション責務分離機能説明書.md`
+- `src/kadoka_quest/apps/password_session.py`

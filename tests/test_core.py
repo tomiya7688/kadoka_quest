@@ -23,6 +23,7 @@ from kadoka_quest.apps.field_command_app import FieldCommandApplication
 from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.manager_command_app import ManagerCommandApplication
 from kadoka_quest.apps.password_command_app import PasswordCommandApplication
+from kadoka_quest.apps.password_session import PasswordSession
 from kadoka_quest.core.ai import choose_skill, default_ai, learn_from_action
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.battle_context import describe_battle_context
@@ -142,6 +143,7 @@ class CommandApplicationTests(unittest.TestCase):
             "src/kadoka_quest/apps/battle_command_app.py",
             "src/kadoka_quest/apps/battle_session.py",
             "src/kadoka_quest/apps/password_command_app.py",
+            "src/kadoka_quest/apps/password_session.py",
             "src/kadoka_quest/apps/manager_command_app.py",
             "src/kadoka_quest/application/runtime_orchestrator.py",
         ):
@@ -188,6 +190,36 @@ class CommandApplicationTests(unittest.TestCase):
             "self.simulation = False",
         ):
             self.assertNotIn(assignment, source)
+
+    def test_password_session_owns_input_limit_validation_and_reset(self) -> None:
+        session = PasswordSession("へいわ", "へいわな")
+
+        session.open()
+        self.assertTrue(session.active)
+        self.assertTrue(session.message)
+        self.assertFalse(session.append("外"))
+        for character in "へいわな":
+            session.append(character)
+        self.assertEqual(session.input_text, "へいわ")
+        self.assertTrue(session.backspace())
+        self.assertFalse(session.submit())
+        self.assertTrue(session.message)
+        session.backspace()
+        session.backspace()
+        for character in "へいわ":
+            session.append(character)
+        self.assertTrue(session.submit())
+        self.assertFalse(session.active)
+        session.open()
+        session.append("へ")
+        session.cancel()
+        self.assertEqual((session.input_text, session.message, session.active), ("", "", False))
+
+    def test_game_exposes_password_state_as_password_session_compatibility_properties(self) -> None:
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("self.password_session = PasswordSession(PASSWORD, KANA_KEYS)", source)
+        self.assertNotIn('self.password_input = ""', source)
+        self.assertNotIn('self.password_message = ""', source)
 
     def test_runtime_orchestrator_owns_modes_and_routes_cross_app_effects(self) -> None:
         session = SimpleNamespace(

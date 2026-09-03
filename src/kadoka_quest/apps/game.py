@@ -11,6 +11,7 @@ import pygame
 from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
 from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_event_app import FieldEventApplication
+from kadoka_quest.apps.password_session import PasswordSession
 from kadoka_quest.core.ai import TACTICS, default_ai
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.field_engine import FieldEngine
@@ -99,11 +100,10 @@ class KadokaQuest:
         self.field_events = FieldEventApplication()
         self.runtime = RuntimeOrchestrator(self)
         self.battle_session = BattleSession()
+        self.password_session = PasswordSession(PASSWORD, KANA_KEYS)
         self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
         self.selected_party = 0
         self.preset_index = 0
-        self.password_input = ""
-        self.password_message = ""
         self.image_cache: dict[tuple[str, str, int, int], pygame.Surface | None] = {}
         self.manager_process: subprocess.Popen | None = None
         self.held_move_key: int | None = None
@@ -276,6 +276,22 @@ class KadokaQuest:
     def fixed_mob_battle_id(self, value: str | None) -> None:
         self.battle_session.fixed_mob_id = value
 
+    @property
+    def password_input(self) -> str:
+        return self.password_session.input_text
+
+    @password_input.setter
+    def password_input(self, value: str) -> None:
+        self.password_session.input_text = str(value)
+
+    @property
+    def password_message(self) -> str:
+        return self.password_session.message
+
+    @password_message.setter
+    def password_message(self, value: str) -> None:
+        self.password_session.message = str(value)
+
     def party(self) -> list[MonsterRecord]:
         return StateStore.party_records(self.state, self.monsters)
 
@@ -418,30 +434,25 @@ class KadokaQuest:
         self.status = "へいわなすみか。" + (f" 牧場に {'・'.join(added)} が増えました。" if added else " 2匹とも既にいます。")
 
     def open_password_input(self) -> None:
+        self.password_session.open()
         self.mode = "password"
-        self.password_input = ""
-        self.password_message = "7文字のあいことばを入力してください。"
 
     def append_password(self, character: str) -> None:
-        if character in KANA_KEYS and len(self.password_input) < 7:
-            self.password_input += character
-            self.password_message = ""
+        self.password_session.append(character)
 
     def backspace_password(self) -> None:
-        self.password_input = self.password_input[:-1]
-        self.password_message = ""
+        self.password_session.backspace()
 
     def submit_password(self) -> bool:
-        if self.password_input != PASSWORD:
-            self.password_message = "あいことばが違います。"
+        if not self.password_session.submit():
             return False
         self.mode = "field"
         self.reacquire_ghosts()
         return True
 
     def cancel_password(self) -> None:
+        self.password_session.cancel()
         self.mode = "field"
-        self.password_input = ""
         self.status = "水の湧き場から離れました。"
 
     def reset_home_npcs(self, now: int | None = None) -> None:

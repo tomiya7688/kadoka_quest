@@ -18,6 +18,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `application/runtime_orchestrator.py`: owns the active screen mode, the shared command bus, all runtime command-app registrations, and plain field-effect routing across apps.
 - `src/kadoka_quest/apps/game.py`: input and orchestration for field, encounters and saves; battle drawing is not allowed here.
 - `apps/battle_session.py`: pygame-free battle lifecycle state machine for command selection, paced log playback, focused actor, auto timing, simulation identity, finalization, and fixed-mob battle identity.
+- `apps/password_session.py`: pygame-free bounded virtual-keyboard state for allowed characters, input length, prompt, validation, and reset; monster acquisition stays outside it.
 - `apps/field_command_app.py`, `battle_command_app.py`, `password_command_app.py`, `manager_command_app.py`: independent pygame-free command boundaries. The pygame loop translates input to commands and may read state for rendering, but must not invoke screen actions directly.
 - `apps/field_event_app.py`: pygame-free field interaction state machine. It translates NPC, transition, church, spring, manager, and pickup interactions into one plain-data effect.
 - `apps/map_editor.py`, `block_editor.py`, `monster_editor.py`, `manage.py`: direct editors; no export format.
