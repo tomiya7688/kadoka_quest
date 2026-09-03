@@ -299,3 +299,25 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 - `docs/実行時オーケストレーター機能説明書.md`
 - `src/kadoka_quest/application/runtime_orchestrator.py`
 - `src/kadoka_quest/apps/manager_command_app.py`
+
+# 14. 戦闘セッション責務分離 第6段階
+
+戦闘の開始・終了、コマンド選択、時間差ログ演出、行動中個体、オート戦闘時刻、通常戦・模擬戦、固定モブ戦の識別をpygame非依存の `BattleSession` へ集約。戦闘計算、AI推論・学習、保存、描画との境界および既存公開属性を維持した。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/battle_command_app.py`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/戦闘セッション責務分離機能説明書.md`
+- `src/kadoka_quest/apps/battle_session.py`

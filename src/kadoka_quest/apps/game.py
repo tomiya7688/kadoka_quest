@@ -9,6 +9,7 @@ from uuid import uuid4
 import pygame
 
 from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
+from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.core.ai import TACTICS, default_ai
 from kadoka_quest.core.battle import BattleEngine
@@ -52,12 +53,6 @@ HOME_KADOKA_MOVE_INTERVAL_MS = 900
 HIDDEN_CHASE_MOVE_INTERVAL_MS = 320
 HIDDEN_WANDER_MOVE_INTERVAL_MS = 950
 HIDDEN_VISION_RANGE = 8
-BATTLE_LOG_INITIAL_DELAY_MS = 140
-BATTLE_ACTION_DELAY_MS = 560
-BATTLE_SHORT_LOG_DELAY_MS = 300
-BATTLE_NEXT_ROUND_DELAY_MS = 600
-
-
 class KadokaQuest:
     def __init__(
         self,
@@ -103,21 +98,10 @@ class KadokaQuest:
         )
         self.field_events = FieldEventApplication()
         self.runtime = RuntimeOrchestrator(self)
-        self.battle: BattleEngine | None = None
-        self.battle_finalized = False
-        self.battle_selection = 0
-        self.auto_battle = False
-        self.last_auto_tick = 0
-        self.battle_playback = False
-        self.battle_visible_log_count = 0
-        self.battle_next_log_tick = 0
-        self.battle_action_line = ""
-        self.battle_focus_id: str | None = None
-        self.simulation = False
+        self.battle_session = BattleSession()
         self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
         self.selected_party = 0
         self.preset_index = 0
-        self.fixed_mob_battle_id: str | None = None
         self.password_input = ""
         self.password_message = ""
         self.image_cache: dict[tuple[str, str, int, int], pygame.Surface | None] = {}
@@ -195,6 +179,102 @@ class KadokaQuest:
     @mode.setter
     def mode(self, value: str) -> None:
         self.runtime.transition_to(value)
+
+    @property
+    def battle(self) -> BattleEngine | None:
+        return self.battle_session.battle
+
+    @battle.setter
+    def battle(self, value: BattleEngine | None) -> None:
+        self.battle_session.battle = value
+
+    @property
+    def battle_finalized(self) -> bool:
+        return self.battle_session.finalized
+
+    @battle_finalized.setter
+    def battle_finalized(self, value: bool) -> None:
+        self.battle_session.finalized = bool(value)
+
+    @property
+    def battle_selection(self) -> int:
+        return self.battle_session.selection
+
+    @battle_selection.setter
+    def battle_selection(self, value: int) -> None:
+        self.battle_session.selection = int(value)
+
+    @property
+    def auto_battle(self) -> bool:
+        return self.battle_session.auto
+
+    @auto_battle.setter
+    def auto_battle(self, value: bool) -> None:
+        self.battle_session.auto = bool(value)
+
+    @property
+    def last_auto_tick(self) -> int:
+        return self.battle_session.last_auto_tick
+
+    @last_auto_tick.setter
+    def last_auto_tick(self, value: int) -> None:
+        self.battle_session.last_auto_tick = int(value)
+
+    @property
+    def battle_playback(self) -> bool:
+        return self.battle_session.playback
+
+    @battle_playback.setter
+    def battle_playback(self, value: bool) -> None:
+        self.battle_session.playback = bool(value)
+
+    @property
+    def battle_visible_log_count(self) -> int:
+        return self.battle_session.visible_log_count
+
+    @battle_visible_log_count.setter
+    def battle_visible_log_count(self, value: int) -> None:
+        self.battle_session.visible_log_count = int(value)
+
+    @property
+    def battle_next_log_tick(self) -> int:
+        return self.battle_session.next_log_tick
+
+    @battle_next_log_tick.setter
+    def battle_next_log_tick(self, value: int) -> None:
+        self.battle_session.next_log_tick = int(value)
+
+    @property
+    def battle_action_line(self) -> str:
+        return self.battle_session.action_line
+
+    @battle_action_line.setter
+    def battle_action_line(self, value: str) -> None:
+        self.battle_session.action_line = str(value)
+
+    @property
+    def battle_focus_id(self) -> str | None:
+        return self.battle_session.focus_id
+
+    @battle_focus_id.setter
+    def battle_focus_id(self, value: str | None) -> None:
+        self.battle_session.focus_id = value
+
+    @property
+    def simulation(self) -> bool:
+        return self.battle_session.simulation
+
+    @simulation.setter
+    def simulation(self, value: bool) -> None:
+        self.battle_session.simulation = bool(value)
+
+    @property
+    def fixed_mob_battle_id(self) -> str | None:
+        return self.battle_session.fixed_mob_id
+
+    @fixed_mob_battle_id.setter
+    def fixed_mob_battle_id(self, value: str | None) -> None:
+        self.battle_session.fixed_mob_id = value
 
     def party(self) -> list[MonsterRecord]:
         return StateStore.party_records(self.state, self.monsters)
@@ -532,7 +612,13 @@ class KadokaQuest:
         }
         return MonsterRecord(monster, default_ai(str(bundle.definition.get("ai_profile", "normal"))))
 
-    def start_wild_battle(self, spawn: dict | None = None, hidden_monster: dict | None = None) -> None:
+    def start_wild_battle(
+        self,
+        spawn: dict | None = None,
+        hidden_monster: dict | None = None,
+        *,
+        fixed_mob_id: str | None = None,
+    ) -> None:
         options = self.spawn_options()
         if (not spawn and not options) or not self.party():
             return
@@ -541,14 +627,13 @@ class KadokaQuest:
         enemies = [self.make_wild(spawn)]
         if hidden_monster is not None:
             self.hidden_enemies.remove(hidden_monster)
-        self.battle = BattleEngine(self.repository, self.party(), enemies, self.rng, learning_enabled=True)
-        self.reset_battle_presentation()
+        battle = BattleEngine(self.repository, self.party(), enemies, self.rng, learning_enabled=True)
+        self.battle_session.begin(
+            battle,
+            pygame.time.get_ticks(),
+            fixed_mob_id=fixed_mob_id,
+        )
         self.mode = "battle"
-        self.battle_selection = 0
-        self.auto_battle = False
-        self.last_auto_tick = pygame.time.get_ticks()
-        self.simulation = False
-        self.battle_finalized = False
         self.status = f"{', '.join(record.name for record in enemies)} が現れた。"
 
     def start_simulation(self) -> None:
@@ -557,17 +642,12 @@ class KadokaQuest:
             self.status = "imports/simulation に個体フォルダを置いてください。"
             return
         try:
-            self.battle = BattleEngine(self.repository, self.party(), imported, self.rng, learning_enabled=False)
+            battle = BattleEngine(self.repository, self.party(), imported, self.rng, learning_enabled=False)
         except (OSError, ValueError, KeyError) as exc:
             self.status = f"模擬戦個体を読めません: {exc}"
             return
-        self.reset_battle_presentation()
+        self.battle_session.begin(battle, pygame.time.get_ticks(), simulation=True)
         self.mode = "battle"
-        self.battle_selection = 0
-        self.auto_battle = False
-        self.last_auto_tick = pygame.time.get_ticks()
-        self.simulation = True
-        self.battle_finalized = False
         self.status = "模擬戦を開始。双方のAIは更新されません。"
 
     def handle_battle_command(self, command: str) -> None:
@@ -607,79 +687,51 @@ class KadokaQuest:
             self.finalize_battle_if_needed()
 
     def reset_battle_presentation(self) -> None:
-        self.battle_playback = False
-        self.battle_visible_log_count = len(self.battle.log) if self.battle else 0
-        self.battle_next_log_tick = 0
-        self.battle_action_line = ""
-        self.battle_focus_id = None
+        self.battle_session.reset_presentation()
 
     def start_battle_playback(self, log_start: int) -> None:
-        if not self.battle or len(self.battle.log) <= log_start:
-            return
-        self.battle_visible_log_count = min(self.battle_visible_log_count, log_start)
-        self.battle_playback = True
-        self.battle_action_line = "行動を開始します……"
-        self.battle_focus_id = None
-        self.battle_next_log_tick = pygame.time.get_ticks() + BATTLE_LOG_INITIAL_DELAY_MS
+        self.battle_session.start_playback(log_start, pygame.time.get_ticks())
 
-    @staticmethod
-    def battle_log_delay(line: str) -> int:
-        if line.startswith(("---", "会心！")) or line in {"勝利した！", "パーティは戦闘不能になった。"} or "たおれた" in line:
-            return BATTLE_SHORT_LOG_DELAY_MS
-        return BATTLE_ACTION_DELAY_MS
+    def battle_log_delay(self, line: str) -> int:
+        return self.battle_session.log_delay(line)
 
     def update_battle_playback(self, now: int | None = None) -> bool:
-        if not self.battle_playback or not self.battle:
-            return False
         now = pygame.time.get_ticks() if now is None else int(now)
-        if now < self.battle_next_log_tick:
-            return False
-        if self.battle_visible_log_count < len(self.battle.log):
-            line = self.battle.log[self.battle_visible_log_count]
-            self.battle_visible_log_count += 1
-            self.battle_action_line = line
-            if line.startswith("---"):
-                self.battle_focus_id = None
-            else:
-                for member in [*self.battle.allies, *self.battle.enemies]:
-                    if line.startswith(member.name):
-                        self.battle_focus_id = member.record.monster_id
-                        break
-            self.battle_next_log_tick = now + self.battle_log_delay(line)
-            return True
-        self.battle_playback = False
-        self.battle_focus_id = None
-        self.last_auto_tick = now
-        self.finalize_battle_if_needed()
-        self.battle_visible_log_count = len(self.battle.log)
-        return True
+        result = self.battle_session.update_playback(now)
+        if result["completed"]:
+            self.finalize_battle_if_needed()
+        return result["changed"]
 
     def selected_battle_command(self) -> str:
-        return ("fight", "scout", "item", "run")[self.battle_selection % 4]
+        return self.battle_session.selected_command()
+
+    def move_battle_selection(self, amount: int) -> int:
+        return self.battle_session.move_selection(amount)
+
+    def set_battle_selection(self, index: int) -> int:
+        return self.battle_session.set_selection(index)
+
+    def stop_auto_battle(self) -> None:
+        self.battle_session.stop_auto()
 
     def toggle_auto_battle(self) -> None:
-        if not self.battle or self.battle.outcome:
+        enabled = self.battle_session.toggle_auto(pygame.time.get_ticks())
+        if enabled is None:
             return
-        self.auto_battle = not self.auto_battle
-        self.last_auto_tick = pygame.time.get_ticks()
-        self.status = "オート戦闘を開始しました。" if self.auto_battle else "オート戦闘を停止しました。"
+        self.status = "オート戦闘を開始しました。" if enabled else "オート戦闘を停止しました。"
 
-    def update_auto_battle(self) -> None:
-        if not self.auto_battle or self.battle_playback or self.mode != "battle" or not self.battle or self.battle.outcome:
+    def update_auto_battle(self, now: int | None = None) -> None:
+        now = pygame.time.get_ticks() if now is None else int(now)
+        if not self.battle_session.auto_command_due(now, battle_mode=self.mode == "battle"):
             return
-        now = pygame.time.get_ticks()
-        if now - self.last_auto_tick < BATTLE_NEXT_ROUND_DELAY_MS:
-            return
-        self.last_auto_tick = now
         self.handle_battle_command("fight")
         if self.battle and self.battle.outcome:
-            self.auto_battle = False
+            self.battle_session.stop_auto()
 
     def finalize_battle_if_needed(self) -> None:
-        if not self.battle or not self.battle.outcome or self.battle_finalized or self.battle_playback:
+        if not self.battle_session.mark_finalized():
             return
-        self.battle_finalized = True
-        self.auto_battle = False
+        assert self.battle is not None
         self.battle.mark_battle_complete()
         if self.battle.learning_enabled:
             self.monsters.save_all_ai(member.record for member in self.battle.allies)
@@ -705,13 +757,11 @@ class KadokaQuest:
             self.monsters.save(record)
 
     def return_to_field(self) -> None:
-        outcome = self.battle.outcome if self.battle else None
-        was_simulation = self.simulation
-        fixed_mob_battle_id = self.fixed_mob_battle_id
+        result = self.battle_session.clear()
+        outcome = result["outcome"]
+        was_simulation = bool(result["simulation"])
+        fixed_mob_battle_id = result["fixed_mob_id"]
         self.mode = "field"
-        self.battle = None
-        self.simulation = False
-        self.fixed_mob_battle_id = None
         if outcome == "defeat" and not was_simulation:
             self.revive_at_church()
         else:

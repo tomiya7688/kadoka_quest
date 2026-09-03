@@ -18,6 +18,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from kadoka_quest.application import AppCommand, CommandBus
 from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
 from kadoka_quest.apps.battle_command_app import BattleCommandApplication
+from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_command_app import FieldCommandApplication
 from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.manager_command_app import ManagerCommandApplication
@@ -115,6 +116,9 @@ class CommandApplicationTests(unittest.TestCase):
             stop_held_direction=mock.Mock(),
             handle_battle_command=mock.Mock(),
             selected_battle_command=mock.Mock(return_value="scout"),
+            move_battle_selection=mock.Mock(return_value=3),
+            set_battle_selection=mock.Mock(return_value=0),
+            stop_auto_battle=mock.Mock(),
             append_password=mock.Mock(),
         )
         bus = CommandBus()
@@ -136,11 +140,54 @@ class CommandApplicationTests(unittest.TestCase):
             "src/kadoka_quest/application/command_bus.py",
             "src/kadoka_quest/apps/field_command_app.py",
             "src/kadoka_quest/apps/battle_command_app.py",
+            "src/kadoka_quest/apps/battle_session.py",
             "src/kadoka_quest/apps/password_command_app.py",
             "src/kadoka_quest/apps/manager_command_app.py",
             "src/kadoka_quest/application/runtime_orchestrator.py",
         ):
             self.assertNotIn("import pygame", (PROJECT_ROOT / relative).read_text(encoding="utf-8"))
+
+    def test_battle_session_owns_selection_playback_auto_and_end_context(self) -> None:
+        ally = SimpleNamespace(name="まる", record=SimpleNamespace(monster_id="ally"))
+        enemy = SimpleNamespace(name="スライム", record=SimpleNamespace(monster_id="enemy"))
+        battle = SimpleNamespace(
+            log=["戦闘開始"],
+            allies=[ally],
+            enemies=[enemy],
+            outcome=None,
+        )
+        session = BattleSession(initial_log_delay_ms=10, action_log_delay_ms=20, next_round_delay_ms=30)
+
+        session.begin(battle, 100, simulation=True, fixed_mob_id="boss")
+        self.assertEqual(session.move_selection(-1), 3)
+        self.assertEqual(session.selected_command(), "run")
+        battle.log.append("まるは攻撃した。")
+        self.assertTrue(session.start_playback(1, 100))
+        self.assertFalse(session.update_playback(109)["changed"])
+        self.assertTrue(session.update_playback(110)["changed"])
+        self.assertEqual(session.focus_id, "ally")
+        self.assertTrue(session.update_playback(130)["completed"])
+        self.assertTrue(session.toggle_auto(130))
+        self.assertFalse(session.auto_command_due(159, battle_mode=True))
+        self.assertTrue(session.auto_command_due(160, battle_mode=True))
+        battle.outcome = "victory"
+        self.assertTrue(session.mark_finalized())
+        self.assertFalse(session.mark_finalized())
+        self.assertEqual(
+            session.clear(),
+            {"outcome": "victory", "simulation": True, "fixed_mob_id": "boss"},
+        )
+
+    def test_game_exposes_battle_state_only_as_battle_session_compatibility_properties(self) -> None:
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("self.battle_session = BattleSession()", source)
+        for assignment in (
+            "self.battle: BattleEngine | None = None",
+            "self.battle_playback = False",
+            "self.auto_battle = False",
+            "self.simulation = False",
+        ):
+            self.assertNotIn(assignment, source)
 
     def test_runtime_orchestrator_owns_modes_and_routes_cross_app_effects(self) -> None:
         session = SimpleNamespace(
