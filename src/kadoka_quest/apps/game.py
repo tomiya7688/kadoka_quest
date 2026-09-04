@@ -28,6 +28,7 @@ from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.data.state import StateStore
 from kadoka_quest.paths import ASSET_ROOT, IMPORT_ROOT, PROJECT_ROOT
 from kadoka_quest.ui.battle_renderer import BattleRenderer
+from kadoka_quest.ui.character_image_provider import CharacterImageProvider
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, WARN, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
 from kadoka_quest.ui.field_renderer import FIELD_RECT, TILE, draw_field
 
@@ -101,10 +102,10 @@ class KadokaQuest:
         self.runtime = RuntimeOrchestrator(self)
         self.battle_session = BattleSession()
         self.password_session = PasswordSession(PASSWORD, KANA_KEYS)
+        self.character_images = CharacterImageProvider(self.repository, ASSET_ROOT)
         self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
         self.selected_party = 0
         self.preset_index = 0
-        self.image_cache: dict[tuple[str, str, int, int], pygame.Surface | None] = {}
         self.manager_process: subprocess.Popen | None = None
         self.held_move_key: int | None = None
         self.reset_hidden_monsters()
@@ -291,6 +292,10 @@ class KadokaQuest:
     @password_message.setter
     def password_message(self, value: str) -> None:
         self.password_session.message = str(value)
+
+    @property
+    def image_cache(self) -> dict[tuple[str, str, int, int], pygame.Surface | None]:
+        return self.character_images.cache
 
     def party(self) -> list[MonsterRecord]:
         return StateStore.party_records(self.state, self.monsters)
@@ -516,31 +521,7 @@ class KadokaQuest:
         return self.fixed_mobs.move(npc, (self.player_x, self.player_y), now)
 
     def character_image(self, species_id: str, kind: str, size: tuple[int, int]) -> pygame.Surface | None:
-        key = (species_id, kind, size[0], size[1])
-        if key in self.image_cache:
-            return self.image_cache[key]
-        definition = self.repository.get_species(species_id).definition
-        if kind.startswith("field"):
-            direction = kind.removeprefix("field_") if kind != "field" else "front"
-            relative = definition.get("field_sprites", {}).get(direction) or definition.get("field_sprite_path")
-        else:
-            relative = definition.get("portrait_path")
-        if not relative:
-            self.image_cache[key] = None
-            return None
-        try:
-            source = pygame.image.load(str(ASSET_ROOT / str(relative))).convert_alpha()
-            if kind.startswith("field"):
-                bounds = source.get_bounding_rect(min_alpha=8)
-                if bounds.width and bounds.height:
-                    source = source.subsurface(bounds).copy()
-            ratio = min(size[0] / source.get_width(), size[1] / source.get_height())
-            # Pixel art is always enlarged with nearest-neighbour sampling.
-            scaled = pygame.transform.scale(source, (max(1, round(source.get_width() * ratio)), max(1, round(source.get_height() * ratio))))
-        except (OSError, pygame.error, ValueError):
-            scaled = None
-        self.image_cache[key] = scaled
-        return scaled
+        return self.character_images.get(species_id, kind, size)
 
     def field_pickup(self) -> None:
         picker = next((record for record in self.party() if record.species_id in {"maru", "kadoka"}), None)

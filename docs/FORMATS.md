@@ -130,6 +130,8 @@ JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値
 
 暗号入力画面の入力文字列、許可文字、最大長、案内・誤答メッセージ、入力中状態はpygame非依存の `PasswordSession` が担当します。これも実行中だけの状態でありJSONへ保存しません。正解した事実だけをゲーム進行側が受け取り、従来どおりまる・かどかの個体フォルダと進行フラグを保存します。
 
+実行時のキャラクター画像は `CharacterImageProvider` だけが種族定義の `portrait_path / field_sprites / field_sprite_path` を解決します。戦闘用 `portrait` はPNG全体、フィールド用は透明余白を切り詰めてから、指定枠へ縦横比を維持して最近傍拡大します。元PNGやJSONは変更せず、変換後Surfaceは種族ID・用途・表示幅・表示高さをキーにメモリ内だけでキャッシュします。
+
 ### フィールドアクター内部の責務境界
 
 固定モブの実行時状態、会話デッキ、向き、占有、移動周期は `FixedMobController`、画面に出ない野生敵の出現候補、個体配置、視認、追跡・徘徊周期は `HiddenEnemyController` が担当します。どちらも既存の `map.json` とブロック定義を入力に使い、追加の保存JSONは作りません。非復活固定モブの永続化は従来どおり `state.json.despawned_fixed_mobs` です。

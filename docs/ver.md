@@ -342,3 +342,24 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 
 - `docs/暗号入力セッション責務分離機能説明書.md`
 - `src/kadoka_quest/apps/password_session.py`
+
+# 16. キャラクター画像取得責務分離 第8段階
+
+種族定義からの戦闘立ち絵・前後左右フィールド画像のパス解決、RGBA PNG読込、フィールド透明余白の切詰め、縦横比を維持した最近傍拡大、取得失敗を含むSurfaceキャッシュを `CharacterImageProvider` へ集約した。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/キャラクター画像取得責務分離機能説明書.md`
+- `src/kadoka_quest/ui/character_image_provider.py`

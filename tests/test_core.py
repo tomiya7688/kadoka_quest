@@ -51,6 +51,7 @@ from kadoka_quest.data.repository import GameRepository, STAT_KEYS
 from kadoka_quest.data.savedata import SaveDataManager
 from kadoka_quest.data.state import StateStore
 from kadoka_quest.ui.common import ScrollBar, TextField, handle_fields
+from kadoka_quest.ui.character_image_provider import CharacterImageProvider
 from kadoka_quest.ui.pixel_editor import PixelArtEditor, PixelTarget
 
 
@@ -407,6 +408,43 @@ class DataFormatTests(unittest.TestCase):
 
 
 class UiWidgetTests(unittest.TestCase):
+    def test_character_image_provider_crops_scales_and_caches_pixel_art(self) -> None:
+        pygame.display.init()
+        if pygame.display.get_surface() is None:
+            pygame.display.set_mode((1, 1))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = pygame.Surface((4, 4), pygame.SRCALPHA)
+            source.set_at((1, 1), pygame.Color("#FF0000"))
+            source.set_at((2, 1), pygame.Color("#00FF00"))
+            source.set_at((1, 2), pygame.Color("#0000FF"))
+            source.set_at((2, 2), pygame.Color("#FFFFFF"))
+            pygame.image.save(source, str(root / "sprite.png"))
+            repository = SimpleNamespace(
+                get_species=lambda _species_id: SimpleNamespace(
+                    definition={
+                        "portrait_path": "sprite.png",
+                        "field_sprites": {"front": "sprite.png"},
+                    }
+                )
+            )
+            provider = CharacterImageProvider(repository, root)
+
+            field = provider.get("test", "field_front", (8, 8))
+            self.assertEqual(field.get_size(), (8, 8))
+            self.assertEqual(field.get_at((0, 0)), pygame.Color("#FF0000"))
+            self.assertEqual(field.get_at((7, 7)), pygame.Color("#FFFFFF"))
+            self.assertIs(provider.get("test", "field_front", (8, 8)), field)
+            self.assertEqual(provider.get("test", "portrait", (8, 8)).get_size(), (8, 8))
+            provider.clear()
+            self.assertEqual(provider.cache, {})
+
+    def test_game_delegates_character_loading_and_cache_to_image_provider(self) -> None:
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("self.character_images = CharacterImageProvider(self.repository, ASSET_ROOT)", source)
+        self.assertIn("return self.character_images.get(species_id, kind, size)", source)
+        self.assertNotIn("self.image_cache:", source)
+
     def test_shared_pixel_palette_adds_selects_and_safely_removes_colors(self) -> None:
         editor = PixelArtEditor(PROJECT_ROOT / "assets")
         original_count = len(editor.palette)

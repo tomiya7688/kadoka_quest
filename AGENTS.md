@@ -42,6 +42,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `ui/pixel_operations.py`: shared pygame-surface processing for outline-bounded flood fill, RGB-distance color reduction, and nearest-neighbour image fitting; no screen/event responsibilities.
 - `ui/field_renderer.py`: pygame-only field rendering; it must not decide collisions, events or encounters.
 - `ui/battle_renderer.py`: pygame-only battle rendering; it reads session state but cannot run rounds, infer actions, learn, or load battle data.
+- `ui/character_image_provider.py`: the only runtime character-PNG loader. It resolves portrait/directional paths, crops field transparency, nearest-neighbour scales, and caches surfaces; game orchestration only delegates.
 - `data/`: mod-friendly source of truth. `assets/`: PNG files. `savedata/<name>/`: player-owned state.
 
 ## Data contracts
