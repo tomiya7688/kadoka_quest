@@ -405,3 +405,28 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 
 - `docs/実行時入力アダプター責務分離機能説明書.md`
 - `src/kadoka_quest/ui/runtime_input_adapter.py`
+
+# 19. 実行時マウスアダプター責務分離 第11段階
+
+- パスワード画面の仮想キーボード、消去、決定、取消の当たり判定を `RuntimeMouseAdapter` へ分離
+- 戦闘画面の戦う、スカウト、道具、逃げるの当たり判定を同じアダプターへ分離
+- 左クリックだけを意味コマンド要求へ変換し、右クリック、戦闘終了後、演出中は操作要求を生成しない
+- `Button` は描画用として維持し、ゲームループからコールバック実行と画面固有 `collidepoint` を除去
+- 保存JSONの形式変更なし
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `docs/実行時入力アダプター責務分離機能説明書.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/実行時マウスアダプター責務分離機能説明書.md`
+- `src/kadoka_quest/ui/runtime_mouse_adapter.py`

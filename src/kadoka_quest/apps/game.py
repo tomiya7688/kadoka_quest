@@ -31,6 +31,7 @@ from kadoka_quest.ui.character_image_provider import CharacterImageProvider
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, WARN, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
 from kadoka_quest.ui.field_renderer import FIELD_RECT, TILE, draw_field
 from kadoka_quest.ui.runtime_input_adapter import RuntimeInputAdapter
+from kadoka_quest.ui.runtime_mouse_adapter import RuntimeMouseAdapter
 
 
 SCREEN_SIZE = (1120, 740)
@@ -880,11 +881,17 @@ def main() -> None:
     smoke = smoke_frames()
     frames = 0
     battle_buttons = [
-        Button(pygame.Rect(355, 650, 95, 48), "戦う", lambda: dispatch("battle", "execute", command="fight")),
-        Button(pygame.Rect(460, 650, 95, 48), "スカウト", lambda: dispatch("battle", "execute", command="scout")),
-        Button(pygame.Rect(565, 650, 95, 48), "道具", lambda: dispatch("battle", "execute", command="item")),
-        Button(pygame.Rect(670, 650, 95, 48), "逃げる", lambda: dispatch("battle", "execute", command="run")),
+        Button(pygame.Rect(355, 650, 95, 48), "戦う", lambda: None),
+        Button(pygame.Rect(460, 650, 95, 48), "スカウト", lambda: None),
+        Button(pygame.Rect(565, 650, 95, 48), "道具", lambda: None),
+        Button(pygame.Rect(670, 650, 95, 48), "逃げる", lambda: None),
     ]
+    password_keys, erase, decide, cancel = password_controls()
+    mouse_adapter = RuntimeMouseAdapter(
+        password_keys,
+        {"backspace": erase, "submit": decide, "cancel": cancel},
+        [(command, button.rect) for command, button in zip(("fight", "scout", "item", "run"), battle_buttons)],
+    )
 
     while running:
         for event in pygame.event.get():
@@ -900,21 +907,9 @@ def main() -> None:
                     running = False
                 else:
                     dispatch(str(request["target"]), str(request["action"]), **dict(request["payload"]))
-            if game.mode == "password" and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                keys, erase, decide, cancel = password_controls()
-                for character, rect in keys:
-                    if rect.collidepoint(event.pos):
-                        dispatch("password", "append", character=character)
-                        break
-                if erase.collidepoint(event.pos):
-                    dispatch("password", "backspace")
-                elif decide.collidepoint(event.pos):
-                    dispatch("password", "submit")
-                elif cancel.collidepoint(event.pos):
-                    dispatch("password", "cancel")
-            elif game.mode == "battle":
-                for button in battle_buttons:
-                    button.handle(event)
+            battle_enabled = bool(game.battle and not game.battle.outcome and not game.battle_playback)
+            for request in mouse_adapter.translate(event, game.mode, battle_enabled=battle_enabled):
+                dispatch(str(request["target"]), str(request["action"]), **dict(request["payload"]))
 
         dispatch("manager", "refresh")
         now = pygame.time.get_ticks()

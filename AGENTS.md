@@ -45,6 +45,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `ui/battle_renderer.py`: pygame-only battle rendering; it reads session state but cannot run rounds, infer actions, learn, or load battle data.
 - `ui/character_image_provider.py`: the only runtime character-PNG loader. It resolves portrait/directional paths, crops field transparency, nearest-neighbour scales, and caches surfaces; game orchestration only delegates.
 - `ui/runtime_input_adapter.py`: pygame-only keyboard adapter. It converts quit/key down/key up plus current mode into plain command requests; it never executes game actions.
+- `ui/runtime_mouse_adapter.py`: pygame-only mouse adapter. It converts password-key and battle-button hit tests into plain command requests; it never executes callbacks or game actions.
 - `data/`: mod-friendly source of truth. `assets/`: PNG files. `savedata/<name>/`: player-owned state.
 
 ## Data contracts

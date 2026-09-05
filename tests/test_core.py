@@ -55,6 +55,7 @@ from kadoka_quest.ui.common import ScrollBar, TextField, handle_fields
 from kadoka_quest.ui.character_image_provider import CharacterImageProvider
 from kadoka_quest.ui.pixel_editor import PixelArtEditor, PixelTarget
 from kadoka_quest.ui.runtime_input_adapter import RuntimeInputAdapter
+from kadoka_quest.ui.runtime_mouse_adapter import RuntimeMouseAdapter
 
 
 class JsonIoTests(unittest.TestCase):
@@ -466,6 +467,31 @@ class UiWidgetTests(unittest.TestCase):
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("input_adapter.translate(", source)
         self.assertNotIn("event.key == pygame.K_ESCAPE", source)
+
+    def test_runtime_mouse_adapter_translates_password_and_battle_clicks(self) -> None:
+        adapter = RuntimeMouseAdapter(
+            [("へ", pygame.Rect(10, 10, 20, 20))],
+            {
+                "backspace": pygame.Rect(40, 10, 20, 20),
+                "submit": pygame.Rect(70, 10, 20, 20),
+                "cancel": pygame.Rect(100, 10, 20, 20),
+            },
+            [("fight", pygame.Rect(10, 50, 30, 20))],
+        )
+
+        append = adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(15, 15)), "password")
+        self.assertEqual(append[0], {"kind": "command", "target": "password", "action": "append", "payload": {"character": "へ"}})
+        self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(45, 15)), "password")[0]["action"], "backspace")
+        fight = adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(15, 55)), "battle")
+        self.assertEqual(fight[0]["payload"], {"command": "fight"})
+        self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(15, 55)), "battle", battle_enabled=False), [])
+        self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=3, pos=(15, 55)), "battle"), [])
+
+    def test_game_delegates_screen_hit_testing_to_runtime_mouse_adapter(self) -> None:
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("mouse_adapter.translate(", source)
+        self.assertNotIn("button.handle(event)", source)
+        self.assertNotIn("erase.collidepoint(event.pos)", source)
 
     def test_character_image_provider_crops_scales_and_caches_pixel_art(self) -> None:
         pygame.display.init()
