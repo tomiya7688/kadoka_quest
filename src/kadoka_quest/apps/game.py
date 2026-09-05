@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 import random
-import subprocess
-import sys
 from uuid import uuid4
 
 import pygame
@@ -11,6 +9,7 @@ import pygame
 from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
 from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_event_app import FieldEventApplication
+from kadoka_quest.apps.manager_process_service import ManagerProcessService
 from kadoka_quest.apps.password_session import PasswordSession
 from kadoka_quest.core.ai import TACTICS, default_ai
 from kadoka_quest.core.battle import BattleEngine
@@ -103,10 +102,10 @@ class KadokaQuest:
         self.battle_session = BattleSession()
         self.password_session = PasswordSession(PASSWORD, KANA_KEYS)
         self.character_images = CharacterImageProvider(self.repository, ASSET_ROOT)
+        self.manager_tool = ManagerProcessService(PROJECT_ROOT / "manage.py")
         self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
         self.selected_party = 0
         self.preset_index = 0
-        self.manager_process: subprocess.Popen | None = None
         self.held_move_key: int | None = None
         self.reset_hidden_monsters()
         self.reset_home_npcs()
@@ -296,6 +295,14 @@ class KadokaQuest:
     @property
     def image_cache(self) -> dict[tuple[str, str, int, int], pygame.Surface | None]:
         return self.character_images.cache
+
+    @property
+    def manager_process(self) -> object | None:
+        return self.manager_tool.process
+
+    @manager_process.setter
+    def manager_process(self, value: object | None) -> None:
+        self.manager_tool.process = value
 
     def party(self) -> list[MonsterRecord]:
         return StateStore.party_records(self.state, self.monsters)
@@ -774,16 +781,14 @@ class KadokaQuest:
         self.status = f"個体再走査：{added}体を獲得、{skipped}件をスキップ。"
 
     def open_manager(self) -> None:
-        if self.manager_process and self.manager_process.poll() is None:
+        if self.manager_tool.open() == "already_running":
             self.status = "牧場台帳は既に開いています。"
             return
-        self.manager_process = subprocess.Popen([sys.executable, str(PROJECT_ROOT / "manage.py")], cwd=PROJECT_ROOT)
         self.status = "牧場台帳を開きました。個体管理とパーティ編成ができます。"
 
     def refresh_manager_if_closed(self) -> None:
-        if not self.manager_process or self.manager_process.poll() is None:
+        if not self.manager_tool.consume_closed():
             return
-        self.manager_process = None
         self.state = self.states.load()
         self.status = "牧場台帳の変更をゲームへ反映しました。"
 

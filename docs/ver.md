@@ -363,3 +363,24 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 
 - `docs/キャラクター画像取得責務分離機能説明書.md`
 - `src/kadoka_quest/ui/character_image_provider.py`
+
+# 17. 管理ツールプロセス責務分離 第9段階
+
+牧場管理ツールのPythonプロセス生成、二重起動防止、実行中判定、終了通知の一度だけの消費を `ManagerProcessService` へ集約。ゲーム側は意味結果の表示と終了後のセーブ再読込だけを担当するようにした。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/管理ツールプロセス責務分離機能説明書.md`
+- `src/kadoka_quest/apps/manager_process_service.py`

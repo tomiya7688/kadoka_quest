@@ -22,6 +22,7 @@ from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_command_app import FieldCommandApplication
 from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.manager_command_app import ManagerCommandApplication
+from kadoka_quest.apps.manager_process_service import ManagerProcessService
 from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.apps.password_session import PasswordSession
 from kadoka_quest.core.ai import choose_skill, default_ai, learn_from_action
@@ -146,6 +147,7 @@ class CommandApplicationTests(unittest.TestCase):
             "src/kadoka_quest/apps/password_command_app.py",
             "src/kadoka_quest/apps/password_session.py",
             "src/kadoka_quest/apps/manager_command_app.py",
+            "src/kadoka_quest/apps/manager_process_service.py",
             "src/kadoka_quest/application/runtime_orchestrator.py",
         ):
             self.assertNotIn("import pygame", (PROJECT_ROOT / relative).read_text(encoding="utf-8"))
@@ -221,6 +223,28 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertIn("self.password_session = PasswordSession(PASSWORD, KANA_KEYS)", source)
         self.assertNotIn('self.password_input = ""', source)
         self.assertNotIn('self.password_message = ""', source)
+
+    def test_manager_process_service_prevents_duplicates_and_consumes_exit_once(self) -> None:
+        process = mock.Mock()
+        process.poll.return_value = None
+        launcher = mock.Mock(return_value=process)
+        script = PROJECT_ROOT / "manage.py"
+        service = ManagerProcessService(script, python_executable="python-test", launcher=launcher)
+
+        self.assertEqual(service.open(), "started")
+        launcher.assert_called_once_with(["python-test", str(script)], cwd=PROJECT_ROOT)
+        self.assertEqual(service.open(), "already_running")
+        launcher.assert_called_once()
+        process.poll.return_value = 0
+        self.assertTrue(service.consume_closed())
+        self.assertIsNone(service.process)
+        self.assertFalse(service.consume_closed())
+
+    def test_game_delegates_manager_process_lifecycle_to_service(self) -> None:
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn('self.manager_tool = ManagerProcessService(PROJECT_ROOT / "manage.py")', source)
+        self.assertIn("self.manager_tool.consume_closed()", source)
+        self.assertNotIn("subprocess.Popen", source)
 
     def test_runtime_orchestrator_owns_modes_and_routes_cross_app_effects(self) -> None:
         session = SimpleNamespace(

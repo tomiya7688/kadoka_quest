@@ -132,6 +132,8 @@ JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値
 
 実行時のキャラクター画像は `CharacterImageProvider` だけが種族定義の `portrait_path / field_sprites / field_sprite_path` を解決します。戦闘用 `portrait` はPNG全体、フィールド用は透明余白を切り詰めてから、指定枠へ縦横比を維持して最近傍拡大します。元PNGやJSONは変更せず、変換後Surfaceは種族ID・用途・表示幅・表示高さをキーにメモリ内だけでキャッシュします。
 
+牧場管理ツールのプロセス起動・二重起動防止・終了検知は `ManagerProcessService` が担当します。プロセス情報は保存JSONへ含めません。管理ツール終了後にゲーム側が既存のアクティブセーブを再読込するため、個体・AI・パーティの形式と反映方法は変わりません。
+
 ### フィールドアクター内部の責務境界
 
 固定モブの実行時状態、会話デッキ、向き、占有、移動周期は `FixedMobController`、画面に出ない野生敵の出現候補、個体配置、視認、追跡・徘徊周期は `HiddenEnemyController` が担当します。どちらも既存の `map.json` とブロック定義を入力に使い、追加の保存JSONは作りません。非復活固定モブの永続化は従来どおり `state.json.despawned_fixed_mobs` です。
