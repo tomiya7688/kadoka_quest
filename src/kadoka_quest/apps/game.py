@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 import random
 from uuid import uuid4
 
@@ -9,10 +8,11 @@ import pygame
 from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
 from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_event_app import FieldEventApplication
+from kadoka_quest.apps.field_party_service import FieldPartyService
 from kadoka_quest.apps.field_party_session import FieldPartySession
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
 from kadoka_quest.apps.password_session import PasswordSession
-from kadoka_quest.core.ai import TACTICS, default_ai
+from kadoka_quest.core.ai import default_ai
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.field_engine import FieldEngine
 from kadoka_quest.core.fixed_mob_controller import FixedMobController
@@ -107,6 +107,7 @@ class KadokaQuest:
         self.character_images = CharacterImageProvider(self.repository, ASSET_ROOT)
         self.manager_tool = ManagerProcessService(PROJECT_ROOT / "manage.py")
         self.field_party_session = FieldPartySession()
+        self.field_party_service = FieldPartyService(self.field_party_session, self.parties, self.monsters, self.states)
         self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
         self.held_move_key: int | None = None
         self.reset_hidden_monsters()
@@ -813,43 +814,23 @@ class KadokaQuest:
         self.status = "牧場台帳の変更をゲームへ反映しました。"
 
     def save_preset(self) -> None:
-        name = "フィールド編成_" + datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = self.parties.save(name, list(self.state.get("current_party", [])))
-        self.status = f"{path.name} を保存しました。"
+        self.status = self.field_party_service.save_preset(self.state)
 
     def load_next_preset(self) -> None:
-        presets = self.parties.list_presets()
-        path = self.field_party_session.next_preset(presets)
-        if path is None:
-            self.status = "保存パーティがありません。"
-            return
-        loaded = self.parties.load(path, self.monsters)
-        self.state["current_party"] = [record.monster_id for record in loaded if record]
-        self.states.save(self.state)
-        self.status = f"{path.name} を読み込みました。欠損IDは空き枠です。"
+        self.status = self.field_party_service.load_next_preset(self.state)
 
     def cycle_tactic(self) -> None:
-        party = self.party()
-        record = self.field_party_session.selected(party)
-        if record is None:
-            return
-        current = str(record.ai.get("tactic", "balanced"))
-        index = TACTICS.index(current) if current in TACTICS else 0
-        next_value = TACTICS[(index + 1) % len(TACTICS)]
-        self.monsters.set_tactic(record.monster_id, next_value)
-        self.status = f"{record.name} の行動指針: {next_value}"
+        message = self.field_party_service.cycle_tactic(self.party())
+        if message is not None:
+            self.status = message
 
     def reset_selected_ai(self) -> None:
-        party = self.party()
-        record = self.field_party_session.selected(party)
-        if record is None:
-            return
-        self.monsters.reset_ai(record.monster_id)
-        self.status = f"{record.name} のAIのみリセットしました。"
+        message = self.field_party_service.reset_selected_ai(self.party())
+        if message is not None:
+            self.status = message
 
     def select_party(self, index: int) -> bool:
-        self.field_party_session.select(index)
-        return True
+        return self.field_party_service.select(index)
 
 
 def password_controls() -> tuple[list[tuple[str, pygame.Rect]], pygame.Rect, pygame.Rect, pygame.Rect]:

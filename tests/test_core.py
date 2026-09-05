@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from datetime import datetime
 import os
 from pathlib import Path
 import random
@@ -21,6 +22,7 @@ from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_command_app import FieldCommandApplication
 from kadoka_quest.apps.field_event_app import FieldEventApplication
+from kadoka_quest.apps.field_party_service import FieldPartyService
 from kadoka_quest.apps.field_party_session import FieldPartySession
 from kadoka_quest.apps.manager_command_app import ManagerCommandApplication
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
@@ -40,7 +42,7 @@ from kadoka_quest.apps.block_editor import BlockEditor
 from kadoka_quest.apps.game import FIELD_RECT, TILE, KadokaQuest, draw_field
 from kadoka_quest.apps.map_editor import MapEditor
 from kadoka_quest.apps.monster_editor import NEW_SPECIES_ID, MonsterEditor
-from kadoka_quest.core.monster import calculate_stats
+from kadoka_quest.core.monster import MonsterRecord, calculate_stats
 from kadoka_quest.data.developer_monster_creator import DeveloperMonsterCreator
 from kadoka_quest.data.battle_data import BattleDataLoader
 from kadoka_quest.data.field_data import FieldDataLoader
@@ -148,6 +150,7 @@ class CommandApplicationTests(unittest.TestCase):
             "src/kadoka_quest/application/app_command.py",
             "src/kadoka_quest/application/command_bus.py",
             "src/kadoka_quest/apps/field_command_app.py",
+            "src/kadoka_quest/apps/field_party_service.py",
             "src/kadoka_quest/apps/field_party_session.py",
             "src/kadoka_quest/apps/battle_command_app.py",
             "src/kadoka_quest/apps/battle_session.py",
@@ -220,6 +223,58 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertNotIn("self.preset_index = 0", source)
         field_app_source = (PROJECT_ROOT / "src/kadoka_quest/apps/field_command_app.py").read_text(encoding="utf-8")
         self.assertNotIn("self.session.selected_party =", field_app_source)
+
+    def test_field_party_service_coordinates_presets_tactics_and_ai_reset(self) -> None:
+        selected = MonsterRecord(
+            {"id": "monster_a", "species_id": "slime", "name": "スラA", "level": 4},
+            {"tactic": "balanced"},
+        )
+        parties = mock.Mock()
+        parties.save.return_value = Path("field_party.json")
+        parties.list_presets.return_value = [Path("preset_a.json")]
+        parties.load.return_value = [selected, None, None, None]
+        monsters = mock.Mock()
+        states = mock.Mock()
+        session = FieldPartySession()
+        service = FieldPartyService(
+            session,
+            parties,
+            monsters,
+            states,
+            now=lambda: datetime(2026, 9, 6, 12, 34, 56),
+        )
+        state = {"current_party": ["old"]}
+
+        self.assertTrue(service.select(2))
+        self.assertEqual(session.selected_index, 2)
+        self.assertEqual(service.save_preset(state), "field_party.json を保存しました。")
+        parties.save.assert_called_once_with("フィールド編成_20260906_123456", ["old"])
+        self.assertIn("preset_a.json", service.load_next_preset(state))
+        self.assertEqual(state["current_party"], ["monster_a"])
+        states.save.assert_called_once_with(state)
+        self.assertIn("aggressive", service.cycle_tactic([selected]))
+        monsters.set_tactic.assert_called_once_with("monster_a", "aggressive")
+        self.assertIn("AIのみリセット", service.reset_selected_ai([selected]))
+        monsters.reset_ai.assert_called_once_with("monster_a")
+
+    def test_field_party_service_keeps_state_when_no_party_or_preset_exists(self) -> None:
+        parties = mock.Mock()
+        parties.list_presets.return_value = []
+        service = FieldPartyService(FieldPartySession(), parties, mock.Mock(), mock.Mock())
+        state = {"current_party": ["kept"]}
+
+        self.assertEqual(service.load_next_preset(state), "保存パーティがありません。")
+        self.assertEqual(state, {"current_party": ["kept"]})
+        self.assertIsNone(service.cycle_tactic([]))
+        self.assertIsNone(service.reset_selected_ai([]))
+
+    def test_game_delegates_field_party_persistence_and_ai_operations_to_service(self) -> None:
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("self.field_party_service = FieldPartyService(", source)
+        self.assertIn("self.field_party_service.save_preset(self.state)", source)
+        self.assertIn("self.field_party_service.load_next_preset(self.state)", source)
+        self.assertNotIn("self.parties.save(name", source)
+        self.assertNotIn("self.monsters.set_tactic", source)
 
     def test_password_session_owns_input_limit_validation_and_reset(self) -> None:
         session = PasswordSession("へいわ", "へいわな")

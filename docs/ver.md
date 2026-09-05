@@ -455,3 +455,27 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 
 - `docs/フィールドパーティ選択状態責務分離機能説明書.md`
 - `src/kadoka_quest/apps/field_party_session.py`
+
+# 21. フィールドパーティ永続操作責務分離 第13段階
+
+- `FieldPartyService` を追加し、プリセット保存・順次読込・作戦変更・AIリセットをゲーム本体から分離
+- 既存の `FieldPartySession` と `PartyStore / StateStore / MonsterStore` を依存注入して調停
+- パーティなし・プリセットなしの場合は従来どおり状態を変更しない
+- 時刻供給を差し替え可能にし、プリセット名生成を決定的にテスト
+- 保存JSONの場所、キー、最大4枠、無制限プリセット規則は変更なし
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/ver.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/フィールドパーティ永続操作責務分離機能説明書.md`
+- `src/kadoka_quest/apps/field_party_service.py`

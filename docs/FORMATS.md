@@ -140,6 +140,8 @@ pygameのキーダウン・キーアップ・終了イベントは `RuntimeInput
 
 フィールドで選択中のパーティ枠と、F8で次に読むプリセットの巡回位置は `FieldPartySession` が実行中だけ保持します。これらはUIカーソルであり `state.json` へ新しいキーを追加しません。パーティ本体は従来どおり `state.json.current_party` と `savedata/<name>/parties/*.json`、個体AIは各個体の `ai.json` が正式データです。
 
+`FieldPartyService` はF7のプリセット保存、F8の順次読込、選択個体の作戦変更とAIリセットを既存の `PartyStore / StateStore / MonsterStore` へ調停します。サービス独自のファイルやキーは作らず、プリセット名 `フィールド編成_YYYYMMDD_HHMMSS`、最大4枠、欠損IDを空き枠として扱う規則も維持します。
+
 ### フィールドアクター内部の責務境界
 
 固定モブの実行時状態、会話デッキ、向き、占有、移動周期は `FixedMobController`、画面に出ない野生敵の出現候補、個体配置、視認、追跡・徘徊周期は `HiddenEnemyController` が担当します。どちらも既存の `map.json` とブロック定義を入力に使い、追加の保存JSONは作りません。非復活固定モブの永続化は従来どおり `state.json.despawned_fixed_mobs` です。
