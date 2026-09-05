@@ -384,3 +384,24 @@ pygame入力ループからフィールド・戦闘・暗号入力処理への�
 
 - `docs/管理ツールプロセス責務分離機能説明書.md`
 - `src/kadoka_quest/apps/manager_process_service.py`
+
+# 18. 実行時入力アダプター責務分離 第10段階
+
+pygameの終了・キーダウン・キーアップを、画面モードと戦闘状態に応じたプレーンな意味コマンド要求へ変換する `RuntimeInputAdapter` を追加。メインループからフィールド・戦闘・暗号入力のキー分岐を除去した。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `docs/開発予定.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/実行時入力アダプター責務分離機能説明書.md`
+- `src/kadoka_quest/ui/runtime_input_adapter.py`

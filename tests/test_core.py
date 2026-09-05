@@ -54,6 +54,7 @@ from kadoka_quest.data.state import StateStore
 from kadoka_quest.ui.common import ScrollBar, TextField, handle_fields
 from kadoka_quest.ui.character_image_provider import CharacterImageProvider
 from kadoka_quest.ui.pixel_editor import PixelArtEditor, PixelTarget
+from kadoka_quest.ui.runtime_input_adapter import RuntimeInputAdapter
 
 
 class JsonIoTests(unittest.TestCase):
@@ -432,6 +433,40 @@ class DataFormatTests(unittest.TestCase):
 
 
 class UiWidgetTests(unittest.TestCase):
+    def test_runtime_input_adapter_translates_field_battle_and_password_keys(self) -> None:
+        adapter = RuntimeInputAdapter({pygame.K_RIGHT: "right"})
+
+        move = adapter.translate(SimpleNamespace(type=pygame.KEYDOWN, key=pygame.K_RIGHT, repeat=False), "field", 120)
+        self.assertEqual(move, [{"kind": "command", "target": "field", "action": "move.start", "payload": {"direction": "right", "now": 120}}])
+        repeated = adapter.translate(SimpleNamespace(type=pygame.KEYDOWN, key=pygame.K_RIGHT, repeat=True), "field", 121)
+        self.assertEqual(repeated, [])
+        stop = adapter.translate(SimpleNamespace(type=pygame.KEYUP, key=pygame.K_RIGHT), "field", 122)
+        self.assertEqual(stop[0]["action"], "move.stop")
+
+        number = adapter.translate(SimpleNamespace(type=pygame.KEYDOWN, key=pygame.K_3), "battle", 200)
+        self.assertEqual([item["action"] for item in number], ["selection.set", "execute.selected"])
+        finished = adapter.translate(
+            SimpleNamespace(type=pygame.KEYDOWN, key=pygame.K_RETURN),
+            "battle",
+            201,
+            battle_finished=True,
+        )
+        self.assertEqual(finished[0]["action"], "return")
+        password = adapter.translate(SimpleNamespace(type=pygame.KEYDOWN, key=pygame.K_h, unicode="へ"), "password", 300)
+        self.assertEqual(password[0]["payload"], {"character": "へ"})
+
+    def test_runtime_input_adapter_handles_escape_and_quit_without_direct_actions(self) -> None:
+        adapter = RuntimeInputAdapter({})
+        escape = SimpleNamespace(type=pygame.KEYDOWN, key=pygame.K_ESCAPE)
+
+        self.assertEqual(adapter.translate(escape, "field", 0), [{"kind": "quit"}])
+        self.assertEqual(adapter.translate(escape, "password", 0)[0]["action"], "cancel")
+        self.assertEqual(adapter.translate(escape, "battle", 0)[0]["action"], "cancel")
+        self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.QUIT), "field", 0), [{"kind": "quit"}])
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("input_adapter.translate(", source)
+        self.assertNotIn("event.key == pygame.K_ESCAPE", source)
+
     def test_character_image_provider_crops_scales_and_caches_pixel_art(self) -> None:
         pygame.display.init()
         if pygame.display.get_surface() is None:
