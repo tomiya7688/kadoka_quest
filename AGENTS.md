@@ -22,6 +22,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `apps/manager_process_service.py`: owns external manager launch command, duplicate prevention, process handle, and one-shot close detection; save reload stays in game orchestration.
 - `apps/field_command_app.py`, `battle_command_app.py`, `password_command_app.py`, `manager_command_app.py`: independent pygame-free command boundaries. The pygame loop translates input to commands and may read state for rendering, but must not invoke screen actions directly.
 - `apps/field_event_app.py`: pygame-free field interaction state machine. It translates NPC, transition, church, spring, manager, and pickup interactions into one plain-data effect.
+- `apps/field_party_session.py`: pygame-free field quick-party cursor state. It owns the selected party slot and next-preset cycle position; persistence remains in the existing stores.
 - `apps/map_editor.py`, `block_editor.py`, `monster_editor.py`, `manage.py`: direct editors; no export format.
 - `apps/data_creator.py`: developer-facing individual generator UI; keep generation logic outside the pygame layer.
 - `core/battle.py`: combat calculation coordinator. It receives `BattleDataLoader`, `BattleInference`, and `BattleLearning`; do not move their responsibilities back into the engine.

@@ -9,6 +9,7 @@ import pygame
 from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
 from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_event_app import FieldEventApplication
+from kadoka_quest.apps.field_party_session import FieldPartySession
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
 from kadoka_quest.apps.password_session import PasswordSession
 from kadoka_quest.core.ai import TACTICS, default_ai
@@ -105,9 +106,8 @@ class KadokaQuest:
         self.password_session = PasswordSession(PASSWORD, KANA_KEYS)
         self.character_images = CharacterImageProvider(self.repository, ASSET_ROOT)
         self.manager_tool = ManagerProcessService(PROJECT_ROOT / "manage.py")
+        self.field_party_session = FieldPartySession()
         self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
-        self.selected_party = 0
-        self.preset_index = 0
         self.held_move_key: int | None = None
         self.reset_hidden_monsters()
         self.reset_home_npcs()
@@ -129,6 +129,24 @@ class KadokaQuest:
     @hidden_monsters.setter
     def hidden_monsters(self, value: list[dict]) -> None:
         self.hidden_enemies.monsters = value
+
+    @property
+    def selected_party(self) -> int:
+        """Compatibility view of the selected field party slot."""
+        return self.field_party_session.selected_index
+
+    @selected_party.setter
+    def selected_party(self, value: int) -> None:
+        self.field_party_session.select(value)
+
+    @property
+    def preset_index(self) -> int:
+        """Compatibility view of the next field preset cursor."""
+        return self.field_party_session.preset_cursor
+
+    @preset_index.setter
+    def preset_index(self, value: int) -> None:
+        self.field_party_session.preset_cursor = max(0, int(value))
 
     @property
     def player_x(self) -> int:
@@ -801,11 +819,10 @@ class KadokaQuest:
 
     def load_next_preset(self) -> None:
         presets = self.parties.list_presets()
-        if not presets:
+        path = self.field_party_session.next_preset(presets)
+        if path is None:
             self.status = "保存パーティがありません。"
             return
-        path = presets[self.preset_index % len(presets)]
-        self.preset_index += 1
         loaded = self.parties.load(path, self.monsters)
         self.state["current_party"] = [record.monster_id for record in loaded if record]
         self.states.save(self.state)
@@ -813,10 +830,9 @@ class KadokaQuest:
 
     def cycle_tactic(self) -> None:
         party = self.party()
-        if not party:
+        record = self.field_party_session.selected(party)
+        if record is None:
             return
-        self.selected_party %= len(party)
-        record = party[self.selected_party]
         current = str(record.ai.get("tactic", "balanced"))
         index = TACTICS.index(current) if current in TACTICS else 0
         next_value = TACTICS[(index + 1) % len(TACTICS)]
@@ -825,12 +841,15 @@ class KadokaQuest:
 
     def reset_selected_ai(self) -> None:
         party = self.party()
-        if not party:
+        record = self.field_party_session.selected(party)
+        if record is None:
             return
-        self.selected_party %= len(party)
-        record = party[self.selected_party]
         self.monsters.reset_ai(record.monster_id)
         self.status = f"{record.name} のAIのみリセットしました。"
+
+    def select_party(self, index: int) -> bool:
+        self.field_party_session.select(index)
+        return True
 
 
 def password_controls() -> tuple[list[tuple[str, pygame.Rect]], pygame.Rect, pygame.Rect, pygame.Rect]:

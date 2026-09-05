@@ -36,8 +36,7 @@ class FieldCommandApplication:
         if command.action == "pickup":
             return self.session.field_pickup()
         if command.action == "party.select":
-            self.session.selected_party = max(0, min(3, int(payload["index"])))
-            return True
+            return self.session.select_party(int(payload["index"]))
         if command.action == "tactic.cycle":
             return self.session.cycle_tactic()
         if command.action == "ai.reset":

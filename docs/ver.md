@@ -430,3 +430,28 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 
 - `docs/実行時マウスアダプター責務分離機能説明書.md`
 - `src/kadoka_quest/ui/runtime_mouse_adapter.py`
+
+# 20. フィールドパーティ選択状態責務分離 第12段階
+
+- `FieldPartySession` を追加し、フィールドで選択中のパーティ枠と次のプリセット巡回位置を分離
+- 選択枠を0～3に制限し、現在のパーティ人数に合わせて従来どおり循環補正
+- `FieldCommandApplication` の `party.select` はゲーム属性へ直接代入せず公開操作を呼ぶ
+- `game.py` の既存 `selected_party / preset_index` APIは互換プロパティとして維持
+- パーティ、プリセット、個体AIの保存JSON形式は変更なし
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/ver.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `src/kadoka_quest/apps/field_command_app.py`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/フィールドパーティ選択状態責務分離機能説明書.md`
+- `src/kadoka_quest/apps/field_party_session.py`

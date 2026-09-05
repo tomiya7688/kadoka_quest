@@ -21,6 +21,7 @@ from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_command_app import FieldCommandApplication
 from kadoka_quest.apps.field_event_app import FieldEventApplication
+from kadoka_quest.apps.field_party_session import FieldPartySession
 from kadoka_quest.apps.manager_command_app import ManagerCommandApplication
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
 from kadoka_quest.apps.password_command_app import PasswordCommandApplication
@@ -114,6 +115,7 @@ class CommandApplicationTests(unittest.TestCase):
     def test_runtime_applications_receive_plain_semantic_commands(self) -> None:
         session = SimpleNamespace(
             selected_party=0,
+            select_party=mock.Mock(return_value=True),
             battle_selection=0,
             auto_battle=False,
             status="",
@@ -133,6 +135,8 @@ class CommandApplicationTests(unittest.TestCase):
 
         self.assertTrue(bus.dispatch(AppCommand("field", "move.start", {"direction": "left", "now": 120})))
         session.start_held_direction.assert_called_once_with("left", 120)
+        self.assertTrue(bus.dispatch(AppCommand("field", "party.select", {"index": 3})))
+        session.select_party.assert_called_once_with(3)
         self.assertEqual(bus.dispatch(AppCommand("battle", "selection.move", {"amount": -1})), 3)
         bus.dispatch(AppCommand("battle", "execute.selected"))
         session.handle_battle_command.assert_called_once_with("scout")
@@ -144,6 +148,7 @@ class CommandApplicationTests(unittest.TestCase):
             "src/kadoka_quest/application/app_command.py",
             "src/kadoka_quest/application/command_bus.py",
             "src/kadoka_quest/apps/field_command_app.py",
+            "src/kadoka_quest/apps/field_party_session.py",
             "src/kadoka_quest/apps/battle_command_app.py",
             "src/kadoka_quest/apps/battle_session.py",
             "src/kadoka_quest/apps/password_command_app.py",
@@ -195,6 +200,26 @@ class CommandApplicationTests(unittest.TestCase):
             "self.simulation = False",
         ):
             self.assertNotIn(assignment, source)
+
+    def test_field_party_session_owns_selection_and_preset_cycle_cursors(self) -> None:
+        session = FieldPartySession()
+
+        self.assertEqual(session.select(9), 3)
+        self.assertEqual(session.selected(["a", "b"]), "b")
+        self.assertEqual(session.selected_index, 1)
+        self.assertIsNone(session.selected([]))
+        self.assertEqual(session.next_preset(["one", "two"]), "one")
+        self.assertEqual(session.next_preset(["one", "two"]), "two")
+        self.assertEqual(session.next_preset(["one", "two"]), "one")
+        self.assertIsNone(session.next_preset([]))
+
+    def test_game_delegates_field_party_cursor_state_to_session(self) -> None:
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("self.field_party_session = FieldPartySession()", source)
+        self.assertNotIn("self.selected_party = 0", source)
+        self.assertNotIn("self.preset_index = 0", source)
+        field_app_source = (PROJECT_ROOT / "src/kadoka_quest/apps/field_command_app.py").read_text(encoding="utf-8")
+        self.assertNotIn("self.session.selected_party =", field_app_source)
 
     def test_password_session_owns_input_limit_validation_and_reset(self) -> None:
         session = PasswordSession("へいわ", "へいわな")
