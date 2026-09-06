@@ -7,8 +7,8 @@ import sys
 import pygame
 
 from kadoka_quest.data.savedata import SaveDataManager
-from kadoka_quest.data.data_validator import DataValidator
-from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories
+from kadoka_engine.data_validator import DataValidator
+from kadoka_quest.paths import DATA_ROOT, PROJECT_ROOT, ensure_runtime_directories
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, Button, TextField, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
@@ -19,7 +19,7 @@ def main() -> None:
     if not saves.list_names():
         saves.create("default")
     names = saves.list_names()
-    validation_issues = DataValidator().validate()
+    validation_issues = DataValidator(DATA_ROOT).validate()
     selected = names.index(saves.active_name()) if saves.active_name() in names else 0
     name_field = TextField(pygame.Rect(55, 185, 285, 42), "新しいセーブ")
     screen = init_pygame("kadoka quest - launcher", (1040, 720))

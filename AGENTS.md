@@ -7,7 +7,7 @@ When evaluator feedback has been fully implemented and verified, remove only the
 ## Project and commands
 
 - Canonical checkout: `C:\Users\tomiy\games\kadokaquest`
-- Stack: Python 3.10+, `pygame-ce`, UTF-8 JSON. Package code is under `src/kadoka_quest/`.
+- Stack: Python 3.10+, `pygame-ce`, UTF-8 JSON. Reusable engine code is under `src/kadoka_engine/`; the game and current GUI adapters are under `src/kadoka_quest/`.
 - Primary local environment: Python 3.13.5 in `venv_3135`. Keep `.venv` only as the Python 3.10 compatibility environment.
 - Install: `py -3.13 -m venv venv_3135`, then `venv_3135\Scripts\python.exe -m pip install -e .`
 - Run launcher: `scripts\run_python.bat launcher.py` or `run_game.bat`. The wrapper prefers `venv_3135` and falls back to `.venv`.
@@ -41,7 +41,8 @@ When evaluator feedback has been fully implemented and verified, remove only the
 - `core/hidden_enemy_controller.py`: pygame/file-I/O-independent hidden-enemy population, spawn filtering, vision, occupancy, and chase/wander timing.
 - `core/player_field_controller.py`: pygame/file-I/O-independent player grid position, facing, held-key repeat state, and visual interpolation.
 - `data/repository.py`: species, blocks, maps, equipment and skills.
-- `data/data_validator.py`: pygame-free, non-throwing aggregate validation for project settings, blocks, maps, species, stats, skills, plus branches, equipment, and resistances.
+- `kadoka_engine/data_validator.py`: reusable pygame-free, non-throwing aggregate validation. It requires a data root from its caller and must never import `kadoka_quest`.
+- `kadoka_quest/data/data_validator.py`: backward-compatible adapter that supplies Kadoka Quest's default data root for the old import path.
 - `data/battle_data.py`: the only battle-time loader for combatants, species definitions, skills, stats, resistances and equipment.
 - `data/field_data.py`: the only runtime field map/block loader and entry-position clamp.
 - `data/field_progress.py`: field-only persistence for position, revival, inventory pickup, flags, and fixed-mob despawn state.
@@ -106,3 +107,4 @@ Fixed mobs spawn at their initial point whenever the map loads, cannot share a t
 - The user prefers terminal Git. Do not push unless explicitly asked; verify the remote result before saying an upload completed.
 - Remote: `https://github.com/tomiya7688/kadoka_quest.git`, branch `main`.
 - Keep command payloads plain (`str/int/float/bool/list/dict/None`) so applications can later move to processes or another engine. Add commands at an application boundary instead of importing pygame into command apps.
+- `kadoka_engine` must never import `kadoka_quest` or pygame. Game and tool adapters may depend on the engine, never the reverse.

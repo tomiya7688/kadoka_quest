@@ -6,7 +6,7 @@ import pygame
 
 from kadoka_quest.data.map_presets import MapPresetStore
 from kadoka_quest.data.repository import GameRepository
-from kadoka_quest.data.data_validator import DataValidator
+from kadoka_engine.data_validator import DataValidator
 from kadoka_quest.ui.common import ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, ScrollBar, TextField, draw_status_bar, draw_text, handle_fields, init_pygame, smoke_frames
 
 

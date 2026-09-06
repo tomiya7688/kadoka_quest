@@ -6,7 +6,7 @@ from pathlib import Path
 import pygame
 
 from kadoka_quest.data.repository import GameRepository, STAT_KEYS
-from kadoka_quest.data.data_validator import DataValidator
+from kadoka_engine.data_validator import DataValidator
 from kadoka_quest.data.species_creator import SpeciesCreator
 from kadoka_quest.paths import ASSET_ROOT
 from kadoka_quest.ui.common import ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, ScrollBar, TextField, draw_status_bar, draw_text, draw_wrapped, handle_fields, init_pygame, smoke_frames

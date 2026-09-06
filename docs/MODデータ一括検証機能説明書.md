@@ -19,7 +19,8 @@ flowchart LR
 | 層 | 責務 |
 |---|---|
 | `data/project.json` | ゲーム固有の有効なID・分類語彙を定義 |
-| `data/data_validator.py` | pygame非依存で全問題を収集 |
+| `kadoka_engine/data_validator.py` | pygame・ゲーム本体非依存で全問題を収集 |
+| `kadoka_quest/data/data_validator.py` | 旧importへ既定データルートを供給する互換窓口 |
 | `apps/data_validator.py` | 問題一覧の描画、スクロール、再検査 |
 | `apps/launcher.py` | 起動時の件数表示と検証画面の起動 |
 | 各データエディタ | 保存直後に再検査し、問題件数をステータス表示 |

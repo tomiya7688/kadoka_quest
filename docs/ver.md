@@ -586,3 +586,34 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 - `src/kadoka_quest/apps/data_validator.py`
 - `src/kadoka_quest/data/data_validator.py`
 - `tests/test_data_validator.py`
+
+# 26. エンジン分離 第1段階
+
+- 再利用可能コード用の `kadoka_engine` パッケージを新設
+- MODデータ検証本体を `kadoka_engine.data_validator` へ移動
+- 汎用検証側から `kadoka_quest.paths` と固定データルートへの依存を除去
+- ゲーム・各エディタがデータルートを明示して汎用エンジンを利用
+- 旧 `kadoka_quest.data.data_validator` は既定パス付き互換アダプターとして維持
+- `kadoka_engine` からKadoka Quest本体・pygameへの逆依存を禁止する自動テストを追加
+- 3層分離全体は未完了のため、評価者フィードバックは継続項目として保持
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/MODデータ一括検証機能説明書.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/block_editor.py`
+- `src/kadoka_quest/apps/data_validator.py`
+- `src/kadoka_quest/apps/launcher.py`
+- `src/kadoka_quest/apps/map_editor.py`
+- `src/kadoka_quest/apps/monster_editor.py`
+- `src/kadoka_quest/data/data_validator.py`
+- `tests/test_data_validator.py`
+
+追加したファイル
+
+- `docs/エンジン分離第1段階機能説明書.md`
+- `src/kadoka_engine/__init__.py`
+- `src/kadoka_engine/data_validator.py`
+- `tests/test_engine_boundaries.py`

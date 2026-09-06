@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pygame
 
-from kadoka_quest.data.data_validator import DataValidator
+from kadoka_engine.data_validator import DataValidator
+from kadoka_quest.paths import DATA_ROOT
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, WARN, Button, ScrollBar, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
@@ -12,7 +13,7 @@ ROWS = 8
 def main() -> None:
     screen = init_pygame("kadoka quest - data validation", (1100, 720))
     clock = pygame.time.Clock()
-    validator = DataValidator()
+    validator = DataValidator(DATA_ROOT)
     issues = validator.validate()
     scroll = ScrollBar(pygame.Rect(1055, 145, 12, 450), total=len(issues), page=ROWS)
     running = True

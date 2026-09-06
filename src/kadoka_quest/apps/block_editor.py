@@ -3,7 +3,7 @@ from __future__ import annotations
 import pygame
 
 from kadoka_quest.data.repository import GameRepository
-from kadoka_quest.data.data_validator import DataValidator
+from kadoka_engine.data_validator import DataValidator
 from kadoka_quest.paths import ASSET_ROOT
 from kadoka_quest.ui.common import (
     ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT,
