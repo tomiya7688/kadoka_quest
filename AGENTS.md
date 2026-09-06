@@ -1,6 +1,8 @@
 # Kadoka Quest Codex cheat sheet
 
-Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task needs user-facing details or full JSON examples.
+Read this file first. At the start of every implementation task, also read `docs/評価/評価者からのフィードバック.md` and apply any relevant outstanding feedback. Open `README.md` or `docs/FORMATS.md` only when the task needs user-facing details or full JSON examples.
+
+When evaluator feedback has been fully implemented and verified, remove only the addressed feedback entry from that file. Keep its guidance/header and any unresolved feedback. It is also acceptable to transfer an unresolved implementation item to `docs/開発予定.md`, but never overwrite unrelated user edits there.
 
 ## Project and commands
 
