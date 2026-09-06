@@ -9,7 +9,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from kadoka_engine.data_validator import DataValidator
+from kadoka_engine.field_engine import FieldEngine
+from kadoka_engine.fixed_mob_controller import FixedMobController
+from kadoka_engine.grid_movement import GridMovement
+from kadoka_engine.hidden_enemy_controller import HiddenEnemyController
+from kadoka_engine.player_field_controller import PlayerFieldController
 from kadoka_quest.data.data_validator import DataValidator as LegacyDataValidator
+from kadoka_quest.core.field_engine import FieldEngine as LegacyFieldEngine
+from kadoka_quest.core.fixed_mob_controller import FixedMobController as LegacyFixedMobController
+from kadoka_quest.core.grid_movement import GridMovement as LegacyGridMovement
+from kadoka_quest.core.hidden_enemy_controller import HiddenEnemyController as LegacyHiddenEnemyController
+from kadoka_quest.core.player_field_controller import PlayerFieldController as LegacyPlayerFieldController
 
 
 class EngineBoundaryTests(unittest.TestCase):
@@ -33,6 +43,13 @@ class EngineBoundaryTests(unittest.TestCase):
 
     def test_legacy_game_import_keeps_default_data_root(self) -> None:
         self.assertEqual(LegacyDataValidator().validate(), [])
+
+    def test_legacy_field_imports_are_exact_engine_types(self) -> None:
+        self.assertIs(LegacyFieldEngine, FieldEngine)
+        self.assertIs(LegacyFixedMobController, FixedMobController)
+        self.assertIs(LegacyGridMovement, GridMovement)
+        self.assertIs(LegacyHiddenEnemyController, HiddenEnemyController)
+        self.assertIs(LegacyPlayerFieldController, PlayerFieldController)
 
 
 if __name__ == "__main__":

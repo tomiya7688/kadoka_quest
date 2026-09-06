@@ -35,11 +35,12 @@ When evaluator feedback has been fully implemented and verified, remove only the
 - `core/battle.py`: combat calculation coordinator. It receives `BattleDataLoader`, `BattleInference`, and `BattleLearning`; do not move their responsibilities back into the engine.
 - `core/combatant.py`: runtime combat state only. `core/battle_inference.py` selects actions without mutation; `core/battle_learning.py` mutates sparse AI learning. `core/ai.py` is their backward-compatible public facade plus default AI creation.
 - `core/battle_context.py`: engine-independent fixed battle-context tags; do not store combinatorial board states.
-- `core/grid_movement.py`: pygame-independent visual interpolation between integer grid positions.
-- `core/field_engine.py`: pygame/file-I/O-independent field rules. Inputs and results stay plain dict/list/int/string/bool values for GDScript/Lua parity.
-- `core/fixed_mob_controller.py`: pygame/file-I/O-independent fixed-mob runtime state, dialogue decks, occupancy, facing pauses, and timed movement.
-- `core/hidden_enemy_controller.py`: pygame/file-I/O-independent hidden-enemy population, spawn filtering, vision, occupancy, and chase/wander timing.
-- `core/player_field_controller.py`: pygame/file-I/O-independent player grid position, facing, held-key repeat state, and visual interpolation.
+- `kadoka_engine/grid_movement.py`: reusable visual interpolation between integer grid positions.
+- `kadoka_engine/field_engine.py`: reusable field rules. Inputs and results stay plain dict/list/int/string/bool values for GDScript/Lua parity.
+- `kadoka_engine/fixed_mob_controller.py`: reusable fixed-mob runtime state, dialogue decks, occupancy, facing pauses, and timed movement.
+- `kadoka_engine/hidden_enemy_controller.py`: reusable hidden-enemy population, spawn filtering, vision, occupancy, and chase/wander timing.
+- `kadoka_engine/player_field_controller.py`: reusable player grid position, facing, held-key repeat state, and visual interpolation.
+- Matching `kadoka_quest/core/*.py` field modules are compatibility re-exports only; do not add behavior back to them.
 - `data/repository.py`: species, blocks, maps, equipment and skills.
 - `kadoka_engine/data_validator.py`: reusable pygame-free, non-throwing aggregate validation. It requires a data root from its caller and must never import `kadoka_quest`.
 - `kadoka_quest/data/data_validator.py`: backward-compatible adapter that supplies Kadoka Quest's default data root for the old import path.

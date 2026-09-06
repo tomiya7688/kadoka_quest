@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from kadoka_quest.core.grid_movement import GridMovement
+from kadoka_engine.grid_movement import GridMovement
 from kadoka_quest.ui.common import ACCENT, BG, MUTED, PANEL, PANEL_ALT, draw_text
 
 if TYPE_CHECKING:

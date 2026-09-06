@@ -617,3 +617,38 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 - `src/kadoka_engine/__init__.py`
 - `src/kadoka_engine/data_validator.py`
 - `tests/test_engine_boundaries.py`
+
+# 27. フィールドエンジン分離 第2段階
+
+- フィールド規則、座標補間、固定モブ、見えない敵、主人公移動の5責務を `kadoka_engine` へ移動
+- エンジン内部の相互参照を `kadoka_engine` 内で完結
+- ゲーム本体とフィールド描画が新しいエンジンAPIを直接利用
+- 旧 `kadoka_quest.core` の5モジュールは同じクラスを再公開する互換窓口として維持
+- `kadoka_engine` のKadoka Quest・pygame逆依存禁止テストを継続
+- 旧importと新importのクラス同一性を自動テスト
+- 3層分離全体は未完了のため、評価者フィードバックは継続項目として保持
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/ver.md`
+- `docs/エンジン分離第1段階機能説明書.md`
+- `src/kadoka_engine/__init__.py`
+- `src/kadoka_quest/apps/game.py`
+- `src/kadoka_quest/core/field_engine.py`
+- `src/kadoka_quest/core/fixed_mob_controller.py`
+- `src/kadoka_quest/core/grid_movement.py`
+- `src/kadoka_quest/core/hidden_enemy_controller.py`
+- `src/kadoka_quest/core/player_field_controller.py`
+- `src/kadoka_quest/ui/field_renderer.py`
+- `tests/test_engine_boundaries.py`
+
+追加したファイル
+
+- `docs/フィールドエンジン分離第2段階機能説明書.md`
+- `src/kadoka_engine/field_engine.py`
+- `src/kadoka_engine/fixed_mob_controller.py`
+- `src/kadoka_engine/grid_movement.py`
+- `src/kadoka_engine/hidden_enemy_controller.py`
+- `src/kadoka_engine/player_field_controller.py`
