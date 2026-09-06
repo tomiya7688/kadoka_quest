@@ -1,5 +1,17 @@
 # JSON formats
 
+## プロジェクト設定
+
+`data/project.json` はゲームデータ全体で使用できるID集合を定義します。
+
+- `validation.stat_ids`: 能力ID
+- `validation.skill_kinds`: スキル種別
+- `validation.equipment_categories`: 装備カテゴリ
+- `validation.element_ids`: 属性・耐性名
+- `validation.resistance_values`: 耐性段階
+
+MODデータ検証はこの設定を参照するため、別ゲームへ流用する場合はプログラムを変更せずプロジェクト設定側で有効な名前を追加できます。定義にない名前は起動時の検証一覧へ表示されますが、ゲーム起動自体は停止しません。
+
 すべてUTF-8、JSONオブジェクトをルートに持ちます。`schema_version` は現在 `1` です。未知の追加キーは基本的に無視するため、MOD側でメタデータを加えられます。
 
 JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値を保存しません。ゲーム処理層との受け渡しは辞書、配列、数値、文字列、真偽値だけを使います。GDScript／Luaへの移植境界は [移植境界機能説明書](移植境界機能説明書.md) を参照してください。

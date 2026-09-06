@@ -3,6 +3,7 @@ from __future__ import annotations
 import pygame
 
 from kadoka_quest.data.repository import GameRepository
+from kadoka_quest.data.data_validator import DataValidator
 from kadoka_quest.paths import ASSET_ROOT
 from kadoka_quest.ui.common import (
     ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT,
@@ -91,6 +92,9 @@ class BlockEditor:
             self.status = f"{block['id']}.json を保存しました。"
             self.refresh()
             self.selected = next((i for i, item in enumerate(self.blocks) if item["id"] == block["id"]), 0)
+            issues = DataValidator(self.repository.root).validate()
+            if issues:
+                self.status += f" 全体検証: {len(issues)}件の問題があります。"
         except (OSError, ValueError, KeyError) as exc:
             self.status = f"保存できません: {exc}"
 

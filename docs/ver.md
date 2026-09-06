@@ -551,3 +551,38 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 追加したファイル
 
 - `docs/ドットエディタ連続描画機能説明書.md`
+
+# 25. MODデータ一括検証
+
+- 起動を停止せず全問題を収集するpygame非依存 `DataValidator` を追加
+- JSON構文、ブロック、マップ、種族、Lv別能力、スキル、＋分岐、装備、耐性を一括検査
+- 検証語彙を `data/project.json` へ切り出し、ゲーム固有名を検証処理から分離
+- ランチャー起動時に問題件数を表示
+- 問題コード・JSONパス・説明を表示するスクロール対応の検証画面を追加
+- ブロック・マップ・モンスターエディタの保存直後にも全体検証を実行
+- 問題が存在してもゲーム・エディタの起動は継続可能
+- 正常な同梱データで問題0件を確認
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/ver.md`
+- `docs/評価/評価者からのフィードバック.md`
+- `docs/開発予定.md`
+- `src/kadoka_quest/apps/launcher.py`
+- `src/kadoka_quest/apps/block_editor.py`
+- `src/kadoka_quest/apps/map_editor.py`
+- `src/kadoka_quest/apps/monster_editor.py`
+- `tests/test_app_smoke.py`
+
+追加したファイル
+
+- `data/project.json`
+- `data_validator.py`
+- `docs/MODデータ一括検証機能説明書.md`
+- `docs/評価/過去のフィードバック.md`
+- `src/kadoka_quest/apps/data_validator.py`
+- `src/kadoka_quest/data/data_validator.py`
+- `tests/test_data_validator.py`

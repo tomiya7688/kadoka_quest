@@ -6,6 +6,7 @@ import pygame
 
 from kadoka_quest.data.map_presets import MapPresetStore
 from kadoka_quest.data.repository import GameRepository
+from kadoka_quest.data.data_validator import DataValidator
 from kadoka_quest.ui.common import ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, ScrollBar, TextField, draw_status_bar, draw_text, handle_fields, init_pygame, smoke_frames
 
 
@@ -91,6 +92,9 @@ class MapEditor:
         self.repository.save_map(self.map_data)
         self.dirty = False
         self.status = f"data/maps/{self.map_id}/map.json を保存しました。"
+        issues = DataValidator(self.repository.root).validate()
+        if issues:
+            self.status += f" 全体検証: {len(issues)}件の問題があります。"
 
     @property
     def preset_fields(self) -> list[TextField]:

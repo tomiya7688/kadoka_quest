@@ -7,6 +7,7 @@ import sys
 import pygame
 
 from kadoka_quest.data.savedata import SaveDataManager
+from kadoka_quest.data.data_validator import DataValidator
 from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, Button, TextField, draw_text, draw_wrapped, init_pygame, smoke_frames
 
@@ -18,12 +19,16 @@ def main() -> None:
     if not saves.list_names():
         saves.create("default")
     names = saves.list_names()
+    validation_issues = DataValidator().validate()
     selected = names.index(saves.active_name()) if saves.active_name() in names else 0
     name_field = TextField(pygame.Rect(55, 185, 285, 42), "新しいセーブ")
     screen = init_pygame("kadoka quest - launcher", (1040, 720))
     clock = pygame.time.Clock()
     running = True
-    status = "使用するセーブデータを選んでゲームを開始してください。"
+    status = (
+        f"データ検証で{len(validation_issues)}件の問題を検出しました。確認後もゲームは起動できます。"
+        if validation_issues else "データ検証済みです。使用するセーブデータを選んでください。"
+    )
 
     def refresh(select_name: str | None = None) -> None:
         nonlocal names, selected
@@ -83,7 +88,8 @@ def main() -> None:
         Button(pygame.Rect(705, 235, 260, 58), "マップエディタ", lambda: launch("map_editor.py")),
         Button(pygame.Rect(410, 325, 260, 58), "モンスターエディタ", lambda: launch("monster_editor.py")),
         Button(pygame.Rect(705, 325, 260, 58), "データクリエイター", lambda: launch("data_creator.py")),
-        Button(pygame.Rect(410, 415, 555, 58), "終了", stop),
+        Button(pygame.Rect(410, 415, 260, 58), f"データ検証 ({len(validation_issues)})", lambda: launch("data_validator.py")),
+        Button(pygame.Rect(705, 415, 260, 58), "終了", stop),
     ]
     smoke = smoke_frames()
     frames = 0

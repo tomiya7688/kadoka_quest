@@ -41,6 +41,7 @@ When evaluator feedback has been fully implemented and verified, remove only the
 - `core/hidden_enemy_controller.py`: pygame/file-I/O-independent hidden-enemy population, spawn filtering, vision, occupancy, and chase/wander timing.
 - `core/player_field_controller.py`: pygame/file-I/O-independent player grid position, facing, held-key repeat state, and visual interpolation.
 - `data/repository.py`: species, blocks, maps, equipment and skills.
+- `data/data_validator.py`: pygame-free, non-throwing aggregate validation for project settings, blocks, maps, species, stats, skills, plus branches, equipment, and resistances.
 - `data/battle_data.py`: the only battle-time loader for combatants, species definitions, skills, stats, resistances and equipment.
 - `data/field_data.py`: the only runtime field map/block loader and entry-position clamp.
 - `data/field_progress.py`: field-only persistence for position, revival, inventory pickup, flags, and fixed-mob despawn state.
@@ -59,6 +60,7 @@ When evaluator feedback has been fully implemented and verified, remove only the
 ## Data contracts
 
 - Blocks: `data/blocks/<id>.json`; keep player walkability, enemy spawning and enemy walkability independent.
+- Project validation vocabulary: `data/project.json`; validators and tools read allowed stat, skill-kind, equipment-category, element, and resistance IDs from here instead of hard-coding game-specific names.
 - Maps: `data/maps/<id>/map.json`; `tiles`, hidden-enemy `spawns`, visible `fixed_mobs`, and `events` are separate layers.
 - Map presets: `data/map_presets/<id>.json`; use the same JSON shape as maps. Applying keeps the target map identity; creating replaces it with a new identity.
 - Species: `data/species/<id>/{species,stats,skills,plus}.json`; stats contain every level 1-100.

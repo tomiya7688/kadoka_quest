@@ -6,6 +6,7 @@ from pathlib import Path
 import pygame
 
 from kadoka_quest.data.repository import GameRepository, STAT_KEYS
+from kadoka_quest.data.data_validator import DataValidator
 from kadoka_quest.data.species_creator import SpeciesCreator
 from kadoka_quest.paths import ASSET_ROOT
 from kadoka_quest.ui.common import ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, ScrollBar, TextField, draw_status_bar, draw_text, draw_wrapped, handle_fields, init_pygame, smoke_frames
@@ -241,6 +242,9 @@ class MonsterEditor:
             if was_creating
             else f"{new_id} の4ファイルを保存しました。"
         )
+        issues = DataValidator(self.repository.root).validate()
+        if issues:
+            self.status += f" 全体検証: {len(issues)}件の問題があります。"
 
     def save_visuals(self) -> None:
         if self.creating_new:
