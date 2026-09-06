@@ -527,3 +527,27 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 - `docs/Python3135並行環境機能説明書.md`
 - `scripts/run_python.bat`
 - `tests/test_environment_contract.py`
+
+# 24. ドットエディタ連続描画
+
+- 高速ドラッグ時に前回の論理ドットから現在の論理ドットまで整数直線で補間
+- モンスターエディタとブロックエディタの共通 `PixelArtEditor` へ一度だけ実装
+- 左ドラッグの着色と右ドラッグの透明化の両方へ適用
+- キャンバス外へ出た場合は線分を切り、再進入時の意図しない長い線を防止
+- 1回のドラッグを引き続き1回のUndo履歴として管理
+- 中央ボタンでペン入力が始まらないよう入力条件を明確化
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/ver.md`
+- `docs/開発予定.md`
+- `src/kadoka_quest/apps/block_editor.py`
+- `src/kadoka_quest/apps/monster_editor.py`
+- `src/kadoka_quest/ui/pixel_editor.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/ドットエディタ連続描画機能説明書.md`

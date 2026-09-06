@@ -823,6 +823,39 @@ class UiWidgetTests(unittest.TestCase):
         self.assertEqual(editor.images["front"].get_at((2, 2)).a, 0)
         self.assertFalse(editor.undo())
 
+    def test_shared_pixel_editor_interpolates_fast_pointer_motion(self) -> None:
+        editor = PixelArtEditor(PROJECT_ROOT / "assets")
+        editor.set_targets((PixelTarget("front", "正面", "characters/slime/field_front.png"),))
+        editor.images["front"] = pygame.Surface((64, 64), pygame.SRCALPHA)
+        canvas = pygame.Rect(0, 0, 640, 640)
+
+        self.assertTrue(editor.begin_stroke())
+        self.assertTrue(editor.paint((15, 15), canvas))
+        self.assertTrue(editor.paint((85, 15), canvas))
+        editor.end_stroke()
+
+        for x in range(1, 9):
+            self.assertGreater(editor.images["front"].get_at((x, 1)).a, 0)
+        self.assertTrue(editor.undo())
+        for x in range(1, 9):
+            self.assertEqual(editor.images["front"].get_at((x, 1)).a, 0)
+
+    def test_shared_pixel_editor_does_not_bridge_across_canvas_exit(self) -> None:
+        editor = PixelArtEditor(PROJECT_ROOT / "assets")
+        editor.set_targets((PixelTarget("front", "正面", "characters/slime/field_front.png"),))
+        editor.images["front"] = pygame.Surface((64, 64), pygame.SRCALPHA)
+        canvas = pygame.Rect(0, 0, 640, 640)
+
+        editor.begin_stroke()
+        editor.paint((15, 15), canvas)
+        self.assertFalse(editor.paint((-10, -10), canvas))
+        editor.paint((85, 15), canvas)
+        editor.end_stroke()
+
+        self.assertGreater(editor.images["front"].get_at((1, 1)).a, 0)
+        self.assertGreater(editor.images["front"].get_at((8, 1)).a, 0)
+        self.assertEqual(editor.images["front"].get_at((4, 1)).a, 0)
+
     def test_shared_pixel_editor_pan_mode_moves_and_clamps_zoomed_view(self) -> None:
         editor = PixelArtEditor(PROJECT_ROOT / "assets")
         editor.set_targets((PixelTarget("front", "正面", "characters/slime/field_front.png"),))

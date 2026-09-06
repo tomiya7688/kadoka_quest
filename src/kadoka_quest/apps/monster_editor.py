@@ -509,7 +509,7 @@ def main() -> None:
                     elif not handled and editor.visuals.tool_mode == "pan" and event.button == 1:
                         editor.visuals.begin_pan(event.pos, PIXEL_CANVAS)
                 elif event.type == pygame.MOUSEMOTION:
-                    if editor.visuals.tool_mode == "pen" and any(event.buttons):
+                    if editor.visuals.tool_mode == "pen" and (event.buttons[0] or event.buttons[2]):
                         editor.visuals.paint(event.pos, PIXEL_CANVAS, erase=bool(event.buttons[2]))
                     elif editor.visuals.tool_mode == "pan" and event.buttons[0]:
                         editor.visuals.pan_to(event.pos, PIXEL_CANVAS)
