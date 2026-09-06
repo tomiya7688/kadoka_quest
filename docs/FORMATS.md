@@ -142,6 +142,8 @@ pygameのキーダウン・キーアップ・終了イベントは `RuntimeInput
 
 `FieldPartyService` はF7のプリセット保存、F8の順次読込、選択個体の作戦変更とAIリセットを既存の `PartyStore / StateStore / MonsterStore` へ調停します。サービス独自のファイルやキーは作らず、プリセット名 `フィールド編成_YYYYMMDD_HHMMSS`、最大4枠、欠損IDを空き枠として扱う規則も維持します。
 
+`MonsterImportService` は `imports/acquire` を再走査して未所有IDの個体フォルダを現在セーブへ取得し、`imports/simulation` から模擬戦相手を読み込みます。どちらも既存の `monster.json / ai.json` を使います。模擬戦用個体は現在セーブへコピーせず、生成する `BattleEngine` は常に `learning_enabled=false` です。
+
 ### フィールドアクター内部の責務境界
 
 固定モブの実行時状態、会話デッキ、向き、占有、移動周期は `FixedMobController`、画面に出ない野生敵の出現候補、個体配置、視認、追跡・徘徊周期は `HiddenEnemyController` が担当します。どちらも既存の `map.json` とブロック定義を入力に使い、追加の保存JSONは作りません。非復活固定モブの永続化は従来どおり `state.json.despawned_fixed_mobs` です。

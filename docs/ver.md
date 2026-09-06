@@ -479,3 +479,28 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 
 - `docs/フィールドパーティ永続操作責務分離機能説明書.md`
 - `src/kadoka_quest/apps/field_party_service.py`
+
+# 22. 外部個体取込責務分離 第14段階
+
+- `MonsterImportService` を追加し、取得用フォルダ再走査と模擬戦用フォルダ読込をゲーム本体から分離
+- 模擬戦の `BattleEngine` を必ず `learning_enabled=False` で生成
+- 外部個体なし・不正個体では戦闘を開始せず従来の案内を返す
+- ゲーム本体はサービス結果を受け、戦闘セッション開始と画面遷移だけを担当
+- `monster.json / ai.json`、取得先、模擬戦非コピー規則は変更なし
+- Iドライブ上のPythonを使用せず、CドライブのPython 3.13.5とpygame-ce 2.5.8で検証
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/ver.md`
+- `docs/コマンド駆動アプリ基盤機能説明書.md`
+- `docs/実行時オーケストレーター機能説明書.md`
+- `src/kadoka_quest/apps/game.py`
+- `tests/test_core.py`
+
+追加したファイル
+
+- `docs/外部個体取込責務分離機能説明書.md`
+- `src/kadoka_quest/apps/monster_import_service.py`

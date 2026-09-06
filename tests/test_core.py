@@ -26,6 +26,7 @@ from kadoka_quest.apps.field_party_service import FieldPartyService
 from kadoka_quest.apps.field_party_session import FieldPartySession
 from kadoka_quest.apps.manager_command_app import ManagerCommandApplication
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
+from kadoka_quest.apps.monster_import_service import MonsterImportService
 from kadoka_quest.apps.password_command_app import PasswordCommandApplication
 from kadoka_quest.apps.password_session import PasswordSession
 from kadoka_quest.core.ai import choose_skill, default_ai, learn_from_action
@@ -158,6 +159,7 @@ class CommandApplicationTests(unittest.TestCase):
             "src/kadoka_quest/apps/password_session.py",
             "src/kadoka_quest/apps/manager_command_app.py",
             "src/kadoka_quest/apps/manager_process_service.py",
+            "src/kadoka_quest/apps/monster_import_service.py",
             "src/kadoka_quest/application/runtime_orchestrator.py",
         ):
             self.assertNotIn("import pygame", (PROJECT_ROOT / relative).read_text(encoding="utf-8"))
@@ -275,6 +277,52 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertIn("self.field_party_service.load_next_preset(self.state)", source)
         self.assertNotIn("self.parties.save(name", source)
         self.assertNotIn("self.monsters.set_tactic", source)
+
+    def test_monster_import_service_scans_acquisition_and_builds_non_learning_simulation(self) -> None:
+        monsters = mock.Mock()
+        monsters.acquire_from_scan.return_value = (2, 1)
+        enemy = mock.Mock(spec=MonsterRecord)
+        monsters.discover_external.return_value = [enemy]
+        repository = mock.Mock()
+        battle = mock.Mock(spec=BattleEngine)
+        battle_factory = mock.Mock(return_value=battle)
+        import_root = Path("external")
+        service = MonsterImportService(monsters, repository, import_root, battle_factory)
+        ally = mock.Mock(spec=MonsterRecord)
+        rng = random.Random(14)
+
+        self.assertEqual(service.scan_acquire(), "個体再走査：2体を獲得、1件をスキップ。")
+        monsters.acquire_from_scan.assert_called_once_with(import_root / "acquire")
+        created, message = service.create_simulation([ally], rng)
+        self.assertIs(created, battle)
+        self.assertIn("AIは更新されません", message)
+        monsters.discover_external.assert_called_once_with(import_root / "simulation")
+        battle_factory.assert_called_once_with(repository, [ally], [enemy], rng, learning_enabled=False)
+
+    def test_monster_import_service_reports_empty_or_invalid_simulation_without_starting(self) -> None:
+        monsters = mock.Mock()
+        monsters.discover_external.return_value = []
+        battle_factory = mock.Mock()
+        service = MonsterImportService(monsters, mock.Mock(), Path("external"), battle_factory)
+
+        battle, message = service.create_simulation([], random.Random(1))
+        self.assertIsNone(battle)
+        self.assertIn("imports/simulation", message)
+        battle_factory.assert_not_called()
+
+        monsters.discover_external.return_value = [mock.Mock(spec=MonsterRecord)]
+        battle_factory.side_effect = ValueError("bad monster")
+        battle, message = service.create_simulation([], random.Random(2))
+        self.assertIsNone(battle)
+        self.assertEqual(message, "模擬戦個体を読めません: bad monster")
+
+    def test_game_delegates_external_monster_workflows_to_import_service(self) -> None:
+        source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
+        self.assertIn("self.monster_import_service = MonsterImportService(", source)
+        self.assertIn("self.monster_import_service.create_simulation", source)
+        self.assertIn("self.monster_import_service.scan_acquire()", source)
+        self.assertNotIn("self.monsters.discover_external", source)
+        self.assertNotIn("self.monsters.acquire_from_scan", source)
 
     def test_password_session_owns_input_limit_validation_and_reset(self) -> None:
         session = PasswordSession("へいわ", "へいわな")

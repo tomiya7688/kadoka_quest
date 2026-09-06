@@ -11,6 +11,7 @@ from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.field_party_service import FieldPartyService
 from kadoka_quest.apps.field_party_session import FieldPartySession
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
+from kadoka_quest.apps.monster_import_service import MonsterImportService
 from kadoka_quest.apps.password_session import PasswordSession
 from kadoka_quest.core.ai import default_ai
 from kadoka_quest.core.battle import BattleEngine
@@ -106,6 +107,7 @@ class KadokaQuest:
         self.password_session = PasswordSession(PASSWORD, KANA_KEYS)
         self.character_images = CharacterImageProvider(self.repository, ASSET_ROOT)
         self.manager_tool = ManagerProcessService(PROJECT_ROOT / "manage.py")
+        self.monster_import_service = MonsterImportService(self.monsters, self.repository, IMPORT_ROOT)
         self.field_party_session = FieldPartySession()
         self.field_party_service = FieldPartyService(self.field_party_session, self.parties, self.monsters, self.states)
         self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
@@ -657,18 +659,11 @@ class KadokaQuest:
         self.status = f"{', '.join(record.name for record in enemies)} が現れた。"
 
     def start_simulation(self) -> None:
-        imported = self.monsters.discover_external(IMPORT_ROOT / "simulation")
-        if not imported:
-            self.status = "imports/simulation に個体フォルダを置いてください。"
-            return
-        try:
-            battle = BattleEngine(self.repository, self.party(), imported, self.rng, learning_enabled=False)
-        except (OSError, ValueError, KeyError) as exc:
-            self.status = f"模擬戦個体を読めません: {exc}"
+        battle, self.status = self.monster_import_service.create_simulation(self.party(), self.rng)
+        if battle is None:
             return
         self.battle_session.begin(battle, pygame.time.get_ticks(), simulation=True)
         self.mode = "battle"
-        self.status = "模擬戦を開始。双方のAIは更新されません。"
 
     def handle_battle_command(self, command: str) -> None:
         if not self.battle or self.battle.outcome or self.battle_playback:
@@ -798,8 +793,7 @@ class KadokaQuest:
         self.change_map(str(revive["map_id"]), int(revive["x"]), int(revive["y"]), f"全滅しました。{revive.get('name', '教会')}から復活しました。")
 
     def scan_acquire(self) -> None:
-        added, skipped = self.monsters.acquire_from_scan(IMPORT_ROOT / "acquire")
-        self.status = f"個体再走査：{added}体を獲得、{skipped}件をスキップ。"
+        self.status = self.monster_import_service.scan_acquire()
 
     def open_manager(self) -> None:
         if self.manager_tool.open() == "already_running":

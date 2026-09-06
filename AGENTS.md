@@ -10,6 +10,8 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - Run launcher: `.venv\Scripts\python.exe launcher.py` or `run_game.bat`
 - Full tests: `.venv\Scripts\python.exe -m unittest discover -s tests -v`
 - Headless UI: set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and use an isolated `KADOKA_SAVE_DIR`.
+- If the project venv points to an unavailable drive, do not run or rewrite it. Create a temporary venv outside the repository with an available C-drive Python and run tests there.
+- When an unavailable drive remains in `PATH`, prepend the temporary venv's `Lib/site-packages/pygame`, C-drive Python, and Windows system directories during tests so SDL/libpng DLL resolution never touches that drive.
 - Before reporting completion: run the full tests and `I:\program_files\ide\Git\cmd\git.exe diff --check`.
 
 ## Architecture
@@ -20,6 +22,7 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - `apps/battle_session.py`: pygame-free battle lifecycle state machine for command selection, paced log playback, focused actor, auto timing, simulation identity, finalization, and fixed-mob battle identity.
 - `apps/password_session.py`: pygame-free bounded virtual-keyboard state for allowed characters, input length, prompt, validation, and reset; monster acquisition stays outside it.
 - `apps/manager_process_service.py`: owns external manager launch command, duplicate prevention, process handle, and one-shot close detection; save reload stays in game orchestration.
+- `apps/monster_import_service.py`: owns `imports/acquire` rescans and `imports/simulation` discovery/battle construction. Simulation battles are always created with learning disabled.
 - `apps/field_command_app.py`, `battle_command_app.py`, `password_command_app.py`, `manager_command_app.py`: independent pygame-free command boundaries. The pygame loop translates input to commands and may read state for rendering, but must not invoke screen actions directly.
 - `apps/field_event_app.py`: pygame-free field interaction state machine. It translates NPC, transition, church, spring, manager, and pickup interactions into one plain-data effect.
 - `apps/field_party_session.py`: pygame-free field quick-party cursor state. It owns the selected party slot and next-preset cycle position; persistence remains in the existing stores.
