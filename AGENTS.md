@@ -6,13 +6,14 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 
 - Canonical checkout: `C:\Users\tomiy\games\kadokaquest`
 - Stack: Python 3.10+, `pygame-ce`, UTF-8 JSON. Package code is under `src/kadoka_quest/`.
-- Install: `py -m venv .venv`, then `.venv\Scripts\python.exe -m pip install -e .`
-- Run launcher: `.venv\Scripts\python.exe launcher.py` or `run_game.bat`
-- Full tests: `.venv\Scripts\python.exe -m unittest discover -s tests -v`
+- Primary local environment: Python 3.13.5 in `venv_3135`. Keep `.venv` only as the Python 3.10 compatibility environment.
+- Install: `py -3.13 -m venv venv_3135`, then `venv_3135\Scripts\python.exe -m pip install -e .`
+- Run launcher: `scripts\run_python.bat launcher.py` or `run_game.bat`. The wrapper prefers `venv_3135` and falls back to `.venv`.
+- Full tests: `scripts\run_python.bat -m unittest discover -s tests -v`
 - Headless UI: set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and use an isolated `KADOKA_SAVE_DIR`.
-- If the project venv points to an unavailable drive, do not run or rewrite it. Create a temporary venv outside the repository with an available C-drive Python and run tests there.
-- When an unavailable drive remains in `PATH`, prepend the temporary venv's `Lib/site-packages/pygame`, C-drive Python, and Windows system directories during tests so SDL/libpng DLL resolution never touches that drive.
-- Before reporting completion: run the full tests and `I:\program_files\ide\Git\cmd\git.exe diff --check`.
+- If `.venv` points to an unavailable drive, do not run or rewrite it. Use the project-local `venv_3135` instead.
+- `scripts\run_python.bat` prepends `venv_3135` and pygame's bundled DLL directory to a minimal Windows PATH so SDL/libpng resolution does not touch unavailable drives.
+- Before reporting completion: run the full tests and `git diff --check` with a Git executable on an available drive.
 
 ## Architecture
 

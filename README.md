@@ -34,23 +34,25 @@
 ## セットアップ（Windows）
 
 1. このフォルダでターミナルを開きます。
-2. 仮想環境を作ります。
+2. Python 3.13.5用の仮想環境を作ります。
 
    ```powershell
-   py -m venv .venv
+   py -3.13 -m venv venv_3135
    ```
 
 3. pygame-ce を入れます。
 
    ```powershell
-   .venv\Scripts\python.exe -m pip install -r requirements.txt
+   venv_3135\Scripts\python.exe -m pip install -r requirements.txt
    ```
 
-4. `run_kadoka_quest.bat` をダブルクリックします。ターミナルからなら次でも起動できます。
+4. `run_game.bat` をダブルクリックします。ターミナルからなら次でも起動できます。
 
    ```powershell
-   .venv\Scripts\python.exe launcher.py
+   scripts\run_python.bat launcher.py
    ```
+
+`scripts\run_python.bat` は `venv_3135` を優先し、存在しない場合だけ従来の `.venv` を使います。Pythonの版による選択はこの起動境界だけに置き、ゲーム本体・JSON形式・計算ロジックには版固有の分岐を入れていません。`.venv` はPython 3.10互換確認用として残せます。
 
 ## 遊び方
 
@@ -179,7 +181,7 @@ savedata/セーブデータ名/parties/
 ロジック整理は第14段階まで完了しています。画面モード・戦闘進行・暗号入力・画像取得・管理プロセス・フィールド簡易パーティ操作を各専用クラスが所有し、`MonsterImportService` が個体フォルダ再走査と学習しない模擬戦の生成を担当します。pygame入力はプレーンな意味コマンド要求へ変換され、ゲームループは共通バスへ配送します。詳細は [コマンド駆動アプリ基盤機能説明書](docs/コマンド駆動アプリ基盤機能説明書.md)、[実行時オーケストレーター機能説明書](docs/実行時オーケストレーター機能説明書.md)、[外部個体取込責務分離機能説明書](docs/外部個体取込責務分離機能説明書.md)、[フィールドパーティ永続操作責務分離機能説明書](docs/フィールドパーティ永続操作責務分離機能説明書.md) を参照してください。
 
 ```powershell
-.venv\Scripts\python.exe -m unittest discover -s tests -v
+scripts\run_python.bat -m unittest discover -s tests -v
 ```
 
 テストは、7種のサンプル、Lv1〜100、10段階の＋定義、ブロック/マップ参照、個体再走査、欠損IDの空き枠化、AIリセット、AI自動戦闘、模擬戦でAIが変化しないこと、各画面のヘッドレス起動を確認します。

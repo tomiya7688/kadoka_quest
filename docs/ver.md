@@ -504,3 +504,26 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 
 - `docs/外部個体取込責務分離機能説明書.md`
 - `src/kadoka_quest/apps/monster_import_service.py`
+
+# 23. Python 3.13.5並行実行環境
+
+- CドライブのPython 3.13.5からプロジェクト内に `venv_3135` を作成
+- `scripts/run_python.bat` は `venv_3135` を優先し、存在しない場合だけ既存 `.venv` を使用
+- 3.13.5使用時はpygame同梱DLLとWindows基本ディレクトリを優先し、利用不能なドライブ上のDLLを参照しない
+- Python版の選択を起動スクリプトに限定し、ゲーム本体・公開JSON・pygame非依存コアは変更なし
+- `pyproject.toml` の対応範囲 `Python >= 3.10` を維持
+- 仮想環境本体は `.gitignore` 対象とし、ソース管理へ含めない
+
+変更したファイル
+
+- `.gitignore`
+- `AGENTS.md`
+- `README.md`
+- `docs/ver.md`
+- `run_game.bat`
+
+追加したファイル
+
+- `docs/Python3135並行環境機能説明書.md`
+- `scripts/run_python.bat`
+- `tests/test_environment_contract.py`
