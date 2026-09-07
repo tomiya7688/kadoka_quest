@@ -10,7 +10,7 @@ from kadoka_quest.ui.common import (
     Button, ScrollBar, TextField, draw_status_bar, draw_text, handle_fields,
     init_pygame, smoke_frames,
 )
-from kadoka_quest.ui.pixel_editor import PixelArtEditor
+from kadoka_quest.ui.pixel_editor import CANVAS_SIZES, PixelArtEditor
 
 
 PIXEL_CANVAS = pygame.Rect(300, 170, 448, 448)
@@ -24,6 +24,10 @@ TOOL_RECTS = {
 }
 TOOL_LABELS = {"pen": "ペン", "fill": "塗る", "pan": "移動"}
 UNDO_RECT = pygame.Rect(1014, 115, 61, 40)
+CANVAS_SIZE_RECTS = {
+    size: pygame.Rect(310 + index * 48, 635, 44, 36)
+    for index, size in enumerate(CANVAS_SIZES)
+}
 
 
 class BlockEditor:
@@ -123,7 +127,19 @@ class BlockEditor:
         self.appearance_type = "path"
         self.appearance_field.value = self.visuals.paths["appearance"]
         self.save()
-        self.status = f"64×64 PNG と {self.id_field.value}.json を保存しました。"
+        size = self.visuals.logical_size
+        self.status = f"{size}×{size} PNG と {self.id_field.value}.json を保存しました。"
+
+    def set_canvas_size(self, size: int) -> None:
+        try:
+            changed = self.visuals.resize_canvas(size)
+        except ValueError as error:
+            self.status = str(error)
+            return
+        if changed:
+            self.status = f"ブロック画像を {size}×{size} のキャンバスへ最近傍法で変更しました。保存で確定します。"
+        else:
+            self.status = f"キャンバスはすでに {size}×{size} です。"
 
     def add_palette_color(self) -> None:
         try:
@@ -149,7 +165,8 @@ class BlockEditor:
         except ValueError as error:
             self.status = str(error)
             return
-        self.status = f"画像を64×64内へ読み込み、近似色を{changed}ピクセル統合しました。"
+        size = self.visuals.logical_size
+        self.status = f"画像を{size}×{size}内へ読み込み、近似色を{changed}ピクセル統合しました。"
 
     def merge_visual_colors(self) -> None:
         try:
@@ -182,7 +199,9 @@ def draw_visual_editor(screen: pygame.Surface, editor: BlockEditor) -> None:
             pygame.draw.rect(screen, color, rect, border_radius=5)
         pygame.draw.rect(screen, ACCENT if color == editor.visuals.brush else MUTED, rect, 3, border_radius=5)
     editor.palette_color_field.draw(screen, "追加する色")
-    draw_text(screen, f"64×64px / 表示 {editor.visuals.zoom_percent}%", (790, 550), 17, ACCENT, True)
+    size = editor.visuals.logical_size
+    draw_text(screen, f"原寸 {size}×{size}px / 表示 {editor.visuals.zoom_percent}%", (790, 550), 17, ACCENT, True)
+    draw_text(screen, "キャンバス", (210, 645), 15, MUTED, True)
     draw_text(screen, "保存先", (790, 582), 15, MUTED, True)
     draw_text(screen, editor.appearance_field.value, (790, 607), 13, TEXT)
     editor.image_path_field.draw(screen, "読み込む画像パス")
@@ -213,6 +232,10 @@ def main() -> None:
         Button(pygame.Rect(1005, 420, 70, 38), "削除", editor.remove_palette_color),
         Button(pygame.Rect(595, 690, 80, 45), "画像読込", editor.import_visual_image),
         Button(pygame.Rect(682, 690, 68, 45), "色統合", editor.merge_visual_colors),
+        *[
+            Button(rect, str(size), lambda size=size: editor.set_canvas_size(size))
+            for size, rect in CANVAS_SIZE_RECTS.items()
+        ],
     ]
     flag_rects = {
         "player_walkable": pygame.Rect(350, 380, 175, 42),

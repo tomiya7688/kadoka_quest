@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Iterable
 
@@ -33,6 +33,7 @@ PALETTE = (
     (120, 220, 140, 255),
 )
 ZOOM_LEVELS = (0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0)
+CANVAS_SIZES = (1, 2, 4, 8, 16, 32, 64, 128)
 TOOL_MODES = ("pen", "fill", "pan")
 UNDO_LIMIT = 50
 PALETTE_LIMIT = 16
@@ -72,6 +73,14 @@ class PixelArtEditor:
     @property
     def logical_size(self) -> int:
         return self.images[self.selected].get_width() if self.selected else 64
+
+    @staticmethod
+    def validate_canvas_size(size: int) -> int:
+        value = int(size)
+        if value not in CANVAS_SIZES:
+            choices = ", ".join(str(candidate) for candidate in CANVAS_SIZES)
+            raise ValueError(f"キャンバスサイズは {choices} のいずれかにしてください。")
+        return value
 
     def set_targets(self, targets: Iterable[PixelTarget]) -> None:
         values = list(targets)
@@ -121,7 +130,27 @@ class PixelArtEditor:
         self.load_targets(targets, body_color, selected="front")
 
     def load_block(self, relative_path: str, body_color: tuple[int, int, int] = (128, 128, 128)) -> None:
-        self.load_targets((PixelTarget("appearance", "ブロック見た目", relative_path, 64),), body_color)
+        size = 64
+        path = self.asset_root / relative_path
+        try:
+            width, height = pygame.image.load(str(path)).get_size()
+            if width == height:
+                size = self.validate_canvas_size(width)
+        except (OSError, pygame.error, ValueError):
+            pass
+        self.load_targets((PixelTarget("appearance", "ブロック見た目", relative_path, size),), body_color)
+
+    def resize_canvas(self, size: int) -> bool:
+        """Resize the active target with nearest-neighbour sampling as one undo step."""
+        if not self.selected:
+            return False
+        size = self.validate_canvas_size(size)
+        image = self.images[self.selected]
+        if image.get_size() == (size, size):
+            return False
+        self._replace_selected_image(pygame.transform.scale(image, (size, size)))
+        self.targets[self.selected] = replace(self.targets[self.selected], size=size)
+        return True
 
     @staticmethod
     def _fit(source: pygame.Surface, size: int) -> pygame.Surface:

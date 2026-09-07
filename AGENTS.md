@@ -69,6 +69,7 @@ When evaluator feedback has been fully implemented and verified, remove only the
 - Monster editor species list begins with `+ new`; creation must reject duplicate IDs and generate all four JSON files plus portrait/front/right/left/back PNGs.
 - Equipment owns `allowed_species_ids`; species do not own equipment-category permissions.
 - All portraits and front/right/left/back source images use exact 64x64 PNG canvases and nearest-neighbour scaling.
+- The shared pixel editor supports 1/2/4/8/16/32/64/128 square block-image canvases; monster portraits and directional sprites remain fixed at 64x64.
 - Pixel-editor palettes are session UI state, accept `#RRGGBB`, hold at most 16 colors, and are not serialized into species/block JSON or PNG metadata.
 - Pen strokes interpolate every logical pixel between consecutive pointer samples. Leaving the canvas breaks the segment so re-entry never draws an unintended bridge; one drag remains one undo step.
 - Image import never enlarges a source, preserves aspect ratio, centres it on the target canvas, uses nearest-neighbour scaling, then applies the selected 0-255 color tolerance. Import, fill, and color reduction each create one undo step.

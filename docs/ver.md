@@ -673,3 +673,23 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 - `LICENSES/Obake-Character-License-v1.1.md`
 - `SECURITY.md`
 - `tests/test_project_metadata.py`
+
+# 29. ブロック用可変キャンバス
+
+- 共有ドットエディタに1 / 2 / 4 / 8 / 16 / 32 / 64 / 128の正方形キャンバスを追加
+- ブロックエディタから保存前にキャンバスサイズを選択可能化
+- 変更は最近傍法による1回のUndoとして扱い、PNGの実寸を保存・再読込
+- モンスターの64×64画像契約は維持
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/block_editor.py`
+- `src/kadoka_quest/ui/pixel_editor.py`
+
+追加したファイル
+
+- `docs/可変キャンバス機能説明書.md`
+- `tests/test_pixel_editor_canvas.py`
