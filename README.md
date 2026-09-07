@@ -32,6 +32,14 @@
 
 これは完成版ストーリーではなく、データ形式と主要ループを実際に試せる土台です。条件分岐する会話、ボス復活、クラフト、＋選択UIなどは次の実装範囲です。
 
+## ライセンス
+
+コード、JSONデータ、および下記の例外を除く同梱アセットは [MIT License](LICENSE) です。
+
+`assets/characters/maru/` と `assets/characters/kadoka/` の画像・キャラクターデザイン・派生ドット絵は、[Obake Character License v1.1](LICENSES/Obake-Character-License-v1.1.md) を適用します。これはMITの例外です。商用利用、改変、再配布は可能ですが、素材そのものの独占利用を主張することなどはできません。詳しい条件は同梱文書を確認してください。
+
+脆弱性の連絡方法は [SECURITY.md](SECURITY.md) を参照してください。
+
 ## セットアップ（Windows）
 
 1. このフォルダでターミナルを開きます。

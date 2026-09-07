@@ -652,3 +652,24 @@ pygameの終了・キーダウン・キーアップを、画面モードと戦�
 - `src/kadoka_engine/grid_movement.py`
 - `src/kadoka_engine/hidden_enemy_controller.py`
 - `src/kadoka_engine/player_field_controller.py`
+
+# 28. 公開ライセンス・セキュリティ整備
+
+- プロジェクト本体のコード、JSONデータ、通常アセットにMIT Licenseを明記
+- まる・かどかの画像、キャラクターデザイン、派生ドット絵だけをObake Character License v1.1の例外として明記
+- パッケージメタデータにもMITを設定
+- 実プロジェクトのバージョンと非公開連絡先を示すSECURITYポリシーを追加
+- ライセンス表記とセキュリティポリシーを検査するテストを追加
+
+変更したファイル
+
+- `README.md`
+- `docs/ver.md`
+- `pyproject.toml`
+
+追加したファイル
+
+- `LICENSE`
+- `LICENSES/Obake-Character-License-v1.1.md`
+- `SECURITY.md`
+- `tests/test_project_metadata.py`
