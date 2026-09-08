@@ -78,6 +78,26 @@ class DataValidatorTests(unittest.TestCase):
             issues = DataValidator(root).validate()
             self.assertIn("equipment.mapping_invalid", {issue["code"] for issue in issues})
 
+    def test_invalid_map_spawn_level_ranges_are_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "data"
+            shutil.copytree(PROJECT_ROOT / "data", root)
+            map_path = root / "maps" / "fresh_forest" / "map.json"
+            map_data = json.loads(map_path.read_text(encoding="utf-8"))
+            map_data["spawns"].extend([
+                {"species_id": "slime", "weight": 1, "min_level": 12, "max_level": 3},
+                {"species_id": "ghost", "weight": 1, "min_level": 0, "max_level": 3},
+                {"species_id": "ball_slime", "weight": 1, "min_level": 1, "max_level": 3},
+            ])
+            map_path.write_text(json.dumps(map_data, ensure_ascii=False), encoding="utf-8")
+
+            codes = {issue["code"] for issue in DataValidator(root).validate()}
+            self.assertTrue({
+                "map.spawn_level_range",
+                "map.spawn_level_invalid",
+                "map.spawn_starter_only",
+            }.issubset(codes))
+
 
 if __name__ == "__main__":
     unittest.main()

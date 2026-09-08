@@ -63,7 +63,7 @@ When evaluator feedback has been fully implemented and verified, remove only the
 
 - Blocks: `data/blocks/<id>.json`; keep player walkability, enemy spawning and enemy walkability independent.
 - Project validation vocabulary: `data/project.json`; validators and tools read allowed stat, skill-kind, equipment-category, element, and resistance IDs from here instead of hard-coding game-specific names.
-- Maps: `data/maps/<id>/map.json`; `tiles`, hidden-enemy `spawns`, visible `fixed_mobs`, and `events` are separate layers.
+- Maps: `data/maps/<id>/map.json`; `tiles`, hidden-enemy `spawns`, visible `fixed_mobs`, and `events` are separate layers. Each spawn's `min_level` and `max_level` are integers from 1 to 100, with `min_level <= max_level`.
 - Map presets: `data/map_presets/<id>.json`; use the same JSON shape as maps. Applying keeps the target map identity; creating replaces it with a new identity.
 - Species: `data/species/<id>/{species,stats,skills,plus}.json`; stats contain every level 1-100.
 - Monster editor species list begins with `+ new`; creation must reject duplicate IDs and generate all four JSON files plus portrait/front/right/left/back PNGs.

@@ -55,6 +55,7 @@ class MapEditor:
         self.preset_dialog_open = False
         self.transition_dialog_open = False
         self.fixed_mob_dialog_open = False
+        self.spawn_dialog_open = False
         self.placement_layer = "block"
         self.transition_brush_activation = "step"
         self.selected_transition = -1
@@ -74,6 +75,9 @@ class MapEditor:
         self.fixed_mob_interval = TextField(pygame.Rect(790, 280, 120, 38), "900", numeric=True)
         self.fixed_mob_chance = TextField(pygame.Rect(930, 280, 105, 38), "100", numeric=True)
         self.fixed_mob_dialogue = TextField(pygame.Rect(570, 490, 465, 42))
+        self.spawn_min_level = TextField(pygame.Rect(610, 245, 150, 42), "1", numeric=True)
+        self.spawn_max_level = TextField(pygame.Rect(790, 245, 150, 42), "5", numeric=True)
+        self.spawn_species_offset = 0
         self.new_map_id = TextField(pygame.Rect(435, 205, 330, 40))
         self.new_map_name = TextField(pygame.Rect(435, 285, 330, 40))
         self.new_map_width = TextField(pygame.Rect(435, 365, 150, 40), "48", numeric=True)
@@ -327,17 +331,79 @@ class MapEditor:
         self.dirty = True
         self.status = "固定モブを削除しました。"
 
-    def add_spawn(self) -> None:
+    @property
+    def selected_species_id(self) -> str:
+        return self.species_ids[self.selected_species]
+
+    @property
+    def current_spawn(self) -> dict | None:
+        return next(
+            (item for item in self.map_data.get("spawns", []) if item.get("species_id") == self.selected_species_id),
+            None,
+        )
+
+    @property
+    def spawn_fields(self) -> list[TextField]:
+        return [self.spawn_min_level, self.spawn_max_level]
+
+    def select_species(self, index: int) -> None:
+        if not 0 <= index < len(self.species_ids):
+            return
+        self.selected_species = index
+        if self.spawn_dialog_open:
+            self.load_spawn_fields()
+
+    def load_spawn_fields(self) -> None:
+        spawn = self.current_spawn or {}
+        self.spawn_min_level.value = str(spawn.get("min_level", 1))
+        self.spawn_max_level.value = str(spawn.get("max_level", 5))
+
+    def open_spawn_dialog(self) -> None:
+        self.spawn_dialog_open = True
+        self.load_spawn_fields()
+
+    def add_spawn(self) -> bool:
         species_id = self.species_ids[self.selected_species]
         if species_id == "ball_slime":
             self.status = "ボールスライムは初期獲得専用なので出現表へ追加できません。"
-            return
+            return False
         if any(item.get("species_id") == species_id for item in self.map_data.get("spawns", [])):
             self.status = f"{species_id} は既に出現表へ入っています。"
-            return
+            return False
         self.map_data.setdefault("spawns", []).append({"species_id": species_id, "weight": 10, "min_level": 1, "max_level": 5})
         self.dirty = True
+        self.load_spawn_fields()
         self.status = f"{species_id} を出現表へ追加しました（重み10）。"
+        return True
+
+    def apply_spawn_range(self) -> bool:
+        species_id = self.selected_species_id
+        if species_id == "ball_slime":
+            self.status = "ボールスライムは初期獲得専用なので出現表へ追加できません。"
+            return False
+        try:
+            minimum = int(self.spawn_min_level.value)
+            maximum = int(self.spawn_max_level.value)
+        except ValueError:
+            self.status = "出現Lvは1〜100の整数で入力してください。"
+            return False
+        if not 1 <= minimum <= 100 or not 1 <= maximum <= 100:
+            self.status = "出現Lvは1〜100の範囲で入力してください。"
+            return False
+        if minimum > maximum:
+            self.status = "最小Lvは最大Lv以下にしてください。"
+            return False
+        spawn = self.current_spawn
+        if spawn is None:
+            spawn = {"species_id": species_id, "weight": 10}
+            self.map_data.setdefault("spawns", []).append(spawn)
+        spawn["min_level"] = minimum
+        spawn["max_level"] = maximum
+        self.spawn_min_level.value = str(minimum)
+        self.spawn_max_level.value = str(maximum)
+        self.dirty = True
+        self.status = f"{species_id} の出現Lvを {minimum}〜{maximum} に設定しました。"
+        return True
 
     def remove_spawn(self) -> None:
         species_id = self.species_ids[self.selected_species]
@@ -345,6 +411,7 @@ class MapEditor:
         self.map_data["spawns"] = [item for item in self.map_data.get("spawns", []) if item.get("species_id") != species_id]
         if len(self.map_data["spawns"]) < old:
             self.dirty = True
+            self.load_spawn_fields()
         self.status = f"{species_id} を出現表から削除しました。" if len(self.map_data["spawns"]) < old else "対象は出現表にありません。"
 
     def move_camera(self, dx: int, dy: int) -> None:
@@ -368,6 +435,7 @@ class MapEditor:
         self.transition_offset = 0
         self.selected_fixed_mob = -1
         self.fixed_mob_offset = 0
+        self.load_spawn_fields()
         self.status = f"{self.map_data['display_name']}を一覧から開きました。"
         return True
 
@@ -404,6 +472,7 @@ class MapEditor:
         self.camera_x = self.camera_y = 0
         self.selected_transition = -1
         self.selected_fixed_mob = -1
+        self.load_spawn_fields()
         self.new_map_dialog_open = False
         self.new_map_id.value = ""
         self.new_map_name.value = ""
@@ -585,8 +654,7 @@ def main() -> None:
     buttons = [
         Button(pygame.Rect(975, 625, 95, 42), "保存", editor.save),
         Button(pygame.Rect(1080, 625, 95, 42), "終了", lambda: None),
-        Button(pygame.Rect(975, 590, 95, 38), "出現追加", editor.add_spawn),
-        Button(pygame.Rect(1080, 590, 95, 38), "出現削除", editor.remove_spawn),
+        Button(pygame.Rect(975, 590, 200, 30), "出現Lv設定", editor.open_spawn_dialog),
         Button(pygame.Rect(670, 20, 125, 38), "プリセット", editor.open_preset_dialog),
         Button(pygame.Rect(940, 20, 115, 38), "マップ一覧", lambda: setattr(editor, "map_picker_open", True)),
         Button(pygame.Rect(1065, 20, 120, 38), "移動ポイント", editor.open_transition_dialog),
@@ -602,6 +670,28 @@ def main() -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if editor.spawn_dialog_open:
+                fields_handled = handle_fields(editor.spawn_fields, event)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    editor.spawn_dialog_open = False
+                elif not fields_handled and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if pygame.Rect(900, 100, 130, 36).collidepoint(event.pos):
+                        editor.spawn_dialog_open = False
+                    elif pygame.Rect(610, 345, 180, 42).collidepoint(event.pos):
+                        editor.apply_spawn_range()
+                    elif pygame.Rect(805, 345, 150, 42).collidepoint(event.pos):
+                        editor.remove_spawn()
+                    else:
+                        for row, _species_id in enumerate(editor.species_ids[editor.spawn_species_offset:editor.spawn_species_offset + 10]):
+                            if pygame.Rect(170, 190 + row * 40, 370, 34).collidepoint(event.pos):
+                                editor.select_species(editor.spawn_species_offset + row)
+                                break
+                elif event.type == pygame.MOUSEWHEEL:
+                    editor.spawn_species_offset = max(
+                        0,
+                        min(max(0, len(editor.species_ids) - 10), editor.spawn_species_offset - event.y),
+                    )
+                continue
             if editor.new_map_dialog_open:
                 field_handled = handle_fields(editor.new_map_fields, event)
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -787,7 +877,7 @@ def main() -> None:
                     index = editor.species_offset + row
                     rect = pygame.Rect(970, 425 + row * 20, 198, 18)
                     if rect.collidepoint(event.pos):
-                        editor.selected_species = index
+                        editor.select_species(index)
                 if buttons[1].rect.collidepoint(event.pos):
                     running = False
                 else:
@@ -1055,6 +1145,39 @@ def main() -> None:
             Button(pygame.Rect(580, 570, 180, 42), "編集を反映", editor.apply_transition).draw(screen, mouse)
             Button(pygame.Rect(775, 570, 150, 42), "削除", editor.delete_transition).draw(screen, mouse)
             draw_text(screen, "緑=触れたら / 黄=調べたら", (580, 628), 15, GOOD)
+        if editor.spawn_dialog_open:
+            pygame.draw.rect(screen, (8, 12, 20), screen.get_rect())
+            panel = pygame.Rect(135, 65, 930, 625)
+            pygame.draw.rect(screen, PANEL, panel, border_radius=14)
+            pygame.draw.rect(screen, ACCENT, panel, 2, border_radius=14)
+            draw_text(screen, f"出現モンスターLv設定：{editor.map_data['display_name']}", (170, 92), 28, ACCENT, True)
+            draw_text(screen, "種族ごとに1〜100の出現範囲を設定します。未登録の種族は保存時に出現表へ追加されます。", (170, 126), 15, MUTED)
+            Button(pygame.Rect(900, 100, 130, 36), "閉じる", lambda: None).draw(screen, mouse)
+            draw_text(screen, "この地域の生息モンスター", (170, 160), 18, MUTED, True)
+            for row, species_id in enumerate(editor.species_ids[editor.spawn_species_offset:editor.spawn_species_offset + 10]):
+                index = editor.spawn_species_offset + row
+                rect = pygame.Rect(170, 190 + row * 40, 370, 34)
+                selected = index == editor.selected_species
+                spawn = next((item for item in editor.map_data.get("spawns", []) if item.get("species_id") == species_id), None)
+                pygame.draw.rect(screen, SELECTED if selected else PANEL_ALT, rect, border_radius=6)
+                label = "初期獲得専用" if species_id == "ball_slime" else (
+                    f"Lv{spawn.get('min_level', 1)}〜{spawn.get('max_level', 5)}" if spawn else "未登録"
+                )
+                draw_text(screen, species_id, (rect.x + 10, rect.y + 8), 15, GOOD if spawn else MUTED, selected)
+                draw_text(screen, label, (rect.x + 225, rect.y + 8), 14, WARN if species_id == "ball_slime" else MUTED)
+
+            draw_text(screen, f"選択中: {editor.selected_species_id}", (610, 180), 20, MUTED, True)
+            editor.spawn_min_level.draw(screen, "最小Lv")
+            editor.spawn_max_level.draw(screen, "最大Lv")
+            current_spawn = editor.current_spawn
+            if editor.selected_species_id == "ball_slime":
+                draw_text(screen, "ボールスライムは初期獲得専用のため、出現表へ登録できません。", (610, 305), 15, WARN)
+            elif current_spawn:
+                draw_text(screen, f"現在: 重み {current_spawn.get('weight', 10)} / Lv{current_spawn.get('min_level', 1)}〜{current_spawn.get('max_level', 5)}", (610, 305), 15, GOOD)
+            else:
+                draw_text(screen, "未登録。範囲を保存すると重み10で出現表へ追加します。", (610, 305), 15, MUTED)
+            Button(pygame.Rect(610, 345, 180, 42), "範囲を保存", editor.apply_spawn_range).draw(screen, mouse)
+            Button(pygame.Rect(805, 345, 150, 42), "出現から削除", editor.remove_spawn).draw(screen, mouse)
         pygame.display.flip()
         clock.tick(60)
         frames += 1

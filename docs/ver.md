@@ -16,6 +16,26 @@
 
 ```
 
+# 30. マップ出現モンスターレベル範囲
+
+マップエディタに種族ごとの出現最小Lv・最大Lvを編集する画面を追加。未登録種族は重み10で追加し、既存出現項目は範囲だけを更新する。出現Lvは1〜100かつ最小値以下最大値のJSON契約として、データ検証も追加した。ボールスライムは初期獲得専用のため、出現設定とデータ検証の両方で拒否する。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/ver.md`
+- `docs/評価/評価者からのフィードバック.md`
+- `src/kadoka_engine/data_validator.py`
+- `src/kadoka_quest/apps/map_editor.py`
+- `tests/test_data_validator.py`
+
+追加したファイル
+
+- `docs/出現モンスターレベル範囲機能説明書.md`
+- `tests/test_map_spawn_ranges.py`
+
 # 1. マッププリセット
 
 マップエディターへ、現在のマップをプリセットとして保存する機能、現在のマップへ適用する機能、プリセットから新規マップを作成する機能を追加。

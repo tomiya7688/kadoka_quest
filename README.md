@@ -124,6 +124,8 @@ scripts\run_python.bat data_validator.py
 
 `map_editor.py` は `data/maps/*/map.json` を直接編集します。
 
+出現モンスターは「出現Lv設定」から種族ごとにLv 1〜100の最小・最大値を編集できます。未登録の種族は重み10で追加され、ボールスライムは初期獲得専用のため追加できません。
+
 - 左クリック: 選択ブロックを配置
 - 矢印キー: 表示位置をスクロール
 - `PageUp / PageDown`: 編集するマップを切替
