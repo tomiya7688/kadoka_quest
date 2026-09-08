@@ -16,6 +16,27 @@
 
 ```
 
+# 31. バランス調整ツール
+
+同レベルの種族ペアをAI学習なしで再現可能に大量模擬戦させ、対戦履歴、勝率、順位、Lv100能力値を基準にした能力値・耐性の改善候補をJSON出力するCLIを追加した。分析結果は助言専用で、ゲームデータを自動変更しない。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/ver.md`
+- `docs/評価/評価者からのフィードバック.md`
+- `src/kadoka_quest/apps/launcher.py`
+
+追加したファイル
+
+- `balance_analyzer.py`
+- `docs/バランス調整ツール機能説明書.md`
+- `src/kadoka_quest/devtools/__init__.py`
+- `src/kadoka_quest/devtools/balance_analyzer.py`
+- `tests/test_balance_analyzer.py`
+
 # 30. マップ出現モンスターレベル範囲
 
 マップエディタに種族ごとの出現最小Lv・最大Lvを編集する画面を追加。未登録種族は重み10で追加し、既存出現項目は範囲だけを更新する。出現Lvは1〜100かつ最小値以下最大値のJSON契約として、データ検証も追加した。ボールスライムは初期獲得専用のため、出現設定とデータ検証の両方で拒否する。

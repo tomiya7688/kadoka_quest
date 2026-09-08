@@ -256,6 +256,10 @@ ai.json
 
 同じ生成先に同一個体IDがある場合は上書きしません。詳細は [データクリエイター機能説明書.md](データクリエイター機能説明書.md) を参照してください。
 
+## Balance report
+
+`balance_analyzer.py` が出力する `reports/balance_report.json` は保存データやゲーム定義ではなく、再現用の開発レポートです。`matchups[].history` には個別戦闘のseed・勝者・ターン数、`rankings` には勝敗集計と順位、`recommendations` にはLv100基準の能力値・耐性候補を入れます。提案は自動反映されません。
+
 ## Party preset
 
 ```json

@@ -32,6 +32,7 @@ When evaluator feedback has been fully implemented and verified, remove only the
 - `apps/field_party_service.py`: pygame-free coordinator for field preset save/load, selected-monster tactic changes, and AI reset. It uses the session plus existing stores and returns status text to orchestration.
 - `apps/map_editor.py`, `block_editor.py`, `monster_editor.py`, `manage.py`: direct editors; no export format.
 - `apps/data_creator.py`: developer-facing individual generator UI; keep generation logic outside the pygame layer.
+- `devtools/balance_analyzer.py`: pygame-independent, deterministic non-learning battle sampling and advisory report generation. It must never write species data.
 - `core/battle.py`: combat calculation coordinator. It receives `BattleDataLoader`, `BattleInference`, and `BattleLearning`; do not move their responsibilities back into the engine.
 - `core/combatant.py`: runtime combat state only. `core/battle_inference.py` selects actions without mutation; `core/battle_learning.py` mutates sparse AI learning. `core/ai.py` is their backward-compatible public facade plus default AI creation.
 - `core/battle_context.py`: engine-independent fixed battle-context tags; do not store combinatorial board states.
