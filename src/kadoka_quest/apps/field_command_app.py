@@ -20,6 +20,10 @@ class FieldCommandApplication:
             return True
         if command.action == "interact":
             return self.session.interact()
+        if command.action == "use":
+            return self.session.use_field_requirement(
+                str(payload["kind"]), str(payload["id"])
+            )
         if command.action == "map.change":
             return self.session.change_map(
                 str(payload["map_id"]),

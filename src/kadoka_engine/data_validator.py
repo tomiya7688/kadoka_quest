@@ -288,12 +288,27 @@ class DataValidator:
                     self._issue("map.mob_species_unknown", path, f"固定モブが存在しない種族 {mob.get('species_id')} を参照しています。")
             events = payload.get("events", [])
             for event in events if isinstance(events, list) else []:
-                if not isinstance(event, dict) or event.get("type") != "transition":
+                if not isinstance(event, dict):
                     continue
-                target = event.get("target", {})
-                target_id = str(target.get("map_id", "")) if isinstance(target, dict) else ""
-                if target_id not in map_ids:
-                    self._issue("map.transition_unknown", path, f"移動先マップ {target_id or '(空)'} が存在しません。")
+                if event.get("type") == "transition":
+                    target = event.get("target", {})
+                    target_id = str(target.get("map_id", "")) if isinstance(target, dict) else ""
+                    if target_id not in map_ids:
+                        self._issue("map.transition_unknown", path, f"移動先マップ {target_id or '(空)'} が存在しません。")
+                if event.get("type") != "use_requirement":
+                    continue
+                required = event.get("required")
+                if not isinstance(required, dict) or required.get("kind") not in {"item", "skill"} or not isinstance(required.get("id"), str) or not required["id"]:
+                    self._issue("map.use_requirement_invalid", path, "使用条件には item/skill と空でない ID が必要です。")
+                try:
+                    radius = int(event.get("radius", 0))
+                except (TypeError, ValueError):
+                    radius = -1
+                if radius < 0:
+                    self._issue("map.use_requirement_radius", path, "使用イベントの範囲は 0 以上の整数にしてください。")
+                effect = event.get("effect", {})
+                if not isinstance(effect, dict) or effect.get("kind", "message") not in {"message", "gain_item"}:
+                    self._issue("map.use_requirement_effect", path, "使用イベントの effect.kind が未対応です。")
 
     def validate(self) -> list[dict[str, str]]:
         self.issues = []

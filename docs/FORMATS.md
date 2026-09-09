@@ -62,6 +62,25 @@ JSONにはpygameの `Rect`、`Surface`、キーコードなどの実装固有値
 }
 ```
 
+### 道具・スキル使用イベント
+
+`events` の `type: "use_requirement"` は、指定地点（`radius` のマンハッタン距離内）で特定の道具またはスキルを使用した場合だけ発動します。`effect.kind` は `message` または `gain_item` です。任意コードは記述できません。
+
+```json
+{
+  "id": "sealed_spring",
+  "x": 12,
+  "y": 8,
+  "type": "use_requirement",
+  "radius": 1,
+  "required": {"kind": "item", "id": "spring_key"},
+  "text": "泉の封印がほどけた。",
+  "effect": {"kind": "gain_item", "item": "clear_water", "status": "水を手に入れた。"}
+}
+```
+
+マップエディタでは `U` キーで使用イベント編集を開き、「マップ上へ新規配置」からブロックと重ねて配置できます。
+
 イベントの主な `type` は `message / transition / church / reacquire_ghosts` です。イベントは地形ブロックとは別レイヤーなので、同じ座標へ重ねて配置できます。ゲーム中はイベント地点自体を色や印で描画せず、下にある地形ブロックの見た目をそのまま表示します。マップエディターでは編集時だけ種類別のオーバーレイを表示します。`"activation": "step"` は触れたとき、`"activation": "interact"` は隣または同じマスから調べたときに移動します。`church` の `revive` は全滅時の復活地点です。`ball_slime` は初期獲得専用のため、出現表へ設定しません。
 
 `block_color_overrides` はそのマップ内だけでブロックの表示色を変更します。ブロック本体の移動・出現ルールは変えません。

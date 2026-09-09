@@ -54,17 +54,28 @@ class MapEditor:
         self.new_map_dialog_open = False
         self.preset_dialog_open = False
         self.transition_dialog_open = False
+        self.use_event_dialog_open = False
         self.fixed_mob_dialog_open = False
         self.spawn_dialog_open = False
         self.placement_layer = "block"
         self.transition_brush_activation = "step"
         self.selected_transition = -1
+        self.selected_use_event = -1
+        self.use_requirement_kind = "item"
+        self.use_effect_kind = "message"
         self.transition_id = TextField(pygame.Rect(580, 210, 250, 38))
         self.transition_x = TextField(pygame.Rect(850, 210, 75, 38), numeric=True)
         self.transition_y = TextField(pygame.Rect(940, 210, 75, 38), numeric=True)
         self.target_x = TextField(pygame.Rect(850, 420, 75, 38), numeric=True)
         self.target_y = TextField(pygame.Rect(940, 420, 75, 38), numeric=True)
         self.transition_text = TextField(pygame.Rect(580, 500, 495, 38))
+        self.use_event_id = TextField(pygame.Rect(580, 205, 220, 38))
+        self.use_event_x = TextField(pygame.Rect(820, 205, 90, 38), numeric=True)
+        self.use_event_y = TextField(pygame.Rect(930, 205, 90, 38), numeric=True)
+        self.use_event_radius = TextField(pygame.Rect(580, 335, 120, 38), "0", numeric=True)
+        self.use_required_id = TextField(pygame.Rect(720, 335, 300, 38))
+        self.use_effect_text = TextField(pygame.Rect(580, 460, 440, 38))
+        self.use_effect_item = TextField(pygame.Rect(580, 520, 440, 38))
         self.selected_fixed_mob = -1
         self.fixed_mob_offset = 0
         self.fixed_mob_id = TextField(pygame.Rect(570, 205, 220, 38))
@@ -514,6 +525,98 @@ class MapEditor:
         return [event for event in self.map_data.get("events", []) if event.get("type") == "transition"]
 
     @property
+    def use_events(self) -> list[dict]:
+        return [event for event in self.map_data.get("events", []) if event.get("type") == "use_requirement"]
+
+    @property
+    def current_use_event(self) -> dict | None:
+        return self.use_events[self.selected_use_event] if 0 <= self.selected_use_event < len(self.use_events) else None
+
+    @property
+    def use_event_fields(self) -> list[TextField]:
+        return [self.use_event_id, self.use_event_x, self.use_event_y, self.use_event_radius, self.use_required_id, self.use_effect_text, self.use_effect_item]
+
+    def open_use_event_dialog(self) -> None:
+        self.use_event_dialog_open = True
+        if self.use_events and self.selected_use_event < 0:
+            self.select_use_event(0)
+
+    def select_use_event(self, index: int) -> None:
+        if not 0 <= index < len(self.use_events):
+            return
+        self.selected_use_event = index
+        item = self.use_events[index]
+        required = item.get("required", {})
+        effect = item.get("effect", {})
+        self.use_event_id.value = str(item.get("id", ""))
+        self.use_event_x.value, self.use_event_y.value = str(item.get("x", 0)), str(item.get("y", 0))
+        self.use_event_radius.value = str(item.get("radius", 0))
+        self.use_requirement_kind = str(required.get("kind", "item"))
+        self.use_required_id.value = str(required.get("id", ""))
+        self.use_effect_kind = str(effect.get("kind", "message"))
+        self.use_effect_text.value = str(effect.get("status", item.get("text", "何かが起きた。")))
+        self.use_effect_item.value = str(effect.get("item", ""))
+
+    def select_use_event_brush(self) -> None:
+        self.placement_layer = "use_event"
+        self.status = "使用イベント: マップをクリックして配置します。"
+
+    def add_use_event_at(self, x: int, y: int, *, open_editor: bool = False) -> bool:
+        if any(int(item.get("x", -1)) == x and int(item.get("y", -1)) == y for item in self.use_events):
+            self.status = "そのマスには既に使用イベントがあります。"
+            return False
+        used = {str(item.get("id", "")) for item in self.map_data.get("events", [])}
+        number = 1
+        while f"use_event_{number}" in used:
+            number += 1
+        item = {"id": f"use_event_{number}", "x": int(x), "y": int(y), "type": "use_requirement", "radius": 0,
+                "required": {"kind": "item", "id": ""}, "text": "何かが起きた。", "effect": {"kind": "message", "status": "何かが起きた。"}}
+        self.map_data.setdefault("events", []).append(item)
+        self.selected_use_event = len(self.use_events) - 1
+        self.select_use_event(self.selected_use_event)
+        self.use_event_dialog_open = open_editor
+        self.dirty = True
+        return True
+
+    def apply_use_event(self) -> bool:
+        item = self.current_use_event
+        event_id = self.use_event_id.value.strip()
+        if item is None or not re.fullmatch(r"[a-z0-9_-]+", event_id) or not self.use_required_id.value.strip():
+            self.status = "ID と使用する道具/スキル ID を入力してください。"
+            return False
+        try:
+            x, y, radius = int(self.use_event_x.value), int(self.use_event_y.value), int(self.use_event_radius.value)
+        except ValueError:
+            self.status = "座標と範囲は整数で入力してください。"
+            return False
+        if radius < 0 or not (0 <= x < int(self.map_data["width"]) and 0 <= y < int(self.map_data["height"])):
+            self.status = "座標または範囲がマップ外です。"
+            return False
+        if any(other is not item and other.get("id") == event_id for other in self.map_data.get("events", [])):
+            self.status = "同じイベント ID が既にあります。"
+            return False
+        effect = {"kind": self.use_effect_kind, "status": self.use_effect_text.value}
+        if self.use_effect_kind == "gain_item":
+            if not self.use_effect_item.value.strip():
+                self.status = "入手アイテム ID を入力してください。"
+                return False
+            effect["item"] = self.use_effect_item.value.strip()
+        item.update({"id": event_id, "x": x, "y": y, "radius": radius, "required": {"kind": self.use_requirement_kind, "id": self.use_required_id.value.strip()}, "text": self.use_effect_text.value, "effect": effect})
+        self.dirty = True
+        self.status = f"使用イベント {event_id} を更新しました。"
+        return True
+
+    def delete_use_event(self) -> None:
+        item = self.current_use_event
+        if item is None:
+            return
+        self.map_data["events"].remove(item)
+        self.selected_use_event = min(self.selected_use_event, len(self.use_events) - 1)
+        if self.current_use_event:
+            self.select_use_event(self.selected_use_event)
+        self.dirty = True
+
+    @property
     def current_transition(self) -> dict | None:
         return self.transitions[self.selected_transition] if 0 <= self.selected_transition < len(self.transitions) else None
 
@@ -779,6 +882,35 @@ def main() -> None:
                 if event.type == pygame.MOUSEWHEEL:
                     editor.fixed_mob_offset = max(0, min(max(0, len(editor.fixed_mobs) - 8), editor.fixed_mob_offset - event.y))
                 continue
+            if editor.use_event_dialog_open:
+                field_handled = handle_fields(editor.use_event_fields, event)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    editor.use_event_dialog_open = False
+                    continue
+                if not field_handled and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if pygame.Rect(1020, 100, 110, 36).collidepoint(event.pos):
+                        editor.use_event_dialog_open = False
+                    elif pygame.Rect(100, 590, 190, 40).collidepoint(event.pos):
+                        editor.use_event_dialog_open = False
+                        editor.select_use_event_brush()
+                    elif pygame.Rect(580, 280, 150, 38).collidepoint(event.pos):
+                        editor.use_requirement_kind = "item"
+                    elif pygame.Rect(740, 280, 150, 38).collidepoint(event.pos):
+                        editor.use_requirement_kind = "skill"
+                    elif pygame.Rect(580, 400, 180, 38).collidepoint(event.pos):
+                        editor.use_effect_kind = "message"
+                    elif pygame.Rect(775, 400, 180, 38).collidepoint(event.pos):
+                        editor.use_effect_kind = "gain_item"
+                    elif pygame.Rect(580, 590, 180, 42).collidepoint(event.pos):
+                        editor.apply_use_event()
+                    elif pygame.Rect(775, 590, 150, 42).collidepoint(event.pos):
+                        editor.delete_use_event()
+                    else:
+                        for row, _item in enumerate(editor.use_events[:8]):
+                            if pygame.Rect(100, 205 + row * 43, 400, 36).collidepoint(event.pos):
+                                editor.select_use_event(row)
+                                break
+                continue
             if editor.transition_dialog_open:
                 field_handled = handle_fields(editor.transition_fields, event)
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -826,6 +958,8 @@ def main() -> None:
                     editor.move_camera(0, 3)
                 elif event.key == pygame.K_s and event.mod & pygame.KMOD_CTRL:
                     editor.save()
+                elif event.key == pygame.K_u:
+                    editor.open_use_event_dialog()
             visible_x = GRID_RECT.width // TILE
             visible_y = GRID_RECT.height // TILE
             horizontal_scroll.configure(int(editor.map_data["width"]), visible_x)
@@ -850,6 +984,8 @@ def main() -> None:
                         editor.add_transition_at(*grid, editor.transition_brush_activation)
                     elif editor.placement_layer == "fixed_mob" and grid:
                         editor.add_fixed_mob_at(*grid, open_editor=True)
+                    elif editor.placement_layer == "use_event" and grid:
+                        editor.add_use_event_at(*grid, open_editor=True)
                     else:
                         editor.paint(event.pos)
                 else:
@@ -1057,6 +1193,42 @@ def main() -> None:
             Button(pygame.Rect(570, 550, 180, 42), "現在→保存", editor.save_current_as_preset).draw(screen, mouse)
             Button(pygame.Rect(760, 550, 160, 42), "現在へ適用", editor.apply_selected_preset).draw(screen, mouse)
             Button(pygame.Rect(930, 550, 160, 42), "新規マップ", editor.create_map_from_selected_preset).draw(screen, mouse)
+
+        if editor.use_event_dialog_open:
+            pygame.draw.rect(screen, (8, 12, 20), screen.get_rect())
+            panel = pygame.Rect(65, 65, 1070, 625)
+            pygame.draw.rect(screen, PANEL, panel, border_radius=14)
+            pygame.draw.rect(screen, ACCENT, panel, 2, border_radius=14)
+            draw_text(screen, f"使用イベント編集: {editor.map_data['display_name']}", (100, 92), 28, ACCENT, True)
+            Button(pygame.Rect(1020, 100, 110, 36), "閉じる", lambda: None).draw(screen, mouse)
+            draw_text(screen, "このマップの使用イベント", (100, 165), 18, MUTED, True)
+            for row, item in enumerate(editor.use_events[:8]):
+                rect = pygame.Rect(100, 205 + row * 43, 400, 36)
+                selected = row == editor.selected_use_event
+                pygame.draw.rect(screen, SELECTED if selected else PANEL_ALT, rect, border_radius=6)
+                required = item.get("required", {})
+                draw_text(screen, f"{item.get('id', '?')}  [{required.get('kind', 'item')}:{required.get('id', '')}]", (rect.x + 10, rect.y + 8), 15, TEXT, selected)
+            Button(pygame.Rect(100, 590, 190, 40), "マップ上へ新規配置", lambda: None).draw(screen, mouse)
+            draw_text(screen, "選択した使用イベント", (580, 165), 18, MUTED, True)
+            editor.use_event_id.draw(screen, "イベント ID")
+            editor.use_event_x.draw(screen, "座標 X")
+            editor.use_event_y.draw(screen, "座標 Y")
+            item_rect, skill_rect = pygame.Rect(580, 280, 150, 38), pygame.Rect(740, 280, 150, 38)
+            pygame.draw.rect(screen, GOOD if editor.use_requirement_kind == "item" else PANEL_ALT, item_rect, border_radius=7)
+            pygame.draw.rect(screen, GOOD if editor.use_requirement_kind == "skill" else PANEL_ALT, skill_rect, border_radius=7)
+            draw_text(screen, "道具を使用", (item_rect.x + 30, item_rect.y + 9), 16, BG if editor.use_requirement_kind == "item" else TEXT, True)
+            draw_text(screen, "スキルを使用", (skill_rect.x + 25, skill_rect.y + 9), 16, BG if editor.use_requirement_kind == "skill" else TEXT, True)
+            editor.use_event_radius.draw(screen, "範囲")
+            editor.use_required_id.draw(screen, "必要な道具 / スキル ID")
+            message_rect, gain_rect = pygame.Rect(580, 400, 180, 38), pygame.Rect(775, 400, 180, 38)
+            pygame.draw.rect(screen, WARN if editor.use_effect_kind == "message" else PANEL_ALT, message_rect, border_radius=7)
+            pygame.draw.rect(screen, WARN if editor.use_effect_kind == "gain_item" else PANEL_ALT, gain_rect, border_radius=7)
+            draw_text(screen, "メッセージ", (message_rect.x + 48, message_rect.y + 9), 16, BG if editor.use_effect_kind == "message" else TEXT, True)
+            draw_text(screen, "アイテム入手", (gain_rect.x + 35, gain_rect.y + 9), 16, BG if editor.use_effect_kind == "gain_item" else TEXT, True)
+            editor.use_effect_text.draw(screen, "発動時メッセージ")
+            editor.use_effect_item.draw(screen, "入手アイテム ID（入手効果の場合のみ）")
+            Button(pygame.Rect(580, 590, 180, 42), "変更を反映", editor.apply_use_event).draw(screen, mouse)
+            Button(pygame.Rect(775, 590, 150, 42), "削除", editor.delete_use_event).draw(screen, mouse)
 
         if editor.fixed_mob_dialog_open:
             pygame.draw.rect(screen, (8, 12, 20), screen.get_rect())

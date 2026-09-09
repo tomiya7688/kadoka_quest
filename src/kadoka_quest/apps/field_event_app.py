@@ -69,6 +69,43 @@ class FieldEventApplication:
             return self._finish({"kind": "gain_item", "status": status, "item": "orange"})
         return self._finish({"kind": "message", "status": status})
 
+    def resolve_use(
+        self,
+        events: list[dict],
+        player_position: tuple[int, int],
+        requirement_kind: str,
+        requirement_id: str,
+    ) -> dict:
+        """Resolve a data-defined item/skill use at a map location.
+
+        The event is deliberately declarative: it can only return one of the
+        existing plain field effects.  A mismatched use is not an interaction
+        and therefore has no side effect beyond its short status message.
+        """
+        kind = str(requirement_kind)
+        identifier = str(requirement_id)
+        player_x, player_y = (int(player_position[0]), int(player_position[1]))
+        for event in events:
+            if not isinstance(event, dict) or event.get("type") != "use_requirement":
+                continue
+            required = event.get("required", {})
+            if not isinstance(required, dict):
+                continue
+            if required.get("kind") != kind or required.get("id") != identifier:
+                continue
+            radius = max(0, int(event.get("radius", 0)))
+            distance = abs(int(event.get("x", -1)) - player_x) + abs(int(event.get("y", -1)) - player_y)
+            if distance > radius:
+                continue
+            effect = dict(event.get("effect", {}))
+            effect_kind = str(effect.get("kind", "message"))
+            if effect_kind not in {"message", "gain_item"}:
+                return self._finish({"kind": "none", "status": "この仕掛けは設定が不正です。"})
+            effect["kind"] = effect_kind
+            effect.setdefault("status", str(event.get("text", "何かが起きた。")))
+            return self._finish(effect)
+        return self._finish({"kind": "none", "status": "何も起きない。"})
+
     def _finish(self, effect: dict) -> dict:
         self.last_effect = effect
         return effect

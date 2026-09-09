@@ -459,6 +459,20 @@ class KadokaQuest:
         )
         self.runtime.apply_field_effect(effect)
 
+    def use_field_requirement(self, requirement_kind: str, requirement_id: str) -> None:
+        """Apply an item or skill use to a nearby declarative field event.
+
+        Item and skill menus call this semantic boundary; the field screen
+        itself does not need to know event-specific gameplay rules.
+        """
+        effect = self.field_events.resolve_use(
+            list(self.map_data.get("events", [])),
+            (self.player_x, self.player_y),
+            requirement_kind,
+            requirement_id,
+        )
+        self.runtime.apply_field_effect(effect)
+
     def reacquire_ghosts(self) -> None:
         added = []
         for species_id in ("maru", "kadoka"):
