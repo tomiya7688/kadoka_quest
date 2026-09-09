@@ -16,6 +16,21 @@
 
 ```
 
+# 34. 戦闘中のAI判断ログ
+
+AIがスキルを選んだ直後に、現在の戦術と選択スキルに実際に影響した習熟・状況別学習を戦闘ログへ表示するようにした。説明生成は選択処理と分離され、AIの選択・学習・保存内容を変更しない。
+
+変更したファイル
+
+- `docs/ver.md`
+- `src/kadoka_quest/core/battle.py`
+
+追加したファイル
+
+- `docs/戦闘AI判断ログ機能説明書.md`
+- `src/kadoka_quest/core/battle_decision_explanation.py`
+- `tests/test_battle_decision_explanation.py`
+
 # 33. 個体AIの可視化
 
 個体・パーティ管理画面に、AIプロファイル、行動指針、学習済みスキル傾向、状況別の学習傾向を表示するようにした。表示用の集計は保存データを変更せず、絶対値の大きい傾向から最大3件を示す。

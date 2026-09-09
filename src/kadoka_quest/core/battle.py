@@ -6,6 +6,7 @@ from typing import Any
 from kadoka_quest.core.battle_inference import BattleInference
 from kadoka_quest.core.battle_learning import BattleLearning
 from kadoka_quest.core.battle_context import describe_battle_context
+from kadoka_quest.core.battle_decision_explanation import BattleDecisionExplanation
 from kadoka_quest.core.combatant import Combatant
 from kadoka_quest.core.monster import MonsterRecord
 from kadoka_quest.data.battle_data import BattleDataLoader
@@ -118,6 +119,10 @@ class BattleEngine:
         if not chosen:
             self.log.append(f"{actor.name}は様子を見ている。")
             return
+        self.log.append(
+            f"{actor.name}: "
+            + BattleDecisionExplanation.describe(actor.record.ai, chosen, context_tags)
+        )
         actor.mp = max(0, actor.mp - int(chosen.get("mp_cost", 0)))
         kind = str(chosen.get("kind", "physical"))
         reward = 0.0
