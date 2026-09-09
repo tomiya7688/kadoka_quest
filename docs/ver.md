@@ -16,6 +16,27 @@
 
 ```
 
+# 32. ヘッドレスゲーム評価
+
+未訪問マップを優先する幅優先のフィールド探索計画、意味コマンド経由の自動操作、戦闘・暗号画面・到達不能・停止理由を残すJSON評価ログを追加した。既定の評価セーブはレポート横の隔離フォルダで、通常セーブを変更しない。
+
+変更したファイル
+
+- `AGENTS.md`
+- `README.md`
+- `docs/FORMATS.md`
+- `docs/ver.md`
+- `src/kadoka_quest/apps/launcher.py`
+
+追加したファイル
+
+- `game_evaluator.py`
+- `docs/ゲーム評価機能説明書.md`
+- `src/kadoka_quest/devtools/evaluation_log.py`
+- `src/kadoka_quest/devtools/field_explorer.py`
+- `src/kadoka_quest/devtools/game_evaluator.py`
+- `tests/test_game_evaluator.py`
+
 # 31. バランス調整ツール
 
 同レベルの種族ペアをAI学習なしで再現可能に大量模擬戦させ、対戦履歴、勝率、順位、Lv100能力値を基準にした能力値・耐性の改善候補をJSON出力するCLIを追加した。分析結果は助言専用で、ゲームデータを自動変更しない。

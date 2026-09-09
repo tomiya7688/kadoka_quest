@@ -90,6 +90,7 @@ def main() -> None:
         Button(pygame.Rect(705, 325, 260, 58), "データクリエイター", lambda: launch("data_creator.py")),
         Button(pygame.Rect(410, 415, 260, 58), f"データ検証 ({len(validation_issues)})", lambda: launch("data_validator.py")),
         Button(pygame.Rect(705, 415, 260, 58), "バランス分析", lambda: launch("balance_analyzer.py")),
+        Button(pygame.Rect(410, 485, 260, 44), "ゲーム評価", lambda: launch("game_evaluator.py")),
         Button(pygame.Rect(705, 485, 260, 44), "終了", stop),
     ]
     smoke = smoke_frames()

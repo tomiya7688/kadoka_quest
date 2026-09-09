@@ -260,6 +260,10 @@ ai.json
 
 `balance_analyzer.py` が出力する `reports/balance_report.json` は保存データやゲーム定義ではなく、再現用の開発レポートです。`matchups[].history` には個別戦闘のseed・勝者・ターン数、`rankings` には勝敗集計と順位、`recommendations` にはLv100基準の能力値・耐性候補を入れます。提案は自動反映されません。
 
+## Game evaluation report
+
+`game_evaluator.py` が出力する `reports/game_evaluation.json` は自動探索の開発ログです。`visited_maps`、`attempted_events`、時系列の `entries` を持ち、各entryは `map_entered / move / event_attempted / battle_started / battle_finished / password_cancelled / blocked / stalled` のいずれかです。プレイヤーセーブへ混ぜず、既定では出力先に隣接する `evaluator_save/` を使います。
+
 ## Party preset
 
 ```json
