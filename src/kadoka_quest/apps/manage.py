@@ -7,6 +7,7 @@ import random
 import pygame
 
 from kadoka_quest.core.ai import TACTICS
+from kadoka_quest.apps.ai_inspector import AiInspector
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.monster import calculate_stats
 from kadoka_quest.data.jsonio import read_json
@@ -310,6 +311,18 @@ def main() -> None:
                 draw_text(screen, f"{record.species_id}  /  Lv{record.level}  /  +{len(record.plus_choices)}", (610, 180), 16, MUTED)
                 draw_text(screen, f"装備: {record.equipment_id or 'なし'}  /  行動指針: {record.ai.get('tactic', 'balanced')}", (610, 207), 15, MUTED)
                 draw_text(screen, f"AI戦闘 {record.ai.get('battles', 0)}回・行動 {record.ai.get('actions', 0)}回", (610, 232), 15, MUTED)
+                insight = AiInspector.summarize(record.ai)
+                draw_text(screen, f"AIプロファイル: {insight['profile']}", (610, 257), 15, MUTED)
+                action_text = " / ".join(
+                    f"{row['skill_id']} {row['score']:+.2f}"
+                    for row in insight["action_preferences"]
+                ) or "まだ学習したスキル傾向はありません"
+                context_text = " / ".join(
+                    f"{row['tag']}→{row['skill_id']} {row['score']:+.2f}"
+                    for row in insight["context_preferences"]
+                ) or "まだ状況別の学習はありません"
+                draw_text(screen, "学習したスキル: " + action_text, (610, 282), 14, GOOD)
+                draw_text(screen, "状況別の傾向: " + context_text, (610, 306), 14, GOOD)
                 stats = calculate_stats(manager.repository, record)
                 for index, key in enumerate(("hp", "mp", "attack", "defense", "speed", "magic")):
                     x = 895 + (index % 2) * 135
