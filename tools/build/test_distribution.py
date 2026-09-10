@@ -7,6 +7,8 @@ import shutil
 import subprocess
 import sys
 
+from build import reset_user_data
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DIST_ROOT = PROJECT_ROOT / "dist"
@@ -118,6 +120,9 @@ def run_smoke(key: str, distribution: Path, executable: Path) -> None:
 
     if (distribution / "savedata").exists():
         raise AssertionError("frozen distribution wrote to savedata/ instead of UserData/")
+
+    (distribution / "smoke-error.txt").unlink(missing_ok=True)
+    reset_user_data(distribution)
 
 
 def main() -> int:
