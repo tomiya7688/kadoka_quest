@@ -14,6 +14,7 @@ TARGET_NAMES = {
     "player": "KadokaQuest",
     "developer": "KadokaQuestDeveloper",
 }
+DEVELOPER_TOOLS = ("manage", "block_editor", "map_editor", "monster_editor", "data_creator")
 KADOKA_ENV_KEYS = (
     "KADOKA_PROJECT_ROOT",
     "KADOKA_DATA_DIR",
@@ -44,21 +45,19 @@ def verify_static_layout(distribution: Path, name: str) -> Path:
     return executable
 
 
-def run_smoke(distribution: Path, executable: Path) -> None:
-    user_data = distribution / "UserData"
-    if user_data.exists():
-        shutil.rmtree(user_data)
-    user_data.mkdir(parents=True)
-
+def smoke_environment() -> dict[str, str]:
     environment = os.environ.copy()
     for key in KADOKA_ENV_KEYS:
         environment.pop(key, None)
     environment["SDL_VIDEODRIVER"] = "dummy"
     environment["SDL_AUDIODRIVER"] = "dummy"
     environment["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+    return environment
 
+
+def run_process(distribution: Path, executable: Path, arguments: list[str], environment: dict[str, str]) -> None:
     completed = subprocess.run(
-        [str(executable), "--smoke", "2"],
+        [str(executable), *arguments],
         cwd=distribution,
         env=environment,
         capture_output=True,
@@ -67,10 +66,25 @@ def run_smoke(distribution: Path, executable: Path) -> None:
     )
     if completed.returncode != 0:
         raise AssertionError(
-            f"distribution smoke failed ({completed.returncode})\n"
-            f"stdout:\n{completed.stdout}\n"
-            f"stderr:\n{completed.stderr}"
+            f"distribution smoke failed: {executable.name} {' '.join(arguments)} "
+            f"({completed.returncode})\nstdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
         )
+
+
+def run_smoke(key: str, distribution: Path, executable: Path) -> None:
+    user_data = distribution / "UserData"
+    if user_data.exists():
+        shutil.rmtree(user_data)
+    user_data.mkdir(parents=True)
+    environment = smoke_environment()
+
+    run_process(distribution, executable, ["--smoke", "2"], environment)
+    if key == "player":
+        run_process(distribution, executable, ["--manager", "--smoke", "2"], environment)
+        run_process(distribution, executable, ["--play", "--smoke", "2"], environment)
+    else:
+        for tool in DEVELOPER_TOOLS:
+            run_process(distribution, executable, ["--dev-tool", tool, "--smoke", "2"], environment)
 
     required_writable = (
         user_data / "active.json",
@@ -98,7 +112,7 @@ def main() -> int:
         distribution = args.dist_root / name
         executable = verify_static_layout(distribution, name)
         print(f"[smoke] {executable}")
-        run_smoke(distribution, executable)
+        run_smoke(key, distribution, executable)
         print(f"[ok] {name}")
     return 0
 
