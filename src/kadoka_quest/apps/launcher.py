@@ -18,7 +18,7 @@ def main() -> None:
     if not is_frozen():
         saves.import_legacy(PROJECT_ROOT / "saves" / "default")
     if not saves.list_names():
-        saves.create("default")
+        saves.ensure_profile("default")
     names = saves.list_names()
     selected = names.index(saves.active_name()) if saves.active_name() in names else 0
     name_field = TextField(pygame.Rect(55, 185, 285, 42), "新しいセーブ")
