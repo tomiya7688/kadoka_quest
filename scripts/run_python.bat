@@ -3,6 +3,7 @@ setlocal
 
 set "PROJECT_ROOT=%~dp0.."
 set "KADOKA_PYTHON=%PROJECT_ROOT%\venv_3135\Scripts\python.exe"
+for %%G in (git.exe) do if not defined KADOKA_GIT_EXECUTABLE set "KADOKA_GIT_EXECUTABLE=%%~$PATH:G"
 
 if exist "%KADOKA_PYTHON%" (
   rem Keep pygame's bundled DLLs ahead of unavailable Python installations.
