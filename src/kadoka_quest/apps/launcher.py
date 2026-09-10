@@ -8,14 +8,15 @@ import pygame
 
 from kadoka_quest.apps.launcher_config import PLAYER_LAUNCH_TARGETS
 from kadoka_quest.data.savedata import SaveDataManager
-from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories
+from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories, is_frozen
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, Button, TextField, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
 def main() -> None:
     ensure_runtime_directories()
     saves = SaveDataManager()
-    saves.import_legacy(PROJECT_ROOT / "saves" / "default")
+    if not is_frozen():
+        saves.import_legacy(PROJECT_ROOT / "saves" / "default")
     if not saves.list_names():
         saves.create("default")
     names = saves.list_names()
@@ -67,7 +68,8 @@ def main() -> None:
         load_selected()
         environment = os.environ.copy()
         environment["KADOKA_SAVE_DIR"] = str(saves.profile_root(selected_name()))
-        subprocess.Popen([sys.executable, str(PROJECT_ROOT / script)], cwd=PROJECT_ROOT, env=environment)
+        command = [sys.executable, "--play"] if is_frozen() else [sys.executable, str(PROJECT_ROOT / script)]
+        subprocess.Popen(command, cwd=PROJECT_ROOT, env=environment)
         status = f"{selected_name()} でゲームを起動しました。"
 
     def stop() -> None:
