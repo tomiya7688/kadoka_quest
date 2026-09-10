@@ -46,6 +46,7 @@ If the Issue service is unavailable, report that fact and use the last verified 
 
 ## Load on demand
 
+- Task-to-file index: `docs/CODEMAP.md`
 - JSON details: `docs/FORMATS.md`
 - Current plans: `docs/開発予定.md`
 - Evaluator feedback: `docs/評価/評価者からのフィードバック.md`

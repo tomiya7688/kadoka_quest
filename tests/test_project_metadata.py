@@ -42,3 +42,20 @@ class ProjectMetadataTests(unittest.TestCase):
         self.assertIn("label: 関連仕様（必要な場合のみ）", template)
         self.assertIn("label: データ契約（必要な場合のみ）", template)
         self.assertIn("label: 移植境界（必要な場合のみ）", template)
+
+    def test_codemap_indexes_each_required_task_area(self) -> None:
+        codemap = (REPOSITORY_ROOT / "docs" / "CODEMAP.md").read_text(encoding="utf-8")
+
+        for area in (
+            "戦闘 / AI",
+            "フィールド",
+            "fixed mob / 野生敵",
+            "モンスター / 個体 / パーティ",
+            "map / block",
+            "editor / ドット絵",
+            "runtime command",
+            "save / data",
+            "UI / input",
+        ):
+            self.assertIn(area, codemap)
+        self.assertIn("## 更新ルール", codemap)
