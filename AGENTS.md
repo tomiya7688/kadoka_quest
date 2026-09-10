@@ -14,6 +14,24 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 - When an unavailable drive remains in `PATH`, prepend the temporary venv's `Lib/site-packages/pygame`, C-drive Python, and Windows system directories during tests so SDL/libpng DLL resolution never touches that drive.
 - Before reporting completion: run the full tests and `I:\program_files\ide\Git\cmd\git.exe diff --check`.
 
+## Remote sync workflow
+
+Chat may also change the remote repository. Before implementation work, refresh remote state with:
+
+```text
+python scripts/sync_remote_context.py
+```
+
+Use its compact output first instead of immediately reading a full remote diff or rescanning the repository. It fetches `origin/main` and reports only commit subjects, changed files, diff stats, and a bounded diff excerpt.
+
+If the local branch should be brought forward and the worktree is clean with no local divergence, use:
+
+```text
+python scripts/sync_remote_context.py --update
+```
+
+The update mode only performs a fast-forward. It must refuse dirty or diverged worktrees. After syncing, read only the changed files relevant to the current Issue; expand to full diffs or additional files only when the compact context is insufficient.
+
 ## Architecture
 
 - `application/app_command.py`, `command_bus.py`: pygame-independent semantic command contract and one-target router. Runtime screens communicate by `target/action/payload`, never pygame events or surfaces.
