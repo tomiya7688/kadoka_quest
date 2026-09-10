@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from kadoka_quest.apps.game import main as game_main
 from kadoka_quest.apps.launcher import main as launcher_main
-from kadoka_quest.apps.manage import main as manager_main
+from kadoka_quest.apps.ranch_manager import main as ranch_manager_main
 
 
 def main() -> None:
@@ -16,7 +16,7 @@ def main() -> None:
         return
     if "--manager" in sys.argv:
         sys.argv.remove("--manager")
-        manager_main()
+        ranch_manager_main()
         return
     launcher_main()
 
