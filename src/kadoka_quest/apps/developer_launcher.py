@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import subprocess
 import sys
 
@@ -8,14 +9,15 @@ import pygame
 
 from kadoka_quest.apps.launcher_config import DEVELOPER_LAUNCH_TARGETS
 from kadoka_quest.data.savedata import SaveDataManager
-from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories
+from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories, is_frozen
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
 def main() -> None:
     ensure_runtime_directories()
     saves = SaveDataManager()
-    saves.import_legacy(PROJECT_ROOT / "saves" / "default")
+    if not is_frozen():
+        saves.import_legacy(PROJECT_ROOT / "saves" / "default")
     if not saves.list_names():
         saves.create("default")
 
@@ -31,7 +33,11 @@ def main() -> None:
         active = saves.active_name() or active_save
         if active in saves.list_names():
             environment["KADOKA_SAVE_DIR"] = str(saves.profile_root(active))
-        subprocess.Popen([sys.executable, str(PROJECT_ROOT / script)], cwd=PROJECT_ROOT, env=environment)
+        if is_frozen():
+            command = [sys.executable, "--dev-tool", Path(script).stem]
+        else:
+            command = [sys.executable, str(PROJECT_ROOT / script)]
+        subprocess.Popen(command, cwd=PROJECT_ROOT, env=environment)
         status = f"{script} を起動しました。"
 
     def stop() -> None:
