@@ -31,3 +31,14 @@ class ProjectMetadataTests(unittest.TestCase):
 
         self.assertIn("0.1.x", policy)
         self.assertIn("security/advisories/new", policy)
+
+    def test_implementation_issue_template_has_minimum_self_contained_sections(self) -> None:
+        template = (
+            REPOSITORY_ROOT / ".github" / "ISSUE_TEMPLATE" / "implementation.yml"
+        ).read_text(encoding="utf-8")
+
+        for section in ("目的", "対象", "変更しない範囲", "受け入れ条件", "検証"):
+            self.assertIn(f"label: {section}", template)
+        self.assertIn("label: 関連仕様（必要な場合のみ）", template)
+        self.assertIn("label: データ契約（必要な場合のみ）", template)
+        self.assertIn("label: 移植境界（必要な場合のみ）", template)
