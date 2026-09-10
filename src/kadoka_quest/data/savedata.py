@@ -45,22 +45,44 @@ class SaveDataManager:
         write_json(self.root / "active.json", {"schema_version": 1, "active": name})
         return path
 
-    def create(self, name: str) -> Path:
+    @staticmethod
+    def _default_state() -> tuple[dict, dict]:
         from kadoka_quest.data.state import DEFAULT_STATE
 
+        state = {
+            key: (dict(value) if isinstance(value, dict) else list(value) if isinstance(value, list) else value)
+            for key, value in DEFAULT_STATE.items()
+        }
+        inventory = dict(state.pop("inventory", {}))
+        return state, inventory
+
+    def _initialize_profile(self, clean: str, path: Path) -> Path:
+        for folder in ("monsters", "items", "parties"):
+            (path / folder).mkdir(parents=True, exist_ok=True)
+        state, inventory = self._default_state()
+        if not (path / "state.json").is_file():
+            write_json(path / "state.json", state)
+        if not (path / "items" / "items.json").is_file():
+            write_json(path / "items" / "items.json", {"schema_version": 1, "items": inventory})
+        if not (path / "meta.json").is_file():
+            write_json(path / "meta.json", {"schema_version": 1, "name": clean, "created_at": datetime.now().isoformat(timespec="seconds")})
+        self.set_active(clean)
+        return path
+
+    def ensure_profile(self, name: str) -> Path:
+        """Initialize a missing/incomplete bootstrap profile without deleting user files."""
+        clean = self.validate_name(name)
+        path = self.root / clean
+        path.mkdir(parents=True, exist_ok=True)
+        return self._initialize_profile(clean, path)
+
+    def create(self, name: str) -> Path:
         clean = self.validate_name(name)
         path = self.root / clean
         if path.exists():
             raise FileExistsError(clean)
-        for folder in ("monsters", "items", "parties"):
-            (path / folder).mkdir(parents=True, exist_ok=True)
-        state = {key: (dict(value) if isinstance(value, dict) else list(value) if isinstance(value, list) else value) for key, value in DEFAULT_STATE.items()}
-        inventory = dict(state.pop("inventory", {}))
-        write_json(path / "state.json", state)
-        write_json(path / "items" / "items.json", {"schema_version": 1, "items": inventory})
-        write_json(path / "meta.json", {"schema_version": 1, "name": clean, "created_at": datetime.now().isoformat(timespec="seconds")})
-        self.set_active(clean)
-        return path
+        path.mkdir(parents=True)
+        return self._initialize_profile(clean, path)
 
     def copy_profile(self, source_name: str, new_name: str) -> Path:
         source = self.profile_root(source_name)
@@ -91,4 +113,3 @@ class SaveDataManager:
         states.save(states.load())
         write_json(destination / "meta.json", {"schema_version": 1, "name": name, "imported_from": str(source), "created_at": datetime.now().isoformat(timespec="seconds")})
         return destination
-

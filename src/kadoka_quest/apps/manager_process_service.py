@@ -16,19 +16,23 @@ class ManagerProcessService:
         *,
         python_executable: str | None = None,
         launcher: Callable[..., Any] = subprocess.Popen,
+        frozen: bool | None = None,
     ) -> None:
         self.script_path = Path(script_path)
         self.python_executable = str(python_executable or sys.executable)
         self.launcher = launcher
+        self.frozen = bool(getattr(sys, "frozen", False)) if frozen is None else bool(frozen)
         self.process: Any | None = None
 
     def open(self) -> str:
         if self.is_running():
             return "already_running"
-        self.process = self.launcher(
-            [self.python_executable, str(self.script_path)],
-            cwd=self.script_path.parent,
+        command = (
+            [self.python_executable, "--manager"]
+            if self.frozen
+            else [self.python_executable, str(self.script_path)]
         )
+        self.process = self.launcher(command, cwd=self.script_path.parent)
         return "started"
 
     def is_running(self) -> bool:
