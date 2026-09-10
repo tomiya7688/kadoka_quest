@@ -46,6 +46,21 @@ def require_pyinstaller() -> None:
         )
 
 
+def copy_runtime_content(output: Path) -> None:
+    for name in ("data", "assets"):
+        destination = output / name
+        shutil.rmtree(destination, ignore_errors=True)
+        shutil.copytree(PROJECT_ROOT / name, destination)
+
+    user_data = output / "UserData"
+    for path in (
+        user_data,
+        user_data / "imports" / "acquire",
+        user_data / "imports" / "simulation",
+    ):
+        path.mkdir(parents=True, exist_ok=True)
+
+
 def build_target(target: BuildTarget) -> Path:
     target_work = BUILD_ROOT / target.key
     spec_root = BUILD_ROOT / "spec"
@@ -70,10 +85,6 @@ def build_target(target: BuildTarget) -> Path:
         str(spec_root),
         "--paths",
         str(PROJECT_ROOT / "src"),
-        "--add-data",
-        f"{PROJECT_ROOT / 'data'}{os.pathsep}data",
-        "--add-data",
-        f"{PROJECT_ROOT / 'assets'}{os.pathsep}assets",
         str(target.entrypoint),
     ]
     print(f"[build] {target.name}")
@@ -84,13 +95,7 @@ def build_target(target: BuildTarget) -> Path:
     if not executable.is_file():
         raise SystemExit(f"build completed without expected executable: {executable}")
 
-    user_data = output / "UserData"
-    for path in (
-        user_data,
-        user_data / "imports" / "acquire",
-        user_data / "imports" / "simulation",
-    ):
-        path.mkdir(parents=True, exist_ok=True)
+    copy_runtime_content(output)
     return output
 
 
