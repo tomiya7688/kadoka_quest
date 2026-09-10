@@ -55,19 +55,38 @@ def smoke_environment() -> dict[str, str]:
     return environment
 
 
+def diagnostic_text(distribution: Path) -> str:
+    error_path = distribution / "smoke-error.txt"
+    if not error_path.is_file():
+        return ""
+    try:
+        return "\nsmoke-error.txt:\n" + error_path.read_text(encoding="utf-8")
+    except OSError:
+        return "\nsmoke-error.txt exists but could not be read."
+
+
 def run_process(distribution: Path, executable: Path, arguments: list[str], environment: dict[str, str]) -> None:
-    completed = subprocess.run(
-        [str(executable), *arguments],
-        cwd=distribution,
-        env=environment,
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
+    error_path = distribution / "smoke-error.txt"
+    error_path.unlink(missing_ok=True)
+    try:
+        completed = subprocess.run(
+            [str(executable), *arguments],
+            cwd=distribution,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise AssertionError(
+            f"distribution smoke timed out: {executable.name} {' '.join(arguments)}"
+            + diagnostic_text(distribution)
+        ) from exc
     if completed.returncode != 0:
         raise AssertionError(
             f"distribution smoke failed: {executable.name} {' '.join(arguments)} "
             f"({completed.returncode})\nstdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
+            + diagnostic_text(distribution)
         )
 
 
