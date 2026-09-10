@@ -1,114 +1,55 @@
-# Kadoka Quest Codex cheat sheet
+# Kadoka Quest: Codex quick context
 
-Read this file first. At the start of every implementation task, also read `docs/評価/評価者からのフィードバック.md` and apply any relevant outstanding feedback. Open `README.md` or `docs/FORMATS.md` only when the task needs user-facing details or full JSON examples.
+Read this file first. Load only the linked document required for the task; do not load the complete roadmap, feedback, or format reference by default.
 
-When evaluator feedback has been fully implemented and verified, remove only the addressed feedback entry from that file. Keep its guidance/header and any unresolved feedback. It is also acceptable to transfer an unresolved implementation item to `docs/開発予定.md`, but never overwrite unrelated user edits there.
+## Work order
 
-## Project and commands
+1. Check GitHub Issues and their priority first. Then check only relevant feedback and roadmap entries.
+2. Work on a branch; preserve unrelated dirty and untracked files.
+3. Test, update the relevant document and `docs/ver.md`, then commit only task files.
+4. Never push, open a PR, close an Issue, or alter player saves without explicit permission.
+
+If the Issue service is unavailable, report that fact and use the last verified priority rather than inventing one.
+
+## Commands
 
 - Canonical checkout: `C:\Users\tomiy\games\kadokaquest`
-- Stack: Python 3.10+, `pygame-ce`, UTF-8 JSON. Reusable engine code is under `src/kadoka_engine/`; the game and current GUI adapters are under `src/kadoka_quest/`.
-- Primary local environment: Python 3.13.5 in `venv_3135`. Keep `.venv` only as the Python 3.10 compatibility environment.
-- Install: `py -3.13 -m venv venv_3135`, then `venv_3135\Scripts\python.exe -m pip install -e .`
-- Run launcher: `scripts\run_python.bat launcher.py` or `run_game.bat`. The wrapper prefers `venv_3135` and falls back to `.venv`.
-- Full tests: `scripts\run_python.bat -m unittest discover -s tests -v`
-- Headless UI: set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and use an isolated `KADOKA_SAVE_DIR`.
-- If `.venv` points to an unavailable drive, do not run or rewrite it. Use the project-local `venv_3135` instead.
-- `scripts\run_python.bat` prepends `venv_3135` and pygame's bundled DLL directory to a minimal Windows PATH so SDL/libpng resolution does not touch unavailable drives.
-- Before reporting completion: run the full tests and `git diff --check` with a Git executable on an available drive.
+- Python: `venv_3135` (3.13.5); use `scripts\run_python.bat`.
+- Full test: `scripts\run_python.bat -m unittest discover -s tests -v`
+- Headless test: set dummy SDL drivers and an isolated `KADOKA_SAVE_DIR`.
+- Always finish with a syntax check and `git diff --check`.
 
-## Architecture
+## Boundaries
 
-- `application/app_command.py`, `command_bus.py`: pygame-independent semantic command contract and one-target router. Runtime screens communicate by `target/action/payload`, never pygame events or surfaces.
-- `application/runtime_orchestrator.py`: owns the active screen mode, the shared command bus, all runtime command-app registrations, and plain field-effect routing across apps.
-- `src/kadoka_quest/apps/game.py`: input and orchestration for field, encounters and saves; battle drawing is not allowed here.
-- `apps/battle_session.py`: pygame-free battle lifecycle state machine for command selection, paced log playback, focused actor, auto timing, simulation identity, finalization, and fixed-mob battle identity.
-- `apps/password_session.py`: pygame-free bounded virtual-keyboard state for allowed characters, input length, prompt, validation, and reset; monster acquisition stays outside it.
-- `apps/manager_process_service.py`: owns external manager launch command, duplicate prevention, process handle, and one-shot close detection; save reload stays in game orchestration.
-- `apps/monster_import_service.py`: owns `imports/acquire` rescans and `imports/simulation` discovery/battle construction. Simulation battles are always created with learning disabled.
-- `apps/field_command_app.py`, `battle_command_app.py`, `password_command_app.py`, `manager_command_app.py`: independent pygame-free command boundaries. The pygame loop translates input to commands and may read state for rendering, but must not invoke screen actions directly.
-- `apps/field_event_app.py`: pygame-free field interaction state machine. It translates NPC, transition, church, spring, manager, and pickup interactions into one plain-data effect.
-- `apps/field_party_session.py`: pygame-free field quick-party cursor state. It owns the selected party slot and next-preset cycle position; persistence remains in the existing stores.
-- `apps/field_party_service.py`: pygame-free coordinator for field preset save/load, selected-monster tactic changes, and AI reset. It uses the session plus existing stores and returns status text to orchestration.
-- `apps/map_editor.py`, `block_editor.py`, `monster_editor.py`, `manage.py`: direct editors; no export format.
-- `apps/data_creator.py`: developer-facing individual generator UI; keep generation logic outside the pygame layer.
-- `devtools/balance_analyzer.py`: pygame-independent, deterministic non-learning battle sampling and advisory report generation. It must never write species data.
-- `devtools/field_explorer.py` and `game_evaluator.py`: headless evaluator planning and command-boundary automation. Its default save directory must be isolated from player saves, and every stop condition must be logged.
-- `core/battle.py`: combat calculation coordinator. It receives `BattleDataLoader`, `BattleInference`, and `BattleLearning`; do not move their responsibilities back into the engine.
-- `core/combatant.py`: runtime combat state only. `core/battle_inference.py` selects actions without mutation; `core/battle_learning.py` mutates sparse AI learning. `core/ai.py` is their backward-compatible public facade plus default AI creation.
-- `core/battle_context.py`: engine-independent fixed battle-context tags; do not store combinatorial board states.
-- `kadoka_engine/grid_movement.py`: reusable visual interpolation between integer grid positions.
-- `kadoka_engine/field_engine.py`: reusable field rules. Inputs and results stay plain dict/list/int/string/bool values for GDScript/Lua parity.
-- `kadoka_engine/fixed_mob_controller.py`: reusable fixed-mob runtime state, dialogue decks, occupancy, facing pauses, and timed movement.
-- `kadoka_engine/hidden_enemy_controller.py`: reusable hidden-enemy population, spawn filtering, vision, occupancy, and chase/wander timing.
-- `kadoka_engine/player_field_controller.py`: reusable player grid position, facing, held-key repeat state, and visual interpolation.
-- Matching `kadoka_quest/core/*.py` field modules are compatibility re-exports only; do not add behavior back to them.
-- `data/repository.py`: species, blocks, maps, equipment and skills.
-- `kadoka_engine/data_validator.py`: reusable pygame-free, non-throwing aggregate validation. It requires a data root from its caller and must never import `kadoka_quest`.
-- `kadoka_quest/data/data_validator.py`: backward-compatible adapter that supplies Kadoka Quest's default data root for the old import path.
-- `data/battle_data.py`: the only battle-time loader for combatants, species definitions, skills, stats, resistances and equipment.
-- `data/field_data.py`: the only runtime field map/block loader and entry-position clamp.
-- `data/field_progress.py`: field-only persistence for position, revival, inventory pickup, flags, and fixed-mob despawn state.
-- `data/map_presets.py`: map-schema presets saved outside the playable map catalog.
-- `data/species_creator.py`: validates and creates complete four-JSON species scaffolds plus five dependency-free 64x64 PNG placeholders.
-- `data/monsters.py`, `developer_monster_creator.py`, `parties.py`, `savedata.py`, `state.py`: save folders, developer outputs, and individual data.
-- `ui/pixel_editor.py`: the one shared pixel editor for monster art and block art. It owns the mutable session palette; editor apps only supply controls and layout.
-- `ui/pixel_operations.py`: shared pygame-surface processing for outline-bounded flood fill, RGB-distance color reduction, and nearest-neighbour image fitting; no screen/event responsibilities.
-- `ui/field_renderer.py`: pygame-only field rendering; it must not decide collisions, events or encounters.
-- `ui/battle_renderer.py`: pygame-only battle rendering; it reads session state but cannot run rounds, infer actions, learn, or load battle data.
-- `ui/character_image_provider.py`: the only runtime character-PNG loader. It resolves portrait/directional paths, crops field transparency, nearest-neighbour scales, and caches surfaces; game orchestration only delegates.
-- `ui/runtime_input_adapter.py`: pygame-only keyboard adapter. It converts quit/key down/key up plus current mode into plain command requests; it never executes game actions.
-- `ui/runtime_mouse_adapter.py`: pygame-only mouse adapter. It converts password-key and battle-button hit tests into plain command requests; it never executes callbacks or game actions.
-- `data/`: mod-friendly source of truth. `assets/`: PNG files. `savedata/<name>/`: player-owned state.
+- `kadoka_engine` is reusable, pygame-free, and must never import `kadoka_quest`.
+- `apps/` owns pygame-free application actions. Runtime screens communicate only via `AppCommand(target, action, payload)`.
+- `apps/game.py` orchestrates input and modes; battle drawing belongs to `ui/battle_renderer.py`.
+- `ui/` draws or adapts pygame input only; it must not decide gameplay rules.
+- One class has one responsibility and lives in its own module.
 
 ## Data contracts
 
-- Blocks: `data/blocks/<id>.json`; keep player walkability, enemy spawning and enemy walkability independent.
-- Project validation vocabulary: `data/project.json`; validators and tools read allowed stat, skill-kind, equipment-category, element, and resistance IDs from here instead of hard-coding game-specific names.
-- Maps: `data/maps/<id>/map.json`; `tiles`, hidden-enemy `spawns`, visible `fixed_mobs`, and `events` are separate layers. Each spawn's `min_level` and `max_level` are integers from 1 to 100, with `min_level <= max_level`.
-- Map presets: `data/map_presets/<id>.json`; use the same JSON shape as maps. Applying keeps the target map identity; creating replaces it with a new identity.
-- Species: `data/species/<id>/{species,stats,skills,plus}.json`; stats contain every level 1-100.
-- Monster editor species list begins with `+ new`; creation must reject duplicate IDs and generate all four JSON files plus portrait/front/right/left/back PNGs.
-- Equipment owns `allowed_species_ids`; species do not own equipment-category permissions.
-- All portraits and front/right/left/back source images use exact 64x64 PNG canvases and nearest-neighbour scaling.
-- The shared pixel editor supports 1/2/4/8/16/32/64/128 square block-image canvases; monster portraits and directional sprites remain fixed at 64x64.
-- Pixel-editor palettes are session UI state, accept `#RRGGBB`, hold at most 16 colors, and are not serialized into species/block JSON or PNG metadata.
-- Pen strokes interpolate every logical pixel between consecutive pointer samples. Leaving the canvas breaks the segment so re-entry never draws an unintended bridge; one drag remains one undo step.
-- Image import never enlarges a source, preserves aspect ratio, centres it on the target canvas, uses nearest-neighbour scaling, then applies the selected 0-255 color tolerance. Import, fill, and color reduction each create one undo step.
-- Save layout: `savedata/<name>/{state.json,items/items.json,monsters/<id>/{monster,ai}.json,parties/*.json}`.
-- Developer monster outputs use the same individual format and may target the active save, `imports/acquire`, or `imports/simulation`; never overwrite an existing individual ID.
-- Normal battles may learn individual AI; simulation battles must use `learning_enabled=False`. AI reset must not reset identity, level or plus choices.
-- Context learning stores sparse per-tag skill preferences for exactly six current tags: self HP, ally damage, MP, numbers, target HP, and level threat.
+- Source-of-truth JSON is directly edited and directly read by the game: no export format.
+- Maps: `data/maps/<id>/map.json`; separate `tiles`, `spawns`, `fixed_mobs`, `events` layers.
+- Species: `data/species/<id>/{species,stats,skills,plus}.json`; all levels 1–100.
+- Equipment owns `allowed_species_ids`; species do not.
+- Saves: `savedata/<name>/{state.json,items/items.json,monsters/<id>/{monster,ai}.json,parties/*.json}`.
+- Monster portrait/front/right/left/back PNG canvases are exact 64×64 and use nearest-neighbour scaling.
+- Update `docs/FORMATS.md` whenever a JSON key changes.
 
-## Fixed mobs
+## Gameplay invariants
 
-`map.json.fixed_mobs[]` is for villagers, bosses and visible placed monsters. Core keys:
+- Start at `starting_town`; defeat revives at registered church.
+- Hidden enemies encounter only when they reach the player-facing tile; `ball_slime` never wild-spawns.
+- Signs, rocks, and fixed characters block movement; characters cannot overlap.
+- Normal battles learn individual AI; simulations use `learning_enabled=False`; AI reset preserves identity, level, and plus choices.
 
-- identity/placement: `id`, `species_id`, `name`, `x`, `y`, `direction`, `enabled`, `level`
-- movement: `ai` = `idle|random|chase`, `move_interval_ms` >= 100, `move_chance` = 0..100
-- interaction: `interaction` = `talk|battle`; battle uses `level`
-- talk: `dialogue` is a deck, normally 3-5 strings; exhaust the deck before repeating
-- disappearance: `despawn_after_interaction`, `respawn_on_map_enter`
+## Load on demand
 
-Fixed mobs spawn at their initial point whenever the map loads, cannot share a tile, and do not move while the player is directly in front of them. Permanent disappearance is saved in `state.json.despawned_fixed_mobs`.
+- JSON details: `docs/FORMATS.md`
+- Current plans: `docs/開発予定.md`
+- Evaluator feedback: `docs/評価/評価者からのフィードバック.md`
+- Version history: `docs/ver.md`
+- Feature-specific documents: `docs/*機能説明書.md`
 
-## Gameplay invariants already requested
-
-- Start in `starting_town`; its ranch opens monster/party management. World order continues through `greenwood`, `fresh_forest`, `rokuta_village`, and `ghost_home`.
-- Defeat revives at the registered church. Signs, rocks and fixed characters are blocking.
-- Wild enemies are invisible field actors; encounter when one reaches the tile directly in front of the player. Ball slime is starter-only and never spawns as an enemy.
-- Ghost-home password is entered at the water spring. `へいわなすみか` recruits Maru and Kadoka.
-- Maru and Kadoka remain visible regardless of ownership; Maru moves more often. They cannot overlap the player or each other.
-- Combat uses party AI rather than per-monster manual commands, supports keyboard and auto battle, and reveals actions at a readable pace.
-- Guard reduces physical damage only.
-- Field collisions, events, encounters, and saves always use integer grid coordinates. Only visible player/fixed-mob positions and camera tracking are interpolated.
-
-## Editing and Git rules
-
-- Preserve plain JSON and direct editor-to-runtime formats. Update `docs/FORMATS.md` when adding keys.
-- Preserve unrelated dirty-worktree changes. In particular, do not restore/delete BAT files unless the task asks for it.
-- Do not modify user save data during tests; use a temporary `KADOKA_SAVE_DIR`.
-- The user prefers terminal Git. Do not push unless explicitly asked; verify the remote result before saying an upload completed.
-- Remote: `https://github.com/tomiya7688/kadoka_quest.git`, branch `main`.
-- Keep command payloads plain (`str/int/float/bool/list/dict/None`) so applications can later move to processes or another engine. Add commands at an application boundary instead of importing pygame into command apps.
-- `kadoka_engine` must never import `kadoka_quest` or pygame. Game and tool adapters may depend on the engine, never the reverse.
+Keep this file compact. Put feature details in a feature document, not here.
