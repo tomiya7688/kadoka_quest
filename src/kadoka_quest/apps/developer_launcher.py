@@ -30,6 +30,7 @@ def main() -> None:
     def launch(script: str) -> None:
         nonlocal status
         environment = os.environ.copy()
+        environment["KADOKA_DEVELOPER_TOOLS"] = "1"
         active = saves.active_name() or active_save
         if active in saves.list_names():
             environment["KADOKA_SAVE_DIR"] = str(saves.profile_root(active))
