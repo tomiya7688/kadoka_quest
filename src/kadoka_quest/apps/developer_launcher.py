@@ -19,7 +19,7 @@ def main() -> None:
     if not is_frozen():
         saves.import_legacy(PROJECT_ROOT / "saves" / "default")
     if not saves.list_names():
-        saves.create("default")
+        saves.ensure_profile("default")
 
     screen = init_pygame("kadoka quest - developer tools", (900, 640))
     clock = pygame.time.Clock()
