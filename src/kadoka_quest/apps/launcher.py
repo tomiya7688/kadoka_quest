@@ -6,6 +6,7 @@ import sys
 
 import pygame
 
+from kadoka_quest.apps.launcher_config import PLAYER_LAUNCH_TARGETS
 from kadoka_quest.data.savedata import SaveDataManager
 from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, Button, TextField, draw_text, draw_wrapped, init_pygame, smoke_frames
@@ -20,7 +21,7 @@ def main() -> None:
     names = saves.list_names()
     selected = names.index(saves.active_name()) if saves.active_name() in names else 0
     name_field = TextField(pygame.Rect(55, 185, 285, 42), "新しいセーブ")
-    screen = init_pygame("kadoka quest - launcher", (1040, 720))
+    screen = init_pygame("kadoka quest", (1040, 720))
     clock = pygame.time.Clock()
     running = True
     status = "使用するセーブデータを選んでゲームを開始してください。"
@@ -67,24 +68,24 @@ def main() -> None:
         environment = os.environ.copy()
         environment["KADOKA_SAVE_DIR"] = str(saves.profile_root(selected_name()))
         subprocess.Popen([sys.executable, str(PROJECT_ROOT / script)], cwd=PROJECT_ROOT, env=environment)
-        status = f"{selected_name()} で {script} を起動しました。"
+        status = f"{selected_name()} でゲームを起動しました。"
 
     def stop() -> None:
         nonlocal running
         running = False
 
+    def launch_callback(script: str):
+        return lambda: launch(script)
+
     buttons = [
         Button(pygame.Rect(55, 245, 135, 44), "新規作成", new_save),
         Button(pygame.Rect(205, 245, 135, 44), "別名保存", save_as),
         Button(pygame.Rect(55, 300, 285, 44), "選択データを読み込む", load_selected),
-        Button(pygame.Rect(410, 145, 260, 58), "ゲームを開始", lambda: launch("game.py")),
-        Button(pygame.Rect(705, 145, 260, 58), "個体・パーティ管理", lambda: launch("manage.py")),
-        Button(pygame.Rect(410, 235, 260, 58), "ブロックエディタ", lambda: launch("block_editor.py")),
-        Button(pygame.Rect(705, 235, 260, 58), "マップエディタ", lambda: launch("map_editor.py")),
-        Button(pygame.Rect(410, 325, 260, 58), "モンスターエディタ", lambda: launch("monster_editor.py")),
-        Button(pygame.Rect(705, 325, 260, 58), "データクリエイター", lambda: launch("data_creator.py")),
-        Button(pygame.Rect(410, 415, 555, 58), "終了", stop),
     ]
+    for label, script in PLAYER_LAUNCH_TARGETS:
+        buttons.append(Button(pygame.Rect(410, 145, 555, 58), label, launch_callback(script)))
+    buttons.append(Button(pygame.Rect(410, 225, 555, 58), "終了", stop))
+
     smoke = smoke_frames()
     frames = 0
 
@@ -112,15 +113,22 @@ def main() -> None:
             draw_text(screen, ("● " if name == active else "  ") + name, (66, rect.y + 8), 15, GOOD if name == active else TEXT, name == active)
         draw_text(screen, "● は現在読み込むデータ", (58, 650), 14, MUTED)
 
-        pygame.draw.rect(screen, PANEL, pygame.Rect(385, 115, 605, 380), border_radius=12)
-        draw_text(screen, f"選択中: {selected_name()}", (410, 505), 20, GOOD, True)
+        pygame.draw.rect(screen, PANEL, pygame.Rect(385, 115, 605, 220), border_radius=12)
+        draw_text(screen, f"選択中: {selected_name()}", (410, 305), 20, GOOD, True)
         mouse = pygame.mouse.get_pos()
         for button in buttons:
             button.draw(screen, mouse)
-        pygame.draw.rect(screen, PANEL, pygame.Rect(385, 540, 605, 70), border_radius=10)
-        draw_wrapped(screen, "各セーブは state.json、monsters、items、parties を持ち、JSONを直接編集できます。", pygame.Rect(410, 555, 555, 45), 16, MUTED)
-        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(385, 620, 605, 60), border_radius=8)
-        draw_wrapped(screen, status, pygame.Rect(405, 632, 565, 40), 16)
+
+        pygame.draw.rect(screen, PANEL, pygame.Rect(385, 365, 605, 95), border_radius=10)
+        draw_wrapped(
+            screen,
+            "ここはプレイヤー向けランチャーです。個体・パーティ管理はゲーム内の牧場から行います。",
+            pygame.Rect(410, 382, 555, 60),
+            16,
+            MUTED,
+        )
+        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(385, 485, 605, 80), border_radius=8)
+        draw_wrapped(screen, status, pygame.Rect(405, 500, 565, 50), 16)
         pygame.display.flip()
         clock.tick(60)
         frames += 1
@@ -132,4 +140,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
