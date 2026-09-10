@@ -6,20 +6,22 @@ Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task n
 
 - Canonical checkout: `C:\Users\tomiy\games\kadokaquest`
 - Stack: Python 3.10+, `pygame-ce`, UTF-8 JSON. Package code is under `src/kadoka_quest/`.
+- Project tooling lives under `tools/<tool-name>/`; executable scripts for each tool live under `tools/<tool-name>/script/`. Do not add project tools directly to the repository root or top-level `scripts/`.
+- Current tool locations: `tools/remote-context/script/`, `tools/character-sprites/script/`, `tools/sample-data/script/`.
 - Install: `py -m venv .venv`, then `.venv\Scripts\python.exe -m pip install -e .`
 - Run launcher: `.venv\Scripts\python.exe launcher.py` or `run_game.bat`
 - Full tests: `.venv\Scripts\python.exe -m unittest discover -s tests -v`
 - Headless UI: set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and use an isolated `KADOKA_SAVE_DIR`.
 - If the project venv points to an unavailable drive, do not run or rewrite it. Create a temporary venv outside the repository with an available C-drive Python and run tests there.
 - When an unavailable drive remains in `PATH`, prepend the temporary venv's `Lib/site-packages/pygame`, C-drive Python, and Windows system directories during tests so SDL/libpng DLL resolution never touches that drive.
-- Before reporting completion: run the full tests and `I:\program_files\ide\Git\cmd\git.exe diff --check`.
+- Before reporting completion: run the full tests and `git diff --check`.
 
 ## Remote sync workflow
 
 Chat may also change the remote repository. Before implementation work, refresh remote state with:
 
 ```text
-python scripts/sync_remote_context.py
+python tools/remote-context/script/sync_remote_context.py
 ```
 
 Use its compact output first instead of immediately reading a full remote diff or rescanning the repository. It fetches `origin/main` and reports only commit subjects, changed files, diff stats, and a bounded diff excerpt.
@@ -27,13 +29,14 @@ Use its compact output first instead of immediately reading a full remote diff o
 If the local branch should be brought forward and the worktree is clean with no local divergence, use:
 
 ```text
-python scripts/sync_remote_context.py --update
+python tools/remote-context/script/sync_remote_context.py --update
 ```
 
 The update mode only performs a fast-forward. It must refuse dirty or diverged worktrees. After syncing, read only the changed files relevant to the current Issue; expand to full diffs or additional files only when the compact context is insufficient.
 
 ## Architecture
 
+- `tools/<tool-name>/`: developer/project tooling only. Tool executables live under each tool's `script/` subdirectory; tool-specific support files stay inside the same tool directory.
 - `application/app_command.py`, `command_bus.py`: pygame-independent semantic command contract and one-target router. Runtime screens communicate by `target/action/payload`, never pygame events or surfaces.
 - `application/runtime_orchestrator.py`: owns the active screen mode, the shared command bus, all runtime command-app registrations, and plain field-effect routing across apps.
 - `src/kadoka_quest/apps/game.py`: input and orchestration for field, encounters and saves; battle drawing is not allowed here.
@@ -115,6 +118,7 @@ Fixed mobs spawn at their initial point whenever the map loads, cannot share a t
 - Preserve plain JSON and direct editor-to-runtime formats. Update `docs/FORMATS.md` when adding keys.
 - Preserve unrelated dirty-worktree changes. In particular, do not restore/delete BAT files unless the task asks for it.
 - Do not modify user save data during tests; use a temporary `KADOKA_SAVE_DIR`.
+- Project tools belong under `tools/<tool-name>/script/`; avoid new root-level or top-level `scripts/` utilities.
 - The user prefers terminal Git. Do not push unless explicitly asked; verify the remote result before saying an upload completed.
 - Remote: `https://github.com/tomiya7688/kadoka_quest.git`, branch `main`.
 - Keep command payloads plain (`str/int/float/bool/list/dict/None`) so applications can later move to processes or another engine. Add commands at an application boundary instead of importing pygame into command apps.
