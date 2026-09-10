@@ -13,6 +13,11 @@ import sys
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DIST_ROOT = PROJECT_ROOT / "dist"
 BUILD_ROOT = PROJECT_ROOT / "build" / "pyinstaller"
+USER_DATA_README = """Kadoka Quest UserData
+
+Save data, settings, imports, and other user-owned files are created here at runtime.
+This directory is intentionally shipped without development or CI test data.
+"""
 
 
 @dataclass(frozen=True)
@@ -46,19 +51,25 @@ def require_pyinstaller() -> None:
         )
 
 
-def copy_runtime_content(output: Path) -> None:
-    for name in ("data", "assets"):
-        destination = output / name
-        shutil.rmtree(destination, ignore_errors=True)
-        shutil.copytree(PROJECT_ROOT / name, destination)
-
+def reset_user_data(output: Path) -> Path:
     user_data = output / "UserData"
+    shutil.rmtree(user_data, ignore_errors=True)
     for path in (
         user_data,
         user_data / "imports" / "acquire",
         user_data / "imports" / "simulation",
     ):
         path.mkdir(parents=True, exist_ok=True)
+    (user_data / "README.txt").write_text(USER_DATA_README, encoding="utf-8")
+    return user_data
+
+
+def copy_runtime_content(output: Path) -> None:
+    for name in ("data", "assets"):
+        destination = output / name
+        shutil.rmtree(destination, ignore_errors=True)
+        shutil.copytree(PROJECT_ROOT / name, destination)
+    reset_user_data(output)
 
 
 def build_target(target: BuildTarget) -> Path:
