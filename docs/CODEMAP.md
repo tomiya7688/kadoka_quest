@@ -13,7 +13,7 @@
 | runtime command | `application/{app_command,command_bus,runtime_orchestrator}.py`, `apps/*_command_app.py` | `test_core.py` | `docs/コマンド駆動アプリ基盤機能説明書.md`, `docs/実行時オーケストレーター機能説明書.md` | 画面間通信はJSON互換の `AppCommand` のみ。 |
 | save / data | `data/{savedata,state,jsonio,battle_data,data_validator}.py` | `test_core.py`, `test_data_validator.py` | `docs/FORMATS.md`, `docs/MODデータ一括検証機能説明書.md` | 保存は個体フォルダ単位。JSONキー変更時はFORMATSを更新。 |
 | UI / input | `ui/{battle_renderer,field_renderer,character_image_provider,runtime_input_adapter,runtime_mouse_adapter}.py`, `apps/game.py` | `test_core.py`, `test_app_smoke.py` | `docs/実行時入力アダプター責務分離機能説明書.md`, `docs/実行時マウスアダプター責務分離機能説明書.md` | UIは描画・入力変換だけでゲーム規則を決めない。 |
-| 開発補助 | `scripts/remote_change_summary.py` | `test_remote_change_summary.py` | `docs/リモート変更要約ツール機能説明書.md` | Git履歴を読むだけで、マージや保存データ変更は行わない。 |
+| 開発補助 | `tools/remote-context/script/sync_remote_context.py` | `tests/test_project_metadata.py` | `tools/README.md` | Git履歴を要約し、`--update` はクリーンな早送り可能状態だけを更新する。 |
 
 ## 更新ルール
 

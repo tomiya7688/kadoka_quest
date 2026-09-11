@@ -1,0 +1,1 @@
+`generate_sample_data.py` is the entry point for regenerating bundled sample JSON. Its implementation is kept alongside it inside this tool directory so project tooling does not occupy the repository root or top-level `scripts/`.

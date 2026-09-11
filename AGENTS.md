@@ -4,10 +4,11 @@ Read this file first. Load only the linked document required for the task; do no
 
 ## Work order
 
-1. Check GitHub Issues and their priority first. Then check only relevant feedback and roadmap entries.
-2. Work on a branch; preserve unrelated dirty and untracked files.
-3. Test, update the relevant document and `docs/ver.md`, then commit only task files.
-4. Never push, open a PR, close an Issue, or alter player saves without explicit permission.
+1. Run `python tools/remote-context/script/sync_remote_context.py` to fetch and compactly inspect remote changes. Read the full diff only if its output is insufficient.
+2. Check GitHub Issues and their priority first. Then check only relevant feedback and roadmap entries.
+3. Work on a branch; preserve unrelated dirty and untracked files.
+4. Test, update the relevant document and `docs/ver.md`, then commit only task files.
+5. Never push, open a PR, close an Issue, or alter player saves without explicit permission.
 
 If the Issue service is unavailable, report that fact and use the last verified priority rather than inventing one.
 
@@ -18,6 +19,7 @@ If the Issue service is unavailable, report that fact and use the last verified 
 - Full test: `scripts\run_python.bat -m unittest discover -s tests -v`
 - Headless test: set dummy SDL drivers and an isolated `KADOKA_SAVE_DIR`.
 - Always finish with a syntax check and `git diff --check`.
+- Project tools belong under `tools/<tool-name>/script/`; do not add new root or top-level `scripts/` tools.
 
 ## Boundaries
 

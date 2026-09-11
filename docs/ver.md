@@ -18,17 +18,16 @@
 
 # 39. リモート変更要約ツール
 
-作業開始時にリモート変更を圧縮して確認する `scripts/remote_change_summary.py` を追加した。fetch後に変更領域、最新コミット、未コミット作業との重複を表示し、マージ判断のための再探索を減らす。
+作業開始時にリモート変更を圧縮して確認する `tools/remote-context/script/sync_remote_context.py` を追加した。fetch後にコミット、変更ファイル、統計、境界付き差分を表示し、マージ判断のための再探索を減らす。
 
 追加したファイル
 
-- `scripts/remote_change_summary.py`
-- `tests/test_remote_change_summary.py`
-- `docs/リモート変更要約ツール機能説明書.md`
+- `tools/remote-context/script/sync_remote_context.py`
 
 更新したファイル
 
 - `docs/CODEMAP.md`
+- `scripts/run_python.bat`
 - `docs/ver.md`
 
 # 38. 1作業単位のワークフロー

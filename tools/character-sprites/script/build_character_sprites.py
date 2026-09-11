@@ -1,6 +1,6 @@
 """Build the bundled <=64 px monster sprites from generated source sheets.
 
-The source sheets are deliberately kept outside the distributed project.  This
+The source sheets are deliberately kept outside the distributed project. This
 script turns each five-view sheet into openly editable PNG files and preserves
 the supplied Maru/Kadoka portraits as their battle artwork.
 """
@@ -15,7 +15,7 @@ import shutil
 import pygame
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 CHARACTERS = ROOT / "assets" / "characters"
 DIRECTIONS = ("front", "right", "left", "back")
 SHEETS = {
@@ -30,7 +30,6 @@ SHEETS = {
 
 
 def remove_connected_light_background(surface: pygame.Surface) -> pygame.Surface:
-    """Remove the opaque pale checkerboard sometimes emitted behind Maru."""
     result = surface.convert_alpha()
     width, height = result.get_size()
     queue: deque[tuple[int, int]] = deque()
@@ -90,8 +89,6 @@ def split_sheet(species_id: str, sheet_path: Path) -> None:
 
 def preserve_portrait(source_path: Path, species_id: str) -> None:
     source = pygame.image.load(str(source_path)).convert_alpha()
-    # Keep the complete supplied composition; nearest-neighbour resizing retains
-    # its square pixel character and does not redraw the face or silhouette.
     portrait = pygame.transform.scale(source, (64, 64))
     pygame.image.save(portrait, str(CHARACTERS / species_id / "portrait.png"))
 
@@ -125,4 +122,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
