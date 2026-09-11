@@ -16,6 +16,21 @@
 
 ```
 
+# 42. 模擬戦施設の専用個体サービス
+
+`SimulationFacilityService` を追加し、`imports/simulation/` に限定した模擬戦用個体の作成・一覧・削除・相手パーティ編成と、AI更新・恒久報酬のない戦闘生成を分離した。通常の所有個体フォルダには書き込まない。
+
+追加したファイル
+
+- `src/kadoka_quest/apps/simulation_facility_service.py`
+- `tests/test_simulation_facility_service.py`
+
+更新したファイル
+
+- `docs/CODEMAP.md`
+- `docs/外部個体取込責務分離機能説明書.md`
+- `docs/ver.md`
+
 # 41. リモート要約ツールのWindows UTF-8対応
 
 `tools/remote-context` がWindowsのcp932コンソールでもGitのUTF-8差分を正しく読み書きできるようにした。文字化けや復号例外で同期判断が止まらない。
