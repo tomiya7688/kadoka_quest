@@ -1,6 +1,6 @@
 ---
 name: Codex implementation
-about: Codex実装用の自己完結Issue
+about: Codex/Chat実装用の自己完結Issue
 title: ""
 labels: ""
 assignees: ""
@@ -10,7 +10,10 @@ assignees: ""
 
 <!-- 何を変えるかを1〜3文で記載 -->
 
-## 対象
+## Read scope
+- 
+
+## Write scope
 - 
 
 ## 関連仕様

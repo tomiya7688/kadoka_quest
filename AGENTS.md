@@ -4,7 +4,7 @@ Read this file first. Load only the linked document required for the task; do no
 
 ## Context Budget
 
-Start with this file, the selected Issue, and one matching `docs/CODEMAP.md` row. Do not read README, FORMATS, every feature document, or unrelated source files until that row and Issue show a concrete need. CODEMAP routes battle/AI, field/fixed mobs, monster, map/block, editor, runtime command, save/data, and UI/input work to the next files.
+Start with this file, the selected Issue, and one matching `docs/CODEMAP.md` row. Do not read README, FORMATS, every feature document, or unrelated source files until that row and Issue show a concrete need. CODEMAP routes battle/AI, field/fixed mobs, monster, map/block, editor, runtime command, save/data, and UI/input work to the next files. For architecture, responsibility splitting, new modules/classes, or dependency-direction changes, additionally read `docs/CODING_RULES.md`.
 
 ## Work order
 
