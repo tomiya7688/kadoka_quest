@@ -16,6 +16,16 @@
 
 ```
 
+# 40. AGENTS段階的読込ルーター
+
+`AGENTS.md` にContext Budget原則を明記し、最初にIssueとCODEMAPの該当1行だけを読む運用へ固定した。CODEMAPが戦闘、フィールド、エディタ、データなど領域ごとの次の資料を案内し、全体仕様の常読を防ぐ。
+
+更新したファイル
+
+- `AGENTS.md`
+- `docs/ver.md`
+- `tests/test_project_metadata.py`
+
 # 39. リモート変更要約ツール
 
 作業開始時にリモート変更を圧縮して確認する `tools/remote-context/script/sync_remote_context.py` を追加した。fetch後にコミット、変更ファイル、統計、境界付き差分を表示し、マージ判断のための再探索を減らす。

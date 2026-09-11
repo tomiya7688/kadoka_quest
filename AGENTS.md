@@ -2,6 +2,10 @@
 
 Read this file first. Load only the linked document required for the task; do not load the complete roadmap, feedback, or format reference by default.
 
+## Context Budget
+
+Start with this file, the selected Issue, and one matching `docs/CODEMAP.md` row. Do not read README, FORMATS, every feature document, or unrelated source files until that row and Issue show a concrete need. CODEMAP routes battle/AI, field/fixed mobs, monster, map/block, editor, runtime command, save/data, and UI/input work to the next files.
+
 ## Work order
 
 1. Run `python tools/remote-context/script/sync_remote_context.py` to fetch and compactly inspect remote changes. Read the full diff only if its output is insufficient.

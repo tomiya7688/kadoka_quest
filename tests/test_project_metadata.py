@@ -59,3 +59,10 @@ class ProjectMetadataTests(unittest.TestCase):
         ):
             self.assertIn(area, codemap)
         self.assertIn("## 更新ルール", codemap)
+
+    def test_agents_declares_context_budget_and_routes_to_codemap(self) -> None:
+        agents = (REPOSITORY_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+
+        self.assertIn("## Context Budget", agents)
+        self.assertIn("docs/CODEMAP.md", agents)
+        self.assertIn("Do not read README, FORMATS", agents)
