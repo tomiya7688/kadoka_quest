@@ -1,6 +1,6 @@
 # Kadoka Quest Codex cheat sheet
 
-Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task needs user-facing details or full JSON examples.
+Read this file first. Open `README.md` or `docs/FORMATS.md` only when the task needs user-facing details or full JSON examples. For architecture, responsibility splitting, new modules/classes, or dependency-direction changes, also read `docs/CODING_RULES.md`.
 
 ## Project and commands
 
