@@ -26,6 +26,8 @@ def run_git(*args: str, check: bool = True) -> str:
         [git_executable(), *args],
         cwd=REPO_ROOT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -50,6 +52,8 @@ def compact_diff(base: str, head: str, max_lines: int) -> str:
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
         description="Fetch remote changes and print a compact implementation context."
     )

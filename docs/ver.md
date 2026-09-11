@@ -16,6 +16,16 @@
 
 ```
 
+# 41. リモート要約ツールのWindows UTF-8対応
+
+`tools/remote-context` がWindowsのcp932コンソールでもGitのUTF-8差分を正しく読み書きできるようにした。文字化けや復号例外で同期判断が止まらない。
+
+更新したファイル
+
+- `tools/remote-context/script/sync_remote_context.py`
+- `tests/test_remote_context.py`
+- `docs/ver.md`
+
 # 40. AGENTS段階的読込ルーター
 
 `AGENTS.md` にContext Budget原則を明記し、最初にIssueとCODEMAPの該当1行だけを読む運用へ固定した。CODEMAPが戦闘、フィールド、エディタ、データなど領域ごとの次の資料を案内し、全体仕様の常読を防ぐ。
