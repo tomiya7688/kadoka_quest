@@ -30,6 +30,7 @@ class AppSmokeTests(unittest.TestCase):
                 "data_creator.py",
                 "data_validator.py",
                 "manage.py",
+                "simulation_manager.py",
                 "game.py",
             ):
                 completed = subprocess.run(

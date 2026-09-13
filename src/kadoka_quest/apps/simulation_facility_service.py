@@ -58,6 +58,9 @@ class SimulationFacilityService:
         self._save_opponent_ids([record.monster_id for record in selected])
         return selected
 
+    def clear_opponents(self) -> None:
+        self._save_opponent_ids([])
+
     def opponents(self) -> list[MonsterRecord]:
         records = {record.monster_id: record for record in self.list_individuals()}
         return [records[identifier] for identifier in self.opponent_ids() if identifier in records]

@@ -31,6 +31,22 @@
 - `docs/外部個体取込責務分離機能説明書.md`
 - `docs/ver.md`
 
+# 43. 模擬戦受付UI
+
+牧場とは別の `simulation_manager.py` を追加した。模擬戦専用個体を作成・外部フォルダから再読込・削除し、相手パーティへ追加または除外できる。受付は `SimulationFacilityService` だけを使用し、通常の所有個体・パーティ保存へ直接触れない。
+
+追加したファイル
+
+- `simulation_manager.py`
+- `src/kadoka_quest/apps/simulation_manager.py`
+- `tests/test_simulation_manager.py`
+
+更新したファイル
+
+- `src/kadoka_quest/apps/simulation_facility_service.py`
+- `tests/test_app_smoke.py`
+- `docs/ver.md`
+
 # 41. リモート要約ツールのWindows UTF-8対応
 
 `tools/remote-context` がWindowsのcp932コンソールでもGitのUTF-8差分を正しく読み書きできるようにした。文字化けや復号例外で同期判断が止まらない。
