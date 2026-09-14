@@ -184,9 +184,14 @@ class BattleEngine:
             self.log.append(f"{target.name}は{element}属性を避けた。")
             return 0.0
 
+        resistance_kind = str(target.resistances.get(element, "normal"))
+        resistance_blocks_effect = False
+        resistance_absorbs = False
         if actual_kind in {"magic", "drain_mp"}:
-            resistance = RESISTANCE_MULTIPLIER.get(target.resistances.get(element, "normal"), 1.0)
+            resistance = RESISTANCE_MULTIPLIER.get(resistance_kind, 1.0)
             damage = int(actor.stats["magic"] * power * resistance)
+            resistance_blocks_effect = resistance_kind == "immune"
+            resistance_absorbs = resistance_kind == "absorb"
         else:
             attack = int(actor.stats["attack"] * actor.attack_multiplier)
             actor.attack_multiplier = 1.0
@@ -203,24 +208,40 @@ class BattleEngine:
                 self.log.append("会心！相手の防御力を無視した！")
             else:
                 damage = int(attack * power - target.stats["defense"] * 0.42)
-        if actor.equipment:
+
+        if actor.equipment and not (resistance_blocks_effect or resistance_absorbs):
             damage += int(actor.equipment.get("fixed_bonus_damage", 0))
+
         guard_multiplier = target.guard if actual_kind == "physical" else 1.0
-        damage = max(1, int(damage * guard_multiplier * self.rng.uniform(0.92, 1.08)))
         before = target.hp
-        target.hp = max(0, target.hp - damage)
-        dealt = before - target.hp
+        if resistance_blocks_effect:
+            dealt = 0
+            self.log.append(f"{target.name}には{skill['display_name']}が効かなかった。")
+        elif resistance_absorbs:
+            recovery = max(1, int(abs(damage) * self.rng.uniform(0.92, 1.08)))
+            target.hp = min(target.stats["hp"], target.hp + recovery)
+            healed = target.hp - before
+            dealt = -healed
+            self.log.append(f"{target.name}は{skill['display_name']}を吸収し、HPが{healed}回復。")
+        else:
+            damage = max(1, int(damage * guard_multiplier * self.rng.uniform(0.92, 1.08)))
+            target.hp = max(0, target.hp - damage)
+            dealt = before - target.hp
+
         if skill.get("self_damage_ratio"):
             self_damage = max(1, int(actor.stats["hp"] * float(skill["self_damage_ratio"])))
             actor.hp = max(1, actor.hp - self_damage)
             self.log.append(f"{actor.name}は代償としてHPを{self_damage}消耗。")
+
         if actual_kind == "drain_mp":
-            drained = min(target.mp, max(1, int(actor.stats["magic"] * float(skill.get("mp_power", 0.12)))))
-            target.mp -= drained
-            actor.mp = min(actor.stats["mp"], actor.mp + drained)
-            self.log.append(f"{actor.name}の{skill['display_name']}。{target.name}のMPを{drained}奪った。")
-        else:
+            if not (resistance_blocks_effect or resistance_absorbs):
+                drained = min(target.mp, max(1, int(actor.stats["magic"] * float(skill.get("mp_power", 0.12)))))
+                target.mp -= drained
+                actor.mp = min(actor.stats["mp"], actor.mp + drained)
+                self.log.append(f"{actor.name}の{skill['display_name']}。{target.name}のMPを{drained}奪った。")
+        elif not (resistance_blocks_effect or resistance_absorbs):
             self.log.append(f"{actor.name}の{skill['display_name']}。{target.name}に{dealt}ダメージ。")
+
         if not target.alive:
             message = self.data_loader.species_definition(target.record.species_id).get("defeat_message")
             self.log.append(str(message or f"{target.name}はたおれた！"))
