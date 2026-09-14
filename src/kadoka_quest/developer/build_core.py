@@ -15,6 +15,7 @@ USER_DATA_README = """Kadoka Quest UserData
 Save data, settings, imports, and other user-owned files are created here at runtime.
 This directory is intentionally shipped without development or CI test data.
 """
+PLAYER_TEMPLATE_DIR = "PlayerRuntimeTemplate"
 
 
 @dataclass(frozen=True)
@@ -76,22 +77,6 @@ def copy_runtime_content(output: Path, content_root: Path) -> None:
 
 def subprocess_pyinstaller(command: Sequence[str], *, cwd: Path) -> None:
     subprocess.run([sys.executable, "-m", "PyInstaller", *command], cwd=cwd, check=True)
-
-
-def in_process_pyinstaller(command: Sequence[str], *, cwd: Path) -> None:
-    """Run PyInstaller through its Python API; used by the packaged Developer app."""
-    require_pyinstaller()
-    from PyInstaller.__main__ import run
-
-    previous = Path.cwd()
-    try:
-        os.chdir(cwd)
-        run(list(command))
-    finally:
-        os.chdir(previous)
-
-
-PyInstallerRunner = Callable[[Sequence[str]], None]
 
 
 def build_target(
@@ -178,3 +163,40 @@ def build_distributions(
             )
         )
     return outputs
+
+
+def install_player_runtime_template(developer_output: Path, player_output: Path) -> Path:
+    """Store a content-free Player runtime snapshot inside the Developer distribution."""
+    developer_output = Path(developer_output)
+    player_output = Path(player_output)
+    template = developer_output / PLAYER_TEMPLATE_DIR / "KadokaQuest"
+    shutil.rmtree(template.parent, ignore_errors=True)
+    shutil.copytree(player_output, template)
+    for name in ("data", "assets", "UserData", "dist"):
+        path = template / name
+        if path.is_dir():
+            shutil.rmtree(path)
+        elif path.exists():
+            path.unlink()
+    (template / "smoke-error.txt").unlink(missing_ok=True)
+    return template
+
+
+def materialize_player_distribution(
+    template: Path,
+    *,
+    content_root: Path,
+    dist_root: Path,
+) -> Path:
+    """Create a Player distribution from a prebuilt runtime plus current canonical content."""
+    template = Path(template)
+    content_root = Path(content_root)
+    output = Path(dist_root) / "KadokaQuest"
+    executable = template / ("KadokaQuest.exe" if os.name == "nt" else "KadokaQuest")
+    if not executable.is_file():
+        raise RuntimeError(f"invalid Player runtime template: {executable}")
+
+    shutil.rmtree(output, ignore_errors=True)
+    shutil.copytree(template, output)
+    copy_runtime_content(output, content_root)
+    return output
