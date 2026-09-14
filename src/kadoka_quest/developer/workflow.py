@@ -65,10 +65,10 @@ class DeveloperWorkflowService:
         return WorkflowResult(True, "Player Preview started with the Player runtime.")
 
     def start_player_build(self) -> WorkflowResult:
-        return self._start_task("Player Build", "--build-player")
+        return self._start_task("Player Build", "--build-player", "player-build.log")
 
     def start_player_smoke(self) -> WorkflowResult:
-        return self._start_task("Player Distribution Smoke", "--smoke-player-build")
+        return self._start_task("Player Distribution Smoke", "--smoke-player-build", "player-smoke.log")
 
     def poll(self) -> WorkflowResult | None:
         task = self.running_task
@@ -82,22 +82,29 @@ class DeveloperWorkflowService:
             return WorkflowResult(True, f"{task.label} completed successfully.", task.log_path)
         return WorkflowResult(False, f"{task.label} failed (exit {code}). See {task.log_path}", task.log_path)
 
-    def _start_task(self, label: str, flag: str) -> WorkflowResult:
+    def _start_task(self, label: str, flag: str, log_name: str) -> WorkflowResult:
         if self.running_task is not None and self.running_task.process.poll() is None:
             return WorkflowResult(False, f"{self.running_task.label} is already running.", self.running_task.log_path)
 
         self.log_root.mkdir(parents=True, exist_ok=True)
-        log_path = self.log_root / ("player-build.log" if flag == "--build-player" else "player-smoke.log")
+        log_path = self.log_root / log_name
         command = self._developer_command(flag)
         try:
-            with log_path.open("w", encoding="utf-8") as log_file:
+            if self.frozen:
                 process = self.launcher(
                     command,
                     cwd=self.project_root,
                     env=self._environment(),
-                    stdout=log_file,
-                    stderr=subprocess.STDOUT,
                 )
+            else:
+                with log_path.open("w", encoding="utf-8") as log_file:
+                    process = self.launcher(
+                        command,
+                        cwd=self.project_root,
+                        env=self._environment(),
+                        stdout=log_file,
+                        stderr=subprocess.STDOUT,
+                    )
         except OSError as exc:
             return WorkflowResult(False, f"{label} failed to start: {exc}", log_path)
         self.running_task = RunningTask(label, process, log_path)
