@@ -1,0 +1,15 @@
+# Path-based pull request labels for actions/labeler@v4.
+# Keep this file on the default branch because the Labeler workflow uses
+# pull_request_target and reads its configuration from the base repository.
+
+enhancement:
+  - 'src/**'
+  - 'data/**'
+  - 'assets/**'
+  - 'tools/**'
+  - '*.py'
+  - '*.bat'
+
+documentation:
+  - 'docs/**'
+  - '**/*.md'
