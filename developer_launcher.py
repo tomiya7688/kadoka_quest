@@ -11,7 +11,11 @@ from kadoka_quest.apps import manage as manage_app
 from kadoka_quest.apps import map_editor as map_editor_app
 from kadoka_quest.apps import monster_editor as monster_editor_app
 from kadoka_quest.apps.developer_launcher import main as launcher_main
-from kadoka_quest.developer.build_core import build_distributions, in_process_pyinstaller
+from kadoka_quest.developer.build_core import (
+    PLAYER_TEMPLATE_DIR,
+    build_distributions,
+    materialize_player_distribution,
+)
 from kadoka_quest.developer.distribution_smoke import smoke_distributions
 from kadoka_quest.developer.project_validator import ProjectValidator
 from kadoka_quest.paths import PROJECT_ROOT, is_frozen
@@ -31,30 +35,28 @@ AUTOMATION_LOGS = {
 }
 
 
-def _source_root() -> Path:
-    if is_frozen():
-        return Path(getattr(sys, "_MEIPASS")) / "player_source"
-    return Path(__file__).resolve().parent
-
-
 def _dist_root() -> Path:
     return PROJECT_ROOT / "dist"
 
 
 def build_player() -> None:
-    source_root = _source_root()
-    build_root = PROJECT_ROOT / ("UserData/developer/pyinstaller" if is_frozen() else "build/pyinstaller")
-    kwargs = {
-        "source_root": source_root,
-        "content_root": PROJECT_ROOT,
-        "dist_root": _dist_root(),
-        "build_root": build_root,
-        "targets": "player",
-        "clean": True,
-    }
     if is_frozen():
-        kwargs["runner"] = in_process_pyinstaller
-    outputs = build_distributions(**kwargs)
+        output = materialize_player_distribution(
+            PROJECT_ROOT / PLAYER_TEMPLATE_DIR / "KadokaQuest",
+            content_root=PROJECT_ROOT,
+            dist_root=_dist_root(),
+        )
+        print(f"[ok] {output}")
+        return
+
+    outputs = build_distributions(
+        source_root=Path(__file__).resolve().parent,
+        content_root=PROJECT_ROOT,
+        dist_root=_dist_root(),
+        build_root=PROJECT_ROOT / "build" / "pyinstaller",
+        targets="player",
+        clean=True,
+    )
     for output in outputs:
         print(f"[ok] {output}")
 
