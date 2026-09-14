@@ -6,9 +6,15 @@ Each tool keeps executable scripts under `tools/<tool-name>/script/`. Tool-speci
 
 Current tools:
 - `remote-context`: fetches and summarizes remote changes for Chat/Codex workflows.
+- `affected-tests`: maps changed files to likely focused tests and signals when broader validation is safer.
+- `import-map`: emits a compact JSON index of Python files and imports for dependency-routing questions.
 - `character-sprites`: builds bundled character sprites from source sheets.
 - `sample-data`: regenerates bundled sample JSON data.
 - `code-docs`: AST-based code-derived documentation. `script/generate_class_diagram.py` generates or checks `docs/generated/class_diagram.mmd` without reading implementation bodies into agent context.
 - `task-workflow`: small task-selection helpers. `script/start_task.bat` returns only the oldest open Issue at the highest available priority (`critical -> high -> medium -> low`) instead of scanning the full Issue list.
 
-Reusable patterns in `code-docs` and `task-workflow` were adapted from `tomiya7688/AI_game_player`. Project-specific OCR, screen capture, Windows input, and GUI automation code is intentionally not imported into Kadoka Quest.
+Reusable patterns in `code-docs` and `task-workflow` were adapted from `tomiya7688/AI_game_player`.
+
+`affected-tests`, `import-map`, and the bounded exploration/validation workflow were adapted from the MIT-licensed `tomiya7688/ai-context-reducer` principles. They are kept local to this repository so Kadoka Quest does not depend on that repository at runtime or during development.
+
+Project-specific OCR, screen capture, Windows input, GUI automation, or unrelated project behavior is intentionally not imported into Kadoka Quest.
