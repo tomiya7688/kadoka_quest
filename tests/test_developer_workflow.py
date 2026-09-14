@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import tempfile
 import unittest
 
+from kadoka_quest.developer.build_core import (
+    install_player_runtime_template,
+    materialize_player_distribution,
+)
 from kadoka_quest.developer.project_validator import ProjectValidator
 from kadoka_quest.developer.workflow import DeveloperWorkflowService
 from kadoka_quest.paths import PROJECT_ROOT
@@ -88,6 +93,45 @@ class DeveloperWorkflowTests(unittest.TestCase):
             self.assertIsNotNone(completed)
             self.assertTrue(completed.ok)
             self.assertEqual(completed.log_path, root / "build" / "developer" / "player-build.log")
+
+    def test_runtime_template_excludes_content_and_materializes_current_content(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            player = root / "built-player"
+            developer = root / "developer"
+            content = root / "project"
+            suffix = ".exe" if os.name == "nt" else ""
+
+            (player / "_internal").mkdir(parents=True)
+            (player / f"KadokaQuest{suffix}").write_bytes(b"runtime")
+            (player / "data").mkdir()
+            (player / "data" / "old.json").write_text("old", encoding="utf-8")
+            (player / "assets").mkdir()
+            (player / "assets" / "old.png").write_bytes(b"old")
+            (player / "UserData").mkdir()
+            (player / "UserData" / "test-save.txt").write_text("ci", encoding="utf-8")
+            developer.mkdir()
+            (content / "data").mkdir(parents=True)
+            (content / "data" / "current.json").write_text("current", encoding="utf-8")
+            (content / "assets").mkdir()
+            (content / "assets" / "current.png").write_bytes(b"current")
+
+            template = install_player_runtime_template(developer, player)
+            self.assertTrue((template / f"KadokaQuest{suffix}").is_file())
+            self.assertFalse((template / "data").exists())
+            self.assertFalse((template / "assets").exists())
+            self.assertFalse((template / "UserData").exists())
+
+            output = materialize_player_distribution(
+                template,
+                content_root=content,
+                dist_root=developer / "dist",
+            )
+            self.assertEqual((output / "data" / "current.json").read_text(encoding="utf-8"), "current")
+            self.assertTrue((output / "assets" / "current.png").is_file())
+            self.assertTrue((output / "UserData" / "README.txt").is_file())
+            self.assertFalse((output / "data" / "old.json").exists())
+            self.assertFalse((output / "UserData" / "test-save.txt").exists())
 
     def test_player_entrypoint_does_not_import_developer_package(self) -> None:
         source = (PROJECT_ROOT / "launcher.py").read_text(encoding="utf-8")
