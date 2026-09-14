@@ -24,7 +24,11 @@ DEV_TOOLS = {
     "monster_editor": monster_editor_app.main,
     "data_creator": data_creator_app.main,
 }
-AUTOMATION_FLAGS = {"--validate-project", "--build-player", "--smoke-player-build"}
+AUTOMATION_LOGS = {
+    "--validate-project": "project-validation.log",
+    "--build-player": "player-build.log",
+    "--smoke-player-build": "player-smoke.log",
+}
 
 
 def _source_root() -> Path:
@@ -100,18 +104,30 @@ def main() -> None:
 
 
 def run() -> None:
-    automated = any(flag in sys.argv for flag in AUTOMATION_FLAGS)
+    automation_flag = next((flag for flag in AUTOMATION_LOGS if flag in sys.argv), None)
+    redirected = None
+    if automation_flag and is_frozen():
+        log_root = PROJECT_ROOT / "UserData" / "developer"
+        log_root.mkdir(parents=True, exist_ok=True)
+        redirected = (log_root / AUTOMATION_LOGS[automation_flag]).open("w", encoding="utf-8")
+        sys.stdout = redirected
+        sys.stderr = redirected
+
     try:
         main()
     except Exception:
-        if automated:
-            print(traceback.format_exc())
+        if automation_flag:
+            traceback.print_exc()
             raise SystemExit(1)
         if getattr(sys, "frozen", False) and "--smoke" in sys.argv:
             error_path = Path(sys.executable).resolve().parent / "smoke-error.txt"
             error_path.write_text(traceback.format_exc(), encoding="utf-8")
             raise SystemExit(1)
         raise
+    finally:
+        if redirected is not None:
+            redirected.flush()
+            redirected.close()
 
 
 if __name__ == "__main__":
