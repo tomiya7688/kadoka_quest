@@ -91,7 +91,7 @@ Developer専用ゲーム挙動を別実装してPreviewとして扱わない。
 
 ### 3. Player配布ビルド
 
-BAT / CLI / Developer GUIはいずれも `kadoka_quest.developer.build_core` の同じビルド処理を利用する。
+BAT / CLI / Developer GUIはいずれも `kadoka_quest.developer.build_core` の共通処理を利用する。
 
 ```text
 build_player.bat ─┐
@@ -99,7 +99,13 @@ tools/build/build.py ─┼→ build_core → dist/KadokaQuest/
 Developer GUI ────────┘
 ```
 
-Developer配布版にはPlayerビルド用のソーススナップショットとPyInstaller資材をDeveloper側だけに内包する。生成されるPlayer版へDeveloper UI/Editor/Build資材を追加しない。
+ソース版のBAT/CLIはPyInstallerでPlayer runtimeを生成する。Developer配布版には、Developer自身を生成した時点と同じPlayer runtimeの**コンテンツなし雛形** `PlayerRuntimeTemplate/KadokaQuest/` を同梱する。
+
+Developer配布版の「Player Build」はこの雛形を複製し、現在編集中の正規 `data/` / `assets/` と空の `UserData/` を組み合わせる。したがって配布Developer版の中でPyInstallerを再帰実行する必要がなく、Python環境がないPCでもPlayer成果物を生成できる。
+
+PlayerRuntimeTemplateには `data/`、`assets/`、`UserData/` を保持しない。編集前のデータやCI用セーブがBuild結果へ混入することを防ぐ。
+
+生成されるPlayer版へDeveloper UI/Editor/Build資材は追加しない。
 
 ### 4. Player配布物スモーク
 
@@ -133,6 +139,10 @@ Developer配布版が生成するPlayer成果物は次に置く。
 
 ```text
 KadokaQuestDeveloper/
+├─ PlayerRuntimeTemplate/
+│  └─ KadokaQuest/
+│     ├─ KadokaQuest.exe
+│     └─ _internal/
 └─ dist/
    └─ KadokaQuest/
       ├─ KadokaQuest.exe
@@ -160,8 +170,7 @@ Developer配布版:
 UserData/developer/
 ├─ project-validation.log
 ├─ player-build.log
-├─ player-smoke.log
-└─ pyinstaller/
+└─ player-smoke.log
 ```
 
 ## CI保証
@@ -173,7 +182,7 @@ Developer exe
 ↓
 Player project validation
 ↓
-Developer exe自身からPlayer再ビルド
+同梱PlayerRuntimeTemplate + 現在のdata/assetsからPlayer配布物生成
 ↓
 その生成Player exeをdistribution smoke
 ```
