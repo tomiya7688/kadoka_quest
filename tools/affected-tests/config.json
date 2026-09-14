@@ -1,0 +1,62 @@
+{
+  "mappings": [
+    {
+      "source": "src/kadoka_quest/core/**",
+      "tests": ["tests/test_core.py"],
+      "broader": true
+    },
+    {
+      "source": "src/kadoka_quest/apps/**",
+      "tests": ["tests/test_app_smoke.py", "tests/test_core.py"]
+    },
+    {
+      "source": "src/kadoka_quest/ui/**",
+      "tests": ["tests/test_app_smoke.py"]
+    },
+    {
+      "source": "src/kadoka_quest/data/**",
+      "tests": ["tests/test_core.py"]
+    },
+    {
+      "source": "application/**",
+      "tests": ["tests/test_app_smoke.py", "tests/test_core.py"],
+      "broader": true
+    },
+    {
+      "source": "launcher.py",
+      "tests": ["tests/test_launcher_split.py", "tests/test_app_smoke.py"]
+    },
+    {
+      "source": "developer_launcher.py",
+      "tests": ["tests/test_launcher_split.py"]
+    },
+    {
+      "source": "build_*.bat",
+      "tests": [
+        "tests/test_distribution_paths.py",
+        "tests/test_distribution_process.py",
+        "tests/test_distribution_savedata.py",
+        "tests/test_player_distribution_boundary.py"
+      ],
+      "broader": true
+    },
+    {
+      "source": "tools/build/**",
+      "tests": [
+        "tests/test_distribution_paths.py",
+        "tests/test_distribution_process.py",
+        "tests/test_distribution_savedata.py",
+        "tests/test_player_distribution_boundary.py"
+      ],
+      "broader": true
+    }
+  ],
+  "broader_patterns": [
+    "src/kadoka_quest/core/**",
+    "application/**",
+    "pyproject.toml",
+    ".github/workflows/**",
+    "build_*.bat",
+    "tools/build/**"
+  ]
+}
