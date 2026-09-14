@@ -89,9 +89,6 @@ class BattleEngine:
         return self.log[start_index:]
 
     def _take_action(self, actor: Combatant, foes: list[Combatant], friends: list[Combatant]) -> None:
-        if actor.mp <= 0:
-            self.log.append(f"{actor.name}はMPが尽きて動けない。")
-            return
         usable = [skill for skill in actor.skills if int(skill.get("mp_cost", 0)) <= actor.mp]
         if actor.physical_locked:
             usable = [skill for skill in usable if skill.get("kind") != "physical"]
@@ -267,4 +264,3 @@ class BattleEngine:
             return
         for member in self.allies:
             member.record.ai["battles"] = int(member.record.ai.get("battles", 0)) + 1
-
