@@ -40,6 +40,49 @@ jobs:
       - name: Smoke-test built executables
         run: python tools/build/test_distribution.py --targets all
 
+      - name: Developer validates Player project
+        shell: pwsh
+        run: |
+          $root = "dist/KadokaQuestDeveloper"
+          $exe = "$root/KadokaQuestDeveloper.exe"
+          $process = Start-Process -FilePath $exe -ArgumentList "--validate-project" -PassThru -Wait
+          if ($process.ExitCode -ne 0) {
+            Get-Content "$root/UserData/developer/project-validation.log" -ErrorAction SilentlyContinue
+            exit $process.ExitCode
+          }
+
+      - name: Developer builds Player distribution
+        shell: pwsh
+        run: |
+          $root = "dist/KadokaQuestDeveloper"
+          $exe = "$root/KadokaQuestDeveloper.exe"
+          $process = Start-Process -FilePath $exe -ArgumentList "--build-player" -PassThru -Wait
+          if ($process.ExitCode -ne 0) {
+            Get-Content "$root/UserData/developer/player-build.log" -ErrorAction SilentlyContinue
+            exit $process.ExitCode
+          }
+          if (-not (Test-Path "$root/dist/KadokaQuest/KadokaQuest.exe")) {
+            Write-Error "Developer build did not create KadokaQuest.exe"
+            exit 1
+          }
+
+      - name: Developer smoke-tests generated Player
+        shell: pwsh
+        run: |
+          $root = "dist/KadokaQuestDeveloper"
+          $exe = "$root/KadokaQuestDeveloper.exe"
+          $process = Start-Process -FilePath $exe -ArgumentList "--smoke-player-build" -PassThru -Wait
+          if ($process.ExitCode -ne 0) {
+            Get-Content "$root/UserData/developer/player-smoke.log" -ErrorAction SilentlyContinue
+            exit $process.ExitCode
+          }
+
+      - name: Clean Developer self-test output
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force "dist/KadokaQuestDeveloper/dist" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "dist/KadokaQuestDeveloper/UserData/developer" -ErrorAction SilentlyContinue
+
       - name: Upload Windows distributions
         uses: actions/upload-artifact@v4
         with:

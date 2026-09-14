@@ -9,8 +9,9 @@ import pygame
 
 from kadoka_quest.apps.launcher_config import DEVELOPER_LAUNCH_TARGETS
 from kadoka_quest.data.savedata import SaveDataManager
+from kadoka_quest.developer.workflow import DeveloperWorkflowService, WorkflowResult
 from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories, is_frozen
-from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
+from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, WARN, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
 def main() -> None:
@@ -21,14 +22,20 @@ def main() -> None:
     if not saves.list_names():
         saves.ensure_profile("default")
 
-    screen = init_pygame("kadoka quest - developer tools", (900, 640))
+    workflow = DeveloperWorkflowService(PROJECT_ROOT)
+    screen = init_pygame("kadoka quest - developer", (1080, 760))
     clock = pygame.time.Clock()
     running = True
     active_save = saves.active_name() or "default"
-    status = f"開発者ツール。現在のセーブ: {active_save}"
+    status = f"Developer environment ready. Active save: {active_save}"
+    status_ok = True
+
+    def set_result(result: WorkflowResult) -> None:
+        nonlocal status, status_ok
+        status = result.message
+        status_ok = result.ok
 
     def launch(script: str) -> None:
-        nonlocal status
         environment = os.environ.copy()
         environment["KADOKA_DEVELOPER_TOOLS"] = "1"
         active = saves.active_name() or active_save
@@ -38,8 +45,12 @@ def main() -> None:
             command = [sys.executable, "--dev-tool", Path(script).stem]
         else:
             command = [sys.executable, str(PROJECT_ROOT / script)]
-        subprocess.Popen(command, cwd=PROJECT_ROOT, env=environment)
-        status = f"{script} を起動しました。"
+        try:
+            subprocess.Popen(command, cwd=PROJECT_ROOT, env=environment)
+        except OSError as exc:
+            set_result(WorkflowResult(False, f"Failed to launch {script}: {exc}"))
+            return
+        set_result(WorkflowResult(True, f"Started {script}."))
 
     def stop() -> None:
         nonlocal running
@@ -48,23 +59,32 @@ def main() -> None:
     def launch_callback(script: str):
         return lambda: launch(script)
 
-    buttons: list[Button] = []
+    editor_buttons: list[Button] = []
     for index, (label, script) in enumerate(DEVELOPER_LAUNCH_TARGETS):
-        column = index % 2
-        row = index // 2
-        buttons.append(
+        editor_buttons.append(
             Button(
-                pygame.Rect(55 + column * 405, 155 + row * 82, 365, 58),
+                pygame.Rect(55, 155 + index * 72, 430, 52),
                 label,
                 launch_callback(script),
             )
         )
-    buttons.append(Button(pygame.Rect(55, 425, 770, 58), "終了", stop))
+
+    workflow_buttons = [
+        Button(pygame.Rect(575, 155, 430, 52), "1. Playerデータを検証", lambda: set_result(workflow.validate_project())),
+        Button(pygame.Rect(575, 227, 430, 52), "2. Player Preview / Test Run", lambda: set_result(workflow.preview_player())),
+        Button(pygame.Rect(575, 299, 430, 52), "3. Player配布ビルド", lambda: set_result(workflow.start_player_build())),
+        Button(pygame.Rect(575, 371, 430, 52), "4. Player配布物スモーク", lambda: set_result(workflow.start_player_smoke())),
+    ]
+    buttons = editor_buttons + workflow_buttons + [Button(pygame.Rect(575, 455, 430, 52), "終了", stop)]
 
     smoke = smoke_frames()
     frames = 0
 
     while running:
+        completed = workflow.poll()
+        if completed is not None:
+            set_result(completed)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -72,22 +92,33 @@ def main() -> None:
                 button.handle(event)
 
         screen.fill(BG)
-        draw_text(screen, "kadoka quest developer", (45, 28), 42, ACCENT, True)
-        draw_text(screen, "開発者ツール", (55, 105), 24, ACCENT, True)
-        pygame.draw.rect(screen, PANEL, pygame.Rect(35, 135, 830, 375), border_radius=12)
+        draw_text(screen, "kadoka quest developer", (45, 26), 42, ACCENT, True)
+        draw_text(screen, "Playerアプリ制作環境", (48, 78), 18, MUTED, True)
+
+        pygame.draw.rect(screen, PANEL, pygame.Rect(35, 125, 470, 430), border_radius=12)
+        draw_text(screen, "Content Editors", (55, 133), 20, ACCENT, True)
+        pygame.draw.rect(screen, PANEL, pygame.Rect(555, 125, 470, 430), border_radius=12)
+        draw_text(screen, "Player Workflow", (575, 133), 20, ACCENT, True)
+
         mouse = pygame.mouse.get_pos()
         for button in buttons:
             button.draw(screen, mouse)
 
-        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(35, 530, 830, 75), border_radius=8)
-        draw_wrapped(screen, status, pygame.Rect(55, 543, 790, 26), 16, TEXT)
+        task = workflow.running_task
+        if task is not None and task.process.poll() is None:
+            draw_text(screen, f"実行中: {task.label}", (575, 525), 15, WARN, True)
+
+        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(35, 580, 990, 135), border_radius=8)
+        draw_text(screen, "Status", (55, 594), 17, ACCENT, True)
+        draw_wrapped(screen, status, pygame.Rect(55, 622, 950, 48), 15, GOOD if status_ok else WARN)
         draw_wrapped(
             screen,
-            "通常プレイヤー向けの run_game.bat / launcher.py には、ここにある開発機能を表示しません。",
-            pygame.Rect(55, 570, 790, 28),
-            14,
+            "EditorsはPlayerが直接読むdata/assetsへ保存します。Validate → Preview → Build → Smokeの順で同じPlayer成果物を確認できます。",
+            pygame.Rect(55, 680, 950, 28),
+            13,
             MUTED,
         )
+
         pygame.display.flip()
         clock.tick(60)
         frames += 1
