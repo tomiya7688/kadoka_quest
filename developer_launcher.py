@@ -24,6 +24,7 @@ DEV_TOOLS = {
     "monster_editor": monster_editor_app.main,
     "data_creator": data_creator_app.main,
 }
+AUTOMATION_FLAGS = {"--validate-project", "--build-player", "--smoke-player-build"}
 
 
 def _source_root() -> Path:
@@ -39,7 +40,6 @@ def _dist_root() -> Path:
 def build_player() -> None:
     source_root = _source_root()
     build_root = PROJECT_ROOT / ("UserData/developer/pyinstaller" if is_frozen() else "build/pyinstaller")
-    runner = in_process_pyinstaller if is_frozen() else None
     kwargs = {
         "source_root": source_root,
         "content_root": PROJECT_ROOT,
@@ -48,8 +48,8 @@ def build_player() -> None:
         "targets": "player",
         "clean": True,
     }
-    if runner is not None:
-        kwargs["runner"] = runner
+    if is_frozen():
+        kwargs["runner"] = in_process_pyinstaller
     outputs = build_distributions(**kwargs)
     for output in outputs:
         print(f"[ok] {output}")
@@ -100,9 +100,13 @@ def main() -> None:
 
 
 def run() -> None:
+    automated = any(flag in sys.argv for flag in AUTOMATION_FLAGS)
     try:
         main()
     except Exception:
+        if automated:
+            print(traceback.format_exc())
+            raise SystemExit(1)
         if getattr(sys, "frozen", False) and "--smoke" in sys.argv:
             error_path = Path(sys.executable).resolve().parent / "smoke-error.txt"
             error_path.write_text(traceback.format_exc(), encoding="utf-8")
