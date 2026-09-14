@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 import sys
 
@@ -9,6 +10,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from kadoka_quest.developer.build_core import build_distributions
+
+
+def developer_bundle_args() -> tuple[str, ...]:
+    return (
+        "--collect-all",
+        "PyInstaller",
+        "--add-data",
+        f"{PROJECT_ROOT / 'launcher.py'}{os.pathsep}player_source",
+        "--add-data",
+        f"{PROJECT_ROOT / 'src'}{os.pathsep}player_source/src",
+    )
 
 
 def main() -> int:
@@ -22,6 +34,7 @@ def main() -> int:
             source_root=PROJECT_ROOT,
             targets=args.targets,
             clean=args.clean,
+            developer_extra_args=developer_bundle_args(),
         )
     except (OSError, RuntimeError) as exc:
         print(f"[failed] {exc}", file=sys.stderr)
