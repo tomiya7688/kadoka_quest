@@ -6,10 +6,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from kadoka_quest.apps import block_editor as block_editor_app
 from kadoka_quest.apps import data_creator as data_creator_app
+from kadoka_quest.apps import game as game_app
 from kadoka_quest.apps import manage as manage_app
 from kadoka_quest.apps import map_editor as map_editor_app
 from kadoka_quest.apps import monster_editor as monster_editor_app
 from kadoka_quest.apps.developer_launcher import main as launcher_main
+from kadoka_quest.developer.build_core import build_distributions, in_process_pyinstaller
+from kadoka_quest.developer.distribution_smoke import smoke_distributions
+from kadoka_quest.developer.project_validator import ProjectValidator
+from kadoka_quest.paths import PROJECT_ROOT, is_frozen
 
 
 DEV_TOOLS = {
@@ -19,6 +24,46 @@ DEV_TOOLS = {
     "monster_editor": monster_editor_app.main,
     "data_creator": data_creator_app.main,
 }
+
+
+def _source_root() -> Path:
+    if is_frozen():
+        return Path(getattr(sys, "_MEIPASS")) / "player_source"
+    return Path(__file__).resolve().parent
+
+
+def _dist_root() -> Path:
+    return PROJECT_ROOT / "dist"
+
+
+def build_player() -> None:
+    source_root = _source_root()
+    build_root = PROJECT_ROOT / ("UserData/developer/pyinstaller" if is_frozen() else "build/pyinstaller")
+    runner = in_process_pyinstaller if is_frozen() else None
+    kwargs = {
+        "source_root": source_root,
+        "content_root": PROJECT_ROOT,
+        "dist_root": _dist_root(),
+        "build_root": build_root,
+        "targets": "player",
+        "clean": True,
+    }
+    if runner is not None:
+        kwargs["runner"] = runner
+    outputs = build_distributions(**kwargs)
+    for output in outputs:
+        print(f"[ok] {output}")
+
+
+def smoke_player_build() -> None:
+    smoke_distributions(_dist_root(), targets="player")
+
+
+def validate_project() -> None:
+    report = ProjectValidator(PROJECT_ROOT / "data", PROJECT_ROOT / "assets").validate()
+    print(report.summary(detail_limit=20))
+    if not report.ok:
+        raise SystemExit(1)
 
 
 def main() -> None:
@@ -34,6 +79,22 @@ def main() -> None:
         except KeyError as exc:
             raise SystemExit(f"unknown developer tool: {tool_name}") from exc
         tool_main()
+        return
+    if "--player-preview" in sys.argv:
+        sys.argv.remove("--player-preview")
+        game_app.main()
+        return
+    if "--validate-project" in sys.argv:
+        sys.argv.remove("--validate-project")
+        validate_project()
+        return
+    if "--build-player" in sys.argv:
+        sys.argv.remove("--build-player")
+        build_player()
+        return
+    if "--smoke-player-build" in sys.argv:
+        sys.argv.remove("--smoke-player-build")
+        smoke_player_build()
         return
     launcher_main()
 
