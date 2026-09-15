@@ -73,18 +73,28 @@ jobs:
         with:
           python-version: "3.10"
           cache: pip
-          cache-dependency-path: pyproject.toml
+          cache-dependency-path: |
+            pyproject.toml
+            tools/upd-commander/requirements.txt
+
+      - name: Install architecture checker
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tools/upd-commander/requirements.txt
 
       - name: Check architecture rules and generated docs
         run: |
           python tools/project-integrity/script/check_project_rules.py
+          python tools/upd-commander/script/check.py
           python tools/code-docs/script/generate_class_diagram.py --source src/kadoka_quest/application --output docs/generated/application_class_diagram.mmd --check
 
       - name: Install project
         run: |
-          python -m pip install --upgrade pip
           python -m pip install .
           python -m pip check
+
+      - name: Check runtime routing performance
+        run: python tools/performance-check/script/check_runtime_performance.py
 
       - name: Validate canonical Player project
         run: python developer_launcher.py --validate-project

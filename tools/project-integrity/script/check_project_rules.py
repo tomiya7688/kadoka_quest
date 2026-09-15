@@ -19,6 +19,7 @@ FORBIDDEN_CORE_IMPORTS = {
 REQUIRED_PATHS = (
     "AGENTS.md",
     "README.md",
+    "docs/CODING_RULES.md",
     "docs/FORMATS.md",
     "docs/context/WORKFLOW.md",
     "launcher.py",
@@ -29,6 +30,10 @@ REQUIRED_PATHS = (
     "src/kadoka_quest/core/battle.py",
     "src/kadoka_quest/data/repository.py",
     "tools/code-docs/script/generate_class_diagram.py",
+    "tools/upd-commander/requirements.txt",
+    "tools/upd-commander/config/path.json",
+    "tools/upd-commander/script/check.py",
+    "tools/performance-check/script/check_runtime_performance.py",
 )
 
 

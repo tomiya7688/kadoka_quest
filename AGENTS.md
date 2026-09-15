@@ -45,6 +45,23 @@ For headless UI tests set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and 
 
 Machine-checkable boundaries belong in tests/CI rather than duplicated prose. Run `python tools/project-integrity/script/check_project_rules.py` when that tool exists on the working branch.
 
+For architecture/responsibility changes, install and run the pinned UPD checker:
+
+```text
+python -m pip install -r tools/upd-commander/requirements.txt
+python tools/upd-commander/script/check.py
+```
+
+UPD errors are blocking. Warnings and attentions are migration guidance and remain non-blocking. `--advisory` may be used only for temporary investigation, not as a completion substitute.
+
+When adding routing/Commander/Messenger/Service layers on a runtime path, also run:
+
+```text
+python tools/performance-check/script/check_runtime_performance.py
+```
+
+Do not add checker or benchmark imports to Player runtime code. Performance-motivated UPD exceptions must be local, rule-specific, and include a reason.
+
 ## Routing
 
 Use `docs/context/ROUTES.md` to choose the next files for battle, field, UI, ranch, simulation, save data, editors, build, architecture, context tooling, and CI tasks.
