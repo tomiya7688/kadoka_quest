@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from kadoka_quest.data.jsonio import read_json
 from kadoka_quest.data.repository import GameRepository
-from kadoka_quest.paths import DATA_ROOT
 
 
 class FieldDataLoader:
@@ -14,9 +13,8 @@ class FieldDataLoader:
     def blocks(self) -> dict[str, dict]:
         return {item["id"]: item for item in self.repository.list_blocks()}
 
-    @staticmethod
-    def _additional_events(map_id: str) -> list[dict]:
-        root = DATA_ROOT / "maps" / str(map_id) / "events"
+    def _additional_events(self, map_id: str) -> list[dict]:
+        root = self.repository.root / "maps" / str(map_id) / "events"
         events: list[dict] = []
         if not root.is_dir():
             return events
