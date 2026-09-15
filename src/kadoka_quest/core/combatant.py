@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from kadoka_quest.core.monster import MonsterRecord
+from kadoka_quest.core.status_effects import status_stat_multiplier
 
 
 @dataclass
@@ -14,6 +15,7 @@ class Combatant:
     resistances: dict[str, str]
     equipment: dict[str, Any] | None = None
     status_effects: list[dict[str, Any] | str] = field(default_factory=list)
+    status_resistances: dict[str, str] = field(default_factory=dict)
     hp: int = 0
     mp: int = 0
     guard: float = 1.0
@@ -43,4 +45,10 @@ class Combatant:
 
     @property
     def speed(self) -> int:
-        return max(1, int(self.stats["speed"] * self.speed_multiplier))
+        status_multiplier = status_stat_multiplier(self.status_effects, "speed")
+        return max(1, int(self.stats["speed"] * self.speed_multiplier * status_multiplier))
+
+    @property
+    def defense(self) -> int:
+        status_multiplier = status_stat_multiplier(self.status_effects, "defense")
+        return max(0, int(self.stats["defense"] * status_multiplier))

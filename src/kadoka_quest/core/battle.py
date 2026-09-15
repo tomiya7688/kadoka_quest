@@ -8,6 +8,12 @@ from kadoka_quest.core.battle_learning import BattleLearning
 from kadoka_quest.core.battle_context import describe_battle_context
 from kadoka_quest.core.combatant import Combatant
 from kadoka_quest.core.monster import MonsterRecord
+from kadoka_quest.core.status_effects import (
+    end_turn_status_damage,
+    has_status,
+    status_apply_chance,
+    status_effect_id,
+)
 from kadoka_quest.data.battle_data import BattleDataLoader
 from kadoka_quest.data.repository import GameRepository
 
@@ -81,6 +87,47 @@ class BattleEngine:
         index, effect = candidate
         del target.status_effects[index]
         return self._status_display_name(effect)
+
+    def _try_apply_status(self, target: Combatant, effect: dict[str, Any]) -> bool:
+        status_id = str(effect.get("id", "")).strip()
+        if not status_id or has_status(target.status_effects, status_id):
+            return False
+
+        base_chance = max(0.0, float(effect.get("chance", 0.0)))
+        if base_chance <= 0.0:
+            return False
+        resistance = str(target.status_resistances.get(status_id, "normal"))
+        chance = status_apply_chance(base_chance, resistance)
+        display_name = str(effect.get("display_name") or status_id)
+        if chance <= 0.0:
+            self.log.append(f"{target.name}には{display_name}が効かなかった。")
+            return False
+        if self.rng.random() >= chance:
+            return False
+
+        applied = dict(effect)
+        applied.pop("chance", None)
+        applied["id"] = status_id
+        applied.setdefault("display_name", display_name)
+        applied.setdefault("removable", True)
+        target.status_effects.append(applied)
+        self.log.append(f"{target.name}は{display_name}状態になった。")
+        return True
+
+    def _tick_end_turn_status(self, target: Combatant) -> None:
+        if not target.alive:
+            return
+        for effect in list(target.status_effects):
+            damage = end_turn_status_damage(effect, target.stats["hp"])
+            if damage <= 0:
+                continue
+            before = target.hp
+            target.hp = max(0, target.hp - damage)
+            dealt = before - target.hp
+            if dealt > 0:
+                self.log.append(f"{target.name}は{self._status_display_name(effect)}で{dealt}ダメージ。")
+            if not target.alive:
+                break
 
     def _buff_duration(self, skill: dict[str, Any]) -> int | None:
         raw = skill.get("duration")
@@ -205,6 +252,11 @@ class BattleEngine:
             self._check_end()
             if self.outcome:
                 break
+
+        if not self.outcome:
+            for member in self.allies + self.enemies:
+                self._tick_end_turn_status(member)
+            self._check_end()
 
         for member in self.allies + self.enemies:
             member.guard = 1.0
@@ -369,7 +421,7 @@ class BattleEngine:
                 damage = int(attack * power)
                 self.log.append("会心！相手の防御力を無視した！")
             else:
-                damage = int(attack * power - target.stats["defense"] * 0.42)
+                damage = int(attack * power - target.defense * 0.42)
 
         if actor.equipment and not (resistance_blocks_effect or resistance_absorbs):
             damage += int(actor.equipment.get("fixed_bonus_damage", 0))
@@ -403,6 +455,10 @@ class BattleEngine:
                 self.log.append(f"{actor.name}の{skill['display_name']}。{target.name}のMPを{drained}奪った。")
         elif not (resistance_blocks_effect or resistance_absorbs):
             self.log.append(f"{actor.name}の{skill['display_name']}。{target.name}に{dealt}ダメージ。")
+
+        status_effect = skill.get("status_effect")
+        if dealt > 0 and target.alive and isinstance(status_effect, dict):
+            self._try_apply_status(target, status_effect)
 
         if allow_counter:
             self._resolve_counter(target, actor, skill, dealt)
