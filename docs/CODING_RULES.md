@@ -115,11 +115,15 @@ python -m pip install -r tools/upd-commander/requirements.txt
 python tools/upd-commander/script/check.py
 ```
 
-既存コードにはUPD導入以前の責務集中が残るため、通常CIでは全規則を検出しつつadvisoryとして表示する。段階的な責務分離や新規Applicationの検証ではstrict実行を利用できる。
+標準実行ではUPDのErrorを失敗扱いとする。WarningとAttentionは、既存の責務集中やContainer化候補を段階的に解消するための移行情報として表示するが、通常CIは失敗させない。
+
+一時的な調査だけでErrorを非blocking表示したい場合は次を使用できる。
 
 ```text
-python tools/upd-commander/script/check.py --strict
+python tools/upd-commander/script/check.py --advisory
 ```
+
+`--advisory` は完了判定の代替には使用しない。
 
 UPD checkerの指摘を避ける目的だけで形式的なCommander / Messenger / Serviceを増やしてはならない。分離により呼び出し回数・アロケーション・変換処理がホットパスで増える場合は、既存の単純な経路を優先してよい。
 
