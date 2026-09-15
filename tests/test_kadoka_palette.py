@@ -87,11 +87,12 @@ class KadokaPaletteTests(unittest.TestCase):
             source_path = root / "input.png"
             pygame.image.save(self.make_multicolor_surface(), str(source_path))
 
-            editor = PixelArtEditor(
-                asset_root,
+            editor = PixelArtEditor(asset_root)
+            editor.load_targets(
                 (PixelTarget("portrait", "戦闘立ち絵", "characters/test/portrait.png", 64),),
+                selected="portrait",
+                kadoka_palette_limit=5,
             )
-            editor.images["portrait"] = pygame.Surface((64, 64), pygame.SRCALPHA)
 
             editor.import_image(str(source_path), tolerance=24)
             self.assertLessEqual(editor.visible_color_count(), 5)
