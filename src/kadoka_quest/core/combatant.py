@@ -22,6 +22,8 @@ class Combatant:
     speed_multiplier: float = 1.0
     attack_multiplier: float = 1.0
     physical_locked: int = 0
+    counter_ready: bool = False
+    protect_ally: bool = False
     action_history: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
