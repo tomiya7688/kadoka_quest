@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "fixed_mob": {
+    "id": "elder",
+    "species_id": "hero",
+    "name": "長老",
+    "x": 10,
+    "y": 8,
+    "interaction": "talk",
+    "dialogue": [
+      "森の様子が気になるな。"
+    ],
+    "dialogue_rules": [
+      {
+        "id": "after_rescue",
+        "lines": [
+          "助けてくれてありがとう。",
+          "村のみんなも安心しています。"
+        ],
+        "conditions": [
+          {
+            "flag": "story.greenwood.rescued_child",
+            "equals": true
+          }
+        ],
+        "effects": [
+          {
+            "type": "set_flag",
+            "flag": "npc.starting_town.elder.thanked_player",
+            "value": true
+          }
+        ],
+        "once": true
+      },
+      {
+        "id": "before_rescue",
+        "lines": [
+          "森へ行った子どもが戻ってこないんだ。"
+        ],
+        "conditions": [],
+        "effects": [],
+        "once": false
+      }
+    ]
+  }
+}
