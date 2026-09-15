@@ -20,6 +20,7 @@ RESISTANCE_MULTIPLIER = {
     "weak": 1.4,
 }
 NORMAL_ATTACK_CRITICAL_CHANCE = 1 / 16
+MULTI_TARGET_MARKERS = {"all", "all_enemies", "all_foes", "enemies", "foes"}
 
 
 class BattleEngine:
@@ -101,6 +102,54 @@ class BattleEngine:
             setattr(target, attribute, baseline)
             del target.timed_buff_turns[attribute]
 
+    @staticmethod
+    def _is_single_target_attack(skill: dict[str, Any]) -> bool:
+        if bool(skill.get("aoe")) or bool(skill.get("target_all")) or bool(skill.get("all_targets")):
+            return False
+        return str(skill.get("target", "single")) not in MULTI_TARGET_MARKERS
+
+    def _resolve_attack_target(
+        self,
+        intended: Combatant,
+        defenders: list[Combatant],
+        skill: dict[str, Any],
+    ) -> Combatant:
+        if not self._is_single_target_attack(skill):
+            return intended
+        protector = next(
+            (
+                member
+                for member in defenders
+                if member.alive and member.protect_ally and member is not intended
+            ),
+            None,
+        )
+        if protector is None:
+            return intended
+        self.log.append(f"{protector.name}が{intended.name}をかばった。")
+        return protector
+
+    @staticmethod
+    def _counter_skill(actor: Combatant) -> dict[str, Any] | None:
+        return next((skill for skill in actor.skills if str(skill.get("id")) == "attack"), None)
+
+    def _resolve_counter(
+        self,
+        defender: Combatant,
+        attacker: Combatant,
+        incoming_skill: dict[str, Any],
+        dealt: int,
+    ) -> None:
+        if dealt <= 0 or not defender.alive or not attacker.alive:
+            return
+        if not defender.counter_ready or not self._is_single_target_attack(incoming_skill):
+            return
+        counter_skill = self._counter_skill(defender)
+        if counter_skill is None:
+            return
+        self.log.append(f"{defender.name}が反撃！")
+        self._attack(defender, attacker, counter_skill, allow_counter=False)
+
     def _check_end(self) -> None:
         if not self._living(self.enemies):
             self.outcome = "victory"
@@ -133,6 +182,8 @@ class BattleEngine:
             member.evade_physical = False
             member.evade_physical_source = None
             member.evade_element = None
+            member.counter_ready = False
+            member.protect_ally = False
             if member.physical_locked:
                 member.physical_locked -= 1
             self._tick_timed_buffs(member)
@@ -171,7 +222,8 @@ class BattleEngine:
         actor.action_history.append(str(chosen["id"]))
 
         if kind in {"physical", "magic", "drain_mp", "random"}:
-            target = min(foes, key=lambda item: item.hp / item.stats["hp"])
+            intended = min(foes, key=lambda item: item.hp / item.stats["hp"])
+            target = self._resolve_attack_target(intended, foes, chosen)
             reward = self._attack(actor, target, chosen)
         elif kind == "heal":
             target = min(friends, key=lambda item: item.hp / item.stats["hp"])
@@ -182,8 +234,15 @@ class BattleEngine:
             self.log.append(f"{actor.name}の{chosen['display_name']}。{target.name}が{target.hp - before}回復。")
         elif kind == "defend":
             actor.guard = float(chosen.get("damage_multiplier", 0.5))
+            actor.counter_ready = bool(chosen.get("counter", False))
+            actor.protect_ally = bool(chosen.get("protect_ally", False))
             reward = 0.1
-            self.log.append(f"{actor.name}は防御した。")
+            if actor.counter_ready:
+                self.log.append(f"{actor.name}は反撃のかまえをとった。")
+            elif actor.protect_ally:
+                self.log.append(f"{actor.name}は味方をかばう構えに入った。")
+            else:
+                self.log.append(f"{actor.name}は防御した。")
         elif kind == "evade":
             actor.evade_physical = bool(chosen.get("physical", False))
             actor.evade_physical_source = str(chosen.get("id")) if actor.evade_physical else None
@@ -222,7 +281,14 @@ class BattleEngine:
         if self.learning_enabled:
             self.learning.learn(actor.record.ai, str(chosen["id"]), reward, context_tags)
 
-    def _attack(self, actor: Combatant, target: Combatant, skill: dict[str, Any]) -> float:
+    def _attack(
+        self,
+        actor: Combatant,
+        target: Combatant,
+        skill: dict[str, Any],
+        *,
+        allow_counter: bool = True,
+    ) -> float:
         kind = str(skill.get("kind"))
         actual_kind = kind
         power = float(skill.get("power", 1.0))
@@ -304,6 +370,9 @@ class BattleEngine:
                 self.log.append(f"{actor.name}の{skill['display_name']}。{target.name}のMPを{drained}奪った。")
         elif not (resistance_blocks_effect or resistance_absorbs):
             self.log.append(f"{actor.name}の{skill['display_name']}。{target.name}に{dealt}ダメージ。")
+
+        if allow_counter:
+            self._resolve_counter(target, actor, skill, dealt)
 
         if not target.alive:
             message = self.data_loader.species_definition(target.record.species_id).get("defeat_message")
