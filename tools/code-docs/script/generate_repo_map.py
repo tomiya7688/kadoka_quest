@@ -72,6 +72,13 @@ def _markdown_code(value: str) -> str:
     return f"`{value.replace('|', '&#124;')}`"
 
 
+def display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def render_repo_map(source_root: Path) -> str:
     rows: list[tuple[str, list[str]]] = []
     for path in sorted(source_root.rglob("*.py")):
@@ -109,14 +116,14 @@ def main() -> int:
 
     if args.check:
         if not output.exists() or output.read_text(encoding="utf-8") != content:
-            print(f"stale generated document: {output.relative_to(REPO_ROOT)}")
+            print(f"stale generated document: {display_path(output)}")
             return 1
         print("generated repo map is current")
         return 0
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content, encoding="utf-8")
-    print(f"generated: {output.relative_to(REPO_ROOT)}")
+    print(f"generated: {display_path(output)}")
     return 0
 
 
