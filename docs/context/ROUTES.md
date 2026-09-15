@@ -1,6 +1,6 @@
 # Context routes
 
-Read only the route that matches the assigned Issue. The Issue remains the source of truth for scope and acceptance. Open additional files only when the listed starting set is insufficient.
+Use this file when you only need the smallest first-hop route for an assigned Issue. Use `docs/CODEMAP.md` when you also need the preferred tests and contract/specification for that area. The Issue remains the source of truth for scope and acceptance.
 
 | Task area | Read first | Expand only when needed |
 |---|---|---|
@@ -33,4 +33,4 @@ Paths under `apps/`, `core/`, `data/`, `developer/`, and `ui/` are relative to `
 
 ## Stop rule
 
-Stop reading when Goal / Required / Acceptance are clear and the files required to change and validate them are known. Generated diagrams and import maps are routing aids, not source-of-truth replacements.
+Stop reading when Goal / Required / Acceptance are clear and the files required to change and validate them are known. If an exact class/function is still unclear, generate/read `docs/generated/REPO_MAP.md`; do not open unrelated source files merely to browse.
