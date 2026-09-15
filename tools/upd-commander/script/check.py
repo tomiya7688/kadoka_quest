@@ -14,9 +14,9 @@ TARGET = REPO_ROOT / "src" / "kadoka_quest"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the pinned UPD Commander checker for Kadoka Quest.")
     parser.add_argument(
-        "--strict",
+        "--advisory",
         action="store_true",
-        help="Fail on UPD checker findings. Default mode reports existing findings without failing CI.",
+        help="Report UPD errors without failing. Warnings and attentions are already non-blocking.",
     )
     return parser
 
@@ -45,15 +45,12 @@ def main() -> int:
     if error_output:
         print(error_output, file=sys.stderr)
 
-    if result.returncode == 0:
-        return 0
-    if result.returncode == 2:
-        return 2
-    if args.strict:
+    if result.returncode in {0, 2}:
         return result.returncode
-
-    print("ADVISORY existing UPD findings are reported but do not block CI yet")
-    return 0
+    if args.advisory:
+        print("ADVISORY UPD errors were reported but are temporarily non-blocking")
+        return 0
+    return result.returncode
 
 
 if __name__ == "__main__":
