@@ -6,7 +6,14 @@ from typing import Iterable
 
 import pygame
 
-from kadoka_quest.ui.pixel_operations import fit_imported_image, flood_fill_copy, reduce_similar_colors
+from kadoka_quest.ui.pixel_operations import (
+    KADOKA_PALETTE,
+    fit_imported_image,
+    flood_fill_copy,
+    opaque_color_count,
+    reduce_similar_colors,
+    reduce_to_kadoka_palette,
+)
 
 
 @dataclass(frozen=True)
@@ -26,12 +33,7 @@ MONSTER_VISUAL_SLOTS = (
 )
 VISUAL_SLOTS = MONSTER_VISUAL_SLOTS
 
-PALETTE = (
-    (0, 0, 0, 0), (0, 0, 0, 255), (255, 255, 255, 255),
-    (214, 214, 214, 255), (156, 156, 156, 255), (85, 85, 85, 255),
-    (255, 110, 110, 255), (255, 205, 90, 255), (100, 210, 255, 255),
-    (120, 220, 140, 255),
-)
+PALETTE = KADOKA_PALETTE
 ZOOM_LEVELS = (0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0)
 TOOL_MODES = ("pen", "fill", "pan")
 UNDO_LIMIT = 50
@@ -337,9 +339,10 @@ class PixelArtEditor:
         except (OSError, pygame.error) as error:
             raise ValueError("画像ファイルを読み込めませんでした。") from error
         fitted = fit_imported_image(source, self.logical_size)
-        reduced, changed = reduce_similar_colors(fitted, tolerance)
-        self._replace_selected_image(reduced)
-        return changed
+        similar_reduced, similar_changed = reduce_similar_colors(fitted, tolerance)
+        palette_reduced, palette_changed, _ = reduce_to_kadoka_palette(similar_reduced, 5)
+        self._replace_selected_image(palette_reduced)
+        return similar_changed + palette_changed
 
     def merge_similar_colors(self, tolerance: int = 24) -> int:
         if not self.selected:
@@ -348,6 +351,19 @@ class PixelArtEditor:
         if changed:
             self._replace_selected_image(reduced)
         return changed
+
+    def reduce_to_kadoka_colors(self, max_colors: int) -> tuple[int, int]:
+        if not self.selected:
+            return 0, 0
+        reduced, changed, _ = reduce_to_kadoka_palette(self.images[self.selected], max_colors)
+        if changed:
+            self._replace_selected_image(reduced)
+        return changed, opaque_color_count(reduced)
+
+    def visible_color_count(self) -> int:
+        if not self.selected:
+            return 0
+        return opaque_color_count(self.images[self.selected])
 
     @staticmethod
     def draw_checker(surface: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
