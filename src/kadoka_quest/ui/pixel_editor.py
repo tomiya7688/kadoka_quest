@@ -6,7 +6,14 @@ from typing import Iterable
 
 import pygame
 
-from kadoka_quest.ui.pixel_operations import fit_imported_image, flood_fill_copy, reduce_similar_colors
+from kadoka_quest.ui.pixel_operations import (
+    KADOKA_PALETTE,
+    fit_imported_image,
+    flood_fill_copy,
+    opaque_color_count,
+    reduce_similar_colors,
+    reduce_to_kadoka_palette,
+)
 
 
 @dataclass(frozen=True)
@@ -26,12 +33,7 @@ MONSTER_VISUAL_SLOTS = (
 )
 VISUAL_SLOTS = MONSTER_VISUAL_SLOTS
 
-PALETTE = (
-    (0, 0, 0, 0), (0, 0, 0, 255), (255, 255, 255, 255),
-    (214, 214, 214, 255), (156, 156, 156, 255), (85, 85, 85, 255),
-    (255, 110, 110, 255), (255, 205, 90, 255), (100, 210, 255, 255),
-    (120, 220, 140, 255),
-)
+PALETTE = KADOKA_PALETTE
 ZOOM_LEVELS = (0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0)
 TOOL_MODES = ("pen", "fill", "pan")
 UNDO_LIMIT = 50
@@ -58,6 +60,7 @@ class PixelArtEditor:
         self._stroke_active = False
         self._stroke_slot = ""
         self._stroke_changed = False
+        self.kadoka_palette_limit: int | None = None
         self.set_targets(targets)
 
     @property
@@ -80,6 +83,7 @@ class PixelArtEditor:
         self.images.clear()
         self.dirty.clear()
         self.undo_stacks = {target.key: [] for target in values}
+        self.kadoka_palette_limit = None
         self.end_stroke()
         self.end_pan()
         self.reset_zoom()
@@ -89,8 +93,10 @@ class PixelArtEditor:
         targets: Iterable[PixelTarget],
         body_color: tuple[int, int, int] = (128, 128, 128),
         selected: str | None = None,
+        kadoka_palette_limit: int | None = None,
     ) -> None:
         self.set_targets(targets)
+        self.kadoka_palette_limit = kadoka_palette_limit
         for target in self.targets.values():
             path = self.asset_root / target.path
             try:
@@ -117,10 +123,14 @@ class PixelArtEditor:
         except ValueError:
             body_color = (128, 128, 128)
         targets = (PixelTarget(slot, label, paths[slot], 64) for slot, label, _ in MONSTER_VISUAL_SLOTS)
-        self.load_targets(targets, body_color, selected="front")
+        self.load_targets(targets, body_color, selected="front", kadoka_palette_limit=5)
 
     def load_block(self, relative_path: str, body_color: tuple[int, int, int] = (128, 128, 128)) -> None:
-        self.load_targets((PixelTarget("appearance", "ブロック見た目", relative_path, 64),), body_color)
+        self.load_targets(
+            (PixelTarget("appearance", "ブロック見た目", relative_path, 64),),
+            body_color,
+            kadoka_palette_limit=5,
+        )
 
     @staticmethod
     def _fit(source: pygame.Surface, size: int) -> pygame.Surface:
@@ -338,6 +348,9 @@ class PixelArtEditor:
             raise ValueError("画像ファイルを読み込めませんでした。") from error
         fitted = fit_imported_image(source, self.logical_size)
         reduced, changed = reduce_similar_colors(fitted, tolerance)
+        if self.kadoka_palette_limit is not None:
+            reduced, palette_changed, _ = reduce_to_kadoka_palette(reduced, self.kadoka_palette_limit)
+            changed += palette_changed
         self._replace_selected_image(reduced)
         return changed
 
@@ -348,6 +361,19 @@ class PixelArtEditor:
         if changed:
             self._replace_selected_image(reduced)
         return changed
+
+    def reduce_to_kadoka_colors(self, max_colors: int) -> tuple[int, int]:
+        if not self.selected:
+            return 0, 0
+        reduced, changed, _ = reduce_to_kadoka_palette(self.images[self.selected], max_colors)
+        if changed:
+            self._replace_selected_image(reduced)
+        return changed, opaque_color_count(reduced)
+
+    def visible_color_count(self) -> int:
+        if not self.selected:
+            return 0
+        return opaque_color_count(self.images[self.selected])
 
     @staticmethod
     def draw_checker(surface: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
