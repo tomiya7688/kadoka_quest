@@ -20,6 +20,7 @@ class SimulationManager:
         )
         self.records = []
         self.selected = 0
+        self.offset = 0
         self.opponents: list[str] = []
         self.species_ids = list(self.repository.list_species_ids())
         self.species_index = 0
@@ -34,6 +35,11 @@ class SimulationManager:
         if current:
             self.selected = next((i for i, record in enumerate(self.records) if record.monster_id == current), 0)
         self.selected = max(0, min(self.selected, max(0, len(self.records) - 1)))
+        self.offset = max(0, min(self.offset, max(0, len(self.records) - 10)))
+        if self.selected < self.offset:
+            self.offset = self.selected
+        elif self.selected >= self.offset + 10:
+            self.offset = max(0, self.selected - 9)
 
     @property
     def selected_record(self):
@@ -60,6 +66,7 @@ class SimulationManager:
             return
         self.refresh()
         self.selected = next((i for i, item in enumerate(self.records) if item.monster_id == record.monster_id), 0)
+        self.refresh()
         self.status = f"{record.name} Lv{record.level} を模擬戦専用個体として作成しました。"
 
     def import_external(self) -> None:
@@ -146,11 +153,13 @@ def main() -> None:
             for button in buttons:
                 handled = button.handle(event) or handled
             if not handled and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for row, _ in enumerate(manager.records[:10]):
-                    rect = pygame.Rect(25, 105 + row * 50, 390, 43)
+                for row, _ in enumerate(manager.records[manager.offset:manager.offset + 10]):
+                    rect = pygame.Rect(25, 125 + row * 48, 390, 41)
                     if rect.collidepoint(event.pos):
-                        manager.selected = row
+                        manager.selected = manager.offset + row
                         break
+            if event.type == pygame.MOUSEWHEEL and pygame.mouse.get_pos()[0] < 430:
+                manager.offset = max(0, min(max(0, len(manager.records) - 10), manager.offset - event.y))
 
         screen.fill(BG)
         draw_text(screen, "模擬戦受付", (24, 22), 34, ACCENT, True)
@@ -158,9 +167,10 @@ def main() -> None:
 
         pygame.draw.rect(screen, PANEL, pygame.Rect(15, 82, 415, 560), border_radius=10)
         draw_text(screen, f"模擬戦専用個体 {len(manager.records)}体", (25, 92), 18, ACCENT, True)
-        for row, record in enumerate(manager.records[:10]):
+        for row, record in enumerate(manager.records[manager.offset:manager.offset + 10]):
+            index = manager.offset + row
             rect = pygame.Rect(25, 125 + row * 48, 390, 41)
-            selected = row == manager.selected
+            selected = index == manager.selected
             pygame.draw.rect(screen, SELECTED if selected else PANEL_ALT, rect, border_radius=6)
             marker = "★" if record.monster_id in manager.opponents else " "
             draw_text(screen, f"{marker} {record.name}", (rect.x + 10, rect.y + 6), 16, GOOD if marker == "★" else TEXT, True)
