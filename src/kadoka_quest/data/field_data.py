@@ -23,7 +23,10 @@ class FieldDataLoader:
                 payload = read_json(path)
             except (OSError, ValueError):
                 continue
-            values = payload.get("events") if isinstance(payload.get("events"), list) else [payload]
+            if not isinstance(payload, dict):
+                continue
+            embedded = payload.get("events")
+            values = embedded if isinstance(embedded, list) else [payload]
             events.extend(dict(event) for event in values if isinstance(event, dict) and event.get("id"))
         return events
 
