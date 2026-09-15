@@ -24,8 +24,21 @@ class SimulationRosterService:
     def list_records(self) -> list[MonsterRecord]:
         return self.store.list_records()
 
-    def create(self, species_id: str, *, level: int = 1, name: str | None = None) -> MonsterRecord:
-        return self.store.create(species_id, name=name, level=level, source="simulation")
+    def create(
+        self,
+        species_id: str,
+        *,
+        level: int = 1,
+        name: str | None = None,
+        monster_id: str | None = None,
+    ) -> MonsterRecord:
+        return self.store.create(
+            species_id,
+            name=name,
+            level=level,
+            source="simulation",
+            monster_id=monster_id,
+        )
 
     def delete(self, monster_id: str) -> None:
         self.store.delete(monster_id)
@@ -77,8 +90,13 @@ class SimulationRosterService:
             data = read_json(self.request_path)
         finally:
             self.request_path.unlink(missing_ok=True)
+        if not isinstance(data, dict):
+            return []
         result: list[MonsterRecord] = []
-        for monster_id in data.get("opponents", [])[:4]:
+        opponents = data.get("opponents", [])
+        if not isinstance(opponents, list):
+            return result
+        for monster_id in opponents[:4]:
             record = self.store.get(str(monster_id))
             if record is not None:
                 result.append(record)
