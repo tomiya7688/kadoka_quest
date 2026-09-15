@@ -12,7 +12,7 @@ Current tools:
 - `sample-data`: regenerates bundled sample JSON data.
 - `code-docs`: AST-based code-derived documentation. `script/generate_class_diagram.py` generates or checks Mermaid class diagrams without reading implementation bodies into agent context. CI tracks the compact application-layer diagram under `docs/generated/application_class_diagram.mmd`.
 - `project-integrity`: checks machine-enforceable architecture rules such as the pygame/file-I/O-free `core/` boundary and required project entry paths, with concise failure output.
-- `upd-commander`: runs the pinned Python checker from `tomiya7688/upd-commander-base-design`. Normal mode reports all UPD findings without turning existing migration debt into CI failures; `script/check.py --strict` passes through checker failures for focused architecture work.
+- `upd-commander`: runs the pinned Python checker from `tomiya7688/upd-commander-base-design`. UPD errors are blocking; warnings and attentions remain visible migration guidance. `script/check.py --advisory` is available only for temporary investigation.
 - `performance-check`: runs short runtime-routing microbenchmarks for `AppCommand`, plain payload validation, `CommandBus` dispatch, and command creation+dispatch. It is development/CI-only and is never imported by Player runtime.
 - `task-workflow`: small task-selection helpers. `script/start_task.bat` returns only the oldest open Issue at the highest available priority (`critical -> high -> medium -> low`) instead of scanning the full Issue list.
 
@@ -21,7 +21,7 @@ UPD checker setup and execution:
 ```text
 python -m pip install -r tools/upd-commander/requirements.txt
 python tools/upd-commander/script/check.py
-python tools/upd-commander/script/check.py --strict
+python tools/upd-commander/script/check.py --advisory
 ```
 
 Runtime performance check:
