@@ -60,6 +60,7 @@ class PixelArtEditor:
         self._stroke_active = False
         self._stroke_slot = ""
         self._stroke_changed = False
+        self.kadoka_palette_limit: int | None = None
         self.set_targets(targets)
 
     @property
@@ -82,6 +83,7 @@ class PixelArtEditor:
         self.images.clear()
         self.dirty.clear()
         self.undo_stacks = {target.key: [] for target in values}
+        self.kadoka_palette_limit = None
         self.end_stroke()
         self.end_pan()
         self.reset_zoom()
@@ -91,8 +93,10 @@ class PixelArtEditor:
         targets: Iterable[PixelTarget],
         body_color: tuple[int, int, int] = (128, 128, 128),
         selected: str | None = None,
+        kadoka_palette_limit: int | None = None,
     ) -> None:
         self.set_targets(targets)
+        self.kadoka_palette_limit = kadoka_palette_limit
         for target in self.targets.values():
             path = self.asset_root / target.path
             try:
@@ -119,10 +123,14 @@ class PixelArtEditor:
         except ValueError:
             body_color = (128, 128, 128)
         targets = (PixelTarget(slot, label, paths[slot], 64) for slot, label, _ in MONSTER_VISUAL_SLOTS)
-        self.load_targets(targets, body_color, selected="front")
+        self.load_targets(targets, body_color, selected="front", kadoka_palette_limit=5)
 
     def load_block(self, relative_path: str, body_color: tuple[int, int, int] = (128, 128, 128)) -> None:
-        self.load_targets((PixelTarget("appearance", "ブロック見た目", relative_path, 64),), body_color)
+        self.load_targets(
+            (PixelTarget("appearance", "ブロック見た目", relative_path, 64),),
+            body_color,
+            kadoka_palette_limit=5,
+        )
 
     @staticmethod
     def _fit(source: pygame.Surface, size: int) -> pygame.Surface:
@@ -339,10 +347,12 @@ class PixelArtEditor:
         except (OSError, pygame.error) as error:
             raise ValueError("画像ファイルを読み込めませんでした。") from error
         fitted = fit_imported_image(source, self.logical_size)
-        similar_reduced, similar_changed = reduce_similar_colors(fitted, tolerance)
-        palette_reduced, palette_changed, _ = reduce_to_kadoka_palette(similar_reduced, 5)
-        self._replace_selected_image(palette_reduced)
-        return similar_changed + palette_changed
+        reduced, changed = reduce_similar_colors(fitted, tolerance)
+        if self.kadoka_palette_limit is not None:
+            reduced, palette_changed, _ = reduce_to_kadoka_palette(reduced, self.kadoka_palette_limit)
+            changed += palette_changed
+        self._replace_selected_image(reduced)
+        return changed
 
     def merge_similar_colors(self, tolerance: int = 24) -> int:
         if not self.selected:
