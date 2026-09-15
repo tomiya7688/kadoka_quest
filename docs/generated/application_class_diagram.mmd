@@ -1,0 +1,15 @@
+classDiagram
+    class AppCommand {
+        +__post_init__()
+    }
+    class CommandBus {
+        +__init__()
+        +register()
+        +dispatch()
+    }
+    class RuntimeOrchestrator {
+        +__init__()
+        +transition_to()
+        +dispatch()
+        +apply_field_effect()
+    }
