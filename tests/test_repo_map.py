@@ -45,6 +45,18 @@ def test_repo_map_is_deterministic_and_signature_only() -> None:
     assert "_private_helper" not in first
 
 
+def test_repo_map_can_index_the_real_package() -> None:
+    generator = load_generator()
+    content = generator.render_repo_map(ROOT / "src" / "kadoka_quest")
+
+    assert "`core/battle.py`" in content
+    assert "class BattleEngine" in content
+    assert "`data/repository.py`" in content
+    assert "class GameRepository" in content
+    assert "`application/runtime_orchestrator.py`" in content
+    assert len(content.encode("utf-8")) < 50000
+
+
 def test_codemap_points_to_generated_symbol_map() -> None:
     content = (ROOT / "docs" / "CODEMAP.md").read_text(encoding="utf-8")
 
