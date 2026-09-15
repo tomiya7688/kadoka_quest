@@ -274,7 +274,8 @@ class MonsterEditor:
         except ValueError as error:
             self.status = str(error)
             return
-        self.status = f"画像を64×64内へ読み込み、近似色を{changed}ピクセル統合しました。"
+        count = self.visuals.visible_color_count()
+        self.status = f"画像を64×64・基本パレット{count}色へ変換しました（変更 {changed}px）。"
 
     def merge_visual_colors(self) -> None:
         try:
@@ -284,6 +285,10 @@ class MonsterEditor:
             return
         changed = self.visuals.merge_similar_colors(tolerance)
         self.status = f"近似色を{changed}ピクセル統合しました。"
+
+    def reduce_visual_palette(self, max_colors: int) -> None:
+        changed, count = self.visuals.reduce_to_kadoka_colors(max_colors)
+        self.status = f"Kadoka基本パレットの最大{max_colors}色へ減色しました（現在{count}色・変更{changed}px）。"
 
 
 def draw_checker(screen: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
@@ -322,9 +327,9 @@ def draw_visual_editor(screen: pygame.Surface, editor: MonsterEditor) -> None:
         pygame.draw.rect(screen, ACCENT if color == editor.visuals.brush else MUTED, rect, 3, border_radius=5)
     editor.palette_color_field.draw(screen, "追加する色")
     size = editor.visuals.logical_size
-    draw_text(screen, f"表示倍率: {editor.visuals.zoom_percent}%", (805, 578), 15, WARN, True)
-    draw_text(screen, f"編集中: {size}×{size}px（保存時もこの解像度）", (805, 600), 15, ACCENT, True)
-    draw_text(screen, "画像はPNGとして保存され、ゲームへすぐ反映されます。", (805, 630), 15, MUTED)
+    draw_text(screen, "基本パレットへ減色", (805, 570), 15, MUTED, True)
+    draw_text(screen, f"現在 {editor.visuals.visible_color_count()}色", (805, 635), 15, TEXT, True)
+    draw_text(screen, f"表示倍率: {editor.visuals.zoom_percent}% / {size}×{size}px", (805, 658), 15, ACCENT, True)
     editor.image_path_field.draw(screen, "読み込む画像パス")
     editor.color_tolerance_field.draw(screen, "色差")
 
@@ -415,6 +420,9 @@ def main() -> None:
         Button(pygame.Rect(1055, 525, 105, 38), "選択色削除", editor.remove_palette_color),
         Button(pygame.Rect(605, 690, 100, 45), "画像読込", editor.import_visual_image),
         Button(pygame.Rect(712, 690, 73, 45), "色統合", editor.merge_visual_colors),
+        Button(pygame.Rect(805, 590, 100, 34), "3色", lambda: editor.reduce_visual_palette(3)),
+        Button(pygame.Rect(915, 590, 100, 34), "4色", lambda: editor.reduce_visual_palette(4)),
+        Button(pygame.Rect(1025, 590, 100, 34), "5色", lambda: editor.reduce_visual_palette(5)),
     ]
     species_scroll = ScrollBar(pygame.Rect(288, 120, 8, 540), total=len(editor.species_ids), page=10)
     available_scroll = ScrollBar(pygame.Rect(559, 135, 8, SKILL_ROWS * 50 - 6), total=len(editor.repository.get_skills()), page=SKILL_ROWS)
@@ -616,4 +624,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
