@@ -26,6 +26,9 @@
     "mental": "weak",
     "paralysis": "weak"
   },
+  "status_resistances": {
+    "bleeding": "immune"
+  },
   "defeat_message": null,
   "portrait_path": "characters/metal_slime/portrait.png",
   "field_sprite_path": "characters/metal_slime/field_front.png",
