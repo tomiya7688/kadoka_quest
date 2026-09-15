@@ -145,7 +145,7 @@ class BuffDurationTests(unittest.TestCase):
         self.assertEqual(target.speed_multiplier, 1.5)
         self.assertEqual(target.timed_buff_turns["speed_multiplier"], 6)
 
-    def test_durationless_attack_buff_keeps_existing_until-next-attack_behavior(self) -> None:
+    def test_durationless_attack_buff_keeps_existing_until_next_attack_behavior(self) -> None:
         engine = make_engine([])
         caster = make_combatant("caster", [CHEER])
         target = make_combatant("target", [ATTACK])
