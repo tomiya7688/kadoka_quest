@@ -46,6 +46,7 @@ def ensure_runtime_directories() -> None:
         SAVE_ROOT / "monsters",
         SAVE_ROOT / "parties",
         SAVE_ROOT / "items",
+        SAVE_ROOT / "simulation",
         IMPORT_ROOT / "acquire",
         IMPORT_ROOT / "simulation",
     ):
