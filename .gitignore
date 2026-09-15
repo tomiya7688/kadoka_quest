@@ -13,3 +13,4 @@ imports/acquire/*/
 !imports/acquire/.gitkeep
 imports/simulation/*/
 !imports/simulation/.gitkeep
+docs/generated/REPO_MAP.md
