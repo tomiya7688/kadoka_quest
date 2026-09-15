@@ -68,6 +68,10 @@ def public_symbols(path: Path) -> list[str]:
     return symbols
 
 
+def _markdown_code(value: str) -> str:
+    return f"`{value.replace('|', '&#124;')}`"
+
+
 def render_repo_map(source_root: Path) -> str:
     rows: list[tuple[str, list[str]]] = []
     for path in sorted(source_root.rglob("*.py")):
@@ -87,7 +91,7 @@ def render_repo_map(source_root: Path) -> str:
         "|---|---|",
     ]
     for relative, symbols in rows:
-        rendered = "<br>".join(f"`{symbol.replace('|', '\\|')}`" for symbol in symbols)
+        rendered = "<br>".join(_markdown_code(symbol) for symbol in symbols)
         lines.append(f"| `{relative}` | {rendered} |")
     return "\n".join(lines) + "\n"
 
