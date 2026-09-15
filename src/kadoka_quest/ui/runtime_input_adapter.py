@@ -60,7 +60,6 @@ class RuntimeInputAdapter:
             pygame.K_t: "tactic.cycle",
             pygame.K_r: "ai.reset",
             pygame.K_F5: "acquire.scan",
-            pygame.K_F6: "simulation.start",
             pygame.K_F7: "party.save_preset",
             pygame.K_F8: "party.load_next_preset",
         }
