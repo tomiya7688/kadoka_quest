@@ -26,6 +26,8 @@ class Combatant:
     counter_ready: bool = False
     protect_ally: bool = False
     action_history: list[str] = field(default_factory=list)
+    timed_buff_turns: dict[str, int] = field(default_factory=dict)
+    timed_buff_baselines: dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.hp = self.hp or self.stats["hp"]

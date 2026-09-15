@@ -82,6 +82,55 @@ class BattleEngine:
         del target.status_effects[index]
         return self._status_display_name(effect)
 
+    def _buff_duration(self, skill: dict[str, Any]) -> int | None:
+        raw = skill.get("duration")
+        if raw is None:
+            return None
+        try:
+            if isinstance(raw, (list, tuple)) and len(raw) >= 2:
+                low = max(1, int(raw[0]))
+                high = max(low, int(raw[1]))
+                return self.rng.randint(low, high)
+            return max(1, int(raw))
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _apply_multiplier(
+        target: Combatant,
+        attribute: str,
+        multiplier: float,
+        duration: int | None,
+    ) -> None:
+        current = float(getattr(target, attribute))
+        if duration is None:
+            setattr(target, attribute, max(current, multiplier))
+            if attribute in target.timed_buff_baselines:
+                target.timed_buff_baselines[attribute] = max(
+                    target.timed_buff_baselines[attribute],
+                    multiplier,
+                )
+            return
+
+        if attribute not in target.timed_buff_turns:
+            target.timed_buff_baselines[attribute] = current
+        target.timed_buff_turns[attribute] = max(
+            target.timed_buff_turns.get(attribute, 0),
+            duration,
+        )
+        setattr(target, attribute, max(current, multiplier))
+
+    @staticmethod
+    def _tick_timed_buffs(target: Combatant) -> None:
+        for attribute in list(target.timed_buff_turns):
+            remaining = target.timed_buff_turns[attribute] - 1
+            if remaining > 0:
+                target.timed_buff_turns[attribute] = remaining
+                continue
+            baseline = target.timed_buff_baselines.pop(attribute, 1.0)
+            setattr(target, attribute, baseline)
+            del target.timed_buff_turns[attribute]
+
     @staticmethod
     def _is_single_target_attack(skill: dict[str, Any]) -> bool:
         if bool(skill.get("aoe")) or bool(skill.get("target_all")) or bool(skill.get("all_targets")):
@@ -113,7 +162,13 @@ class BattleEngine:
     def _counter_skill(actor: Combatant) -> dict[str, Any] | None:
         return next((skill for skill in actor.skills if str(skill.get("id")) == "attack"), None)
 
-    def _resolve_counter(self, defender: Combatant, attacker: Combatant, incoming_skill: dict[str, Any], dealt: int) -> None:
+    def _resolve_counter(
+        self,
+        defender: Combatant,
+        attacker: Combatant,
+        incoming_skill: dict[str, Any],
+        dealt: int,
+    ) -> None:
         if dealt <= 0 or not defender.alive or not attacker.alive:
             return
         if not defender.counter_ready or not self._is_single_target_attack(incoming_skill):
@@ -160,6 +215,7 @@ class BattleEngine:
             member.protect_ally = False
             if member.physical_locked:
                 member.physical_locked -= 1
+            self._tick_timed_buffs(member)
         return self.log[start_index:]
 
     def _take_action(self, actor: Combatant, foes: list[Combatant], friends: list[Combatant]) -> None:
@@ -235,11 +291,22 @@ class BattleEngine:
                 target = min(friends, key=lambda item: item.attack_multiplier)
             else:
                 target = min(friends, key=lambda item: item.speed_multiplier)
+            duration = self._buff_duration(chosen)
             if chosen.get("speed_multiplier"):
-                target.speed_multiplier = max(target.speed_multiplier, float(chosen["speed_multiplier"]))
+                self._apply_multiplier(
+                    target,
+                    "speed_multiplier",
+                    float(chosen["speed_multiplier"]),
+                    duration,
+                )
                 effect = "素早さ"
             else:
-                target.attack_multiplier = max(target.attack_multiplier, float(chosen.get("attack_multiplier", 1.0)))
+                self._apply_multiplier(
+                    target,
+                    "attack_multiplier",
+                    float(chosen.get("attack_multiplier", 1.0)),
+                    duration,
+                )
                 effect = "次の攻撃"
             reward = 0.1
             self.log.append(f"{actor.name}の{chosen['display_name']}。{target.name}の{effect}が強くなった。")
@@ -288,6 +355,8 @@ class BattleEngine:
         else:
             attack = int(actor.stats["attack"] * actor.attack_multiplier)
             actor.attack_multiplier = 1.0
+            actor.timed_buff_turns.pop("attack_multiplier", None)
+            actor.timed_buff_baselines.pop("attack_multiplier", None)
             if actor.equipment:
                 modifier = actor.equipment.get("skill_modifiers", {}).get(str(skill.get("id")), {})
                 power *= float(modifier.get("power_multiplier", 1.0))
