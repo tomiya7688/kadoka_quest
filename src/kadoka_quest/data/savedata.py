@@ -10,6 +10,14 @@ from kadoka_quest.paths import SAVEDATA_ROOT
 
 
 INVALID_NAME = re.compile(r'[\\/:*?"<>|]')
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{index}" for index in range(1, 10)),
+    *(f"LPT{index}" for index in range(1, 10)),
+}
 
 
 class SaveDataManager:
@@ -20,9 +28,18 @@ class SaveDataManager:
         self.root.mkdir(parents=True, exist_ok=True)
 
     def validate_name(self, name: str) -> str:
-        clean = name.strip()
-        if not clean or clean in {".", ".."} or INVALID_NAME.search(clean):
-            raise ValueError("セーブ名には \\ / : * ? \" < > | を使えません。")
+        if not name or not name.strip():
+            raise ValueError("セーブ名を入力してください。")
+        if name != name.strip():
+            raise ValueError("セーブ名の先頭・末尾に空白は使えません。")
+        clean = name
+        if clean in {".", ".."} or INVALID_NAME.search(clean) or any(ord(character) < 32 for character in clean):
+            raise ValueError("セーブ名には \\ / : * ? \" < > | や制御文字を使えません。")
+        if clean.endswith("."):
+            raise ValueError("セーブ名の末尾にドットは使えません。")
+        device_name = clean.split(".", 1)[0].upper()
+        if device_name in WINDOWS_RESERVED_NAMES:
+            raise ValueError(f"{clean} はWindowsで予約されているためセーブ名に使えません。")
         return clean[:40]
 
     def profile_root(self, name: str) -> Path:
