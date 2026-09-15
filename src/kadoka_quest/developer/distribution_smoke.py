@@ -101,6 +101,7 @@ def run_smoke(key: str, distribution: Path, executable: Path) -> None:
     run_process(distribution, executable, ["--smoke", "2"], environment)
     if key == "player":
         run_process(distribution, executable, ["--manager", "--smoke", "2"], environment)
+        run_process(distribution, executable, ["--simulation-manager", "--smoke", "2"], environment)
         run_process(distribution, executable, ["--play", "--smoke", "2"], environment)
     else:
         for tool in DEVELOPER_TOOLS:
@@ -110,6 +111,7 @@ def run_smoke(key: str, distribution: Path, executable: Path) -> None:
         user_data / "active.json",
         user_data / "default" / "state.json",
         user_data / "default" / "items" / "items.json",
+        user_data / "default" / "simulation",
         user_data / "imports" / "acquire",
         user_data / "imports" / "simulation",
     )
