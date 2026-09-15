@@ -29,6 +29,8 @@ Do not mix unrelated refactors into the current task.
 - Likely affected tests: `python tools/affected-tests/script/affected_tests.py --base origin/main...HEAD`
 - Python dependency ambiguity only: `python tools/import-map/script/python_import_map.py`
 - Architecture overview: `python tools/code-docs/script/generate_class_diagram.py`
+- Machine-checkable architecture rules: `python tools/project-integrity/script/check_project_rules.py`
+- Tracked application diagram freshness: `python tools/code-docs/script/generate_class_diagram.py --source src/kadoka_quest/application --output docs/generated/application_class_diagram.mmd --check`
 
 Use these compact outputs to narrow the working set. Do not load their complete output when the target files are already known.
 
@@ -36,7 +38,8 @@ Use these compact outputs to narrow the working set. Do not load their complete 
 
 1. Run the smallest relevant focused tests first. Use `affected-tests` as a candidate selector, not as proof that no other tests can be affected.
 2. If it reports `fallback: broader`, or shared/core/public contracts changed, expand validation to the subsystem or full suite.
-3. Run the required full completion checks before reporting completion.
-4. Report any materially relevant area not checked as **Unverified** instead of continuing open-ended exploration merely for reassurance.
+3. Machine-checkable architecture rules and tracked generated-doc freshness are enforced by the `project-integrity` CI job; do not duplicate those rules as task-specific prose unless an exception needs human judgment.
+4. Run the required full completion checks before reporting completion.
+5. Report any materially relevant area not checked as **Unverified** instead of continuing open-ended exploration merely for reassurance.
 
 Keep development utilities under `tools/<tool-name>/script/`; tool-specific config/support files stay inside that tool directory.

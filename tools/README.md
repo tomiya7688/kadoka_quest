@@ -10,7 +10,8 @@ Current tools:
 - `import-map`: emits a compact JSON index of Python files and imports for dependency-routing questions.
 - `character-sprites`: builds bundled character sprites from source sheets.
 - `sample-data`: regenerates bundled sample JSON data.
-- `code-docs`: AST-based code-derived documentation. `script/generate_class_diagram.py` generates or checks `docs/generated/class_diagram.mmd` without reading implementation bodies into agent context.
+- `code-docs`: AST-based code-derived documentation. `script/generate_class_diagram.py` generates or checks Mermaid class diagrams without reading implementation bodies into agent context. CI tracks the compact application-layer diagram under `docs/generated/application_class_diagram.mmd`.
+- `project-integrity`: checks machine-enforceable architecture rules such as the pygame/file-I/O-free `core/` boundary and required project entry paths, with concise failure output.
 - `task-workflow`: small task-selection helpers. `script/start_task.bat` returns only the oldest open Issue at the highest available priority (`critical -> high -> medium -> low`) instead of scanning the full Issue list.
 
 Reusable patterns in `code-docs` and `task-workflow` were adapted from `tomiya7688/AI_game_player`.
