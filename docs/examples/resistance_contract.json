@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "species": {
+    "id": "example_elemental",
+    "resistances": {
+      "fire": "very_weak",
+      "light": "weak",
+      "lightning": "normal",
+      "wood": "resist",
+      "dark": "strong",
+      "earth": "immune",
+      "water": "absorb",
+      "ice": "reflect",
+      "wind": "normal"
+    },
+    "status_resistances": {
+      "poison": "strong",
+      "paralysis": "immune",
+      "sleep": "resist",
+      "confusion": "normal",
+      "bind": "weak",
+      "curse_bind": "strong",
+      "curse": "very_weak"
+    }
+  }
+}
