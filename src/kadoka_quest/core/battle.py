@@ -54,6 +54,35 @@ class BattleEngine:
         return [member for member in team if member.alive]
 
     @staticmethod
+    def _status_is_removable(effect: dict[str, Any] | str) -> bool:
+        if isinstance(effect, dict):
+            return bool(effect.get("removable", True))
+        return True
+
+    @staticmethod
+    def _status_display_name(effect: dict[str, Any] | str) -> str:
+        if isinstance(effect, dict):
+            return str(effect.get("display_name") or effect.get("id") or "状態異常")
+        return str(effect)
+
+    def _try_cure_status(self, target: Combatant, chance: float) -> str | None:
+        candidate = next(
+            (
+                (index, effect)
+                for index, effect in enumerate(target.status_effects)
+                if self._status_is_removable(effect)
+            ),
+            None,
+        )
+        if candidate is None:
+            return None
+        if self.rng.random() >= max(0.0, min(1.0, chance)):
+            return None
+        index, effect = candidate
+        del target.status_effects[index]
+        return self._status_display_name(effect)
+
+    @staticmethod
     def _is_single_target_attack(skill: dict[str, Any]) -> bool:
         if bool(skill.get("aoe")) or bool(skill.get("target_all")) or bool(skill.get("all_targets")):
             return False
@@ -176,6 +205,10 @@ class BattleEngine:
             target.hp = min(target.stats["hp"], target.hp + amount)
             reward = (target.hp - before) / max(1, target.stats["hp"])
             self.log.append(f"{actor.name}の{chosen['display_name']}。{target.name}が{target.hp - before}回復。")
+            cure_chance = float(chosen.get("status_cure_chance", 0.0))
+            cured_status = self._try_cure_status(target, cure_chance)
+            if cured_status is not None:
+                self.log.append(f"{target.name}の{cured_status}が治った。")
         elif kind == "defend":
             actor.guard = float(chosen.get("damage_multiplier", 0.5))
             actor.counter_ready = bool(chosen.get("counter", False))
