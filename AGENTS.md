@@ -45,22 +45,24 @@ For headless UI tests set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and 
 
 Machine-checkable boundaries belong in tests/CI rather than duplicated prose. Run `python tools/project-integrity/script/check_project_rules.py` when that tool exists on the working branch.
 
-For architecture/responsibility changes, install and run the pinned UPD checker:
+For architecture/responsibility changes, install and run the latest UPD checker from `tomiya7688/upd-commander-base-design`:
 
 ```text
-python -m pip install -r tools/upd-commander/requirements.txt
+python -m pip install --no-cache-dir --upgrade --force-reinstall -r tools/upd-commander/requirements.txt
 python tools/upd-commander/script/check.py
 ```
 
 UPD errors are blocking. Warnings and attentions are migration guidance and remain non-blocking. `--advisory` may be used only for temporary investigation, not as a completion substitute.
 
-When adding routing/Commander/Messenger/Service layers on a runtime path, also run:
+When UPD checker usage reveals a checker-side improvement, missing rule, false positive, reporting problem, or CI integration need, create an Issue in `tomiya7688/upd-commander-base-design` instead of implementing a private Kadoka-only fork.
+
+When adding or changing routing/Commander/Messenger/Service layers or another runtime hot path, run and extend the Kadoka Quest performance checker as needed:
 
 ```text
 python tools/performance-check/script/check_runtime_performance.py
 ```
 
-Do not add checker or benchmark imports to Player runtime code. Performance-motivated UPD exceptions must be local, rule-specific, and include a reason.
+The performance checker is a Kadoka Quest local development tool. Grow its benchmark coverage alongside the game (for example field update, battle resolution, or data conversion) when those paths become performance-sensitive. Do not add checker or benchmark imports to Player runtime code. Performance-motivated UPD exceptions must be local, rule-specific, and include a reason.
 
 ## Routing
 
