@@ -62,6 +62,26 @@ def refresh_simulation_if_closed(session) -> None:
 def install_simulation_facility_hooks(game_class) -> None:
     if getattr(game_class, "_simulation_facility_hooks_installed", False):
         return
+
+    original_handle_battle_command = game_class.handle_battle_command
+
+    def handle_battle_command(session, command: str) -> None:
+        if getattr(session, "simulation", False) and command in {"scout", "item"}:
+            battle = getattr(session, "battle", None)
+            if battle is None or battle.outcome or getattr(session, "battle_playback", False):
+                return
+            log_start = len(battle.log)
+            if command == "scout":
+                battle.log.append("模擬戦ではスカウトできない。")
+            else:
+                battle.log.append("模擬戦では消費アイテムを使用できない。")
+            session.start_battle_playback(log_start)
+            if not session.battle_playback:
+                session.finalize_battle_if_needed()
+            return
+        original_handle_battle_command(session, command)
+
     game_class.open_simulation_manager = open_simulation_manager
     game_class.refresh_simulation_if_closed = refresh_simulation_if_closed
+    game_class.handle_battle_command = handle_battle_command
     game_class._simulation_facility_hooks_installed = True
