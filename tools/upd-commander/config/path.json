@@ -1,0 +1,23 @@
+{
+  "input": "../../src/kadoka_quest",
+  "output": "",
+  "ignore": ["**/__pycache__/**"],
+  "warnings_as_errors": false,
+  "enabled_rules": [
+    "UPD001",
+    "UPD002",
+    "UPD101",
+    "UPD102",
+    "UPD103",
+    "UPD201",
+    "UPD202",
+    "UPD203",
+    "UPD301",
+    "UPD302",
+    "UPD303",
+    "UPD401",
+    "UPD402",
+    "UPD403",
+    "UPD404"
+  ]
+}
