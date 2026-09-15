@@ -104,9 +104,49 @@ Commander相当のコードは次だけを担当する。
 - 便利だからという理由だけで巨大なmanager / utils / helperへ処理を集約する。
 - 既存のSession / Service / Processingを迂回して内部状態を直接変更する。
 
+## UPD Commander checker
+
+Kadoka QuestではUPD CommanderのPython checkerを開発・CI時の静的検証として使用する。checker自体をPlayer runtimeへimportしたり、ゲームループから呼び出したりしてはならない。
+
+標準実行:
+
+```text
+python -m pip install -r tools/upd-commander/requirements.txt
+python tools/upd-commander/script/check.py
+```
+
+既存コードにはUPD導入以前の責務集中が残るため、通常CIでは全規則を検出しつつadvisoryとして表示する。段階的な責務分離や新規Applicationの検証ではstrict実行を利用できる。
+
+```text
+python tools/upd-commander/script/check.py --strict
+```
+
+UPD checkerの指摘を避ける目的だけで形式的なCommander / Messenger / Serviceを増やしてはならない。分離により呼び出し回数・アロケーション・変換処理がホットパスで増える場合は、既存の単純な経路を優先してよい。
+
+性能上やむを得ない局所例外は、UPD checkerが対応する理由付きignoreを対象規則だけへ付ける。
+
+```python
+value = fast_path(left, right)  # upd: ignore UPD203 - performance hot path
+```
+
+`all` による広域抑制は原則使用しない。
+
+## 実行速度の保護
+
+UPD設計適用によるオーケストレーション層の増加が本体速度へ露骨な退行を起こしていないか、開発用performance checkerで確認する。
+
+```text
+python tools/performance-check/script/check_runtime_performance.py
+```
+
+このcheckerは `AppCommand`、plain payload検証、`CommandBus` dispatch、およびcommand生成+dispatchのCPUコストを外部から計測する。計測処理はPlayer runtimeへ組み込まない。
+
+CIの絶対時間には環境差があるため、閾値は細かな最適化競争ではなく、設計変更により処理コストが桁違いに増えた場合を検出するための余裕ある上限とする。性能を理由にUPD規約を例外化する場合は、可能なら変更前後のperformance checker結果を比較し、例外理由をコード上へ残す。
+
 ## 検証
 
 - 通常のCIを通過すること。
 - Pythonコード変更後はプロジェクトで定めるformatter / linter / testを実行すること。
 - 新規依存がUI / Process / Dataの境界を破っていないことをレビューすること。
 - 巨大化したファイルや関数は、機能追加の際に責務分割を優先すること。
+- アーキテクチャ変更ではUPD checkerを実行し、runtime経路へ層を追加する変更ではperformance checkerも実行すること。
