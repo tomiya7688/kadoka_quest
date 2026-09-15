@@ -23,6 +23,8 @@ class Combatant:
     attack_multiplier: float = 1.0
     physical_locked: int = 0
     action_history: list[str] = field(default_factory=list)
+    timed_buff_turns: dict[str, int] = field(default_factory=dict)
+    timed_buff_baselines: dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.hp = self.hp or self.stats["hp"]
