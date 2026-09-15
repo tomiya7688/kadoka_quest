@@ -38,25 +38,36 @@ def imported_root(node: ast.Import | ast.ImportFrom) -> str:
     return str(node.module or "").split(".", 1)[0]
 
 
+def display_path(path: Path, root: Path | None = None) -> str:
+    for base in (REPO_ROOT, root):
+        if base is None:
+            continue
+        try:
+            return str(path.relative_to(base))
+        except ValueError:
+            continue
+    return str(path)
+
+
 def core_boundary_errors(root: Path = CORE_ROOT) -> list[str]:
     errors: list[str] = []
     for path in sorted(root.glob("*.py")):
+        shown_path = display_path(path, root)
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         except (OSError, SyntaxError) as exc:
-            errors.append(f"{path.relative_to(REPO_ROOT)}: parse failed: {exc}")
+            errors.append(f"{shown_path}: parse failed: {exc}")
             continue
         for node in ast.walk(tree):
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 imported = imported_root(node)
                 if imported in FORBIDDEN_CORE_IMPORTS:
                     errors.append(
-                        f"{path.relative_to(REPO_ROOT)}:{node.lineno}: "
-                        f"core must not import {imported}"
+                        f"{shown_path}:{node.lineno}: core must not import {imported}"
                     )
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "open":
                 errors.append(
-                    f"{path.relative_to(REPO_ROOT)}:{node.lineno}: core must not perform file I/O with open()"
+                    f"{shown_path}:{node.lineno}: core must not perform file I/O with open()"
                 )
     return errors
 
