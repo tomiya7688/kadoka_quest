@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 import os
+from pathlib import Path
 import subprocess
 import sys
 
@@ -10,6 +12,13 @@ from kadoka_quest.apps.launcher_config import PLAYER_LAUNCH_TARGETS
 from kadoka_quest.data.savedata import SaveDataManager
 from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories, is_frozen
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, Button, TextField, draw_text, draw_wrapped, init_pygame, smoke_frames
+
+
+def _perform_save_action(action: Callable[[], Path], fallback: str) -> tuple[Path | None, str | None]:
+    try:
+        return action(), None
+    except (ValueError, OSError) as exc:
+        return None, str(exc) if str(exc) else fallback
 
 
 def main() -> None:
@@ -39,29 +48,38 @@ def main() -> None:
 
     def new_save() -> None:
         nonlocal status
-        try:
-            path = saves.create(name_field.value)
-            refresh(path.name)
-            status = f"{path.name} を新規作成して選択しました。"
-        except (ValueError, FileExistsError) as exc:
-            status = str(exc) if str(exc) else "同じ名前のセーブデータがあります。"
+        path, error = _perform_save_action(
+            lambda: saves.create(name_field.value),
+            "セーブデータを新規作成できませんでした。",
+        )
+        if path is None:
+            status = error or "セーブデータを新規作成できませんでした。"
+            return
+        refresh(path.name)
+        status = f"{path.name} を新規作成して選択しました。"
 
     def save_as() -> None:
         nonlocal status
-        try:
-            path = saves.copy_profile(selected_name(), name_field.value)
-            refresh(path.name)
-            status = f"現在の状態を {path.name} として保存しました。"
-        except (ValueError, FileExistsError, FileNotFoundError) as exc:
-            status = str(exc) if str(exc) else "別名保存できませんでした。"
+        path, error = _perform_save_action(
+            lambda: saves.copy_profile(selected_name(), name_field.value),
+            "別名保存できませんでした。",
+        )
+        if path is None:
+            status = error or "別名保存できませんでした。"
+            return
+        refresh(path.name)
+        status = f"現在の状態を {path.name} として保存しました。"
 
     def load_selected() -> None:
         nonlocal status
-        try:
-            saves.set_active(selected_name())
-            status = f"{selected_name()} を読み込むセーブデータに設定しました。"
-        except (ValueError, FileNotFoundError) as exc:
-            status = str(exc)
+        path, error = _perform_save_action(
+            lambda: saves.set_active(selected_name()),
+            "セーブデータを読み込めませんでした。",
+        )
+        if path is None:
+            status = error or "セーブデータを読み込めませんでした。"
+            return
+        status = f"{selected_name()} を読み込むセーブデータに設定しました。"
 
     def launch(script: str) -> None:
         nonlocal status
