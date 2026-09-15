@@ -145,7 +145,8 @@ class BlockEditor:
         except ValueError as error:
             self.status = str(error)
             return
-        self.status = f"画像を64×64内へ読み込み、近似色を{changed}ピクセル統合しました。"
+        count = self.visuals.visible_color_count()
+        self.status = f"画像を64×64・基本パレット{count}色へ変換しました（変更 {changed}px）。"
 
     def merge_visual_colors(self) -> None:
         try:
@@ -155,6 +156,10 @@ class BlockEditor:
             return
         changed = self.visuals.merge_similar_colors(tolerance)
         self.status = f"近似色を{changed}ピクセル統合しました。"
+
+    def reduce_visual_palette(self, max_colors: int) -> None:
+        changed, count = self.visuals.reduce_to_kadoka_colors(max_colors)
+        self.status = f"Kadoka基本パレットの最大{max_colors}色へ減色しました（現在{count}色・変更{changed}px）。"
 
     def scroll_list(self, amount: int) -> None:
         self.list_offset = max(0, min(max(0, len(self.blocks) - 10), self.list_offset + amount))
@@ -178,6 +183,8 @@ def draw_visual_editor(screen: pygame.Surface, editor: BlockEditor) -> None:
             pygame.draw.rect(screen, color, rect, border_radius=5)
         pygame.draw.rect(screen, ACCENT if color == editor.visuals.brush else MUTED, rect, 3, border_radius=5)
     editor.palette_color_field.draw(screen, "追加する色")
+    draw_text(screen, "基本パレットへ減色", (790, 465), 15, MUTED, True)
+    draw_text(screen, f"現在 {editor.visuals.visible_color_count()}色", (790, 520), 15, TEXT, True)
     draw_text(screen, f"64×64px / 表示 {editor.visuals.zoom_percent}%", (790, 550), 17, ACCENT, True)
     draw_text(screen, "保存先", (790, 582), 15, MUTED, True)
     draw_text(screen, editor.appearance_field.value, (790, 607), 13, TEXT)
@@ -209,6 +216,9 @@ def main() -> None:
         Button(pygame.Rect(1005, 420, 70, 38), "削除", editor.remove_palette_color),
         Button(pygame.Rect(595, 690, 80, 45), "画像読込", editor.import_visual_image),
         Button(pygame.Rect(682, 690, 68, 45), "色統合", editor.merge_visual_colors),
+        Button(pygame.Rect(790, 480, 85, 34), "3色", lambda: editor.reduce_visual_palette(3)),
+        Button(pygame.Rect(882, 480, 85, 34), "4色", lambda: editor.reduce_visual_palette(4)),
+        Button(pygame.Rect(974, 480, 85, 34), "5色", lambda: editor.reduce_visual_palette(5)),
     ]
     flag_rects = {
         "player_walkable": pygame.Rect(350, 380, 175, 42),
