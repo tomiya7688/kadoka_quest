@@ -52,7 +52,7 @@ python -m pip install -r tools/upd-commander/requirements.txt
 python tools/upd-commander/script/check.py
 ```
 
-Use `--strict` only when the assigned scope is expected to satisfy the selected UPD rules; the default mode reports migration debt without blocking unrelated work.
+UPD errors are blocking. Warnings and attentions are migration guidance and remain non-blocking. `--advisory` may be used only for temporary investigation, not as a completion substitute.
 
 When adding routing/Commander/Messenger/Service layers on a runtime path, also run:
 
