@@ -5,10 +5,11 @@ Read this file and the assigned Issue first. Do not read the whole repository up
 ## Context budget
 
 1. Extract **Goal / Required / Acceptance** from the Issue.
-2. Read the matching row in `docs/context/ROUTES.md` and only its first-hop files.
-3. Run `python tools/remote-context/script/sync_remote_context.py` when local work may be behind remote Chat/Codex changes.
-4. Search or use compact indexes before opening additional full files.
-5. Stop exploring once the required change, constraints, and validation are clear.
+2. Use `docs/CODEMAP.md` to identify the primary implementation, preferred tests, and contract. Use `docs/context/ROUTES.md` when only the smallest first-hop route is needed.
+3. If the exact symbol is still ambiguous, generate/read `docs/generated/REPO_MAP.md` with `python tools/code-docs/script/generate_repo_map.py`.
+4. Run `python tools/remote-context/script/sync_remote_context.py` when local work may be behind remote Chat/Codex changes.
+5. Search or use compact indexes before opening additional full files.
+6. Stop exploring once the required change, constraints, and validation are clear.
 
 `README.md`, `docs/FORMATS.md`, generated diagrams, and broad architecture docs are not default reading. Open them only when the route or task requires them. Generated/index files are navigation aids, never source-of-truth replacements.
 
@@ -47,15 +48,17 @@ Machine-checkable boundaries belong in tests/CI rather than duplicated prose. Ru
 
 ## Routing
 
-Use `docs/context/ROUTES.md` to choose the next files for battle, field, UI, ranch, simulation, save data, editors, build, architecture, context tooling, and CI tasks.
-
-For context-efficient implementation workflow details, read `docs/context/WORKFLOW.md` only when the task concerns process/tooling or the route calls for it.
+- `docs/CODEMAP.md`: semantic area → primary implementation / preferred tests / contract.
+- `docs/context/ROUTES.md`: minimum first-hop files for a task area.
+- `docs/generated/REPO_MAP.md`: on-demand generated public top-level class/function signature index.
+- `docs/context/WORKFLOW.md`: context-efficient implementation workflow for tooling/process tasks.
 
 Useful compact helpers:
 
 - remote changes: `tools/remote-context/script/sync_remote_context.py`
 - likely tests: `tools/affected-tests/script/affected_tests.py`
 - dependency ambiguity: `tools/import-map/script/python_import_map.py`
+- symbol map: `tools/code-docs/script/generate_repo_map.py`
 - compact class diagram: `tools/code-docs/script/generate_class_diagram.py`
 
 ## Completion and Git
