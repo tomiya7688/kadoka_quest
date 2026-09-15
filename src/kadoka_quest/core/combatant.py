@@ -14,8 +14,8 @@ class Combatant:
     skills: list[dict[str, Any]]
     resistances: dict[str, str]
     equipment: dict[str, Any] | None = None
-    status_resistances: dict[str, str] = field(default_factory=dict)
     status_effects: list[dict[str, Any] | str] = field(default_factory=list)
+    status_resistances: dict[str, str] = field(default_factory=dict)
     hp: int = 0
     mp: int = 0
     guard: float = 1.0
