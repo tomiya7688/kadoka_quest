@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "id": "simulation_hall_sign",
+      "x": 28,
+      "y": 11,
+      "type": "message",
+      "blocking": true,
+      "text": "模擬戦会館　専用個体を準備して安全に対戦できます。"
+    },
+    {
+      "id": "simulation_hall_terminal",
+      "x": 30,
+      "y": 10,
+      "type": "open_simulation_manager",
+      "blocking": true,
+      "text": "模擬戦受付を開きます。専用個体の作成・取込・編成ができます。"
+    }
+  ]
+}

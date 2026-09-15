@@ -69,6 +69,8 @@ class RuntimeOrchestrator:
             return self.dispatch("password", "open")
         if kind == "open_manager":
             return self.dispatch("manager", "open")
+        if kind == "open_simulation_manager":
+            return self.dispatch("manager", "simulation.open")
         if kind == "gain_item":
             return self.dispatch("field", "item.gain", item_id=str(effect["item"]))
         raise ValueError(f"フィールド効果 {kind} は未対応です。")
