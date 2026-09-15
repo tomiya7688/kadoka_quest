@@ -1,11 +1,28 @@
 from __future__ import annotations
 
-from collections import deque
+from collections import Counter, deque
+from collections.abc import Iterable
 
 import pygame
 
 
 ColorTuple = tuple[int, int, int, int]
+
+TRANSPARENT: ColorTuple = (0, 0, 0, 0)
+KADOKA_OPAQUE_PALETTE: tuple[ColorTuple, ...] = (
+    (0, 0, 0, 255),
+    (255, 255, 255, 255),
+    (214, 214, 214, 255),
+    (230, 80, 80, 255),
+    (70, 120, 220, 255),
+    (155, 100, 210, 255),
+    (90, 185, 105, 255),
+    (240, 205, 80, 255),
+    (100, 210, 255, 255),
+    (235, 130, 185, 255),
+    (145, 95, 60, 255),
+)
+KADOKA_PALETTE: tuple[ColorTuple, ...] = (TRANSPARENT, *KADOKA_OPAQUE_PALETTE)
 
 
 def rgba(color: pygame.Color | ColorTuple) -> ColorTuple:
@@ -93,6 +110,92 @@ def reduce_similar_colors(
                 result.set_at((x, y), replacement)
                 changed += 1
     return result, changed
+
+
+def nearest_palette_color(color: ColorTuple, palette: Iterable[ColorTuple]) -> ColorTuple:
+    candidates = tuple(palette)
+    if not candidates:
+        raise ValueError("palette must contain at least one color")
+    return min(candidates, key=lambda candidate: color_distance_squared(color, candidate))
+
+
+def opaque_color_count(source: pygame.Surface) -> int:
+    return len(
+        {
+            rgba(source.get_at((x, y)))[:3]
+            for y in range(source.get_height())
+            for x in range(source.get_width())
+            if source.get_at((x, y)).a > 0
+        }
+    )
+
+
+def _palette_usage(source: pygame.Surface) -> Counter[ColorTuple]:
+    usage: Counter[ColorTuple] = Counter()
+    for y in range(source.get_height()):
+        for x in range(source.get_width()):
+            color = rgba(source.get_at((x, y)))
+            if color[3] == 0:
+                continue
+            usage[nearest_palette_color(color, KADOKA_OPAQUE_PALETTE)] += 1
+    return usage
+
+
+def select_kadoka_palette(source: pygame.Surface, max_colors: int) -> tuple[ColorTuple, ...]:
+    """Select a compact basic-palette subset while retaining contrasting details."""
+    limit = max(1, min(len(KADOKA_OPAQUE_PALETTE), int(max_colors)))
+    usage = _palette_usage(source)
+    if not usage:
+        return ()
+    candidates = [color for color in KADOKA_OPAQUE_PALETTE if color in usage]
+    if len(candidates) <= limit:
+        return tuple(candidates)
+
+    palette_order = {color: index for index, color in enumerate(KADOKA_OPAQUE_PALETTE)}
+    first = max(candidates, key=lambda color: (usage[color], -palette_order[color]))
+    selected = [first]
+    while len(selected) < limit:
+        remaining = [color for color in candidates if color not in selected]
+        if not remaining:
+            break
+        chosen = max(
+            remaining,
+            key=lambda color: (
+                usage[color]
+                * (1 + min(color_distance_squared(color, existing) for existing in selected)),
+                usage[color],
+                -palette_order[color],
+            ),
+        )
+        selected.append(chosen)
+    return tuple(selected)
+
+
+def reduce_to_kadoka_palette(
+    source: pygame.Surface,
+    max_colors: int = 5,
+) -> tuple[pygame.Surface, int, tuple[ColorTuple, ...]]:
+    """Map opaque pixels to at most ``max_colors`` Kadoka Quest basic colors.
+
+    Fully transparent pixels stay transparent. Any visible source pixel becomes
+    fully opaque so antialiasing does not create extra color/alpha information.
+    """
+    selected = select_kadoka_palette(source, max_colors)
+    result = source.copy()
+    changed = 0
+    for y in range(source.get_height()):
+        for x in range(source.get_width()):
+            original = rgba(source.get_at((x, y)))
+            if original[3] == 0:
+                replacement = TRANSPARENT
+            elif selected:
+                replacement = nearest_palette_color(original, selected)
+            else:
+                replacement = TRANSPARENT
+            if replacement != original:
+                result.set_at((x, y), replacement)
+                changed += 1
+    return result, changed, selected
 
 
 def fit_imported_image(source: pygame.Surface, size: int = 64) -> pygame.Surface:
