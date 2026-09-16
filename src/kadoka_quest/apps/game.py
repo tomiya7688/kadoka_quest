@@ -720,15 +720,6 @@ class KadokaQuest:
     def selected_battle_command(self) -> str:
         return self.battle_session.selected_command()
 
-    def move_battle_selection(self, amount: int) -> int:
-        return self.battle_session.move_selection(amount)
-
-    def set_battle_selection(self, index: int) -> int:
-        return self.battle_session.set_selection(index)
-
-    def stop_auto_battle(self) -> None:
-        self.battle_session.stop_auto()
-
     def toggle_auto_battle(self) -> None:
         enabled = self.battle_session.toggle_auto(pygame.time.get_ticks())
         if enabled is None:
@@ -932,4 +923,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
