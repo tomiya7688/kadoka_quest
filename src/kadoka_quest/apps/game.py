@@ -1,88 +1,199 @@
 from __future__ import annotations
 
 import random
-from pathlib import Path
+from uuid import uuid4
 
 import pygame
 
 from kadoka_quest.application.runtime_orchestrator import RuntimeOrchestrator
 from kadoka_quest.apps.battle_session import BattleSession
+from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.field_party_service import FieldPartyService
 from kadoka_quest.apps.field_party_session import FieldPartySession
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
 from kadoka_quest.apps.monster_import_service import MonsterImportService
 from kadoka_quest.apps.password_session import PasswordSession
+from kadoka_quest.core.ai import default_ai
 from kadoka_quest.core.battle import BattleEngine
+from kadoka_quest.core.field_engine import FieldEngine
 from kadoka_quest.core.fixed_mob_controller import FixedMobController
+from kadoka_quest.core.grid_movement import GridMovement
 from kadoka_quest.core.hidden_enemy_controller import HiddenEnemyController
+from kadoka_quest.core.monster import MonsterRecord
 from kadoka_quest.core.player_field_controller import PlayerFieldController
-from kadoka_quest.data.battle_data import BattleDataLoader
 from kadoka_quest.data.field_data import FieldDataLoader
 from kadoka_quest.data.field_progress import FieldProgressStore
 from kadoka_quest.data.monsters import MonsterStore
 from kadoka_quest.data.parties import PartyStore
 from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.data.state import StateStore
-from kadoka_quest.paths import IMPORT_ROOT, PROJECT_ROOT, SAVE_ROOT
+from kadoka_quest.paths import ASSET_ROOT, IMPORT_ROOT, PROJECT_ROOT
 from kadoka_quest.ui.battle_renderer import BattleRenderer
 from kadoka_quest.ui.character_image_provider import CharacterImageProvider
-from kadoka_quest.ui.common import ACCENT, BG, PANEL_ALT, Button, draw_text, draw_wrapped
-from kadoka_quest.ui.field_renderer import draw_field
+from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, WARN, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
+from kadoka_quest.ui.field_renderer import FIELD_RECT, TILE, draw_field
 from kadoka_quest.ui.runtime_input_adapter import RuntimeInputAdapter
 from kadoka_quest.ui.runtime_mouse_adapter import RuntimeMouseAdapter
 
-SCREEN_WIDTH = 1120
-SCREEN_HEIGHT = 768
-PASSWORD = "へいわ"
-KANA_KEYS = "へいわな"
-MOVE_DIRECTIONS = {
+
+SCREEN_SIZE = (1120, 740)
+PASSWORD = "へいわなすみか"
+KANA_KEYS = tuple("あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん")
+MOVE_KEY_DIRECTIONS = {
     pygame.K_LEFT: "left",
+    pygame.K_a: "left",
     pygame.K_RIGHT: "right",
+    pygame.K_d: "right",
     pygame.K_UP: "back",
+    pygame.K_w: "back",
     pygame.K_DOWN: "front",
+    pygame.K_s: "front",
 }
-
-
+MOVE_REPEAT_DELAY_MS = 180
+MOVE_REPEAT_INTERVAL_MS = 90
+PLAYER_MOVE_DURATION_MS = 120
+FIXED_MOB_MOVE_DURATION_MS = 180
+HOME_MARU_MOVE_INTERVAL_MS = 450
+HOME_KADOKA_MOVE_INTERVAL_MS = 900
+HIDDEN_CHASE_MOVE_INTERVAL_MS = 320
+HIDDEN_WANDER_MOVE_INTERVAL_MS = 950
+HIDDEN_VISION_RANGE = 8
 class KadokaQuest:
-    def __init__(self, *, rng: random.Random | None = None) -> None:
-        self.repository = GameRepository()
+    def __init__(
+        self,
+        repository: GameRepository | None = None,
+        monsters: MonsterStore | None = None,
+        states: StateStore | None = None,
+        parties: PartyStore | None = None,
+        rng: random.Random | None = None,
+    ) -> None:
+        self.repository = repository or GameRepository()
+        self.monsters = monsters or MonsterStore(repository=self.repository)
+        self.states = states or StateStore()
+        self.state = self.states.load()
+        self.states.ensure_starters(self.state, self.monsters)
+        self.parties = parties or PartyStore()
         self.rng = rng or random.Random()
-        self.states = StateStore(SAVE_ROOT / "state.json")
-        self.monsters = MonsterStore(SAVE_ROOT / "monsters", self.repository)
-        self.parties = PartyStore(SAVE_ROOT / "parties", self.monsters)
         self.field_data = FieldDataLoader(self.repository)
         self.field_progress = FieldProgressStore(self.states)
-        self.manager_tool = ManagerProcessService(PROJECT_ROOT / "manage.py")
-        self.field_party_session = FieldPartySession()
-        self.field_party_service = FieldPartyService(
-            self.field_party_session,
-            self.parties,
-            self.monsters,
-            self.states,
+        saved_player = self.state.get("player", {})
+        initial_world = self.field_data.load_map(
+            str(self.state.get("map_id", "starting_town")),
+            saved_player.get("x"),
+            saved_player.get("y"),
         )
-        self.monster_import_service = MonsterImportService(
-            self.monsters,
-            self.repository,
-            IMPORT_ROOT,
-            BattleEngine,
+        self.map_data = initial_world["map"]
+        self.blocks = self.field_data.blocks()
+        self.field = FieldEngine(self.map_data, self.blocks)
+        self.fixed_mobs = FixedMobController(self.field, self.rng, FIXED_MOB_MOVE_DURATION_MS)
+        self.hidden_enemies = HiddenEnemyController(
+            self.field,
+            self.rng,
+            HIDDEN_CHASE_MOVE_INTERVAL_MS,
+            HIDDEN_WANDER_MOVE_INTERVAL_MS,
+            HIDDEN_VISION_RANGE,
         )
-        self.password_session = PasswordSession(PASSWORD, KANA_KEYS)
+        self.hidden_enemies.set_world(self.map_data, self.blocks)
+        self.player_field = PlayerFieldController(
+            initial_world["x"],
+            initial_world["y"],
+            PLAYER_MOVE_DURATION_MS,
+            MOVE_REPEAT_DELAY_MS,
+            MOVE_REPEAT_INTERVAL_MS,
+        )
+        self.field_events = FieldEventApplication()
         self.runtime = RuntimeOrchestrator(self)
         self.battle_session = BattleSession()
-        self.status = ""
-        self.map_id = "starting_town"
-        self.player_x = 0
-        self.player_y = 0
-        self.player_direction = "front"
-        self.state: dict = {}
-        self.map_data: dict = {}
-        self.blocks: dict[str, dict] = {}
-        self.player_field: PlayerFieldController | None = None
-        self.hidden_enemy_controller: HiddenEnemyController | None = None
-        self.fixed_mob_controller: FixedMobController | None = None
-        self.visible_characters: list[dict] = []
-        self.hidden_characters: list[dict] = []
-        self._load_initial_state()
+        self.password_session = PasswordSession(PASSWORD, KANA_KEYS)
+        self.character_images = CharacterImageProvider(self.repository, ASSET_ROOT)
+        self.manager_tool = ManagerProcessService(PROJECT_ROOT / "manage.py")
+        self.monster_import_service = MonsterImportService(self.monsters, self.repository, IMPORT_ROOT)
+        self.field_party_session = FieldPartySession()
+        self.field_party_service = FieldPartyService(self.field_party_session, self.parties, self.monsters, self.states)
+        self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
+        self.held_move_key: int | None = None
+        self.reset_hidden_monsters()
+        self.reset_home_npcs()
+
+    @property
+    def home_npcs(self) -> list[dict]:
+        """Compatibility view of fixed-mob runtime state."""
+        return self.fixed_mobs.npcs
+
+    @home_npcs.setter
+    def home_npcs(self, value: list[dict]) -> None:
+        self.fixed_mobs.npcs = value
+
+    @property
+    def hidden_monsters(self) -> list[dict]:
+        """Compatibility view of invisible-enemy runtime state."""
+        return self.hidden_enemies.monsters
+
+    @hidden_monsters.setter
+    def hidden_monsters(self, value: list[dict]) -> None:
+        self.hidden_enemies.monsters = value
+
+    @property
+    def selected_party(self) -> int:
+        """Compatibility view of the selected field party slot."""
+        return self.field_party_session.selected_index
+
+    @selected_party.setter
+    def selected_party(self, value: int) -> None:
+        self.field_party_session.select(value)
+
+    @property
+    def preset_index(self) -> int:
+        """Compatibility view of the next field preset cursor."""
+        return self.field_party_session.preset_cursor
+
+    @preset_index.setter
+    def preset_index(self, value: int) -> None:
+        self.field_party_session.preset_cursor = max(0, int(value))
+
+    @property
+    def player_x(self) -> int:
+        return self.player_field.x
+
+    @player_x.setter
+    def player_x(self, value: int) -> None:
+        self.player_field.x = int(value)
+
+    @property
+    def player_y(self) -> int:
+        return self.player_field.y
+
+    @player_y.setter
+    def player_y(self, value: int) -> None:
+        self.player_field.y = int(value)
+
+    @property
+    def player_direction(self) -> str:
+        return self.player_field.direction
+
+    @player_direction.setter
+    def player_direction(self, value: str) -> None:
+        self.player_field.direction = str(value)
+
+    @property
+    def player_movement(self) -> GridMovement:
+        return self.player_field.visual
+
+    @property
+    def held_move_direction(self) -> str | None:
+        return self.player_field.held_direction
+
+    @held_move_direction.setter
+    def held_move_direction(self, value: str | None) -> None:
+        self.player_field.held_direction = value
+
+    @property
+    def next_move_tick(self) -> int:
+        return self.player_field.next_move_tick
+
+    @next_move_tick.setter
+    def next_move_tick(self, value: int) -> None:
+        self.player_field.next_move_tick = int(value)
 
     @property
     def mode(self) -> str:
@@ -90,7 +201,7 @@ class KadokaQuest:
 
     @mode.setter
     def mode(self, value: str) -> None:
-        self.runtime.mode = value
+        self.runtime.transition_to(value)
 
     @property
     def battle(self) -> BattleEngine | None:
@@ -99,6 +210,14 @@ class KadokaQuest:
     @battle.setter
     def battle(self, value: BattleEngine | None) -> None:
         self.battle_session.battle = value
+
+    @property
+    def battle_finalized(self) -> bool:
+        return self.battle_session.finalized
+
+    @battle_finalized.setter
+    def battle_finalized(self, value: bool) -> None:
+        self.battle_session.finalized = bool(value)
 
     @property
     def battle_selection(self) -> int:
@@ -115,6 +234,14 @@ class KadokaQuest:
     @auto_battle.setter
     def auto_battle(self, value: bool) -> None:
         self.battle_session.auto = bool(value)
+
+    @property
+    def last_auto_tick(self) -> int:
+        return self.battle_session.last_auto_tick
+
+    @last_auto_tick.setter
+    def last_auto_tick(self, value: int) -> None:
+        self.battle_session.last_auto_tick = int(value)
 
     @property
     def battle_playback(self) -> bool:
@@ -173,14 +300,6 @@ class KadokaQuest:
         self.battle_session.fixed_mob_id = value
 
     @property
-    def selected_party(self) -> int:
-        return self.field_party_session.selected_index
-
-    @selected_party.setter
-    def selected_party(self, value: int) -> None:
-        self.field_party_session.selected_index = int(value)
-
-    @property
     def password_input(self) -> str:
         return self.password_session.input_text
 
@@ -196,84 +315,162 @@ class KadokaQuest:
     def password_message(self, value: str) -> None:
         self.password_session.message = str(value)
 
-    def _load_initial_state(self) -> None:
-        self.state = self.states.load()
-        self.map_id = str(self.state.get("map_id", "starting_town"))
-        self.player_x = int(self.state.get("x", 0))
-        self.player_y = int(self.state.get("y", 0))
-        self.player_direction = str(self.state.get("direction", "front"))
-        self._load_map_runtime()
+    @property
+    def image_cache(self) -> dict[tuple[str, str, int, int], pygame.Surface | None]:
+        return self.character_images.cache
 
-    def _load_map_runtime(self) -> None:
-        loaded = self.field_data.load_map(self.map_id)
+    @property
+    def manager_process(self) -> object | None:
+        return self.manager_tool.process
+
+    @manager_process.setter
+    def manager_process(self, value: object | None) -> None:
+        self.manager_tool.process = value
+
+    def party(self) -> list[MonsterRecord]:
+        return StateStore.party_records(self.state, self.monsters)
+
+    def save_position(self) -> None:
+        self.field_progress.save_position(
+            self.state,
+            str(self.map_data["id"]),
+            self.player_x,
+            self.player_y,
+        )
+
+    def change_map(self, map_id: str, x: int, y: int, message: str | None = None) -> None:
+        loaded = self.field_data.load_map(map_id, x, y)
         self.map_data = loaded["map"]
-        self.blocks = loaded["blocks"]
-        self.player_field = PlayerFieldController(self.map_data, self.blocks)
-        self.hidden_enemy_controller = HiddenEnemyController(self.map_data, self.blocks, self.rng)
-        self.fixed_mob_controller = FixedMobController(self.map_data, self.blocks, self.rng)
-        self._refresh_characters()
+        self.field.set_world(self.map_data, self.blocks)
+        self.hidden_enemies.set_world(self.map_data, self.blocks)
+        self.player_field.snap(loaded["x"], loaded["y"])
+        self.save_position()
+        self.reset_hidden_monsters()
+        self.reset_home_npcs()
+        self.status = message or f"{self.map_data['display_name']}へ入りました。"
 
-    def _refresh_characters(self) -> None:
-        if self.hidden_enemy_controller is None or self.fixed_mob_controller is None:
-            self.visible_characters = []
-            self.hidden_characters = []
+    def move(self, dx: int, dy: int, now: int | None = None) -> None:
+        now = pygame.time.get_ticks() if now is None else int(now)
+        self.field.set_world(self.map_data, self.blocks)
+        result = self.player_field.attempt_move(
+            self.field,
+            dx,
+            dy,
+            self.home_npcs,
+            self.hidden_monsters,
+            now,
+        )
+        reason = result["reason"]
+        if reason == "hidden_character":
+            hidden = result["character"]
+            self.start_wild_battle(hidden["spawn"], hidden)
             return
-        self.hidden_characters = self.hidden_enemy_controller.characters()
-        self.visible_characters = self.fixed_mob_controller.characters()
+        if reason == "visible_character":
+            self.status = "そこにはキャラクターがいるため移動できません。"
+            return
+        if reason == "blocking_event":
+            blocking_event = result["event"]
+            self.status = str(blocking_event.get("blocked_text", "そこには障害物があり、通り抜けられません。"))
+            return
+        if reason == "blocked_tile":
+            block_id = result["block_id"]
+            block = result["block"]
+            self.status = f"{block.get('display_name', block_id)} は通れません。"
+            return
+        if result["kind"] != "moved":
+            return
+        self.save_position()
+        if self.handle_step_event():
+            return
+        if self.check_hidden_collision():
+            return
 
-    def party(self):
-        return self.parties.current(self.state.get("current_party", []))
+    def character_at(self, x: int, y: int, *, include_hidden: bool = True, include_home: bool = True) -> dict | None:
+        if include_home:
+            found = next((npc for npc in self.home_npcs if (int(npc["x"]), int(npc["y"])) == (int(x), int(y))), None)
+            if found:
+                return found
+        if include_hidden:
+            return next((monster for monster in self.hidden_monsters if (int(monster["x"]), int(monster["y"])) == (int(x), int(y))), None)
+        return None
 
-    def select_party(self, index: int) -> bool:
-        return self.field_party_service.select(index)
+    def player_front_position(self) -> tuple[int, int]:
+        self.field.set_world(self.map_data, self.blocks)
+        return self.field.front_position(self.player_x, self.player_y, self.player_direction)
+
+    def start_held_move(self, key: int, now: int) -> bool:
+        direction = MOVE_KEY_DIRECTIONS.get(key)
+        if direction is None:
+            return False
+        self.held_move_key = key
+        return self.start_held_direction(direction, now)
 
     def start_held_direction(self, direction: str, now: int) -> bool:
-        if self.player_field is None:
+        if self.mode != "field":
             return False
-        return self.player_field.start_held_direction(direction, now)
+        vector = self.player_field.begin_hold(direction, now)
+        if vector is None:
+            return False
+        self.move(*vector, now=now)
+        return True
 
-    def stop_held_direction(self, direction: str | None = None) -> None:
-        if self.player_field is not None:
-            self.player_field.stop_held_direction(direction)
+    def stop_held_move(self, key: int) -> None:
+        if key == self.held_move_key:
+            self.held_move_key = None
+            self.held_move_direction = None
 
-    def open_manager(self) -> None:
-        if self.manager_tool.open() == "already_running":
-            self.status = "牧場管理は既に開いています。"
-            return
-        self.status = "牧場管理を開きました。"
+    def stop_held_direction(self, direction: str) -> None:
+        if self.player_field.stop_hold(direction):
+            self.held_move_key = None
 
-    def refresh_manager_if_closed(self) -> None:
-        if not self.manager_tool.consume_closed():
-            return
-        self.state = self.states.load()
-        self.status = "牧場管理の変更を反映しました。"
+    def update_held_move(self, now: int) -> bool:
+        if self.mode != "field":
+            self.held_move_key = None
+            self.player_field.clear_hold()
+            return False
+        vector = self.player_field.repeated_vector(now)
+        if vector is None:
+            return False
+        self.move(*vector, now=now)
+        return True
 
-    def scan_acquire(self) -> None:
-        self.status = self.monster_import_service.scan_acquire()
+    def handle_step_event(self) -> bool:
+        self.field.set_world(self.map_data, self.blocks)
+        event = self.field.step_transition_at(self.player_x, self.player_y)
+        effect = self.field_events.resolve_step(event)
+        if effect["kind"] != "transition":
+            return False
+        self.runtime.apply_field_effect(effect)
+        return True
 
-    def start_simulation(self) -> None:
-        battle, message = self.monster_import_service.create_simulation(self.party(), self.rng)
-        self.status = message
-        if battle is None:
-            return
-        self.battle_session.begin(battle, pygame.time.get_ticks(), simulation=True)
-        self.mode = "battle"
+    def nearby_event(self) -> dict | None:
+        self.field.set_world(self.map_data, self.blocks)
+        return self.field.nearby_event(self.player_x, self.player_y)
 
-    def save_party_preset(self) -> None:
-        self.status = self.field_party_service.save_preset(self.state)
+    def interact(self) -> None:
+        npc = self.nearby_home_npc()
+        event = None if npc is not None else self.nearby_event()
+        dialogue = self.next_npc_dialogue(npc) if npc is not None else None
+        effect = self.field_events.resolve_interaction(
+            npc,
+            event,
+            self.player_direction,
+            dialogue,
+        )
+        self.runtime.apply_field_effect(effect)
 
-    def load_next_party_preset(self) -> None:
-        self.status = self.field_party_service.load_next_preset(self.state)
+    def reacquire_ghosts(self) -> None:
+        added = []
+        for species_id in ("maru", "kadoka"):
+            if not any(record.species_id == species_id for record in self.monsters.list_records()):
+                record = self.monsters.create(species_id, level=1, source="ghost_home_password")
+                added.append(record.name)
+        self.field_progress.set_flag(self.state, "ghost_entrance_open", True)
+        self.status = "へいわなすみか。" + (f" 牧場に {'・'.join(added)} が増えました。" if added else " 2匹とも既にいます。")
 
-    def cycle_tactic(self) -> None:
-        message = self.field_party_service.cycle_tactic(self.party())
-        if message:
-            self.status = message
-
-    def reset_selected_ai(self) -> None:
-        message = self.field_party_service.reset_selected_ai(self.party())
-        if message:
-            self.status = message
+    def open_password_input(self) -> None:
+        self.password_session.open()
+        self.mode = "password"
 
     def append_password(self, character: str) -> None:
         self.password_session.append(character)
@@ -281,62 +478,192 @@ class KadokaQuest:
     def backspace_password(self) -> None:
         self.password_session.backspace()
 
-    def submit_password(self) -> None:
-        if self.password_session.submit():
-            self.mode = self.runtime.previous_mode
-            self.status = "合言葉を確認しました。"
+    def submit_password(self) -> bool:
+        if not self.password_session.submit():
+            return False
+        self.mode = "field"
+        self.reacquire_ghosts()
+        return True
 
     def cancel_password(self) -> None:
         self.password_session.cancel()
-        self.mode = self.runtime.previous_mode
+        self.mode = "field"
+        self.status = "水の湧き場から離れました。"
 
-    def open_password_input(self) -> None:
-        self.password_session.open()
-        self.runtime.transition_to("password")
+    def reset_home_npcs(self, now: int | None = None) -> None:
+        now = pygame.time.get_ticks() if now is None else int(now)
 
-    def register_church(self, event: dict) -> None:
-        church_id = str(event.get("id", "church"))
-        map_id = str(self.map_id)
-        self.field_progress.register_church(church_id, map_id, int(event["x"]), int(event["y"]))
-        self.status = str(event.get("text", "教会を登録した。"))
+        def species_name(species_id: str) -> str:
+            definition = self.repository.get_species(species_id).definition
+            return str(definition.get("display_name", species_id))
 
-    def gain_field_item(self, item_id: str, amount: int = 1) -> None:
-        inventory = self.state.setdefault("inventory", {})
-        inventory[item_id] = int(inventory.get(item_id, 0)) + int(amount)
-        self.states.save(self.state)
+        self.fixed_mobs.reset(
+            self.map_data,
+            self.blocks,
+            set(self.state.get("despawned_fixed_mobs", [])),
+            (self.player_x, self.player_y),
+            now,
+            species_name,
+        )
 
-    def change_map(self, map_id: str, x: int, y: int, status: str = "") -> None:
-        self.map_id = str(map_id)
-        self.player_x = int(x)
-        self.player_y = int(y)
-        self.state["map_id"] = self.map_id
-        self.state["x"] = self.player_x
-        self.state["y"] = self.player_y
-        self.states.save(self.state)
-        self._load_map_runtime()
-        self.status = status
+    def nearby_home_npc(self) -> dict | None:
+        return self.fixed_mobs.nearby(self.player_front_position())
 
-    def despawn_fixed_mob_by_id(self, mob_id: str) -> None:
-        if self.fixed_mob_controller is None:
+    def next_npc_dialogue(self, npc: dict) -> str:
+        return self.fixed_mobs.next_dialogue(npc)
+
+    def despawn_fixed_mob(self, npc: dict) -> None:
+        self.fixed_mobs.remove(npc)
+        if not npc.get("respawn_on_map_enter", True):
+            key = f"{self.map_data['id']}:{npc['id']}"
+            self.field_progress.mark_despawned(self.state, key)
+
+    def despawn_fixed_mob_by_id(self, npc_id: str) -> bool:
+        npc = next((item for item in self.home_npcs if str(item.get("id")) == str(npc_id)), None)
+        if npc is None:
+            return False
+        self.despawn_fixed_mob(npc)
+        return True
+
+    def register_church(self, revive: dict) -> None:
+        self.field_progress.register_church(self.state, revive)
+
+    def gain_field_item(self, item_id: str) -> int:
+        return self.field_progress.add_item(self.state, item_id)
+
+    @staticmethod
+    def npc_front_position(npc: dict) -> tuple[int, int]:
+        return FixedMobController.front_position(npc)
+
+    def npc_faces_player(self, npc: dict) -> bool:
+        return self.fixed_mobs.faces_player(npc, (self.player_x, self.player_y))
+
+    def move_home_npcs(self) -> None:
+        if self.mode != "field" or not self.home_npcs:
             return
-        self.fixed_mob_controller.despawn(mob_id)
-        self._refresh_characters()
+        self.fixed_mobs.move_all(
+            (self.player_x, self.player_y),
+            pygame.time.get_ticks(),
+        )
 
-    def start_wild_battle(self, spawn: dict, *, fixed_mob_id: str = "") -> None:
-        party = self.party()
-        if not party:
-            self.status = "パーティが空です。"
+    def move_home_npc(self, npc: dict, now: int | None = None) -> bool:
+        now = pygame.time.get_ticks() if now is None else int(now)
+        return self.fixed_mobs.move(npc, (self.player_x, self.player_y), now)
+
+    def character_image(self, species_id: str, kind: str, size: tuple[int, int]) -> pygame.Surface | None:
+        return self.character_images.get(species_id, kind, size)
+
+    def field_pickup(self) -> None:
+        picker = next((record for record in self.party() if record.species_id in {"maru", "kadoka"}), None)
+        if not picker:
+            self.status = "まるかかどかをパーティに入れると『ものを拾う』を使えます。"
             return
-        loader = BattleDataLoader(self.repository)
-        enemy = loader.enemy_from_spawn(spawn, self.rng)
-        battle = BattleEngine(self.repository, party, [enemy], self.rng)
+        if picker.species_id == "maru":
+            item = self.rng.choice(["小石", "曲がった釘", "空き瓶", "変な布", "木の枝"])
+        else:
+            roll = self.rng.random()
+            item = "柿" if roll < 0.05 else "みかん" if roll < 0.8 else "小石"
+        self.field_progress.add_item(self.state, item)
+        self.status = f"{picker.name}が{item}を拾ってきました。"
+
+    def spawn_options(self) -> list[dict]:
+        self.hidden_enemies.set_world(self.map_data, self.blocks)
+        return self.hidden_enemies.spawn_options(self.state.get("flags", {}))
+
+    def reset_hidden_monsters(self, now: int | None = None) -> None:
+        now = pygame.time.get_ticks() if now is None else int(now)
+        self.hidden_enemies.set_world(self.map_data, self.blocks)
+        self.hidden_enemies.reset(
+            (self.player_x, self.player_y),
+            self.state.get("flags", {}),
+            now,
+        )
+
+    def move_hidden_monsters(self) -> None:
+        if self.mode != "field":
+            return
+        self.hidden_enemies.move_all(
+            (self.player_x, self.player_y),
+            {(int(npc["x"]), int(npc["y"])) for npc in self.home_npcs},
+        )
+        self.check_hidden_collision()
+
+    def monster_sees_player(self, monster: dict) -> bool:
+        return self.hidden_enemies.sees_player(monster, (self.player_x, self.player_y))
+
+    def move_hidden_monster(self, monster: dict) -> bool:
+        return self.hidden_enemies.move(
+            monster,
+            (self.player_x, self.player_y),
+            {(int(npc["x"]), int(npc["y"])) for npc in self.home_npcs},
+        )
+
+    def update_field_mobs(self, now: int) -> bool:
+        if self.mode != "field":
+            return False
+        moved = self.fixed_mobs.update((self.player_x, self.player_y), int(now))
+        visible_positions = {(int(npc["x"]), int(npc["y"])) for npc in self.home_npcs}
+        moved = self.hidden_enemies.update(
+            (self.player_x, self.player_y),
+            visible_positions,
+            int(now),
+        ) or moved
+        return self.check_hidden_collision() or moved
+
+    def check_hidden_collision(self) -> bool:
+        monster = self.hidden_enemies.find_at(self.player_front_position())
+        if monster is None:
+            return False
+        self.start_wild_battle(monster["spawn"], monster)
+        return True
+
+    def make_wild(self, spawn: dict) -> MonsterRecord:
+        species_id = str(spawn["species_id"])
+        bundle = self.repository.get_species(species_id)
+        level = self.rng.randint(int(spawn.get("min_level", 1)), int(spawn.get("max_level", 1)))
+        monster = {
+            "schema_version": 1,
+            "id": f"wild_{uuid4().hex[:10]}",
+            "species_id": species_id,
+            "name": str(bundle.definition["display_name"]),
+            "level": level,
+            "experience": 0,
+            "plus_choices": [],
+            "equipment_id": None,
+            "source": "wild",
+        }
+        return MonsterRecord(monster, default_ai(str(bundle.definition.get("ai_profile", "normal"))))
+
+    def start_wild_battle(
+        self,
+        spawn: dict | None = None,
+        hidden_monster: dict | None = None,
+        *,
+        fixed_mob_id: str | None = None,
+    ) -> None:
+        options = self.spawn_options()
+        if (not spawn and not options) or not self.party():
+            return
+        if spawn is None:
+            spawn = self.rng.choices(options, weights=[int(item.get("weight", 1)) for item in options])[0]
+        enemies = [self.make_wild(spawn)]
+        if hidden_monster is not None:
+            self.hidden_enemies.remove(hidden_monster)
+        battle = BattleEngine(self.repository, self.party(), enemies, self.rng, learning_enabled=True)
         self.battle_session.begin(
             battle,
             pygame.time.get_ticks(),
-            fixed_mob_id=fixed_mob_id or None,
+            fixed_mob_id=fixed_mob_id,
         )
         self.mode = "battle"
-        self.status = "戦闘開始。"
+        self.status = f"{', '.join(record.name for record in enemies)} が現れた。"
+
+    def start_simulation(self) -> None:
+        battle, self.status = self.monster_import_service.create_simulation(self.party(), self.rng)
+        if battle is None:
+            return
+        self.battle_session.begin(battle, pygame.time.get_ticks(), simulation=True)
+        self.mode = "battle"
 
     def handle_battle_command(self, command: str) -> None:
         if not self.battle or self.battle.outcome or self.battle_playback:
@@ -346,12 +673,8 @@ class KadokaQuest:
             self.battle.run_round()
         elif command == "scout":
             success, target, _ = self.battle.try_scout()
-            if success and target is not None:
-                acquired = self.monsters.create(
-                    target.species_id,
-                    level=target.level,
-                    source="scout",
-                )
+            if success and target:
+                acquired = self.monsters.create(target.species_id, level=target.level, source="scout")
                 party = list(self.state.get("current_party", []))
                 if len(party) < 4:
                     party.append(acquired.monster_id)
@@ -374,11 +697,25 @@ class KadokaQuest:
                 self.battle.try_run()
                 if not self.battle.outcome:
                     self.battle.run_round()
-        else:
-            raise ValueError(f"戦闘コマンド {command} は未対応です。")
         self.start_battle_playback(log_start)
         if not self.battle_playback:
             self.finalize_battle_if_needed()
+
+    def reset_battle_presentation(self) -> None:
+        self.battle_session.reset_presentation()
+
+    def start_battle_playback(self, log_start: int) -> None:
+        self.battle_session.start_playback(log_start, pygame.time.get_ticks())
+
+    def battle_log_delay(self, line: str) -> int:
+        return self.battle_session.log_delay(line)
+
+    def update_battle_playback(self, now: int | None = None) -> bool:
+        now = pygame.time.get_ticks() if now is None else int(now)
+        result = self.battle_session.update_playback(now)
+        if result["completed"]:
+            self.finalize_battle_if_needed()
+        return result["changed"]
 
     def selected_battle_command(self) -> str:
         return self.battle_session.selected_command()
@@ -398,32 +735,23 @@ class KadokaQuest:
             return
         self.status = "オート戦闘を開始しました。" if enabled else "オート戦闘を停止しました。"
 
-    def update_auto_battle(self, now: int) -> None:
+    def update_auto_battle(self, now: int | None = None) -> None:
+        now = pygame.time.get_ticks() if now is None else int(now)
         if not self.battle_session.auto_command_due(now, battle_mode=self.mode == "battle"):
             return
         self.handle_battle_command("fight")
         if self.battle and self.battle.outcome:
-            self.stop_auto_battle()
-
-    def start_battle_playback(self, log_start: int) -> None:
-        self.battle_session.start_playback(log_start, pygame.time.get_ticks())
-
-    def update_battle_playback(self, now: int) -> bool:
-        result = self.battle_session.update_playback(now)
-        if result["completed"]:
-            self.finalize_battle_if_needed()
-        return bool(result["changed"])
+            self.battle_session.stop_auto()
 
     def finalize_battle_if_needed(self) -> None:
         if not self.battle_session.mark_finalized():
             return
         assert self.battle is not None
         self.battle.mark_battle_complete()
-        if not self.battle.learning_enabled:
-            return
-        self.monsters.save_all_ai(member.record for member in self.battle.allies)
-        if self.battle.outcome == "victory":
-            self.award_experience()
+        if self.battle.learning_enabled:
+            self.monsters.save_all_ai(member.record for member in self.battle.allies)
+            if self.battle.outcome == "victory":
+                self.award_experience()
 
     def award_experience(self) -> None:
         if not self.battle:
@@ -444,150 +772,111 @@ class KadokaQuest:
             self.monsters.save(record)
 
     def return_to_field(self) -> None:
-        context = self.battle_session.clear()
-        if context["outcome"] == "defeat" and not context["simulation"]:
-            church = self.field_progress.church_or_default()
-            self.change_map(
-                str(church["map_id"]),
-                int(church["x"]),
-                int(church["y"]),
-                "全滅した。教会へ戻った。",
-            )
+        result = self.battle_session.clear()
+        outcome = result["outcome"]
+        was_simulation = bool(result["simulation"])
+        fixed_mob_battle_id = result["fixed_mob_id"]
+        self.mode = "field"
+        if outcome == "defeat" and not was_simulation:
+            self.revive_at_church()
         else:
-            self.mode = "field"
-            self.status = "フィールドへ戻った。"
-        fixed_mob_id = context.get("fixed_mob_id")
-        if context["outcome"] == "victory" and fixed_mob_id:
-            self.despawn_fixed_mob_by_id(str(fixed_mob_id))
+            if outcome == "victory" and fixed_mob_battle_id:
+                fixed_mob = next((npc for npc in self.home_npcs if str(npc.get("id")) == fixed_mob_battle_id), None)
+                if fixed_mob and fixed_mob.get("despawn_after_interaction", fixed_mob.get("despawn_after_talk", False)):
+                    self.despawn_fixed_mob(fixed_mob)
+            self.status = "フィールドへ戻りました。"
+            if self.spawn_options() and len(self.hidden_monsters) < 3:
+                self.reset_hidden_monsters()
 
-    def interact(self) -> None:
-        if self.player_field is None:
-            return
-        target_x, target_y = self.player_field.front_position(
-            self.player_x,
-            self.player_y,
-            self.player_direction,
-        )
-        npc = next(
-            (
-                character
-                for character in [*self.visible_characters, *self.hidden_characters]
-                if int(character["x"]) == target_x and int(character["y"]) == target_y
-            ),
-            None,
-        )
-        event = self.player_field.nearby_event(target_x, target_y)
-        effect = self.runtime.field_events.resolve_interaction(
-            npc,
-            event,
-            self.player_direction,
-            self.status,
-        )
-        self.runtime.apply_field_effect(effect)
+    def revive_at_church(self) -> None:
+        revive = self.field_progress.revive_point(self.state)
+        self.change_map(str(revive["map_id"]), int(revive["x"]), int(revive["y"]), f"全滅しました。{revive.get('name', '教会')}から復活しました。")
 
-    def pickup(self) -> None:
-        if self.player_field is None:
-            return
-        event = self.player_field.nearby_event(self.player_x, self.player_y)
-        if event is None or event.get("type") != "pickup":
-            self.status = "ここには拾えるものがない。"
-            return
-        item_id = str(event.get("item_id", "orange"))
-        amount = int(event.get("amount", 1))
-        self.gain_field_item(item_id, amount)
-        self.status = str(event.get("text", f"{item_id}を拾った。"))
+    def scan_acquire(self) -> None:
+        self.status = self.monster_import_service.scan_acquire()
 
-    def update_field(self, now: int) -> None:
-        if self.player_field is None:
+    def open_manager(self) -> None:
+        if self.manager_tool.open() == "already_running":
+            self.status = "牧場台帳は既に開いています。"
             return
-        move_result = self.player_field.update(
-            now,
-            self.player_x,
-            self.player_y,
-            self.player_direction,
-            self.visible_characters,
-            self.hidden_characters,
-        )
-        if move_result:
-            self.player_x = int(move_result["x"])
-            self.player_y = int(move_result["y"])
-            self.player_direction = str(move_result["direction"])
-            self.state["x"] = self.player_x
-            self.state["y"] = self.player_y
-            self.state["direction"] = self.player_direction
-            self.states.save(self.state)
-            transition = self.player_field.step_transition_at(self.player_x, self.player_y)
-            if transition is not None:
-                self.runtime.apply_field_effect(
-                    {
-                        "kind": "transition",
-                        "status": str(transition.get("text", "")),
-                        "target": dict(transition["target"]),
-                    }
-                )
-                return
-        if self.hidden_enemy_controller is not None:
-            encounter = self.hidden_enemy_controller.update(
-                now,
-                self.player_x,
-                self.player_y,
-                self.hidden_characters,
-            )
-            if encounter is not None:
-                self.runtime.dispatch("battle", "start.wild", spawn=encounter, fixed_mob_id="")
-                return
-            self.hidden_characters = self.hidden_enemy_controller.characters()
-        if self.fixed_mob_controller is not None:
-            encounter = self.fixed_mob_controller.update(
-                now,
-                self.player_x,
-                self.player_y,
-                self.visible_characters,
-            )
-            if encounter is not None:
-                self.runtime.dispatch(
-                    "battle",
-                    "start.wild",
-                    spawn=dict(encounter["spawn"]),
-                    fixed_mob_id=str(encounter["mob_id"]),
-                )
-                return
-            self.visible_characters = self.fixed_mob_controller.characters()
+        self.status = "牧場台帳を開きました。個体管理とパーティ編成ができます。"
+
+    def refresh_manager_if_closed(self) -> None:
+        if not self.manager_tool.consume_closed():
+            return
+        self.state = self.states.load()
+        self.status = "牧場台帳の変更をゲームへ反映しました。"
+
+    def save_preset(self) -> None:
+        self.status = self.field_party_service.save_preset(self.state)
+
+    def load_next_preset(self) -> None:
+        self.status = self.field_party_service.load_next_preset(self.state)
+
+    def cycle_tactic(self) -> None:
+        message = self.field_party_service.cycle_tactic(self.party())
+        if message is not None:
+            self.status = message
+
+    def reset_selected_ai(self) -> None:
+        message = self.field_party_service.reset_selected_ai(self.party())
+        if message is not None:
+            self.status = message
+
+    def select_party(self, index: int) -> bool:
+        return self.field_party_service.select(index)
 
 
 def password_controls() -> tuple[list[tuple[str, pygame.Rect]], pygame.Rect, pygame.Rect, pygame.Rect]:
-    keys = [(character, pygame.Rect(210 + index * 80, 370, 62, 54)) for index, character in enumerate(KANA_KEYS)]
-    erase = pygame.Rect(210, 445, 100, 54)
-    decide = pygame.Rect(330, 445, 100, 54)
-    cancel = pygame.Rect(450, 445, 100, 54)
-    return keys, erase, decide, cancel
+    keys: list[tuple[str, pygame.Rect]] = []
+    columns = 10
+    key_width, key_height = 82, 52
+    start_x, start_y = 108, 245
+    for index, character in enumerate(KANA_KEYS):
+        x = start_x + (index % columns) * (key_width + 7)
+        y = start_y + (index // columns) * (key_height + 8)
+        keys.append((character, pygame.Rect(x, y, key_width, key_height)))
+    return keys, pygame.Rect(350, 565, 130, 54), pygame.Rect(495, 565, 130, 54), pygame.Rect(640, 565, 130, 54)
 
 
 def draw_password(screen: pygame.Surface, game: KadokaQuest) -> None:
-    draw_text(screen, "合言葉", (360, 230), 34, ACCENT, True)
-    draw_text(screen, game.password_input or "・・・・", (400, 310), 30)
+    draw_text(screen, "水の湧き場", (455, 34), 36, (100, 210, 255), True)
+    draw_text(screen, "7文字のあいことば", (457, 84), 21, MUTED, True)
+    slot_x = 306
+    for index in range(7):
+        rect = pygame.Rect(slot_x + index * 74, 135, 62, 70)
+        pygame.draw.rect(screen, PANEL_ALT, rect, border_radius=8)
+        pygame.draw.rect(screen, ACCENT if index == len(game.password_input) and index < 7 else MUTED, rect, 2, border_radius=8)
+        if index < len(game.password_input):
+            draw_text(screen, game.password_input[index], (rect.x + 14, rect.y + 14), 31, TEXT, True)
+    keys, erase, decide, cancel = password_controls()
+    mouse = pygame.mouse.get_pos()
+    for label, rect in keys:
+        pygame.draw.rect(screen, (60, 102, 132) if rect.collidepoint(mouse) else PANEL_ALT, rect, border_radius=7)
+        draw_text(screen, label, (rect.x + 26, rect.y + 11), 23, TEXT, True)
+    for label, rect, color in (("けす", erase, WARN), ("決定", decide, GOOD), ("やめる", cancel, MUTED)):
+        pygame.draw.rect(screen, color if rect.collidepoint(mouse) else PANEL_ALT, rect, border_radius=8)
+        draw_text(screen, label, (rect.x + 29, rect.y + 13), 20, TEXT, True)
     if game.password_message:
-        draw_text(screen, game.password_message, (340, 520), 18)
+        draw_text(screen, game.password_message, (390, 645), 18, WARN if "違" in game.password_message else MUTED, True)
 
 
-def main(*, smoke: int | None = None) -> None:
-    pygame.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("kadoka quest")
+def main() -> None:
+    screen = init_pygame("kadoka quest", SCREEN_SIZE)
     clock = pygame.time.Clock()
     game = KadokaQuest()
-    battle_renderer = BattleRenderer(CharacterImageProvider())
-    input_adapter = RuntimeInputAdapter(MOVE_DIRECTIONS)
-    runtime = game.runtime
+    battle_renderer = BattleRenderer()
+    input_adapter = RuntimeInputAdapter(MOVE_KEY_DIRECTIONS)
+
+    def dispatch(target: str, action: str, **payload) -> object:
+        return game.runtime.dispatch(target, action, **payload)
+
     running = True
+    smoke = smoke_frames()
     frames = 0
-
-    def dispatch(target: str, action: str, **payload: object) -> object:
-        return runtime.dispatch(target, action, **payload)
-
     battle_buttons = [
-        Button(pygame.Rect(250, 650, 95, 48), "たたかう", lambda: None),
-        Button(pygame.Rect(355, 650, 95, 48), "スカウト", lambda: None),
+        Button(pygame.Rect(355, 650, 95, 48), "戦う", lambda: None),
+        Button(pygame.Rect(460, 650, 95, 48), "スカウト", lambda: None),
         Button(pygame.Rect(565, 650, 95, 48), "道具", lambda: None),
         Button(pygame.Rect(670, 650, 95, 48), "逃げる", lambda: None),
     ]
@@ -600,12 +889,11 @@ def main(*, smoke: int | None = None) -> None:
 
     while running:
         for event in pygame.event.get():
-            event_now = pygame.time.get_ticks()
             battle_finished = bool(game.battle and game.battle.outcome)
             for request in input_adapter.translate(
                 event,
                 game.mode,
-                event_now,
+                pygame.time.get_ticks(),
                 battle_finished=battle_finished,
                 battle_playback=game.battle_playback,
             ):
@@ -614,12 +902,7 @@ def main(*, smoke: int | None = None) -> None:
                 else:
                     dispatch(str(request["target"]), str(request["action"]), **dict(request["payload"]))
             battle_enabled = bool(game.battle and not game.battle.outcome and not game.battle_playback)
-            for request in mouse_adapter.translate(
-                event,
-                game.mode,
-                battle_enabled=battle_enabled,
-                now=event_now,
-            ):
+            for request in mouse_adapter.translate(event, game.mode, battle_enabled=battle_enabled):
                 dispatch(str(request["target"]), str(request["action"]), **dict(request["payload"]))
 
         dispatch("manager", "refresh")
@@ -649,3 +932,4 @@ def main(*, smoke: int | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+
