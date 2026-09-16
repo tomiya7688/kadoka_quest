@@ -13,7 +13,7 @@ class BattleFlowService:
     def session(self):
         return self.dependencies.session
 
-    def execute(self, command: str, now: int | None = None) -> None:
+    def execute(self, command: str, now: int) -> None:
         battle = self.session.battle
         if not battle or battle.outcome or self.session.playback:
             return
@@ -42,8 +42,7 @@ class BattleFlowService:
         else:
             raise ValueError(f"戦闘コマンド {command} は未対応です。")
 
-        tick = self.dependencies.clock() if now is None else int(now)
-        self.session.start_playback(log_start, tick)
+        self.session.start_playback(log_start, int(now))
         if not self.session.playback:
             self.finalize_if_needed()
 
@@ -129,9 +128,8 @@ class BattleFlowService:
     def stop_auto(self) -> None:
         self.session.stop_auto()
 
-    def toggle_auto(self, now: int | None = None) -> str | None:
-        tick = self.dependencies.clock() if now is None else int(now)
-        enabled = self.session.toggle_auto(tick)
+    def toggle_auto(self, now: int) -> str | None:
+        enabled = self.session.toggle_auto(int(now))
         if enabled is None:
             return None
         return "オート戦闘を開始しました。" if enabled else "オート戦闘を停止しました。"
