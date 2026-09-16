@@ -29,7 +29,7 @@ class RuntimeInputAdapter:
         if mode == "field":
             return self._field_key(event, now)
         if mode == "battle":
-            return self._battle_key(event, battle_finished, battle_playback)
+            return self._battle_key(event, battle_finished, battle_playback, now)
         if mode == "password":
             return self._password_key(event)
         return []
@@ -74,22 +74,23 @@ class RuntimeInputAdapter:
         event: pygame.event.Event,
         battle_finished: bool,
         battle_playback: bool,
+        now: int,
     ) -> list[dict]:
         confirm_keys = {pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE}
         if battle_finished and not battle_playback and event.key in confirm_keys:
             return [self._command("battle", "return")]
         if event.key == pygame.K_a:
-            return [self._command("battle", "auto.toggle")]
+            return [self._command("battle", "auto.toggle", now=int(now))]
         if event.key in {pygame.K_LEFT, pygame.K_UP}:
             return [self._command("battle", "selection.move", amount=-1)]
         if event.key in {pygame.K_RIGHT, pygame.K_DOWN}:
             return [self._command("battle", "selection.move", amount=1)]
         if event.key in confirm_keys:
-            return [self._command("battle", "execute.selected")]
+            return [self._command("battle", "execute.selected", now=int(now))]
         if pygame.K_1 <= event.key <= pygame.K_4:
             return [
                 self._command("battle", "selection.set", index=event.key - pygame.K_1),
-                self._command("battle", "execute.selected"),
+                self._command("battle", "execute.selected", now=int(now)),
             ]
         return []
 

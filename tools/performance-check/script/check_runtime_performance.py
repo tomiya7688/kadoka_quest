@@ -8,6 +8,7 @@ from typing import Callable
 
 from kadoka_quest.application.app_command import AppCommand, is_plain_data
 from kadoka_quest.application.command_bus import CommandBus
+from kadoka_quest.core.field_engine import FieldEngine
 
 
 Operation = Callable[[], object]
@@ -60,6 +61,16 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
 
     bus.register("field", handler)
 
+    field = FieldEngine(
+        {
+            "width": 3,
+            "height": 3,
+            "tiles": [["floor", "floor", "floor"] for _ in range(3)],
+            "events": [],
+        },
+        {"floor": {"player_walkable": True}},
+    )
+
     return [
         BenchmarkCase("dispatch", lambda: bus.dispatch(command), 20_000.0),
         BenchmarkCase("command", lambda: AppCommand("field", "move", payload), 40_000.0),
@@ -68,6 +79,11 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
             "end-to-end",
             lambda: bus.dispatch(AppCommand("field", "move", payload)),
             60_000.0,
+        ),
+        BenchmarkCase(
+            "field-move",
+            lambda: field.resolve_player_move(1, 1, 1, 0, "front", [], []),
+            40_000.0,
         ),
     ]
 

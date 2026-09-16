@@ -24,6 +24,7 @@ class BattleSession:
         self.selection = 0
         self.auto = False
         self.last_auto_tick = 0
+        self.runtime_tick = 0
         self.playback = False
         self.visible_log_count = 0
         self.next_log_tick = 0
@@ -45,6 +46,7 @@ class BattleSession:
         self.selection = 0
         self.auto = False
         self.last_auto_tick = int(now)
+        self.runtime_tick = int(now)
         self.simulation = bool(simulation)
         self.fixed_mob_id = fixed_mob_id
         self.reset_presentation()
@@ -86,6 +88,7 @@ class BattleSession:
         return self.action_log_delay_ms
 
     def update_playback(self, now: int) -> dict[str, bool]:
+        self.runtime_tick = int(now)
         if not self.playback or not self.battle or int(now) < self.next_log_tick:
             return {"changed": False, "completed": False}
         if self.visible_log_count < len(self.battle.log):
@@ -131,6 +134,7 @@ class BattleSession:
         self.auto = False
 
     def auto_command_due(self, now: int, *, battle_mode: bool) -> bool:
+        self.runtime_tick = int(now)
         if not self.auto or self.playback or not battle_mode or not self.battle or self.battle.outcome:
             return False
         if int(now) - self.last_auto_tick < self.next_round_delay_ms:
