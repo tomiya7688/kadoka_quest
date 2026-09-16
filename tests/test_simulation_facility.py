@@ -11,7 +11,11 @@ import pygame
 
 from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
-from kadoka_quest.apps.simulation_facility_hooks import install_simulation_facility_hooks, refresh_simulation_if_closed
+from kadoka_quest.apps.simulation_facility_hooks import (
+    install_simulation_facility_hooks,
+    open_simulation_manager,
+    refresh_simulation_if_closed,
+)
 from kadoka_quest.apps.simulation_roster_service import SimulationRosterService
 from kadoka_quest.data.field_data import FieldDataLoader
 from kadoka_quest.data.monsters import MonsterStore
@@ -123,26 +127,17 @@ class SimulationFacilityIntegrationTests(unittest.TestCase):
         self.assertTrue(session.battle_session.begin.call_args.kwargs["simulation"])
         self.assertEqual(session.mode, "battle")
 
-    def test_simulation_blocks_scout_and_consumable_items(self) -> None:
+    def test_install_hooks_does_not_replace_battle_command_handler(self) -> None:
         class FakeGame:
-            def handle_battle_command(self, command: str) -> None:
-                self.original_calls.append(command)
+            def handle_battle_command(self, command: str) -> str:
+                return command
 
+        original = FakeGame.handle_battle_command
         install_simulation_facility_hooks(FakeGame)
-        game = FakeGame()
-        game.original_calls = []
-        game.simulation = True
-        game.battle = SimpleNamespace(outcome=None, log=[])
-        game.battle_playback = False
-        game.start_battle_playback = mock.Mock()
-        game.finalize_battle_if_needed = mock.Mock()
 
-        game.handle_battle_command("scout")
-        game.handle_battle_command("item")
-
-        self.assertEqual(game.original_calls, [])
-        self.assertIn("模擬戦ではスカウトできない。", game.battle.log)
-        self.assertIn("模擬戦では消費アイテムを使用できない。", game.battle.log)
+        self.assertIs(FakeGame.handle_battle_command, original)
+        self.assertIs(FakeGame.open_simulation_manager, open_simulation_manager)
+        self.assertIs(FakeGame.refresh_simulation_if_closed, refresh_simulation_if_closed)
 
 
 if __name__ == "__main__":
