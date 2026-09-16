@@ -16,4 +16,3 @@ class BattleFlowDependencies:
     monsters: MonsterStore
     states: StateStore
     state_provider: Callable[[], dict]
-    clock: Callable[[], int]
