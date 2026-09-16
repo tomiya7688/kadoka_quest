@@ -24,6 +24,7 @@ class RuntimeMouseAdapter:
         mode: str,
         *,
         battle_enabled: bool = True,
+        now: int = 0,
     ) -> list[dict]:
         if event.type != pygame.MOUSEBUTTONDOWN or getattr(event, "button", None) != 1:
             return []
@@ -31,7 +32,7 @@ class RuntimeMouseAdapter:
         if mode == "password":
             return self._password_click(position)
         if mode == "battle" and battle_enabled:
-            return self._battle_click(position)
+            return self._battle_click(position, now)
         return []
 
     def _password_click(self, position: tuple[int, int]) -> list[dict]:
@@ -44,7 +45,7 @@ class RuntimeMouseAdapter:
                 return [self._command("password", action)]
         return []
 
-    def _battle_click(self, position: tuple[int, int]) -> list[dict]:
+    def _battle_click(self, position: tuple[int, int], now: int) -> list[dict]:
         for command, rect in self.battle_buttons:
             if rect.collidepoint(position):
                 return [
@@ -52,7 +53,7 @@ class RuntimeMouseAdapter:
                         "battle",
                         "execute",
                         command=command,
-                        now=pygame.time.get_ticks(),
+                        now=int(now),
                     )
                 ]
         return []
