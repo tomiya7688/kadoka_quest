@@ -34,7 +34,7 @@ class BattleCommandApplication:
         if "now" in payload:
             return int(payload["now"])
         battle_session = getattr(self.session, "battle_session", None)
-        return int(getattr(battle_session, "last_auto_tick", 0))
+        return int(getattr(battle_session, "runtime_tick", 0))
 
     def handle(self, command: AppCommand) -> Any:
         payload = command.payload
