@@ -47,7 +47,14 @@ class RuntimeMouseAdapter:
     def _battle_click(self, position: tuple[int, int]) -> list[dict]:
         for command, rect in self.battle_buttons:
             if rect.collidepoint(position):
-                return [self._command("battle", "execute", command=command)]
+                return [
+                    self._command(
+                        "battle",
+                        "execute",
+                        command=command,
+                        now=pygame.time.get_ticks(),
+                    )
+                ]
         return []
 
     @staticmethod
