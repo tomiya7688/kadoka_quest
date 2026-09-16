@@ -11,7 +11,11 @@ import pygame
 
 from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
-from kadoka_quest.apps.simulation_facility_hooks import install_simulation_facility_hooks, refresh_simulation_if_closed
+from kadoka_quest.apps.simulation_facility_hooks import (
+    install_simulation_facility_hooks,
+    open_simulation_manager,
+    refresh_simulation_if_closed,
+)
 from kadoka_quest.apps.simulation_roster_service import SimulationRosterService
 from kadoka_quest.data.field_data import FieldDataLoader
 from kadoka_quest.data.monsters import MonsterStore
@@ -132,7 +136,7 @@ class SimulationFacilityIntegrationTests(unittest.TestCase):
         install_simulation_facility_hooks(FakeGame)
 
         self.assertIs(FakeGame.handle_battle_command, original)
-        self.assertIs(FakeGame.open_simulation_manager, install_simulation_facility_hooks.__globals__["open_simulation_manager"])
+        self.assertIs(FakeGame.open_simulation_manager, open_simulation_manager)
         self.assertIs(FakeGame.refresh_simulation_if_closed, refresh_simulation_if_closed)
 
 
