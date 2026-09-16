@@ -91,7 +91,7 @@ class BattleFlowServiceTests(unittest.TestCase):
         service, session, battle, monsters, _, _ = self.make_service()
         battle.outcome = "victory"
 
-        service.finalize_if_needed()
+        service.progression.finalize_if_needed()
 
         self.assertTrue(session.finalized)
         battle.mark_battle_complete.assert_called_once_with()
@@ -99,7 +99,7 @@ class BattleFlowServiceTests(unittest.TestCase):
         monsters.get.assert_not_called()
 
     def test_command_application_uses_flow_service_instead_of_legacy_game_handler(self) -> None:
-        service, session, battle, monsters, states, state = self.make_service()
+        _, session, battle, monsters, states, state = self.make_service()
         battle.run_round.side_effect = lambda: battle.log.append("攻撃した。")
         game = SimpleNamespace(
             battle_session=session,
