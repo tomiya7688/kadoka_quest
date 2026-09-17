@@ -21,6 +21,9 @@
     "light": "weak",
     "mental": "strong"
   },
+  "status_resistances": {
+    "bleeding": "immune"
+  },
   "defeat_message": "かどかは疲れてしまった。",
   "portrait_path": "characters/kadoka/portrait.png",
   "field_sprite_path": "characters/kadoka/field.png",

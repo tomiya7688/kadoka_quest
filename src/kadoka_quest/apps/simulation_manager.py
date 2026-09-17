@@ -2,172 +2,209 @@ from __future__ import annotations
 
 import pygame
 
-from kadoka_quest.apps.simulation_facility_service import SimulationFacilityService
+from kadoka_quest.apps.simulation_roster_service import SimulationRosterService
 from kadoka_quest.data.repository import GameRepository
-from kadoka_quest.paths import IMPORT_ROOT
-from kadoka_quest.ui.common import (
-    ACCENT,
-    BG,
-    GOOD,
-    MUTED,
-    PANEL,
-    PANEL_ALT,
-    SELECTED,
-    TEXT,
-    Button,
-    ScrollBar,
-    draw_text,
-    draw_wrapped,
-    init_pygame,
-    smoke_frames,
-)
+from kadoka_quest.paths import IMPORT_ROOT, SAVE_ROOT
+from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
 class SimulationManager:
-    """Player-facing editor for the roster isolated in imports/simulation."""
+    """Player-facing manager for simulation-only opponents."""
 
     def __init__(self) -> None:
         self.repository = GameRepository()
-        self.facility = SimulationFacilityService(self.repository, IMPORT_ROOT / "simulation")
-        self.species_ids = self.repository.list_species_ids()
-        self.selected_species = 0
-        self.level = 1
+        self.roster = SimulationRosterService(
+            SAVE_ROOT / "simulation",
+            self.repository,
+            IMPORT_ROOT / "simulation",
+        )
         self.records = []
         self.selected = 0
         self.offset = 0
-        self.status = "模擬戦専用個体を管理します。牧場の所有個体には追加されません。"
+        self.opponents: list[str] = []
+        self.species_ids = list(self.repository.list_species_ids())
+        self.species_index = 0
+        self.level = 1
+        self.status = "模擬戦専用個体を準備し、相手パーティを1〜4体で編成してください。"
         self.refresh()
 
-    @property
-    def species_id(self) -> str:
-        return self.species_ids[self.selected_species] if self.species_ids else "slime"
+    def refresh(self) -> None:
+        current = self.selected_record.monster_id if self.selected_record else None
+        self.records = self.roster.list_records()
+        self.opponents = [monster_id for monster_id in self.opponents if any(r.monster_id == monster_id for r in self.records)]
+        if current:
+            self.selected = next((i for i, record in enumerate(self.records) if record.monster_id == current), 0)
+        self.selected = max(0, min(self.selected, max(0, len(self.records) - 1)))
+        self.offset = max(0, min(self.offset, max(0, len(self.records) - 10)))
+        if self.selected < self.offset:
+            self.offset = self.selected
+        elif self.selected >= self.offset + 10:
+            self.offset = max(0, self.selected - 9)
 
     @property
     def selected_record(self):
-        return self.records[self.selected] if self.records else None
+        return self.records[self.selected] if self.records and self.selected < len(self.records) else None
 
-    def refresh(self) -> None:
-        selected_id = self.selected_record.monster_id if self.selected_record else None
-        self.records = self.facility.list_individuals()
-        if selected_id:
-            self.selected = next((i for i, record in enumerate(self.records) if record.monster_id == selected_id), 0)
-        self.selected = max(0, min(self.selected, max(0, len(self.records) - 1)))
-        self.offset = max(0, min(self.offset, max(0, len(self.records) - 9)))
+    @property
+    def selected_species_id(self) -> str:
+        if not self.species_ids:
+            raise RuntimeError("種族データがありません。")
+        return self.species_ids[self.species_index % len(self.species_ids)]
 
-    def change_species(self, step: int) -> None:
+    def cycle_species(self, amount: int) -> None:
         if self.species_ids:
-            self.selected_species = (self.selected_species + step) % len(self.species_ids)
+            self.species_index = (self.species_index + amount) % len(self.species_ids)
 
-    def change_level(self, step: int) -> None:
-        self.level = max(1, min(100, self.level + step))
+    def change_level(self, amount: int) -> None:
+        self.level = max(1, min(100, self.level + int(amount)))
 
-    def create(self) -> None:
+    def create_opponent(self) -> None:
         try:
-            record = self.facility.create_individual(self.species_id, self.level)
+            record = self.roster.create(self.selected_species_id, level=self.level)
         except (OSError, ValueError, KeyError) as exc:
-            self.status = f"作成できません: {exc}"
+            self.status = f"模擬戦個体を作成できません: {exc}"
             return
         self.refresh()
-        self.selected = next(i for i, item in enumerate(self.records) if item.monster_id == record.monster_id)
+        self.selected = next((i for i, item in enumerate(self.records) if item.monster_id == record.monster_id), 0)
+        self.refresh()
         self.status = f"{record.name} Lv{record.level} を模擬戦専用個体として作成しました。"
 
-    def toggle_opponent(self) -> None:
-        record = self.selected_record
-        if record is None:
+    def import_external(self) -> None:
+        try:
+            added, skipped = self.roster.import_external()
+        except OSError as exc:
+            self.status = f"外部個体を取り込めません: {exc}"
             return
-        selected = self.facility.opponent_ids()
-        if record.monster_id in selected:
-            selected.remove(record.monster_id)
-            if not selected:
-                self.facility.clear_opponents()
-            else:
-                self.facility.set_opponents(selected)
-            self.status = f"{record.name} を相手編成から外しました。"
-        else:
-            self.facility.set_opponents([*selected, record.monster_id])
-            self.status = f"{record.name} を相手編成へ追加しました。"
+        self.refresh()
+        self.status = f"imports/simulation から {added}体を取込、{skipped}件をスキップしました。"
 
-    def delete(self) -> None:
+    def delete_selected(self) -> None:
         record = self.selected_record
         if record is None:
             return
-        if self.facility.delete_individual(record.monster_id):
-            self.status = f"{record.name} を模擬戦専用個体から削除しました。"
-            self.refresh()
+        self.roster.delete(record.monster_id)
+        self.opponents = [monster_id for monster_id in self.opponents if monster_id != record.monster_id]
+        self.status = f"{record.name} を模擬戦専用ロスターから削除しました。"
+        self.refresh()
+
+    def toggle_selected(self) -> None:
+        record = self.selected_record
+        if record is None:
+            return
+        if record.monster_id in self.opponents:
+            self.opponents.remove(record.monster_id)
+            self.status = f"{record.name} を相手パーティから外しました。"
+            return
+        if len(self.opponents) >= 4:
+            self.status = "相手パーティは4体までです。"
+            return
+        self.opponents.append(record.monster_id)
+        self.status = f"{record.name} を相手パーティへ追加しました。"
+
+    def request_battle(self) -> bool:
+        try:
+            self.roster.request_battle(self.opponents)
+        except (OSError, ValueError, KeyError) as exc:
+            self.status = str(exc) or "模擬戦を開始できません。"
+            return False
+        self.status = "対戦相手を確定しました。受付を閉じて模擬戦を開始します。"
+        return True
 
 
 def main() -> None:
-    screen = init_pygame("kadoka quest - 模擬戦受付", (1120, 740))
+    screen = init_pygame("kadoka quest - 模擬戦受付", (1100, 720))
     clock = pygame.time.Clock()
     manager = SimulationManager()
     running = True
     smoke = smoke_frames()
     frames = 0
+
+    def close() -> None:
+        nonlocal running
+        running = False
+
+    def start() -> None:
+        nonlocal running
+        if manager.request_battle():
+            running = False
+
     buttons = [
-        Button(pygame.Rect(475, 220, 48, 42), "←", lambda: manager.change_species(-1)),
-        Button(pygame.Rect(810, 220, 48, 42), "→", lambda: manager.change_species(1)),
-        Button(pygame.Rect(570, 280, 48, 42), "-", lambda: manager.change_level(-1)),
-        Button(pygame.Rect(725, 280, 48, 42), "+", lambda: manager.change_level(1)),
-        Button(pygame.Rect(545, 350, 250, 48), "模擬戦個体を作成", manager.create),
-        Button(pygame.Rect(475, 445, 180, 45), "相手編成へ切替", manager.toggle_opponent),
-        Button(pygame.Rect(670, 445, 180, 45), "選択個体を削除", manager.delete),
-        Button(pygame.Rect(865, 445, 190, 45), "外部フォルダを再読込", manager.refresh),
+        Button(pygame.Rect(455, 175, 120, 40), "種族 <", lambda: manager.cycle_species(-1)),
+        Button(pygame.Rect(580, 175, 120, 40), "種族 >", lambda: manager.cycle_species(1)),
+        Button(pygame.Rect(455, 225, 70, 40), "Lv-10", lambda: manager.change_level(-10)),
+        Button(pygame.Rect(530, 225, 70, 40), "Lv-1", lambda: manager.change_level(-1)),
+        Button(pygame.Rect(605, 225, 70, 40), "Lv+1", lambda: manager.change_level(1)),
+        Button(pygame.Rect(680, 225, 70, 40), "Lv+10", lambda: manager.change_level(10)),
+        Button(pygame.Rect(760, 175, 150, 40), "専用個体を作成", manager.create_opponent),
+        Button(pygame.Rect(920, 175, 150, 40), "外部個体を取込", manager.import_external),
+        Button(pygame.Rect(455, 315, 180, 42), "相手へ追加 / 外す", manager.toggle_selected),
+        Button(pygame.Rect(645, 315, 130, 42), "選択個体を削除", manager.delete_selected),
+        Button(pygame.Rect(800, 585, 130, 48), "模擬戦開始", start),
+        Button(pygame.Rect(940, 585, 130, 48), "閉じる", close),
     ]
-    scroll = ScrollBar(pygame.Rect(412, 120, 9, 520), "vertical", total=0, page=9)
 
     while running:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            if event.type == pygame.QUIT:
                 running = False
-            scroll.configure(len(manager.records), 9)
-            scroll.value = manager.offset
-            handled = scroll.handle(event)
-            manager.offset = scroll.value
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False
+            handled = False
             for button in buttons:
                 handled = button.handle(event) or handled
             if not handled and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if 25 <= event.pos[0] < 405 and 120 <= event.pos[1] < 606:
-                    index = manager.offset + (event.pos[1] - 120) // 54
-                    if 0 <= index < len(manager.records):
-                        manager.selected = index
-            if event.type == pygame.MOUSEWHEEL and pygame.mouse.get_pos()[0] < 435:
-                manager.offset = max(0, min(scroll.maximum, manager.offset - event.y))
+                for row, _ in enumerate(manager.records[manager.offset:manager.offset + 10]):
+                    rect = pygame.Rect(25, 125 + row * 48, 390, 41)
+                    if rect.collidepoint(event.pos):
+                        manager.selected = manager.offset + row
+                        break
+            if event.type == pygame.MOUSEWHEEL and pygame.mouse.get_pos()[0] < 430:
+                manager.offset = max(0, min(max(0, len(manager.records) - 10), manager.offset - event.y))
 
         screen.fill(BG)
-        draw_text(screen, "模擬戦受付", (24, 24), 34, ACCENT, True)
-        draw_text(screen, "専用個体のみ。牧場・通常冒険の所有個体には混ざりません。", (25, 70), 16, MUTED)
-        pygame.draw.rect(screen, PANEL, pygame.Rect(15, 90, 415, 565), border_radius=10)
-        draw_text(screen, f"模擬戦個体 {len(manager.records)}体", (30, 98), 17, MUTED, True)
-        opponent_ids = set(manager.facility.opponent_ids())
-        for row, record in enumerate(manager.records[manager.offset:manager.offset + 9]):
-            index = manager.offset + row
-            rect = pygame.Rect(25, 120 + row * 54, 378, 47)
-            pygame.draw.rect(screen, SELECTED if index == manager.selected else PANEL_ALT, rect, border_radius=6)
-            marker = "VS " if record.monster_id in opponent_ids else "   "
-            draw_text(screen, marker + record.name, (rect.x + 10, rect.y + 6), 17, GOOD if marker.strip() else TEXT, True)
-            draw_text(screen, f"Lv{record.level}  {record.species_id}  AI:{record.ai.get('tactic', 'balanced')}", (rect.x + 15, rect.y + 27), 12, MUTED)
-        scroll.configure(len(manager.records), 9)
-        scroll.value = manager.offset
-        if scroll.maximum:
-            scroll.draw(screen, pygame.mouse.get_pos())
+        draw_text(screen, "模擬戦受付", (24, 22), 34, ACCENT, True)
+        draw_text(screen, "通常の牧場とは別管理です。ここで作った個体は冒険へ持ち出せません。", (220, 33), 16, MUTED)
 
-        pygame.draw.rect(screen, PANEL, pygame.Rect(445, 90, 660, 565), border_radius=10)
-        draw_text(screen, "新規作成", (475, 118), 25, ACCENT, True)
-        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(535, 210, 265, 55), border_radius=7)
-        draw_text(screen, manager.species_id, (555, 226), 20, TEXT, True)
-        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(630, 275, 88, 52), border_radius=7)
-        draw_text(screen, f"Lv {manager.level}", (644, 292), 18, TEXT, True)
+        pygame.draw.rect(screen, PANEL, pygame.Rect(15, 82, 415, 560), border_radius=10)
+        draw_text(screen, f"模擬戦専用個体 {len(manager.records)}体", (25, 92), 18, ACCENT, True)
+        for row, record in enumerate(manager.records[manager.offset:manager.offset + 10]):
+            index = manager.offset + row
+            rect = pygame.Rect(25, 125 + row * 48, 390, 41)
+            selected = index == manager.selected
+            pygame.draw.rect(screen, SELECTED if selected else PANEL_ALT, rect, border_radius=6)
+            marker = "★" if record.monster_id in manager.opponents else " "
+            draw_text(screen, f"{marker} {record.name}", (rect.x + 10, rect.y + 6), 16, GOOD if marker == "★" else TEXT, True)
+            draw_text(screen, f"Lv{record.level} / {record.species_id}", (rect.x + 220, rect.y + 8), 13, MUTED)
+
+        pygame.draw.rect(screen, PANEL, pygame.Rect(445, 82, 640, 560), border_radius=10)
+        draw_text(screen, "模擬戦個体の作成", (455, 100), 21, ACCENT, True)
+        species_id = manager.selected_species_id if manager.species_ids else "-"
+        display_name = species_id
+        if manager.species_ids:
+            display_name = str(manager.repository.get_species(species_id).definition.get("display_name", species_id))
+        draw_text(screen, f"種族: {display_name} ({species_id}) / Lv{manager.level}", (455, 140), 17, TEXT)
+        draw_text(screen, "外部取込元: imports/simulation", (760, 230), 14, MUTED)
+
+        record = manager.selected_record
+        draw_text(screen, "選択中", (455, 285), 18, ACCENT, True)
+        draw_text(screen, f"{record.name} / Lv{record.level} / {record.species_id}" if record else "個体なし", (545, 286), 17, TEXT)
+
+        draw_text(screen, "相手パーティ", (455, 385), 21, ACCENT, True)
+        lookup = {record.monster_id: record for record in manager.records}
+        for index in range(4):
+            rect = pygame.Rect(455 + (index % 2) * 300, 425 + (index // 2) * 70, 285, 55)
+            pygame.draw.rect(screen, PANEL_ALT, rect, border_radius=6)
+            if index < len(manager.opponents) and manager.opponents[index] in lookup:
+                opponent = lookup[manager.opponents[index]]
+                draw_text(screen, f"{index + 1}. {opponent.name}", (rect.x + 12, rect.y + 8), 16, GOOD, True)
+                draw_text(screen, f"Lv{opponent.level} {opponent.species_id}", (rect.x + 12, rect.y + 31), 13, MUTED)
+            else:
+                draw_text(screen, f"{index + 1}. 空き", (rect.x + 12, rect.y + 17), 15, MUTED)
+
         for button in buttons:
             button.draw(screen, pygame.mouse.get_pos())
-        record = manager.selected_record
-        if record:
-            draw_text(screen, "選択中", (475, 520), 20, ACCENT, True)
-            draw_text(screen, f"{record.name} / {record.species_id} / Lv{record.level}", (475, 552), 19, TEXT, True)
-            draw_text(screen, "VS 表示は現在の相手パーティです。", (475, 584), 15, MUTED)
-        else:
-            draw_wrapped(screen, "外部個体は imports/simulation に monster.json と ai.json を持つフォルダとして置き、「外部フォルダを再読込」を選びます。", pygame.Rect(475, 520, 570, 70), 16, MUTED)
-        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(15, 670, 1090, 50), border_radius=8)
-        draw_wrapped(screen, manager.status, pygame.Rect(30, 682, 1060, 28), 15)
+        pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(15, 655, 1070, 50), border_radius=8)
+        draw_wrapped(screen, manager.status, pygame.Rect(30, 666, 1040, 30), 15, WARN if "でき" in manager.status else TEXT)
         pygame.display.flip()
         clock.tick(60)
         frames += 1

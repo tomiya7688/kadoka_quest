@@ -21,6 +21,9 @@
     "light": "weak",
     "mental": "strong"
   },
+  "status_resistances": {
+    "bleeding": "immune"
+  },
   "defeat_message": "まるはつかれて動けなくなった。",
   "portrait_path": "characters/maru/portrait.png",
   "field_sprite_path": "characters/maru/field_front.png",

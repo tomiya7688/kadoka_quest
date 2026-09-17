@@ -1,62 +1,87 @@
-# Kadoka Quest: Codex quick context
+# Kadoka Quest agent router
 
-Read this file first. Load only the linked document required for the task; do not load the complete roadmap, feedback, or format reference by default.
+Read this file and the assigned Issue first. Do not read the whole repository up front.
 
-## Context Budget
+## Context budget
 
-Start with this file, the selected Issue, and one matching `docs/CODEMAP.md` row. Do not read README, FORMATS, every feature document, or unrelated source files until that row and Issue show a concrete need. CODEMAP routes battle/AI, field/fixed mobs, monster, map/block, editor, runtime command, save/data, and UI/input work to the next files. For architecture, responsibility splitting, new modules/classes, or dependency-direction changes, additionally read `docs/CODING_RULES.md`.
+1. Extract **Goal / Required / Acceptance** from the Issue.
+2. Read the matching row in `docs/context/ROUTES.md` and only its first-hop files.
+3. Run `python tools/remote-context/script/sync_remote_context.py` when local work may be behind remote Chat/Codex changes.
+4. Search or use compact indexes before opening additional full files.
+5. Stop exploring once the required change, constraints, and validation are clear.
 
-## Work order
+`README.md`, `docs/FORMATS.md`, generated diagrams, and broad architecture docs are not default reading. Open them only when the route or task requires them. Generated/index files are navigation aids, never source-of-truth replacements.
 
-1. Run `python tools/remote-context/script/sync_remote_context.py` to fetch and compactly inspect remote changes. Read the full diff only if its output is insufficient.
-2. Check GitHub Issues and their priority first. Then check only relevant feedback and roadmap entries.
-3. Work on a branch; preserve unrelated dirty and untracked files.
-4. Test, update the relevant document and `docs/ver.md`, then commit only task files.
-5. Never push, open a PR, close an Issue, or alter player saves without explicit permission.
+## Project basics
 
-If the Issue service is unavailable, report that fact and use the last verified priority rather than inventing one.
+- Python 3.10+, `pygame-ce`, UTF-8 JSON.
+- Package code: `src/kadoka_quest/`.
+- Mod/game data source of truth: `data/`.
+- Image assets: `assets/`.
+- Player-owned runtime data: save/UserData roots; tests must use isolated temporary save roots.
+- Project tools belong under `tools/<tool-name>/`; executable scripts belong under `tools/<tool-name>/script/`.
 
-## Commands
+Common commands:
 
-- Canonical checkout: `C:\Users\tomiy\games\kadokaquest`
-- Python: `venv_3135` (3.13.5); use `scripts\run_python.bat`.
-- Full test: `scripts\run_python.bat -m unittest discover -s tests -v`
-- Headless test: set dummy SDL drivers and an isolated `KADOKA_SAVE_DIR`.
-- Always finish with a syntax check and `git diff --check`.
-- Project tools belong under `tools/<tool-name>/script/`; do not add new root or top-level `scripts/` tools.
+```text
+py -m venv .venv
+.venv\Scripts\python.exe -m pip install -e .
+.venv\Scripts\python.exe launcher.py
+.venv\Scripts\python.exe -m pytest
+```
 
-## Boundaries
+For headless UI tests set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and use an isolated `KADOKA_SAVE_DIR`.
 
-- `kadoka_engine` is reusable, pygame-free, and must never import `kadoka_quest`.
-- `apps/` owns pygame-free application actions. Runtime screens communicate only via `AppCommand(target, action, payload)`.
-- `apps/game.py` orchestrates input and modes; battle drawing belongs to `ui/battle_renderer.py`.
-- `ui/` draws or adapts pygame input only; it must not decide gameplay rules.
-- One class has one responsibility and lives in its own module.
+## Hard boundaries
 
-## Data contracts
+- `core/` is gameplay/domain logic and must stay free of pygame and file I/O.
+- `application/` owns plain semantic command routing. Command payloads remain JSON-like plain data.
+- `apps/` coordinates sessions/services and screen flow; do not move substantial new domain logic into `apps/game.py`.
+- `data/` owns persistence and canonical data loading.
+- `ui/` owns pygame rendering/input adaptation; renderers do not decide gameplay outcomes.
+- Player and Developer entry points stay separated. Developer tooling must not leak into the Player launcher/build.
+- Preserve direct JSON/editor-to-runtime formats. When a data contract changes, update `docs/FORMATS.md`.
+- Follow `docs/CODING_RULES.md` for architecture/responsibility changes.
 
-- Source-of-truth JSON is directly edited and directly read by the game: no export format.
-- Maps: `data/maps/<id>/map.json`; separate `tiles`, `spawns`, `fixed_mobs`, `events` layers.
-- Species: `data/species/<id>/{species,stats,skills,plus}.json`; all levels 1–100.
-- Equipment owns `allowed_species_ids`; species do not.
-- Saves: `savedata/<name>/{state.json,items/items.json,monsters/<id>/{monster,ai}.json,parties/*.json}`.
-- Monster portrait/front/right/left/back PNG canvases are exact 64×64 and use nearest-neighbour scaling.
-- Update `docs/FORMATS.md` whenever a JSON key changes.
+Machine-checkable boundaries belong in tests/CI rather than duplicated prose. Run `python tools/project-integrity/script/check_project_rules.py` when that tool exists on the working branch.
 
-## Gameplay invariants
+For architecture/responsibility changes, install and run the latest UPD checker from `tomiya7688/upd-commander-base-design`:
 
-- Start at `starting_town`; defeat revives at registered church.
-- Hidden enemies encounter only when they reach the player-facing tile; `ball_slime` never wild-spawns.
-- Signs, rocks, and fixed characters block movement; characters cannot overlap.
-- Normal battles learn individual AI; simulations use `learning_enabled=False`; AI reset preserves identity, level, and plus choices.
+```text
+python -m pip install --no-cache-dir --upgrade --force-reinstall -r tools/upd-commander/requirements.txt
+python tools/upd-commander/script/check.py
+```
 
-## Load on demand
+UPD errors are blocking. Warnings and attentions are migration guidance and remain non-blocking. `--advisory` may be used only for temporary investigation, not as a completion substitute.
 
-- Task-to-file index: `docs/CODEMAP.md`
-- JSON details: `docs/FORMATS.md`
-- Current plans: `docs/開発予定.md`
-- Evaluator feedback: `docs/評価/評価者からのフィードバック.md`
-- Version history: `docs/ver.md`
-- Feature-specific documents: `docs/*機能説明書.md`
+When UPD checker usage reveals a checker-side improvement, missing rule, false positive, reporting problem, or CI integration need, create an Issue in `tomiya7688/upd-commander-base-design` instead of implementing a private Kadoka-only fork.
 
-Keep this file compact. Put feature details in a feature document, not here.
+When adding or changing routing/Commander/Messenger/Service layers or another runtime hot path, run and extend the Kadoka Quest performance checker as needed:
+
+```text
+python tools/performance-check/script/check_runtime_performance.py
+```
+
+The performance checker is a Kadoka Quest local development tool. Grow its benchmark coverage alongside the game (for example field update, battle resolution, or data conversion) when those paths become performance-sensitive. Do not add checker or benchmark imports to Player runtime code. Performance-motivated UPD exceptions must be local, rule-specific, and include a reason.
+
+## Routing
+
+Use `docs/context/ROUTES.md` to choose the next files for battle, field, UI, ranch, simulation, save data, editors, build, architecture, context tooling, and CI tasks.
+
+For context-efficient implementation workflow details, read `docs/context/WORKFLOW.md` only when the task concerns process/tooling or the route calls for it.
+
+Useful compact helpers:
+
+- remote changes: `tools/remote-context/script/sync_remote_context.py`
+- likely tests: `tools/affected-tests/script/affected_tests.py`
+- dependency ambiguity: `tools/import-map/script/python_import_map.py`
+- compact class diagram: `tools/code-docs/script/generate_class_diagram.py`
+
+## Completion and Git
+
+- Preserve unrelated changes; do not mix unrelated refactors into the current task.
+- Do not modify real user saves during tests.
+- Run focused tests first, then the full required suite before reporting completion.
+- Run `git diff --check` for local Git work.
+- Report materially relevant untested areas as **Unverified** instead of continuing open-ended exploration.
+- Use a feature branch/PR for repository changes. Do not merge a PR unless the user explicitly asks.

@@ -107,9 +107,9 @@ def draw_field(screen: pygame.Surface, game: KadokaQuest, now: int | None = None
         "Space 調べる／岩に入る\n"
         "L ものを拾う / 1-4 個体選択\n"
         "T 行動指針 / R AIリセット\n"
-        "F5 個体獲得 / F6 模擬戦\n"
+        "F5 個体獲得\n"
         "F7 編成保存 / F8 編成読込\n"
-        "管理は街のモンスター牧場で行う"
+        "模擬戦は街の模擬戦会館から"
     )
     for line_index, line in enumerate(controls.splitlines()):
         draw_text(screen, line, (855, 505 + line_index * 20), 13, MUTED)

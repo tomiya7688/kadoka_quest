@@ -20,6 +20,9 @@
     "dark": "strong",
     "mental": "strong"
   },
+  "status_resistances": {
+    "bleeding": "immune"
+  },
   "defeat_message": null,
   "portrait_path": "characters/ghost/portrait.png",
   "field_sprite_path": "characters/ghost/field.png",
@@ -30,4 +33,3 @@
     "back": "characters/ghost/field_back.png"
   }
 }
-

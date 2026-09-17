@@ -65,6 +65,8 @@ class FieldEventApplication:
             return self._finish({"kind": "open_password", "status": status})
         if event_type == "open_manager":
             return self._finish({"kind": "open_manager", "status": status})
+        if event_type == "open_simulation_manager":
+            return self._finish({"kind": "open_simulation_manager", "status": status})
         if event.get("id") == "orange_tree":
             return self._finish({"kind": "gain_item", "status": status, "item": "orange"})
         return self._finish({"kind": "message", "status": status})

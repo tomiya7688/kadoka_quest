@@ -4,9 +4,13 @@ import traceback
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
-from kadoka_quest.apps.game import main as game_main
+from kadoka_quest.apps.game import KadokaQuest, main as game_main
 from kadoka_quest.apps.launcher import main as launcher_main
 from kadoka_quest.apps.ranch_manager import main as ranch_manager_main
+from kadoka_quest.apps.simulation_facility_hooks import install_simulation_facility_hooks
+from kadoka_quest.apps.simulation_manager import main as simulation_manager_main
+
+install_simulation_facility_hooks(KadokaQuest)
 
 
 def main() -> None:
@@ -17,6 +21,10 @@ def main() -> None:
     if "--manager" in sys.argv:
         sys.argv.remove("--manager")
         ranch_manager_main()
+        return
+    if "--simulation-manager" in sys.argv:
+        sys.argv.remove("--simulation-manager")
+        simulation_manager_main()
         return
     launcher_main()
 

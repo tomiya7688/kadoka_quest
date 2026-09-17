@@ -26,10 +26,18 @@ class BattleDataLoader:
         if equipment and not equipment_allows_species(equipment, record.species_id):
             equipment = None
         resistances = dict(definition.get("resistances", {}))
+        status_resistances = dict(definition.get("status_resistances", {}))
         if equipment:
             scale = ["weak", "normal", "strong", "immune", "absorb"]
             for element, steps in equipment.get("resistance_steps", {}).items():
                 current = resistances.get(element, "normal")
                 index = scale.index(current) if current in scale else 1
                 resistances[element] = scale[max(0, min(len(scale) - 1, index + int(steps)))]
-        return Combatant(record, calculate_stats(self.repository, record), skills, resistances, equipment)
+        return Combatant(
+            record=record,
+            stats=calculate_stats(self.repository, record),
+            skills=skills,
+            resistances=resistances,
+            equipment=equipment,
+            status_resistances=status_resistances,
+        )

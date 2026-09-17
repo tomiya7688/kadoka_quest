@@ -8,7 +8,7 @@ from typing import Any
 
 
 class ManagerProcessService:
-    """Owns launching and observing the external monster-management process."""
+    """Owns launching and observing one external player-management process."""
 
     def __init__(
         self,
@@ -17,18 +17,20 @@ class ManagerProcessService:
         python_executable: str | None = None,
         launcher: Callable[..., Any] = subprocess.Popen,
         frozen: bool | None = None,
+        frozen_argument: str = "--manager",
     ) -> None:
         self.script_path = Path(script_path)
         self.python_executable = str(python_executable or sys.executable)
         self.launcher = launcher
         self.frozen = bool(getattr(sys, "frozen", False)) if frozen is None else bool(frozen)
+        self.frozen_argument = str(frozen_argument)
         self.process: Any | None = None
 
     def open(self) -> str:
         if self.is_running():
             return "already_running"
         command = (
-            [self.python_executable, "--manager"]
+            [self.python_executable, self.frozen_argument]
             if self.frozen
             else [self.python_executable, str(self.script_path)]
         )

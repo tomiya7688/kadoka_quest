@@ -1,12 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
 import pygame
 
-from kadoka_quest.ui.pixel_operations import fit_imported_image, flood_fill_copy, reduce_similar_colors
+from kadoka_quest.ui.pixel_operations import (
+    KADOKA_PALETTE,
+    fit_imported_image,
+    flood_fill_copy,
+    opaque_color_count,
+    reduce_similar_colors,
+    reduce_to_kadoka_palette,
+)
 
 
 @dataclass(frozen=True)
@@ -26,14 +33,8 @@ MONSTER_VISUAL_SLOTS = (
 )
 VISUAL_SLOTS = MONSTER_VISUAL_SLOTS
 
-PALETTE = (
-    (0, 0, 0, 0), (0, 0, 0, 255), (255, 255, 255, 255),
-    (214, 214, 214, 255), (156, 156, 156, 255), (85, 85, 85, 255),
-    (255, 110, 110, 255), (255, 205, 90, 255), (100, 210, 255, 255),
-    (120, 220, 140, 255),
-)
+PALETTE = KADOKA_PALETTE
 ZOOM_LEVELS = (0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0)
-CANVAS_SIZES = (1, 2, 4, 8, 16, 32, 64, 128)
 TOOL_MODES = ("pen", "fill", "pan")
 UNDO_LIMIT = 50
 PALETTE_LIMIT = 16
@@ -59,7 +60,7 @@ class PixelArtEditor:
         self._stroke_active = False
         self._stroke_slot = ""
         self._stroke_changed = False
-        self._stroke_last_pixel: tuple[int, int] | None = None
+        self.kadoka_palette_limit: int | None = None
         self.set_targets(targets)
 
     @property
@@ -74,14 +75,6 @@ class PixelArtEditor:
     def logical_size(self) -> int:
         return self.images[self.selected].get_width() if self.selected else 64
 
-    @staticmethod
-    def validate_canvas_size(size: int) -> int:
-        value = int(size)
-        if value not in CANVAS_SIZES:
-            choices = ", ".join(str(candidate) for candidate in CANVAS_SIZES)
-            raise ValueError(f"キャンバスサイズは {choices} のいずれかにしてください。")
-        return value
-
     def set_targets(self, targets: Iterable[PixelTarget]) -> None:
         values = list(targets)
         self.targets = {target.key: target for target in values}
@@ -90,6 +83,7 @@ class PixelArtEditor:
         self.images.clear()
         self.dirty.clear()
         self.undo_stacks = {target.key: [] for target in values}
+        self.kadoka_palette_limit = None
         self.end_stroke()
         self.end_pan()
         self.reset_zoom()
@@ -99,8 +93,10 @@ class PixelArtEditor:
         targets: Iterable[PixelTarget],
         body_color: tuple[int, int, int] = (128, 128, 128),
         selected: str | None = None,
+        kadoka_palette_limit: int | None = None,
     ) -> None:
         self.set_targets(targets)
+        self.kadoka_palette_limit = kadoka_palette_limit
         for target in self.targets.values():
             path = self.asset_root / target.path
             try:
@@ -127,30 +123,14 @@ class PixelArtEditor:
         except ValueError:
             body_color = (128, 128, 128)
         targets = (PixelTarget(slot, label, paths[slot], 64) for slot, label, _ in MONSTER_VISUAL_SLOTS)
-        self.load_targets(targets, body_color, selected="front")
+        self.load_targets(targets, body_color, selected="front", kadoka_palette_limit=5)
 
     def load_block(self, relative_path: str, body_color: tuple[int, int, int] = (128, 128, 128)) -> None:
-        size = 64
-        path = self.asset_root / relative_path
-        try:
-            width, height = pygame.image.load(str(path)).get_size()
-            if width == height:
-                size = self.validate_canvas_size(width)
-        except (OSError, pygame.error, ValueError):
-            pass
-        self.load_targets((PixelTarget("appearance", "ブロック見た目", relative_path, size),), body_color)
-
-    def resize_canvas(self, size: int) -> bool:
-        """Resize the active target with nearest-neighbour sampling as one undo step."""
-        if not self.selected:
-            return False
-        size = self.validate_canvas_size(size)
-        image = self.images[self.selected]
-        if image.get_size() == (size, size):
-            return False
-        self._replace_selected_image(pygame.transform.scale(image, (size, size)))
-        self.targets[self.selected] = replace(self.targets[self.selected], size=size)
-        return True
+        self.load_targets(
+            (PixelTarget("appearance", "ブロック見た目", relative_path, 64),),
+            body_color,
+            kadoka_palette_limit=5,
+        )
 
     @staticmethod
     def _fit(source: pygame.Surface, size: int) -> pygame.Surface:
@@ -323,7 +303,6 @@ class PixelArtEditor:
         self._stroke_active = True
         self._stroke_slot = self.selected
         self._stroke_changed = False
-        self._stroke_last_pixel = None
         return True
 
     def end_stroke(self) -> None:
@@ -334,7 +313,6 @@ class PixelArtEditor:
         self._stroke_active = False
         self._stroke_slot = ""
         self._stroke_changed = False
-        self._stroke_last_pixel = None
 
     def undo(self) -> bool:
         self.end_stroke()
@@ -370,6 +348,9 @@ class PixelArtEditor:
             raise ValueError("画像ファイルを読み込めませんでした。") from error
         fitted = fit_imported_image(source, self.logical_size)
         reduced, changed = reduce_similar_colors(fitted, tolerance)
+        if self.kadoka_palette_limit is not None:
+            reduced, palette_changed, _ = reduce_to_kadoka_palette(reduced, self.kadoka_palette_limit)
+            changed += palette_changed
         self._replace_selected_image(reduced)
         return changed
 
@@ -380,6 +361,19 @@ class PixelArtEditor:
         if changed:
             self._replace_selected_image(reduced)
         return changed
+
+    def reduce_to_kadoka_colors(self, max_colors: int) -> tuple[int, int]:
+        if not self.selected:
+            return 0, 0
+        reduced, changed, _ = reduce_to_kadoka_palette(self.images[self.selected], max_colors)
+        if changed:
+            self._replace_selected_image(reduced)
+        return changed, opaque_color_count(reduced)
+
+    def visible_color_count(self) -> int:
+        if not self.selected:
+            return 0
+        return opaque_color_count(self.images[self.selected])
 
     @staticmethod
     def draw_checker(surface: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
@@ -417,74 +411,43 @@ class PixelArtEditor:
                 pygame.draw.line(surface, grid_color, (image_rect.x, y), (image_rect.right, y), 1)
         surface.set_clip(old_clip)
 
-    def _pixel_at(self, position: tuple[int, int], canvas: pygame.Rect) -> tuple[int, int] | None:
-        if not canvas.collidepoint(position) or not self.selected:
-            return None
+    def paint(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> bool:
+        if self.tool_mode != "pen" or not canvas.collidepoint(position) or not self.selected:
+            return False
         image_rect = self.image_rect(canvas)
         if not image_rect.collidepoint(position):
-            return None
+            return False
         size = self.logical_size
         x = int((position[0] - image_rect.x) * size / image_rect.width)
         y = int((position[1] - image_rect.y) * size / image_rect.height)
         if not (0 <= x < size and 0 <= y < size):
-            return None
-        return x, y
-
-    @staticmethod
-    def _line_pixels(start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
-        x, y = start
-        target_x, target_y = end
-        delta_x = abs(target_x - x)
-        delta_y = -abs(target_y - y)
-        step_x = 1 if x < target_x else -1
-        step_y = 1 if y < target_y else -1
-        error = delta_x + delta_y
-        pixels: list[tuple[int, int]] = []
-        while True:
-            pixels.append((x, y))
-            if x == target_x and y == target_y:
-                return pixels
-            doubled = error * 2
-            if doubled >= delta_y:
-                error += delta_y
-                x += step_x
-            if doubled <= delta_x:
-                error += delta_x
-                y += step_y
-
-    def paint(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> bool:
-        if self.tool_mode != "pen" or not self.selected:
-            return False
-        pixel = self._pixel_at(position, canvas)
-        if pixel is None:
-            self._stroke_last_pixel = None
             return False
         automatic_stroke = not self._stroke_active
         if automatic_stroke:
             self.begin_stroke()
         color = (0, 0, 0, 0) if erase else self.brush
-        start = self._stroke_last_pixel if self._stroke_slot == self.selected else None
-        changed = False
-        for target in self._line_pixels(start or pixel, pixel):
-            if self.images[self.selected].get_at(target) != color:
-                self.images[self.selected].set_at(target, color)
-                changed = True
-        self._stroke_last_pixel = pixel
-        if changed:
-            self.dirty.add(self.selected)
-            self._stroke_changed = True
+        if self.images[self.selected].get_at((x, y)) == color:
+            if automatic_stroke:
+                self.end_stroke()
+            return False
+        self.images[self.selected].set_at((x, y), color)
+        self.dirty.add(self.selected)
+        self._stroke_changed = True
         if automatic_stroke:
             self.end_stroke()
-        return changed
+        return True
 
     def fill(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> int:
         if self.tool_mode != "fill" or not canvas.collidepoint(position) or not self.selected:
             return 0
-        pixel = self._pixel_at(position, canvas)
-        if pixel is None:
+        image_rect = self.image_rect(canvas)
+        if not image_rect.collidepoint(position):
             return 0
+        size = self.logical_size
+        x = int((position[0] - image_rect.x) * size / image_rect.width)
+        y = int((position[1] - image_rect.y) * size / image_rect.height)
         replacement = (0, 0, 0, 0) if erase else self.brush
-        result, changed = flood_fill_copy(self.images[self.selected], pixel, replacement)
+        result, changed = flood_fill_copy(self.images[self.selected], (x, y), replacement)
         if changed:
             self._replace_selected_image(result)
         return changed
