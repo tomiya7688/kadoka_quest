@@ -4,10 +4,13 @@ import argparse
 from dataclasses import dataclass
 from statistics import median
 from time import perf_counter_ns
+from types import SimpleNamespace
 from typing import Callable
 
 from kadoka_quest.application.app_command import AppCommand, is_plain_data
 from kadoka_quest.application.command_bus import CommandBus
+from kadoka_quest.apps.battle_command_app import BattleCommandApplication
+from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.core.field_engine import FieldEngine
 
 
@@ -71,6 +74,18 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
         {"floor": {"player_walkable": True}},
     )
 
+    battle_session = BattleSession()
+    battle_runtime = SimpleNamespace(
+        battle_session=battle_session,
+        monsters=object(),
+        states=object(),
+        state={},
+        status="",
+        mode="battle",
+    )
+    battle_application = BattleCommandApplication(battle_runtime)
+    battle_selection_command = AppCommand("battle", "selection.move", {"amount": 1})
+
     return [
         BenchmarkCase("dispatch", lambda: bus.dispatch(command), 20_000.0),
         BenchmarkCase("command", lambda: AppCommand("field", "move", payload), 40_000.0),
@@ -83,6 +98,11 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
         BenchmarkCase(
             "field-move",
             lambda: field.resolve_player_move(1, 1, 1, 0, "front", [], []),
+            40_000.0,
+        ),
+        BenchmarkCase(
+            "battle-routing",
+            lambda: battle_application.handle(battle_selection_command),
             40_000.0,
         ),
     ]
