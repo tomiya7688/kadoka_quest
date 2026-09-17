@@ -43,8 +43,6 @@ class FieldCommandApplication:
             return self.session.reset_selected_ai()
         if command.action == "acquire.scan":
             return self.session.scan_acquire()
-        if command.action == "simulation.start":
-            return self.session.start_simulation()
         if command.action == "party.save_preset":
             return self.session.save_preset()
         if command.action == "party.load_next_preset":
