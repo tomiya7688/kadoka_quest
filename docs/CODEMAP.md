@@ -2,18 +2,25 @@
 
 実装タスクでは、最初にこの表の該当行だけを読む。詳細な仕様をここへ複写せず、リンク先を更新して索引を保つ。
 
+`core/`, `apps/`, `data/`, `ui/`, `application/`, `developer/` は `src/kadoka_quest/` からの相対パス。`kadoka_engine/` は `src/`、`test_*.py` は `tests/` からの相対パス。波括弧は列挙の省略表記。
+変更箇所の行にある関連テストを最初に実行する。共通契約を変更した場合はサブシステムまたは全体へ広げる。追加探索が必要な場合だけ `docs/context/ROUTES.md` を参照する。
+
 | タスク種別 | 主実装 | 関連テスト | 仕様書・データ | 境界 |
 | --- | --- | --- | --- | --- |
 | 戦闘 / AI | `core/battle.py`, `core/{ai,battle_inference,battle_learning,battle_context}.py`, `apps/{battle_session,battle_command_app,ai_inspector}.py` | `test_core.py`, `test_ai_inspector.py`, `test_battle_decision_explanation.py` | `docs/戦闘責務分離機能説明書.md`, `docs/状況学習機能説明書.md`, `docs/個体AI可視化機能説明書.md` | 戦闘規則・推論・学習は分離し、描画はUIへ渡す。 |
 | フィールド | `kadoka_engine/field_engine.py`, `apps/{game,field_command_app,field_event_app}.py`, `data/{field_data,field_progress}.py` | `test_core.py`, `test_field_use_events.py` | `docs/フィールドエンジン分離第2段階機能説明書.md`, `docs/FORMATS.md` | `kadoka_engine` はpygame・リポジトリ非依存。 |
 | fixed mob / 野生敵 | `kadoka_engine/{fixed_mob_controller,hidden_enemy_controller,player_field_controller}.py` | `test_core.py` | `docs/フィールドアクター責務分離機能説明書.md`, `docs/FORMATS.md` | 個体の移動・会話状態はコントローラーが所有する。 |
-| モンスター / 個体 / パーティ | `core/monster.py`, `data/{monsters,parties,species_creator,developer_monster_creator}.py`, `apps/{monster_editor,field_party_service,field_party_session,monster_import_service,simulation_facility_service}.py` | `test_core.py`, `test_simulation_facility_service.py` | `docs/モンスター種族新規作成機能説明書.md`, `docs/外部個体取込責務分離機能説明書.md`, `docs/FORMATS.md` | 種族定義と個体保存を混在させない。 |
+| モンスター / 個体 / パーティ | `core/monster.py`, `data/{monsters,parties,species_creator,developer_monster_creator}.py`, `apps/{ranch_manager,monster_editor,field_party_service,field_party_session,monster_import_service}.py` | `test_core.py`, `test_player_distribution_boundary.py` | `docs/モンスター種族新規作成機能説明書.md`, `docs/外部個体取込責務分離機能説明書.md`, `docs/FORMATS.md` | 種族定義と個体保存を混在させない。 |
+| 模擬戦施設 | `apps/{simulation_manager,simulation_roster_service,simulation_facility_hooks}.py` | `test_simulation_facility.py`, `test_field_command_legacy_cleanup.py` | `docs/模擬戦会館機能説明書.md` | 現行Player導線。旧 `simulation_facility_service.py` は受付の実装ではない。 |
+| 戦闘進行 / コマンド | `apps/{battle_flow_service,battle_flow_dependencies,battle_progression_service,battle_command_app,legacy_battle_command_adapter}.py` | `test_battle_flow_service.py`, `test_legacy_battle_command_adapter.py` | `docs/戦闘セッション責務分離機能説明書.md` | 入力ルーティング・進行・永続化の変更箇所を分けて辿る。 |
 | map / block | `data/{repository,map_presets}.py`, `apps/{map_editor,block_editor}.py` | `test_core.py`, `test_map_spawn_ranges.py`, `test_field_use_events.py` | `docs/マッププリセット機能説明書.md`, `docs/出現モンスターレベル範囲機能説明書.md`, `docs/FORMATS.md` | マップJSONは直接編集・直接読込する。 |
 | editor / ドット絵 | `ui/{pixel_editor,pixel_operations}.py`, `apps/{monster_editor,block_editor,map_editor}.py` | `test_core.py`, `test_pixel_editor_canvas.py` | `docs/ドットエディター画像編集機能説明書.md`, `docs/可変キャンバス機能説明書.md` | 共通ピクセルエディタに対象データだけを渡す。 |
 | runtime command | `application/{app_command,command_bus,runtime_orchestrator}.py`, `apps/*_command_app.py` | `test_core.py` | `docs/コマンド駆動アプリ基盤機能説明書.md`, `docs/実行時オーケストレーター機能説明書.md` | 画面間通信はJSON互換の `AppCommand` のみ。 |
 | save / data | `data/{savedata,state,jsonio,battle_data,data_validator}.py` | `test_core.py`, `test_data_validator.py` | `docs/FORMATS.md`, `docs/MODデータ一括検証機能説明書.md` | 保存は個体フォルダ単位。JSONキー変更時はFORMATSを更新。 |
 | UI / input | `ui/{battle_renderer,field_renderer,character_image_provider,runtime_input_adapter,runtime_mouse_adapter}.py`, `apps/game.py` | `test_core.py`, `test_app_smoke.py` | `docs/実行時入力アダプター責務分離機能説明書.md`, `docs/実行時マウスアダプター責務分離機能説明書.md` | UIは描画・入力変換だけでゲーム規則を決めない。 |
-| 開発補助 | `tools/remote-context/script/sync_remote_context.py` | `tests/test_project_metadata.py` | `tools/README.md` | Git履歴を要約し、`--update` はクリーンな早送り可能状態だけを更新する。 |
+| Developer / 配布 | `developer/{workflow,build_core,distribution_smoke}.py`, `apps/developer_launcher.py` | `test_developer_workflow.py`, `test_distribution_process.py`, `test_distribution_paths.py` | `docs/Developer環境説明書.md` | PlayerとDeveloperの起動・ビルドを分離する。 |
+| 開発補助 / コンテキスト | `tools/remote-context/script/sync_remote_context.py`, `tools/affected-tests/script/affected_tests.py`, `tools/import-map/script/python_import_map.py` | `test_remote_context.py`, `test_context_tools.py`, `test_context_router.py` | `tools/README.md`, `docs/context/WORKFLOW.md` | 要約は探索の案内。実装とIssueを正とする。 |
+| CI / 整合性 | `tools/project-integrity/script/check_project_rules.py`, `developer/project_validator.py`, `.github/workflows/python-app.yml` | `test_project_integrity.py`, `test_data_validator.py` | `docs/CODING_RULES.md` | 機械検証の規則を仕様本文へ複写しない。 |
 
 ## 更新ルール
 

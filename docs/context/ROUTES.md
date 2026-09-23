@@ -2,11 +2,13 @@
 
 Read only the route that matches the assigned Issue. The Issue remains the source of truth for scope and acceptance. Open additional files only when the listed starting set is insufficient.
 
+Start with the matching row in `docs/CODEMAP.md` for the implementation/test/specification triplet. This file supplies optional expansion routes; do not read both tables in full.
+
 | Task area | Read first | Expand only when needed |
 |---|---|---|
 | Battle rules / skills / status | `src/kadoka_quest/core/battle.py`, `core/combatant.py`, matching tests | `data/battle_data.py`, `core/battle_inference.py`, `core/battle_learning.py`, `docs/FORMATS.md` |
 | Battle UI / lifecycle | `apps/battle_session.py`, `ui/battle_renderer.py` | `apps/battle_command_app.py`, `application/runtime_orchestrator.py` |
-| Field movement / encounters | matching controller in `core/`, `apps/game.py` only for orchestration | `data/field_data.py`, `data/field_progress.py`, `ui/field_renderer.py` |
+| Field movement / encounters | matching controller in `src/kadoka_engine/`, `apps/game.py` only for orchestration | `data/field_data.py`, `data/field_progress.py`, `ui/field_renderer.py` |
 | Field events / NPCs | `apps/field_event_app.py`, target `data/maps/<id>/map.json` | `application/runtime_orchestrator.py`, `docs/FORMATS.md` |
 | Player input | `ui/runtime_input_adapter.py` or `ui/runtime_mouse_adapter.py` | matching `apps/*_command_app.py` |
 | Ranch / party management | `apps/ranch_manager.py`, `data/state.py`, `data/parties.py` | `data/monsters.py`, matching tests |

@@ -2,10 +2,10 @@
 
 Read this file and the assigned Issue first. Do not read the whole repository up front.
 
-## Context budget
+## Context Budget
 
 1. Extract **Goal / Required / Acceptance** from the Issue.
-2. Read the matching row in `docs/context/ROUTES.md` and only its first-hop files.
+2. Read the matching row in `docs/CODEMAP.md` for implementation, focused tests, and specification. Use `docs/context/ROUTES.md` only for additional routing when needed.
 3. Run `python tools/remote-context/script/sync_remote_context.py` when local work may be behind remote Chat/Codex changes.
 4. Search or use compact indexes before opening additional full files.
 5. Stop exploring once the required change, constraints, and validation are clear.

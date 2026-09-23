@@ -65,4 +65,4 @@ class ProjectMetadataTests(unittest.TestCase):
 
         self.assertIn("## Context Budget", agents)
         self.assertIn("docs/CODEMAP.md", agents)
-        self.assertIn("Do not read README, FORMATS", agents)
+        self.assertIn("not default reading", agents)

@@ -16,6 +16,13 @@
 
 ```
 
+# 44. CODEMAPを現行構成へ更新（Issue #121）
+
+AGENTSからCODEMAPへ直接案内し、主実装・優先テスト・仕様書を1行で特定できるようにした。現行の模擬戦、戦闘進行、Developer配布、CIを索引化し、パスの基準を明記。ROUTESのフィールド参照先も `kadoka_engine` に修正した。
+
+更新: `AGENTS.md`, `docs/CODEMAP.md`, `docs/context/ROUTES.md`, `tests/test_project_metadata.py`, `docs/ver.md`。
+自動REPO_MAP生成は子Issue #122で扱う。
+
 # 42. 模擬戦施設の専用個体サービス
 
 `SimulationFacilityService` を追加し、`imports/simulation/` に限定した模擬戦用個体の作成・一覧・削除・相手パーティ編成と、AI更新・恒久報酬のない戦闘生成を分離した。通常の所有個体フォルダには書き込まない。
