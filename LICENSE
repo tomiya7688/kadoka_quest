@@ -1,61 +1,73 @@
-Kadoka Quest - Provisional Licensing Notice
+Kadoka Quest - Licensing Notice
 
 Copyright (c) 2026 tomiya7688
 
-This repository is currently in a transition period while the Kadoka Quest
-developer tools and the Kadoka Quest game are being separated into clearer
-components. Different parts of this repository are therefore licensed under
-different terms.
+This repository contains several components with different license terms.
+The project is still being reorganized, so LICENSE_SCOPE.md defines the current
+provisional boundary between those components.
 
 1. Developer Tools
 
 Files identified as Developer Tools in LICENSE_SCOPE.md are licensed under the
-MIT License. The full MIT License text is available at LICENSES/MIT.txt.
+MIT License. See LICENSES/MIT.txt.
+
+The Developer Tools may be used, modified, redistributed, sublicensed, and sold
+under the terms of the MIT License.
 
 2. Kadoka Quest Game
 
-Kadoka Quest game code, game data, game assets, story/content, and other files
-not identified as Developer Tools are licensed under the provisional Kadoka
-Quest Game License in LICENSES/KADOKA-GAME-PROVISIONAL.txt, unless a file or
-directory contains a more specific license notice.
+Kadoka Quest itself, including game code, game data, game assets, story/content,
+and other material identified as Kadoka Quest Game material, is governed by
+LICENSES/KADOKA-GAME.txt unless a more specific license notice applies.
 
-3. Generated Game Exception
+This license is intended for Kadoka Quest as the original game, not for games
+created from its development framework.
 
-The purpose of the Developer Tools is to let users create their own games.
-Accordingly, any source code, runtime code, templates, configuration, data, or
-other material that the Developer Tools intentionally generate, copy, or embed
-into a generated project or generated build may be used by the recipient as
-part of that generated game without royalty.
+3. Created Games
 
-For such generated output, the recipient may use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell the generated game, including commercially.
-A generated game may be very similar to Kadoka Quest. For example, it is
-permitted for a generated game to keep substantially the same systems while
-changing only characters, only maps, or other limited game content.
+Games created using the Kadoka Quest Developer Tools, runtime, templates, or
+Kadoka Quest material under the creation permission are governed by
+LICENSES/KADOKA-GAME-CREATION.txt.
 
-This exception also applies when the Developer Tools themselves have been
-modified under the MIT License, provided that the relevant material was
-actually emitted, copied, or embedded into the generated project or build by
-the tool workflow.
+A Created Game may be commercially distributed and sold without royalty.
+A Created Game may remain very similar to Kadoka Quest. For example, changing
+only the characters, only the maps, only the story/content, or another meaningful
+part of the game is permitted while keeping the remaining systems and content.
 
-4. What the Generated Game Exception Does Not Automatically Cover
+Merely renaming, rebranding, repackaging, or redistributing an otherwise
+unchanged copy of Kadoka Quest does not make it a Created Game.
 
-The Generated Game Exception does not automatically grant permission to copy or
-redistribute Kadoka Quest material that was not included in generated output.
-This includes, unless actually provided as part of the generated output under
-the exception, original Kadoka Quest artwork, character assets, maps, story
-text, audio, logos, branding, and other game-specific content.
+4. No License Expansion by Tool Modification
 
-No trademark rights are granted by this license. Rights in third-party material
-remain subject to the applicable third-party license or permission.
+Modifying the MIT-licensed Developer Tools does not expand the rights granted
+over Kadoka Quest game material.
 
-5. Provisional Scope During Separation
+A modified tool cannot make additional Kadoka Quest material freely reusable
+merely by copying, exporting, generating, or embedding that material. Rights to
+Kadoka Quest material are determined by LICENSES/KADOKA-GAME.txt,
+LICENSES/KADOKA-GAME-CREATION.txt, LICENSE_SCOPE.md, and any more specific
+license notice that applies to that material.
 
-LICENSE_SCOPE.md defines the current provisional boundary between Developer
-Tools and the game. Because separation is not yet complete, that list is
-intentionally conservative. A file not listed there is treated under the game
-license for now unless it contains its own license notice.
+5. Third-Party Material
 
-After the repository is reorganized, component-local license files may replace
-this provisional routing. A more specific license notice in a file or directory
-takes precedence over this top-level notice for that material.
+Third-party libraries, assets, fonts, audio, and other third-party materials
+remain governed by their own licenses or permissions. Nothing in these licenses
+grants rights that the Kadoka Quest project does not own.
+
+6. Names and Branding
+
+No trademark rights are granted. A Created Game must not falsely claim to be an
+official Kadoka Quest release, sequel, update, or product endorsed by the
+Kadoka Quest project.
+
+A truthful descriptive statement such as "created with Kadoka Quest developer
+tools" is permitted if it does not imply official status.
+
+7. Provisional Repository Boundary
+
+Because the Developer Tools and the game are not yet fully separated,
+LICENSE_SCOPE.md currently determines which repository files belong to each
+license category.
+
+A more specific license notice in a file or directory takes precedence over
+this top-level notice for that material.
