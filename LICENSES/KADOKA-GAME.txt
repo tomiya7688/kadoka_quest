@@ -1,0 +1,85 @@
+Kadoka Quest Game License
+
+Copyright (c) 2026 tomiya7688. All rights reserved except as expressly granted
+below.
+
+1. Scope
+
+This license applies to Kadoka Quest itself and to Kadoka Quest game material
+that is not separately licensed under the MIT License, the Kadoka Quest Game
+Creation License, or another explicit license notice.
+
+The current repository boundary is described in LICENSE_SCOPE.md.
+
+2. Playing and Personal Use
+
+You may download, install, run, and play Kadoka Quest.
+
+You may make copies and modifications for personal use, testing, backup,
+development, and for preparing contributions to the Kadoka Quest project.
+
+3. Redistribution of Kadoka Quest Itself
+
+Except where another explicit license applies, you may not sell, sublicense,
+commercially redistribute, or repackage Kadoka Quest itself.
+
+You may not take an unchanged or merely renamed/rebranded/repackaged copy of
+Kadoka Quest and distribute or sell it as another game.
+
+4. Creation of Other Games
+
+This license does not prohibit creating another game from the Kadoka Quest
+development framework.
+
+Rights for such games are granted separately by
+LICENSES/KADOKA-GAME-CREATION.txt.
+
+A game does not need to be radically different from Kadoka Quest to qualify
+under that license. Changing only one meaningful part of the game, such as its
+characters, maps, story/content, or another meaningful game-content category,
+may be sufficient while keeping other Kadoka Quest systems or content.
+
+5. Standalone Reuse of Kadoka Quest Material
+
+Except where another explicit license grants permission, Kadoka Quest-specific
+code, artwork, character assets, maps, story text, audio, logos, branding, and
+other protected content may not be extracted and redistributed as a standalone
+asset pack, content library, template collection, or unrelated product.
+
+The Kadoka Quest Game Creation License may permit those materials to remain
+inside a qualifying Created Game. That permission does not convert the
+individual materials into generally reusable standalone assets.
+
+6. Similar Mechanics and Independent Work
+
+Nothing in this license claims exclusive rights over ideas, game mechanics,
+functional behavior, workflows, or other matter that copyright law does not
+protect.
+
+This section does not override rights in protected Kadoka Quest expression,
+assets, code, or content.
+
+7. Third-Party Material
+
+Third-party libraries, assets, fonts, audio, and other materials are governed
+by their own licenses or permissions. Nothing in this license expands rights in
+third-party material.
+
+8. Names and Branding
+
+This license does not grant trademark rights or permission to present another
+product as an official Kadoka Quest release.
+
+9. No Warranty
+
+THE MATERIAL IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+A PARTICULAR PURPOSE, AND NONINFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY
+LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM THE MATERIAL OR ITS USE.
+
+10. Repository Separation
+
+The game and Developer Tools are still being separated. LICENSE_SCOPE.md
+currently defines the provisional repository boundary. A more specific license
+notice for a file or directory takes precedence.
