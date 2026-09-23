@@ -1,0 +1,140 @@
+Kadoka Quest Game Creation License
+
+Copyright (c) 2026 tomiya7688
+
+1. Purpose
+
+This license allows people to use the Kadoka Quest development framework and
+Kadoka Quest material to create their own games, including commercial games.
+
+It is intentionally permissive for finished games while keeping Kadoka Quest
+itself and its individual assets from becoming unrestricted standalone content.
+
+2. Created Game
+
+A "Created Game" is a game or game project that:
+
+- is based on, built with, or derived from the Kadoka Quest Developer Tools,
+  runtime, templates, systems, or Kadoka Quest game material; and
+- contains at least one meaningful original change to the game or its content.
+
+A Created Game does not need to be substantially different from Kadoka Quest.
+
+For clarity, any one of the following may by itself be enough when it represents
+a meaningful change:
+
+- replacing or meaningfully changing the characters;
+- replacing or meaningfully changing the maps;
+- replacing or meaningfully changing the story/content;
+- meaningfully changing another game-content or presentation category; or
+- making meaningful gameplay or system changes.
+
+A mere title change, file rename, branding change, packaging change, launcher
+change, or other superficial relabeling of an otherwise unchanged Kadoka Quest
+copy does not create a Created Game.
+
+3. License Grant for Created Games
+
+Subject to this license, you may use, reproduce, modify, adapt, combine, and
+include Kadoka Quest first-party game code, runtime code, data, maps, artwork,
+character material, story/content, and other Kadoka Quest first-party material
+as part of a Created Game.
+
+You may keep some or most Kadoka Quest material unchanged inside the Created
+Game. For example:
+
+- a game with different characters but the same or similar maps and systems is
+  permitted;
+- a game with different maps but the same or similar characters and systems is
+  permitted;
+- a game with a different story but otherwise very similar structure is
+  permitted.
+
+4. Commercial Use and Distribution
+
+You may use, copy, modify, publish, distribute, sublicense, and sell a Created
+Game, including commercially.
+
+You may charge any price for the Created Game.
+
+No royalty, revenue share, or separate commercial-use fee is owed to the Kadoka
+Quest project solely because the Created Game uses rights granted by this
+license.
+
+You may distribute executable builds, source code, project files, and supporting
+data when they are distributed as part of, or for the purpose of developing,
+the Created Game.
+
+5. Standalone Asset Restriction
+
+The permission in this license is for creating and distributing Created Games.
+
+It does not grant a general right to extract Kadoka Quest material and
+redistribute or sell it primarily as a standalone asset pack, sprite collection,
+map pack, audio pack, source-code library, template collection, or other
+content library unrelated to a Created Game.
+
+This restriction does not prevent including the same material in the source or
+project files of a Created Game when doing so is reasonably necessary to build,
+modify, distribute, or maintain that game.
+
+6. No License Expansion by Modified Tools
+
+The Kadoka Quest Developer Tools are licensed separately under the MIT License.
+
+You may modify those tools. However, modifying a tool does not expand the scope
+of Kadoka Quest material covered by this license.
+
+In particular, adding code that copies, exports, generates, or embeds additional
+Kadoka Quest material does not turn that material into unrestricted MIT
+material or standalone reusable content.
+
+The rights to that material remain limited by this license, the Kadoka Quest
+Game License, LICENSE_SCOPE.md, and any more specific notice that applies.
+
+7. Ownership of New Work
+
+This license does not claim ownership of original material you create for your
+Created Game.
+
+You may license your own original characters, maps, story, artwork, code, music,
+and other original contributions under terms of your choice, subject to rights
+in any Kadoka Quest or third-party material they incorporate.
+
+8. Third-Party Material
+
+This license applies only to material for which the Kadoka Quest project has
+authority to grant these permissions.
+
+Third-party libraries, assets, fonts, audio, code, and other materials remain
+subject to their own licenses or permissions.
+
+9. Names and Branding
+
+No trademark rights are granted.
+
+You must not falsely present a Created Game as an official Kadoka Quest release,
+sequel, update, or product endorsed by the Kadoka Quest project.
+
+A truthful descriptive statement such as "created with Kadoka Quest developer
+tools" is permitted if it does not imply official status.
+
+10. No Warranty
+
+THE MATERIAL IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+A PARTICULAR PURPOSE, AND NONINFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY
+LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM THE MATERIAL OR ITS USE.
+
+11. Relationship to Other Kadoka Quest Licenses
+
+The MIT License governs the Developer Tools identified as MIT material.
+
+The Kadoka Quest Game License governs Kadoka Quest itself.
+
+This Kadoka Quest Game Creation License grants the additional permissions needed
+to create, distribute, and sell qualifying Created Games.
+
+A more specific license notice for a file, directory, or third-party component
+takes precedence for that material.
