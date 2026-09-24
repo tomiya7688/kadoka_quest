@@ -7,6 +7,7 @@
 
 | タスク種別 | 主実装 | 関連テスト | 仕様書・データ | 境界 |
 | --- | --- | --- | --- | --- |
+| ゲーム状態 / 責務移行 | `apps/{game,battle_session,field_party_session,password_session}.py` | `test_core.py`, `test_battle_flow_service.py`, `test_simulation_facility.py` | `docs/KadokaQuest状態所有者棚卸し.md` | 正本・互換view・保存時点のコピーを区別し、所有者→呼出側→互換削除の順に移す。 |
 | 戦闘 / AI | `core/battle.py`, `core/{ai,battle_inference,battle_learning,battle_context}.py`, `apps/{battle_session,battle_command_app,ai_inspector}.py` | `test_core.py`, `test_ai_inspector.py`, `test_battle_decision_explanation.py` | `docs/戦闘責務分離機能説明書.md`, `docs/状況学習機能説明書.md`, `docs/個体AI可視化機能説明書.md` | 戦闘規則・推論・学習は分離し、描画はUIへ渡す。 |
 | フィールド | `kadoka_engine/field_engine.py`, `apps/{game,field_command_app,field_event_app}.py`, `data/{field_data,field_progress}.py` | `test_core.py`, `test_field_use_events.py` | `docs/フィールドエンジン分離第2段階機能説明書.md`, `docs/FORMATS.md` | `kadoka_engine` はpygame・リポジトリ非依存。 |
 | fixed mob / 野生敵 | `kadoka_engine/{fixed_mob_controller,hidden_enemy_controller,player_field_controller}.py` | `test_core.py` | `docs/フィールドアクター責務分離機能説明書.md`, `docs/FORMATS.md` | 個体の移動・会話状態はコントローラーが所有する。 |

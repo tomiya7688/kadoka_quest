@@ -16,6 +16,13 @@
 
 ```
 
+# 47. ゲーム状態と互換窓口の棚卸し（Issue #137）
+
+`KadokaQuest` の状態の正本、残る処理責務、27個の互換propertyを整理した。後続Issue #138〜#140の移行順と確認事項を定め、CODEMAPから案内する。戦闘描画が現状はゲーム全体の互換viewを参照する点も説明書に反映。実装・保存形式・ゲーム挙動は変更していない。
+
+追加: `docs/KadokaQuest状態所有者棚卸し.md`。
+更新: `docs/CODEMAP.md`、`docs/戦闘セッション責務分離機能説明書.md`、`docs/ver.md`。
+
 # 46. 決定的なREPO_MAP生成（Issue #122）
 
 `tools/code-docs/script/generate_repo_map.py` で `src/` の公開シンボル・引数索引を生成できるようにした。実装本文・docstring・既定値の内容は出力せず、固定順で生成する。`--check` をCIへ追加し、AGENTS/CODEMAPから必要な箇所だけ検索する導線を用意した。
