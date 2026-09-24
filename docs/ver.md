@@ -16,6 +16,15 @@
 
 ```
 
+# 48. 進行・フィールド状態をSessionへ移譲（Issue #138）
+
+`ProgressSession` に進行辞書、`FieldSession` にマップエンジン・Controllerの所有を移した。ゲーム側は互換propertyを維持し、状態を二重化しない。マップ切替の保存・再配置順序と、管理画面から再読込した辞書を既存の戦闘処理が参照することをテストした。
+
+個別テストで再現したコマンドの循環importも修正。`application.RuntimeOrchestrator` の公開APIを遅延読込で維持し、読込順ごとの別プロセステストを追加した。UI・JSON形式・戦闘規則は変更していない。
+
+追加: `apps/{progress_session,field_session}.py`、`tests/{test_session_ownership,test_command_imports}.py`。
+更新: `apps/game.py`、`application/__init__.py`（各実装は `src/kadoka_quest/` 配下）、CODEMAP、状態所有者棚卸し、生成REPO_MAP、`docs/ver.md`。
+
 # 47. ゲーム状態と互換窓口の棚卸し（Issue #137）
 
 `KadokaQuest` の状態の正本、残る処理責務、27個の互換propertyを整理した。後続Issue #138〜#140の移行順と確認事項を定め、CODEMAPから案内する。戦闘描画が現状はゲーム全体の互換viewを参照する点も説明書に反映。実装・保存形式・ゲーム挙動は変更していない。

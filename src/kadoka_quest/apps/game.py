@@ -10,9 +10,11 @@ from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.field_event_app import FieldEventApplication
 from kadoka_quest.apps.field_party_service import FieldPartyService
 from kadoka_quest.apps.field_party_session import FieldPartySession
+from kadoka_quest.apps.field_session import FieldSession
 from kadoka_quest.apps.manager_process_service import ManagerProcessService
 from kadoka_quest.apps.monster_import_service import MonsterImportService
 from kadoka_quest.apps.password_session import PasswordSession
+from kadoka_quest.apps.progress_session import ProgressSession
 from kadoka_quest.core.ai import default_ai
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_engine.field_engine import FieldEngine
@@ -70,7 +72,7 @@ class KadokaQuest:
         self.repository = repository or GameRepository()
         self.monsters = monsters or MonsterStore(repository=self.repository)
         self.states = states or StateStore()
-        self.state = self.states.load()
+        self.progress_session = ProgressSession(self.states.load())
         self.states.ensure_starters(self.state, self.monsters)
         self.parties = parties or PartyStore()
         self.rng = rng or random.Random()
@@ -82,25 +84,23 @@ class KadokaQuest:
             saved_player.get("x"),
             saved_player.get("y"),
         )
-        self.map_data = initial_world["map"]
-        self.blocks = self.field_data.blocks()
-        self.field = FieldEngine(self.map_data, self.blocks)
-        self.fixed_mobs = FixedMobController(self.field, self.rng, FIXED_MOB_MOVE_DURATION_MS)
-        self.hidden_enemies = HiddenEnemyController(
-            self.field,
+        field = FieldEngine(initial_world["map"], self.field_data.blocks())
+        fixed_mobs = FixedMobController(field, self.rng, FIXED_MOB_MOVE_DURATION_MS)
+        hidden_enemies = HiddenEnemyController(
+            field,
             self.rng,
             HIDDEN_CHASE_MOVE_INTERVAL_MS,
             HIDDEN_WANDER_MOVE_INTERVAL_MS,
             HIDDEN_VISION_RANGE,
         )
-        self.hidden_enemies.set_world(self.map_data, self.blocks)
-        self.player_field = PlayerFieldController(
+        player = PlayerFieldController(
             initial_world["x"],
             initial_world["y"],
             PLAYER_MOVE_DURATION_MS,
             MOVE_REPEAT_DELAY_MS,
             MOVE_REPEAT_INTERVAL_MS,
         )
+        self.field_session = FieldSession(field, player, fixed_mobs, hidden_enemies)
         self.field_events = FieldEventApplication()
         self.runtime = RuntimeOrchestrator(self)
         self.battle_session = BattleSession()
@@ -114,6 +114,62 @@ class KadokaQuest:
         self.held_move_key: int | None = None
         self.reset_hidden_monsters()
         self.reset_home_npcs()
+
+    @property
+    def state(self) -> dict:
+        return self.progress_session.state
+
+    @state.setter
+    def state(self, value: dict) -> None:
+        self.progress_session.state = value
+
+    @property
+    def map_data(self) -> dict:
+        return self.field_session.map_data
+
+    @map_data.setter
+    def map_data(self, value: dict) -> None:
+        self.field_session.set_world(value, self.blocks)
+
+    @property
+    def blocks(self) -> dict[str, dict]:
+        return self.field_session.blocks
+
+    @blocks.setter
+    def blocks(self, value: dict[str, dict]) -> None:
+        self.field_session.set_world(self.map_data, value)
+
+    @property
+    def field(self) -> FieldEngine:
+        return self.field_session.field
+
+    @field.setter
+    def field(self, value: FieldEngine) -> None:
+        self.field_session.replace_field(value)
+
+    @property
+    def player_field(self) -> PlayerFieldController:
+        return self.field_session.player
+
+    @player_field.setter
+    def player_field(self, value: PlayerFieldController) -> None:
+        self.field_session.player = value
+
+    @property
+    def fixed_mobs(self) -> FixedMobController:
+        return self.field_session.fixed_mobs
+
+    @fixed_mobs.setter
+    def fixed_mobs(self, value: FixedMobController) -> None:
+        self.field_session.fixed_mobs = value
+
+    @property
+    def hidden_enemies(self) -> HiddenEnemyController:
+        return self.field_session.hidden_enemies
+
+    @hidden_enemies.setter
+    def hidden_enemies(self, value: HiddenEnemyController) -> None:
+        self.field_session.hidden_enemies = value
 
     @property
     def home_npcs(self) -> list[dict]:
@@ -340,10 +396,7 @@ class KadokaQuest:
 
     def change_map(self, map_id: str, x: int, y: int, message: str | None = None) -> None:
         loaded = self.field_data.load_map(map_id, x, y)
-        self.map_data = loaded["map"]
-        self.field.set_world(self.map_data, self.blocks)
-        self.hidden_enemies.set_world(self.map_data, self.blocks)
-        self.player_field.snap(loaded["x"], loaded["y"])
+        self.field_session.enter_map(loaded["map"], loaded["x"], loaded["y"])
         self.save_position()
         self.reset_hidden_monsters()
         self.reset_home_npcs()

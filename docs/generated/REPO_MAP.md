@@ -270,11 +270,36 @@ class FieldPartySession
   next_preset(self, presets: Sequence[T]) -> T | None
 ```
 
+## kadoka_quest/apps/field_session.py
+
+```text
+class FieldSession
+  replace_field(self, field: FieldEngine) -> None
+  map_data(self) -> dict
+  blocks(self) -> dict[str, dict]
+  set_world(self, map_data: dict, blocks: dict[str, dict]) -> None
+  enter_map(self, map_data: dict, x: int, y: int) -> None
+```
+
 ## kadoka_quest/apps/game.py
 
 ```text
 class KadokaQuest
   __init__(self, repository: GameRepository | None=..., monsters: MonsterStore | None=..., states: StateStore | None=..., parties: PartyStore | None=..., rng: random.Random | None=...) -> None
+  state(self) -> dict
+  state(self, value: dict) -> None
+  map_data(self) -> dict
+  map_data(self, value: dict) -> None
+  blocks(self) -> dict[str, dict]
+  blocks(self, value: dict[str, dict]) -> None
+  field(self) -> FieldEngine
+  field(self, value: FieldEngine) -> None
+  player_field(self) -> PlayerFieldController
+  player_field(self, value: PlayerFieldController) -> None
+  fixed_mobs(self) -> FixedMobController
+  fixed_mobs(self, value: FixedMobController) -> None
+  hidden_enemies(self) -> HiddenEnemyController
+  hidden_enemies(self, value: HiddenEnemyController) -> None
   home_npcs(self) -> list[dict]
   home_npcs(self, value: list[dict]) -> None
   hidden_monsters(self) -> list[dict]
@@ -576,6 +601,12 @@ class PasswordSession
   backspace(self) -> bool
   submit(self) -> bool
   cancel(self) -> None
+```
+
+## kadoka_quest/apps/progress_session.py
+
+```text
+class ProgressSession
 ```
 
 ## kadoka_quest/apps/ranch_manager.py

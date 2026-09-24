@@ -7,7 +7,7 @@
 
 | タスク種別 | 主実装 | 関連テスト | 仕様書・データ | 境界 |
 | --- | --- | --- | --- | --- |
-| ゲーム状態 / 責務移行 | `apps/{game,battle_session,field_party_session,password_session}.py` | `test_core.py`, `test_battle_flow_service.py`, `test_simulation_facility.py` | `docs/KadokaQuest状態所有者棚卸し.md` | 正本・互換view・保存時点のコピーを区別し、所有者→呼出側→互換削除の順に移す。 |
+| ゲーム状態 / 責務移行 | `apps/{game,progress_session,field_session,battle_session,field_party_session,password_session}.py` | `test_session_ownership.py`, `test_core.py`, `test_battle_flow_service.py`, `test_simulation_facility.py` | `docs/KadokaQuest状態所有者棚卸し.md` | 正本・互換view・保存時点のコピーを区別し、所有者→呼出側→互換削除の順に移す。 |
 | 戦闘 / AI | `core/battle.py`, `core/{ai,battle_inference,battle_learning,battle_context}.py`, `apps/{battle_session,battle_command_app,ai_inspector}.py` | `test_core.py`, `test_ai_inspector.py`, `test_battle_decision_explanation.py` | `docs/戦闘責務分離機能説明書.md`, `docs/状況学習機能説明書.md`, `docs/個体AI可視化機能説明書.md` | 戦闘規則・推論・学習は分離し、描画はUIへ渡す。 |
 | フィールド | `kadoka_engine/field_engine.py`, `apps/{game,field_command_app,field_event_app}.py`, `data/{field_data,field_progress}.py` | `test_core.py`, `test_field_use_events.py` | `docs/フィールドエンジン分離第2段階機能説明書.md`, `docs/FORMATS.md` | `kadoka_engine` はpygame・リポジトリ非依存。 |
 | fixed mob / 野生敵 | `kadoka_engine/{fixed_mob_controller,hidden_enemy_controller,player_field_controller}.py` | `test_core.py` | `docs/フィールドアクター責務分離機能説明書.md`, `docs/FORMATS.md` | 個体の移動・会話状態はコントローラーが所有する。 |
@@ -16,7 +16,7 @@
 | 戦闘進行 / コマンド | `apps/{battle_flow_service,battle_flow_dependencies,battle_progression_service,battle_command_app,legacy_battle_command_adapter}.py` | `test_battle_flow_service.py`, `test_legacy_battle_command_adapter.py` | `docs/戦闘セッション責務分離機能説明書.md` | 入力ルーティング・進行・永続化の変更箇所を分けて辿る。 |
 | map / block | `data/{repository,map_presets}.py`, `apps/{map_editor,block_editor}.py` | `test_core.py`, `test_map_spawn_ranges.py`, `test_field_use_events.py` | `docs/マッププリセット機能説明書.md`, `docs/出現モンスターレベル範囲機能説明書.md`, `docs/FORMATS.md` | マップJSONは直接編集・直接読込する。 |
 | editor / ドット絵 | `ui/{pixel_editor,pixel_operations}.py`, `apps/{monster_editor,block_editor,map_editor}.py` | `test_core.py`, `test_pixel_editor_canvas.py` | `docs/ドットエディター画像編集機能説明書.md`, `docs/可変キャンバス機能説明書.md` | 共通ピクセルエディタに対象データだけを渡す。 |
-| runtime command | `application/{app_command,command_bus,runtime_orchestrator}.py`, `apps/*_command_app.py` | `test_core.py` | `docs/コマンド駆動アプリ基盤機能説明書.md`, `docs/実行時オーケストレーター機能説明書.md` | 画面間通信はJSON互換の `AppCommand` のみ。 |
+| runtime command | `application/{__init__,app_command,command_bus,runtime_orchestrator}.py`, `apps/*_command_app.py` | `test_command_imports.py`, `test_core.py` | `docs/コマンド駆動アプリ基盤機能説明書.md`, `docs/実行時オーケストレーター機能説明書.md` | 画面間通信はJSON互換の `AppCommand` のみ。 |
 | save / data | `data/{savedata,state,jsonio,battle_data,data_validator}.py` | `test_core.py`, `test_data_validator.py` | `docs/FORMATS.md`, `docs/MODデータ一括検証機能説明書.md` | 保存は個体フォルダ単位。JSONキー変更時はFORMATSを更新。 |
 | UI / input | `ui/{battle_renderer,field_renderer,character_image_provider,runtime_input_adapter,runtime_mouse_adapter}.py`, `apps/game.py` | `test_core.py`, `test_app_smoke.py` | `docs/実行時入力アダプター責務分離機能説明書.md`, `docs/実行時マウスアダプター責務分離機能説明書.md` | UIは描画・入力変換だけでゲーム規則を決めない。 |
 | Developer / 配布 | `developer/{workflow,build_core,distribution_smoke}.py`, `apps/developer_launcher.py` | `test_developer_workflow.py`, `test_distribution_process.py`, `test_distribution_paths.py` | `docs/Developer環境説明書.md` | PlayerとDeveloperの起動・ビルドを分離する。 |

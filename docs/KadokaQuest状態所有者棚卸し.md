@@ -4,9 +4,20 @@
 
 Issue #36の分割作業に先立つ現状確認。`src/kadoka_quest/apps/game.py` の `KadokaQuest` を対象とする。ゲーム規則、JSON形式、UI、実装の移動・削除はこのIssueでは変更しない。
 
-27個のpropertyはすべて他オブジェクトへの互換viewであり、独立した状態コピーではない。残る課題は `state`、マップの寿命、旧処理の重複、描画からゲーム全体への依存である。以下の「候補」は未実装の移行方針であり、現行APIではない。
+棚卸し時点の27個のpropertyはすべて他オブジェクトへの互換viewであり、独立した状態コピーではない。以下はIssue #137時点の記録。「候補」は当時の移行方針であり、実施済みの差分は次節に記載する。
 
 パスは特記以外 `src/kadoka_quest/` 相対。エンジン側は `src/kadoka_engine/`。公開シンボルの探索には [REPO_MAP](generated/REPO_MAP.md) を使い、実装を正とする。
+
+## #138で実施した状態所有者の移行
+
+- `apps/progress_session.py` の `ProgressSession.state` が読込中の進行データを所有する。再読込は辞書の置換であり、既存の `state_provider` は毎回この正本を参照する。保存形式・Storeの責務は変えない。
+- `apps/field_session.py` の `FieldSession` がエンジン・主人公・固定モブ・見えない敵のControllerを所有する。マップとブロックはエンジンの参照を返すだけで、Sessionに別コピーを持たない。
+- `enter_map()` はマップ参照の更新と主人公の座標・補間リセットを行う。ロードは `FieldDataLoader`、続く保存→見えない敵再配置→固定モブ再配置の順序は従来どおり `KadokaQuest.change_map()` が仲介する。
+- `replace_field()` はControllerのエンジン参照も更新する。画像・通知・キー入力・保存処理はFieldSessionへ入れない。Sessionはpygame・ファイルI/Oに依存しない。
+
+新たに `state / map_data / blocks / field / player_field / fixed_mobs / hidden_enemies` の7個を互換propertyにした。`KadokaQuest` に同名の独立した状態は残さず、従来の取得・代入は所有者へ渡す。既存27個と合わせて34個。戦闘状態は既に `BattleSession` が所有しているため移し直さない。呼出側の直接参照化と互換削除は #139 / #140で行う。
+
+検証は `tests/test_session_ownership.py`。オブジェクトの同一性、マップ切替と保存・再配置、管理画面を閉じた後のパーティ再読込、既存戦闘Serviceが新しい所持品を保存することを確認する。個別テストで見つかった `application` の循環importは `RuntimeOrchestrator` の遅延公開で修正し、`tests/test_command_imports.py` で各コマンドの単独importと既存公開APIを別プロセスで検証する。
 
 ## 状態の正本と寿命
 
