@@ -28,6 +28,28 @@ Issue #36の分割作業に先立つ現状確認。`src/kadoka_quest/apps/game.p
 
 `tests/test_session_renderers.py` はゲーム全体を渡さず描画・演出待ち・オート・勝敗・画像なし表示を検証する。`test_session_ownership.py` は互換 `state` 読取を禁止したコマンド検証、`test_game_evaluator.py` は帰還時の戦闘消去を検証する。旧互換propertyと旧直接呼出テストは #140で利用状況を再確認して整理する。モブや教会復活など領域間の仲介処理を今回全面移動したわけではない。
 
+## #140で削除した未使用の互換窓口
+
+追跡対象Python・公開説明書の検索と属性アクセスの構文解析で利用先を確認し、次の9個だけを削除した。定義・setter・過去の説明・未使用状態のソース文字列検査は実行時利用に数えない。テスト用の旧callerに残る `selected_party / auto_battle` のダミー値も `KadokaQuest` の利用ではない。`return_to_field()` 内のローカル変数 `fixed_mob_battle_id` はpropertyではなく、帰還処理の結果なので残す。
+
+| 削除した `KadokaQuest` property | 読取先・移行先 |
+| --- | --- |
+| `selected_party` | `field_party_session.selected_index`。変更は範囲制限を行う `field_party_session.select(value)` |
+| `preset_index` | `field_party_session.preset_cursor`。直接設定時は従来同様 `max(0, int(value))` に正規化する |
+| `battle_finalized` | `battle_session.finalized`。終了確定は通常 `mark_finalized()` を使用する |
+| `auto_battle` | `battle_session.auto`。操作は通常の `battle` コマンド `auto.toggle` を使用する |
+| `battle_action_line` | `battle_session.action_line` |
+| `fixed_mob_battle_id` | `battle_session.fixed_mob_id`。戦闘開始は `begin(..., fixed_mob_id=...)` |
+| `password_message` | `password_session.message` |
+| `image_cache` | `character_images.cache`。破棄は `character_images.clear()` |
+| `manager_process` | `manager_tool.process`。起動・終了確認は `open() / consume_closed()` |
+
+残る25個は今回削除しない。`mode` の遷移検証、`state / battle` の旧呼出互換、フィールド仲介・既存直接呼出テストが使用する窓口を維持する。旧戦闘処理・Adapter自体の全面削除は今回の範囲外。保存JSONとJSON形式のMODには変更がない。
+
+外部Python拡張がこの9個を使っている場合は上表への移行が必要。リポジトリ外のコードを調査できたという意味ではない。旧setterの整数・bool・文字列変換が必要な拡張は、所有者へ直接代入する前に同じ変換を行うこと。削除した名前への代入で独立したインスタンス属性を作らないこと。
+
+`tests/test_session_ownership.py` で削除名の再定義・初期化時の再作成と、実装・開発ツール・起動スクリプトからの直接アクセスおよび文字列指定の `getattr/setattr/hasattr/delattr` の再混入を検出する。可変文字列による動的アクセスや外部拡張の互換性までは保証しない。
+
 ## 状態の正本と寿命（#137時点）
 
 | 状態 / 現在の参照 | 現在の正本 | 移行先候補・保持する境界 |
@@ -49,7 +71,7 @@ Issue #36の分割作業に先立つ現状確認。`src/kadoka_quest/apps/game.p
 
 管理画面を閉じると `refresh_manager_if_closed()` は `self.state` を読込結果へ置換する。`BattleFlowDependencies.state_provider` の遅延参照を維持し、移行前の辞書をサービスへ固定して保存しない。マップ切替でも `FieldEngine` とControllerの参照更新、座標補間のリセット、モブ初期配置を一緒に検証する。
 
-## 互換property 27個
+## 互換property 27個（#137時点）
 
 方針: **維持**は仲介APIとして残す。**移行**は利用側を所有者へ移した後に削除を検討する。**候補**はリポジトリ内の属性利用を確認できなかったもの。外部MODの利用がない証明ではなく、直ちに削除しない。同名の他クラス属性やソース文字列を調べるテストは利用者に数えない。
 
@@ -83,7 +105,7 @@ Issue #36の分割作業に先立つ現状確認。`src/kadoka_quest/apps/game.p
 | `image_cache` | `character_images.cache` | 読取専用view | 候補 |
 | `manager_process` | `manager_tool.process` | 管理プロセス操作はサービス側 | 候補 |
 
-## 処理の責務と残す仲介
+## 処理の責務と残す仲介（#137時点）
 
 | 現在の処理群 | 移行・維持する所有者と制約 |
 | --- | --- |

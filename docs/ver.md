@@ -16,6 +16,12 @@
 
 ```
 
+# 50. 未使用の互換propertyを削除（Issue #140）
+
+呼出側の移行後に未使用となった9個の `KadokaQuest` propertyだけを削除した。使用中の25個と旧処理APIは維持する。実装・ツール・起動スクリプトへの削除名参照の再混入検査を追加し、各説明書に所有者側の置換先を記載した。外部Python拡張が削除名を使う場合は移行が必要だが、JSON形式・UI・ゲーム規則は変更しない。
+
+更新: `src/kadoka_quest/apps/game.py`、`tests/test_session_ownership.py`、状態所有者棚卸し、戦闘・パーティ選択・画像取得・暗号入力・管理プロセスの説明書、生成REPO_MAP、`docs/ver.md`。
+
 # 49. 描画・コマンド・評価側のSession直参照（Issue #139）
 
 戦闘・フィールド・暗号画面とメインループ、評価ツールを互換propertyからSession参照へ移行。画像と代替表示情報は専用Providerへ渡し、戦闘コマンドの正規経路は `ProgressSession` を参照する。旧外部caller向けの互換経路は残した。

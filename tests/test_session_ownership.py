@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import copy
 from pathlib import Path
 import random
@@ -21,6 +22,38 @@ from kadoka_quest.data.monsters import MonsterStore
 from kadoka_quest.data.parties import PartyStore
 from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.data.state import StateStore
+
+
+REMOVED_ALIASES = (
+    "selected_party", "preset_index", "battle_finalized", "auto_battle",
+    "battle_action_line", "fixed_mob_battle_id", "password_message",
+    "image_cache", "manager_process",
+)
+
+
+@pytest.mark.parametrize("name", REMOVED_ALIASES)
+def test_unused_alias_is_not_defined_or_recreated(game, name):
+    assert name not in vars(KadokaQuest)
+    assert not hasattr(game, name)
+
+
+def test_runtime_has_no_removed_alias_access():
+    root = Path(__file__).resolve().parents[1]
+    paths = [*root.joinpath("src").rglob("*.py"), *root.joinpath("tools").rglob("*.py"), *root.glob("*.py")]
+    references = []
+    for path in paths:
+        tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and node.attr in REMOVED_ALIASES:
+                references.append(f"{path.relative_to(root)}:{node.lineno}:{node.attr}")
+            if (
+                isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in {"getattr", "setattr", "hasattr", "delattr"}
+                and len(node.args) >= 2 and isinstance(node.args[1], ast.Constant)
+                and node.args[1].value in REMOVED_ALIASES
+            ):
+                references.append(f"{path.relative_to(root)}:{node.lineno}:{node.args[1].value}")
+    assert references == []
 
 
 @pytest.fixture

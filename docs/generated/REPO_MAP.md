@@ -304,10 +304,6 @@ class KadokaQuest
   home_npcs(self, value: list[dict]) -> None
   hidden_monsters(self) -> list[dict]
   hidden_monsters(self, value: list[dict]) -> None
-  selected_party(self) -> int
-  selected_party(self, value: int) -> None
-  preset_index(self) -> int
-  preset_index(self, value: int) -> None
   player_x(self) -> int
   player_x(self, value: int) -> None
   player_y(self) -> int
@@ -323,12 +319,8 @@ class KadokaQuest
   mode(self, value: str) -> None
   battle(self) -> BattleEngine | None
   battle(self, value: BattleEngine | None) -> None
-  battle_finalized(self) -> bool
-  battle_finalized(self, value: bool) -> None
   battle_selection(self) -> int
   battle_selection(self, value: int) -> None
-  auto_battle(self) -> bool
-  auto_battle(self, value: bool) -> None
   last_auto_tick(self) -> int
   last_auto_tick(self, value: int) -> None
   battle_playback(self) -> bool
@@ -337,21 +329,12 @@ class KadokaQuest
   battle_visible_log_count(self, value: int) -> None
   battle_next_log_tick(self) -> int
   battle_next_log_tick(self, value: int) -> None
-  battle_action_line(self) -> str
-  battle_action_line(self, value: str) -> None
   battle_focus_id(self) -> str | None
   battle_focus_id(self, value: str | None) -> None
   simulation(self) -> bool
   simulation(self, value: bool) -> None
-  fixed_mob_battle_id(self) -> str | None
-  fixed_mob_battle_id(self, value: str | None) -> None
   password_input(self) -> str
   password_input(self, value: str) -> None
-  password_message(self) -> str
-  password_message(self, value: str) -> None
-  image_cache(self) -> dict[tuple[str, str, int, int], pygame.Surface | None]
-  manager_process(self) -> object | None
-  manager_process(self, value: object | None) -> None
   party(self) -> list[MonsterRecord]
   save_position(self) -> None
   change_map(self, map_id: str, x: int, y: int, message: str | None=...) -> None

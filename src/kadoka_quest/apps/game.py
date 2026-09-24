@@ -190,24 +190,6 @@ class KadokaQuest:
         self.hidden_enemies.monsters = value
 
     @property
-    def selected_party(self) -> int:
-        """Compatibility view of the selected field party slot."""
-        return self.field_party_session.selected_index
-
-    @selected_party.setter
-    def selected_party(self, value: int) -> None:
-        self.field_party_session.select(value)
-
-    @property
-    def preset_index(self) -> int:
-        """Compatibility view of the next field preset cursor."""
-        return self.field_party_session.preset_cursor
-
-    @preset_index.setter
-    def preset_index(self, value: int) -> None:
-        self.field_party_session.preset_cursor = max(0, int(value))
-
-    @property
     def player_x(self) -> int:
         return self.player_field.x
 
@@ -268,28 +250,12 @@ class KadokaQuest:
         self.battle_session.battle = value
 
     @property
-    def battle_finalized(self) -> bool:
-        return self.battle_session.finalized
-
-    @battle_finalized.setter
-    def battle_finalized(self, value: bool) -> None:
-        self.battle_session.finalized = bool(value)
-
-    @property
     def battle_selection(self) -> int:
         return self.battle_session.selection
 
     @battle_selection.setter
     def battle_selection(self, value: int) -> None:
         self.battle_session.selection = int(value)
-
-    @property
-    def auto_battle(self) -> bool:
-        return self.battle_session.auto
-
-    @auto_battle.setter
-    def auto_battle(self, value: bool) -> None:
-        self.battle_session.auto = bool(value)
 
     @property
     def last_auto_tick(self) -> int:
@@ -324,14 +290,6 @@ class KadokaQuest:
         self.battle_session.next_log_tick = int(value)
 
     @property
-    def battle_action_line(self) -> str:
-        return self.battle_session.action_line
-
-    @battle_action_line.setter
-    def battle_action_line(self, value: str) -> None:
-        self.battle_session.action_line = str(value)
-
-    @property
     def battle_focus_id(self) -> str | None:
         return self.battle_session.focus_id
 
@@ -348,40 +306,12 @@ class KadokaQuest:
         self.battle_session.simulation = bool(value)
 
     @property
-    def fixed_mob_battle_id(self) -> str | None:
-        return self.battle_session.fixed_mob_id
-
-    @fixed_mob_battle_id.setter
-    def fixed_mob_battle_id(self, value: str | None) -> None:
-        self.battle_session.fixed_mob_id = value
-
-    @property
     def password_input(self) -> str:
         return self.password_session.input_text
 
     @password_input.setter
     def password_input(self, value: str) -> None:
         self.password_session.input_text = str(value)
-
-    @property
-    def password_message(self) -> str:
-        return self.password_session.message
-
-    @password_message.setter
-    def password_message(self, value: str) -> None:
-        self.password_session.message = str(value)
-
-    @property
-    def image_cache(self) -> dict[tuple[str, str, int, int], pygame.Surface | None]:
-        return self.character_images.cache
-
-    @property
-    def manager_process(self) -> object | None:
-        return self.manager_tool.process
-
-    @manager_process.setter
-    def manager_process(self, value: object | None) -> None:
-        self.manager_tool.process = value
 
     def party(self) -> list[MonsterRecord]:
         return StateStore.party_records(self.state, self.monsters)
