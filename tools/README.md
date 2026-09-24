@@ -5,6 +5,17 @@ Development and maintenance tools live under `tools/<tool-name>/`.
 Each tool keeps executable scripts under `tools/<tool-name>/script/`. Tool-specific support files should stay inside that tool directory. Do not add new project tooling directly to the repository root or top-level `scripts/`.
 
 Current tools:
+
+REPO_MAP: `python tools/code-docs/script/generate_repo_map.py` generates
+`docs/generated/REPO_MAP.md` from `src/` using only the standard library and AST;
+game modules are never imported. Use `--check` for read-only freshness validation.
+`--source` / `--output` accept repository-relative or absolute paths. Public
+top-level classes/functions and direct public methods (plus constructors) are
+included; defaults become `...`. Bodies, docstrings, private helpers and nested
+definitions are omitted. Paths are sorted; timestamps and absolute paths are not
+embedded. Search only the relevant file section after reading CODEMAP. Tests:
+`python -m pytest tests/test_repo_map.py`.
+
 - `remote-context`: fetches and summarizes remote changes for Chat/Codex workflows.
 - `affected-tests`: maps changed files to likely focused tests and signals when broader validation is safer.
 - `import-map`: emits a compact JSON index of Python files and imports for dependency-routing questions.

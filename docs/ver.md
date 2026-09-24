@@ -16,6 +16,13 @@
 
 ```
 
+# 46. 決定的なREPO_MAP生成（Issue #122）
+
+`tools/code-docs/script/generate_repo_map.py` で `src/` の公開シンボル・引数索引を生成できるようにした。実装本文・docstring・既定値の内容は出力せず、固定順で生成する。`--check` をCIへ追加し、AGENTS/CODEMAPから必要な箇所だけ検索する導線を用意した。
+
+追加: 生成ツール、`docs/generated/REPO_MAP.md`、`tests/test_repo_map.py`。
+更新: `AGENTS.md`、`docs/CODEMAP.md`、`tools/README.md`、`.github/workflows/python-app.yml`、`docs/ver.md`。
+
 # 45. マージ後のドットエディタ退行とテスト不整合の修正
 
 9月17日の競合解消で欠落した `CANVAS_SIZES`、ブロックのサイズ選択・再読込、ペンの連続補間を復元。サイズ変更はUndo可能で、モンスターは64×64を維持し、Kadokaパレット変換と共存する。サイズ復元・透明ピクセル・固定サイズの回帰テストを追加した。

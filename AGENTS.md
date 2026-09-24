@@ -76,6 +76,7 @@ Useful compact helpers:
 - likely tests: `tools/affected-tests/script/affected_tests.py`
 - dependency ambiguity: `tools/import-map/script/python_import_map.py`
 - compact class diagram: `tools/code-docs/script/generate_class_diagram.py`
+- symbol signatures: search `docs/generated/REPO_MAP.md` after selecting a CODEMAP row; regenerate with `python tools/code-docs/script/generate_repo_map.py`.
 
 ## Completion and Git
 
