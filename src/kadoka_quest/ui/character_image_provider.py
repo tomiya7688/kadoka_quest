@@ -24,6 +24,10 @@ class CharacterImageProvider:
     def clear(self) -> None:
         self.cache.clear()
 
+    def appearance(self, species_id: str) -> dict:
+        """Return fallback visual metadata without exposing the repository to renderers."""
+        return self.repository.get_species(species_id).definition.get("appearance", {})
+
     def _load(self, species_id: str, kind: str, size: tuple[int, int]) -> pygame.Surface | None:
         relative = self._relative_path(species_id, kind)
         if not relative:

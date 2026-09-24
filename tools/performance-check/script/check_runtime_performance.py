@@ -11,6 +11,7 @@ from kadoka_quest.application.app_command import AppCommand, is_plain_data
 from kadoka_quest.application.command_bus import CommandBus
 from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.battle_session import BattleSession
+from kadoka_quest.apps.progress_session import ProgressSession
 from kadoka_quest.core.field_engine import FieldEngine
 
 
@@ -79,7 +80,7 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
         battle_session=battle_session,
         monsters=object(),
         states=object(),
-        state={},
+        progress_session=ProgressSession({}),
         status="",
         mode="battle",
     )

@@ -37,15 +37,15 @@ class GameEvaluationRunner:
                 self.log.add("password_cancelled", step)
                 continue
             plan = self.explorer.next_plan(
-                self.game.map_data,
-                self.game.blocks,
-                (int(self.game.player_x), int(self.game.player_y)),
+                self.game.field_session.map_data,
+                self.game.field_session.blocks,
+                (int(self.game.field_session.player.x), int(self.game.field_session.player.y)),
                 self.visited_maps,
                 self.attempted_events,
             )
             if plan is None:
                 status = "no_reachable_event"
-                self.log.add("stalled", step, reason=status, map_id=str(self.game.map_data["id"]))
+                self.log.add("stalled", step, reason=status, map_id=str(self.game.field_session.map_data["id"]))
                 break
             directions = list(plan["directions"])
             if directions:
@@ -55,19 +55,19 @@ class GameEvaluationRunner:
         return self.log.report(status=status, visited_maps=self.visited_maps, attempted_events=self.attempted_events)
 
     def _observe_map(self, step: int) -> None:
-        map_id = str(self.game.map_data["id"])
+        map_id = str(self.game.field_session.map_data["id"])
         if map_id not in self.visited_maps:
             self.visited_maps.add(map_id)
             self.log.add("map_entered", step, map_id=map_id)
 
     def _move(self, step: int, direction: str, event_key: str, reaches_target: bool) -> None:
-        before = (int(self.game.player_x), int(self.game.player_y))
+        before = (int(self.game.field_session.player.x), int(self.game.field_session.player.y))
         self.now += 100
         if reaches_target:
             self.attempted_events.add(event_key)
         self._dispatch("field", "move.start", direction=direction, now=self.now)
         self._dispatch("field", "move.stop", direction=direction)
-        after = (int(self.game.player_x), int(self.game.player_y))
+        after = (int(self.game.field_session.player.x), int(self.game.field_session.player.y))
         if after == before:
             self.attempted_events.add(event_key)
             self.log.add("blocked", step, direction=direction, position=list(before), event_key=event_key)
@@ -84,9 +84,11 @@ class GameEvaluationRunner:
     def _resolve_battle(self, step: int) -> None:
         self.log.add("battle_started", step)
         for _ in range(120):
-            if self.game.battle and self.game.battle.outcome:
+            battle = self.game.battle_session.battle
+            if battle and battle.outcome:
+                outcome = str(battle.outcome)
                 self._dispatch("battle", "return")
-                self.log.add("battle_finished", step, outcome=str(self.game.battle.outcome))
+                self.log.add("battle_finished", step, outcome=outcome)
                 return
             self.now += 1_000
             self._dispatch("battle", "execute", command="fight")

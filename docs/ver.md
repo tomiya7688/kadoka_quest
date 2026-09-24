@@ -16,6 +16,15 @@
 
 ```
 
+# 49. 描画・コマンド・評価側のSession直参照（Issue #139）
+
+戦闘・フィールド・暗号画面とメインループ、評価ツールを互換propertyからSession参照へ移行。画像と代替表示情報は専用Providerへ渡し、戦闘コマンドの正規経路は `ProgressSession` を参照する。旧外部caller向けの互換経路は残した。
+
+画面8ケースの旧実装とのピクセル一致を確認し、Sessionだけで描画する回帰テストを追加。評価ツールが帰還後の消去済み戦闘を読む不具合も修正した。UI・保存形式・ゲーム規則は変更していない。
+
+追加: `tests/test_session_renderers.py`。
+更新: `src/kadoka_quest/` の描画・画像Provider・ゲームループ・戦闘コマンド・評価ツール、関連テスト、性能チェックの通常経路、CODEMAP、状態所有者棚卸し、戦闘セッション説明書、生成REPO_MAP、`docs/ver.md`。
+
 # 48. 進行・フィールド状態をSessionへ移譲（Issue #138）
 
 `ProgressSession` に進行辞書、`FieldSession` にマップエンジン・Controllerの所有を移した。ゲーム側は互換propertyを維持し、状態を二重化しない。マップ切替の保存・再配置順序と、管理画面から再読込した辞書を既存の戦闘処理が参照することをテストした。

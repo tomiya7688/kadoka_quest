@@ -417,7 +417,7 @@ class KadokaQuest
   reset_selected_ai(self) -> None
   select_party(self, index: int) -> bool
 password_controls() -> tuple[list[tuple[str, pygame.Rect]], pygame.Rect, pygame.Rect, pygame.Rect]
-draw_password(screen: pygame.Surface, game: KadokaQuest) -> None
+draw_password(screen: pygame.Surface, session: PasswordSession) -> None
 main() -> None
 ```
 
@@ -1030,7 +1030,8 @@ ensure_runtime_directories() -> None
 
 ```text
 class BattleRenderer
-  draw(self, screen: pygame.Surface, session: Any, buttons: list[Button]) -> None
+  __init__(self, images: CharacterImageProvider) -> None
+  draw(self, screen: pygame.Surface, session: BattleSession, buttons: list[Button]) -> None
 ```
 
 ## kadoka_quest/ui/character_image_provider.py
@@ -1040,6 +1041,7 @@ class CharacterImageProvider
   __init__(self, repository: Any, asset_root: Path) -> None
   get(self, species_id: str, kind: str, size: tuple[int, int]) -> pygame.Surface | None
   clear(self) -> None
+  appearance(self, species_id: str) -> dict
 ```
 
 ## kadoka_quest/ui/common.py
@@ -1071,7 +1073,7 @@ smoke_frames() -> int | None
 ## kadoka_quest/ui/field_renderer.py
 
 ```text
-draw_field(screen: pygame.Surface, game: KadokaQuest, now: int | None=...) -> None
+draw_field(screen: pygame.Surface, session: FieldSession, images: CharacterImageProvider, party: Sequence[MonsterRecord], selected_index: int, now: int | None=...) -> None
 ```
 
 ## kadoka_quest/ui/pixel_editor.py

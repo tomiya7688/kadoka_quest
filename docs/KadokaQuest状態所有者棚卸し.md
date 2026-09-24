@@ -19,7 +19,16 @@ Issue #36の分割作業に先立つ現状確認。`src/kadoka_quest/apps/game.p
 
 検証は `tests/test_session_ownership.py`。オブジェクトの同一性、マップ切替と保存・再配置、管理画面を閉じた後のパーティ再読込、既存戦闘Serviceが新しい所持品を保存することを確認する。個別テストで見つかった `application` の循環importは `RuntimeOrchestrator` の遅延公開で修正し、`tests/test_command_imports.py` で各コマンドの単独importと既存公開APIを別プロセスで検証する。
 
-## 状態の正本と寿命
+## #139で実施した呼出側の移行
+
+- 戦闘描画は `BattleSession`、フィールド描画は `FieldSession` と呼出側で取得したパーティ・選択位置、暗号描画は `PasswordSession` を受け取る。rendererに `KadokaQuest` やrepositoryを渡さない。
+- キャラクター画像と代替表示の色・記号は `CharacterImageProvider` が提供する。`BattleRenderer(images)` / `draw_field(screen, session, images, party, selected_index, now)` / `draw_password(screen, session)` が現行の描画呼出形式。
+- メインループの戦闘状態と評価ツールのマップ・座標・戦闘参照もSessionへ移した。評価ツールは帰還処理が戦闘を消去する前に結果を取得する。
+- `BattleCommandApplication` の通常経路は `ProgressSession.state` を遅延参照し、管理画面再読込後も新しい辞書を使う。Sessionを持たない旧外部callerの `state / battle` 参照だけ互換分岐として残す。性能計測も通常Session経路を対象にする。
+
+`tests/test_session_renderers.py` はゲーム全体を渡さず描画・演出待ち・オート・勝敗・画像なし表示を検証する。`test_session_ownership.py` は互換 `state` 読取を禁止したコマンド検証、`test_game_evaluator.py` は帰還時の戦闘消去を検証する。旧互換propertyと旧直接呼出テストは #140で利用状況を再確認して整理する。モブや教会復活など領域間の仲介処理を今回全面移動したわけではない。
+
+## 状態の正本と寿命（#137時点）
 
 | 状態 / 現在の参照 | 現在の正本 | 移行先候補・保持する境界 |
 | --- | --- | --- |

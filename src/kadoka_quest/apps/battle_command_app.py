@@ -19,15 +19,22 @@ class BattleCommandApplication:
     def _battle_flow(self) -> BattleFlowService | None:
         if self._flow is not None:
             return self._flow
-        required = ("battle_session", "monsters", "states", "state")
+        required = ("battle_session", "monsters", "states")
         if not all(hasattr(self.session, name) for name in required):
+            return None
+        if hasattr(self.session, "progress_session"):
+            state_provider = lambda: self.session.progress_session.state
+        elif hasattr(self.session, "state"):
+            # Older external callers have no ProgressSession yet.
+            state_provider = lambda: self.session.state
+        else:
             return None
         self._flow = BattleFlowService(
             BattleFlowDependencies(
                 session=self.session.battle_session,
                 monsters=self.session.monsters,
                 states=self.session.states,
-                state_provider=lambda: self.session.state,
+                state_provider=state_provider,
             )
         )
         return self._flow
@@ -50,7 +57,9 @@ class BattleCommandApplication:
                 dict(payload["spawn"]),
                 fixed_mob_id=str(payload["fixed_mob_id"]),
             )
-            return self.session.battle
+            if hasattr(self.session, "battle_session"):
+                return self.session.battle_session.battle
+            return self.session.battle  # Legacy external caller.
 
         flow = self._battle_flow()
         if flow is None:

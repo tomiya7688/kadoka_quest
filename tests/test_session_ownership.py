@@ -12,6 +12,7 @@ from kadoka_engine.field_engine import FieldEngine
 from kadoka_engine.fixed_mob_controller import FixedMobController
 from kadoka_engine.hidden_enemy_controller import HiddenEnemyController
 from kadoka_engine.player_field_controller import PlayerFieldController
+from kadoka_quest.application.app_command import AppCommand
 from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.field_session import FieldSession
 from kadoka_quest.apps.game import KadokaQuest
@@ -142,3 +143,19 @@ def test_manager_reload_updates_existing_battle_flow_state_provider(game):
     with mock.patch.object(game.manager_tool, "consume_closed", return_value=False):
         game.refresh_manager_if_closed()
     assert game.state is current
+
+
+def test_battle_command_uses_progress_owner_without_reading_state_alias(game):
+    with mock.patch.object(KadokaQuest, "state", new_callable=mock.PropertyMock, side_effect=AssertionError("compatibility state read")):
+        app = BattleCommandApplication(game)
+        flow = app._battle_flow()
+        assert flow is not None
+        assert flow.dependencies.state_provider() is game.progress_session.state
+        replacement = {"inventory": {"orange": 7}}
+        game.progress_session.state = replacement
+        assert flow.dependencies.state_provider() is replacement
+    started = object()
+    caller = SimpleNamespace(battle_session=game.battle_session)
+    caller.start_wild_battle = mock.Mock(side_effect=lambda *args, **kwargs: setattr(caller.battle_session, "battle", started))
+    result = BattleCommandApplication(caller).handle(AppCommand("battle", "start.wild", {"spawn": {}, "fixed_mob_id": "boss"}))
+    assert result is started

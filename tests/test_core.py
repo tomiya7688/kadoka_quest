@@ -1641,7 +1641,7 @@ class FieldFlowTests(unittest.TestCase):
         pygame.font.init()
         screen = pygame.Surface((1200, 720))
 
-        draw_field(screen, self.game)
+        draw_field(screen, self.game.field_session, self.game.character_images, self.game.party(), self.game.field_party_session.selected_index)
 
         grass = pygame.Color("#4E9F3D")
         for x, y in ((2, 0), (2, 1)):

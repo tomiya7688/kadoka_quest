@@ -897,16 +897,16 @@ def password_controls() -> tuple[list[tuple[str, pygame.Rect]], pygame.Rect, pyg
     return keys, pygame.Rect(350, 565, 130, 54), pygame.Rect(495, 565, 130, 54), pygame.Rect(640, 565, 130, 54)
 
 
-def draw_password(screen: pygame.Surface, game: KadokaQuest) -> None:
+def draw_password(screen: pygame.Surface, session: PasswordSession) -> None:
     draw_text(screen, "水の湧き場", (455, 34), 36, (100, 210, 255), True)
     draw_text(screen, "7文字のあいことば", (457, 84), 21, MUTED, True)
     slot_x = 306
     for index in range(7):
         rect = pygame.Rect(slot_x + index * 74, 135, 62, 70)
         pygame.draw.rect(screen, PANEL_ALT, rect, border_radius=8)
-        pygame.draw.rect(screen, ACCENT if index == len(game.password_input) and index < 7 else MUTED, rect, 2, border_radius=8)
-        if index < len(game.password_input):
-            draw_text(screen, game.password_input[index], (rect.x + 14, rect.y + 14), 31, TEXT, True)
+        pygame.draw.rect(screen, ACCENT if index == len(session.input_text) and index < 7 else MUTED, rect, 2, border_radius=8)
+        if index < len(session.input_text):
+            draw_text(screen, session.input_text[index], (rect.x + 14, rect.y + 14), 31, TEXT, True)
     keys, erase, decide, cancel = password_controls()
     mouse = pygame.mouse.get_pos()
     for label, rect in keys:
@@ -915,15 +915,15 @@ def draw_password(screen: pygame.Surface, game: KadokaQuest) -> None:
     for label, rect, color in (("けす", erase, WARN), ("決定", decide, GOOD), ("やめる", cancel, MUTED)):
         pygame.draw.rect(screen, color if rect.collidepoint(mouse) else PANEL_ALT, rect, border_radius=8)
         draw_text(screen, label, (rect.x + 29, rect.y + 13), 20, TEXT, True)
-    if game.password_message:
-        draw_text(screen, game.password_message, (390, 645), 18, WARN if "違" in game.password_message else MUTED, True)
+    if session.message:
+        draw_text(screen, session.message, (390, 645), 18, WARN if "違" in session.message else MUTED, True)
 
 
 def main() -> None:
     screen = init_pygame("kadoka quest", SCREEN_SIZE)
     clock = pygame.time.Clock()
     game = KadokaQuest()
-    battle_renderer = BattleRenderer()
+    battle_renderer = BattleRenderer(game.character_images)
     input_adapter = RuntimeInputAdapter(MOVE_KEY_DIRECTIONS)
 
     def dispatch(target: str, action: str, **payload) -> object:
@@ -947,19 +947,21 @@ def main() -> None:
 
     while running:
         for event in pygame.event.get():
-            battle_finished = bool(game.battle and game.battle.outcome)
+            battle = game.battle_session.battle
+            battle_finished = bool(battle and battle.outcome)
             for request in input_adapter.translate(
                 event,
                 game.mode,
                 pygame.time.get_ticks(),
                 battle_finished=battle_finished,
-                battle_playback=game.battle_playback,
+                battle_playback=game.battle_session.playback,
             ):
                 if request["kind"] == "quit":
                     running = False
                 else:
                     dispatch(str(request["target"]), str(request["action"]), **dict(request["payload"]))
-            battle_enabled = bool(game.battle and not game.battle.outcome and not game.battle_playback)
+            battle = game.battle_session.battle
+            battle_enabled = bool(battle and not battle.outcome and not game.battle_session.playback)
             for request in mouse_adapter.translate(event, game.mode, battle_enabled=battle_enabled):
                 dispatch(str(request["target"]), str(request["action"]), **dict(request["payload"]))
 
@@ -972,11 +974,11 @@ def main() -> None:
         screen.fill(BG)
         if game.mode == "field":
             draw_text(screen, "kadoka quest", (20, 18), 34, ACCENT, True)
-            draw_field(screen, game, now)
+            draw_field(screen, game.field_session, game.character_images, game.party(), game.field_party_session.selected_index, now)
         elif game.mode == "battle":
-            battle_renderer.draw(screen, game, battle_buttons)
+            battle_renderer.draw(screen, game.battle_session, battle_buttons)
         else:
-            draw_password(screen, game)
+            draw_password(screen, game.password_session)
         if game.mode != "password":
             pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(20, 665 if game.mode == "field" else 710, 1080, 48 if game.mode == "field" else 25), border_radius=8)
             draw_wrapped(screen, game.status, pygame.Rect(35, 674 if game.mode == "field" else 714, 1050, 32), 16)
