@@ -41,7 +41,9 @@ class SaveNameValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.manager.create("CON")
 
-        self.assertFalse((self.manager.root / "CON").exists())
+        # On Windows, exists("CON") may resolve the device even with no file.
+        entries = list(self.manager.root.iterdir()) if self.manager.root.exists() else []
+        self.assertNotIn("CON", [entry.name.upper() for entry in entries])
 
     def test_normal_japanese_name_can_still_be_created(self) -> None:
         profile = self.manager.create("冒険その1")

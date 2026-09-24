@@ -16,6 +16,14 @@
 
 ```
 
+# 45. マージ後のドットエディタ退行とテスト不整合の修正
+
+9月17日の競合解消で欠落した `CANVAS_SIZES`、ブロックのサイズ選択・再読込、ペンの連続補間を復元。サイズ変更はUndo可能で、モンスターは64×64を維持し、Kadokaパレット変換と共存する。サイズ復元・透明ピクセル・固定サイズの回帰テストを追加した。
+
+現行の模擬戦ロスターとコンポーネント別ライセンスにテストを追従させ、パッケージのlicense欄は既存 `LICENSE` を参照する形式に更新。Windowsの `CON` を存在判定するとデバイスを検出するため、未作成確認はディレクトリの列挙で行う。
+
+更新: `src/kadoka_quest/ui/pixel_editor.py`, `src/kadoka_quest/apps/block_editor.py`, `tests/test_pixel_editor_canvas.py`, `tests/test_project_metadata.py`, `tests/test_simulation_manager.py`, `tests/test_save_name_validation.py`, `pyproject.toml`, `docs/ver.md`。
+
 # 44. CODEMAPを現行構成へ更新（Issue #121）
 
 AGENTSからCODEMAPへ直接案内し、主実装・優先テスト・仕様書を1行で特定できるようにした。現行の模擬戦、戦闘進行、Developer配布、CIを索引化し、パスの基準を明記。ROUTESのフィールド参照先も `kadoka_engine` に修正した。

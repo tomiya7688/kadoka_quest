@@ -8,12 +8,14 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 class ProjectMetadataTests(unittest.TestCase):
-    def test_mit_license_is_declared_in_package_and_repository(self) -> None:
+    def test_package_uses_repository_component_license_notice(self) -> None:
         package_metadata = (REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8")
         license_text = (REPOSITORY_ROOT / "LICENSE").read_text(encoding="utf-8")
 
-        self.assertIn('license = {text = "MIT"}', package_metadata)
-        self.assertTrue(license_text.startswith("MIT License\n"))
+        self.assertIn('license = {file = "LICENSE"}', package_metadata)
+        for relative in ("LICENSE_SCOPE.md", "LICENSES/MIT.txt", "LICENSES/KADOKA-GAME.txt", "LICENSES/KADOKA-GAME-CREATION.txt"):
+            self.assertIn(relative, license_text)
+            self.assertTrue((REPOSITORY_ROOT / relative).is_file())
 
     def test_obake_character_assets_have_their_own_license_notice(self) -> None:
         readme = (REPOSITORY_ROOT / "README.md").read_text(encoding="utf-8")

@@ -51,3 +51,25 @@ class PixelEditorCanvasTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             editor.resize_canvas(3)
+
+    def test_resize_undo_restores_pixels_size_and_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            editor = PixelArtEditor(Path(temporary))
+            editor.load_block("tile.png")
+            editor.images["appearance"].set_at((0, 0), (17, 42, 90, 0))
+            before = pygame.image.tobytes(editor.images["appearance"], "RGBA")
+            self.assertTrue(editor.resize_canvas(128))
+            self.assertEqual(editor.images["appearance"].get_at((1, 1)), (17, 42, 90, 0))
+            self.assertFalse(editor.resize_canvas(128))
+            self.assertTrue(editor.undo())
+            self.assertEqual(editor.targets["appearance"].size, 64)
+            self.assertEqual(pygame.image.tobytes(editor.images["appearance"], "RGBA"), before)
+            self.assertFalse(editor.undo())
+
+    def test_monster_canvas_remains_fixed_at_64(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            editor = PixelArtEditor(Path(temporary))
+            editor.load_species({}, "example")
+            with self.assertRaises(ValueError):
+                editor.resize_canvas(128)
+            self.assertEqual(editor.logical_size, 64)

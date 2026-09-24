@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Iterable
 
@@ -35,6 +35,7 @@ VISUAL_SLOTS = MONSTER_VISUAL_SLOTS
 
 PALETTE = KADOKA_PALETTE
 ZOOM_LEVELS = (0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0)
+CANVAS_SIZES = (1, 2, 4, 8, 16, 32, 64, 128)
 TOOL_MODES = ("pen", "fill", "pan")
 UNDO_LIMIT = 50
 PALETTE_LIMIT = 16
@@ -61,6 +62,7 @@ class PixelArtEditor:
         self._stroke_slot = ""
         self._stroke_changed = False
         self.kadoka_palette_limit: int | None = None
+        self._stroke_last_pixel: tuple[int, int] | None = None
         self.set_targets(targets)
 
     @property
@@ -126,11 +128,36 @@ class PixelArtEditor:
         self.load_targets(targets, body_color, selected="front", kadoka_palette_limit=5)
 
     def load_block(self, relative_path: str, body_color: tuple[int, int, int] = (128, 128, 128)) -> None:
+        size = 64
+        try:
+            width, height = pygame.image.load(str(self.asset_root / relative_path)).get_size()
+            if width == height and width in CANVAS_SIZES:
+                size = width
+        except (OSError, pygame.error, ValueError):
+            pass
         self.load_targets(
-            (PixelTarget("appearance", "ブロック見た目", relative_path, 64),),
+            (PixelTarget("appearance", "ブロック見た目", relative_path, size),),
             body_color,
             kadoka_palette_limit=5,
         )
+
+    def resize_canvas(self, size: int) -> bool:
+        """Resize a block with nearest-neighbour sampling as one undo step."""
+        if size not in CANVAS_SIZES:
+            raise ValueError(f"キャンバスサイズは {CANVAS_SIZES} から選択してください。")
+        if not self.selected:
+            return False
+        if self.selected != "appearance" and size != 64:
+            raise ValueError("モンスター画像は64×64固定です。")
+        size = int(size)
+        image = self.images[self.selected]
+        if image.get_size() == (size, size):
+            return False
+        self.end_pan()
+        self._replace_selected_image(pygame.transform.scale(image, (size, size)))
+        self.targets[self.selected] = replace(self.targets[self.selected], size=size)
+        self.reset_zoom()
+        return True
 
     @staticmethod
     def _fit(source: pygame.Surface, size: int) -> pygame.Surface:
@@ -303,6 +330,7 @@ class PixelArtEditor:
         self._stroke_active = True
         self._stroke_slot = self.selected
         self._stroke_changed = False
+        self._stroke_last_pixel = None
         return True
 
     def end_stroke(self) -> None:
@@ -313,6 +341,7 @@ class PixelArtEditor:
         self._stroke_active = False
         self._stroke_slot = ""
         self._stroke_changed = False
+        self._stroke_last_pixel = None
 
     def undo(self) -> bool:
         self.end_stroke()
@@ -322,6 +351,7 @@ class PixelArtEditor:
         if not stack:
             return False
         self.images[self.selected] = stack.pop()
+        self.targets[self.selected] = replace(self.targets[self.selected], size=self.logical_size)
         self.dirty.add(self.selected)
         return True
 
@@ -411,31 +441,65 @@ class PixelArtEditor:
                 pygame.draw.line(surface, grid_color, (image_rect.x, y), (image_rect.right, y), 1)
         surface.set_clip(old_clip)
 
-    def paint(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> bool:
-        if self.tool_mode != "pen" or not canvas.collidepoint(position) or not self.selected:
-            return False
+    def _pixel_at(self, position: tuple[int, int], canvas: pygame.Rect) -> tuple[int, int] | None:
+        if not canvas.collidepoint(position) or not self.selected:
+            return None
         image_rect = self.image_rect(canvas)
         if not image_rect.collidepoint(position):
-            return False
+            return None
         size = self.logical_size
         x = int((position[0] - image_rect.x) * size / image_rect.width)
         y = int((position[1] - image_rect.y) * size / image_rect.height)
         if not (0 <= x < size and 0 <= y < size):
+            return None
+        return x, y
+
+    @staticmethod
+    def _line_pixels(start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
+        x, y = start
+        target_x, target_y = end
+        delta_x = abs(target_x - x)
+        delta_y = -abs(target_y - y)
+        step_x = 1 if x < target_x else -1
+        step_y = 1 if y < target_y else -1
+        error = delta_x + delta_y
+        pixels: list[tuple[int, int]] = []
+        while True:
+            pixels.append((x, y))
+            if x == target_x and y == target_y:
+                return pixels
+            doubled = error * 2
+            if doubled >= delta_y:
+                error += delta_y
+                x += step_x
+            if doubled <= delta_x:
+                error += delta_x
+                y += step_y
+
+    def paint(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> bool:
+        if self.tool_mode != "pen" or not self.selected:
+            return False
+        pixel = self._pixel_at(position, canvas)
+        if pixel is None:
+            self._stroke_last_pixel = None
             return False
         automatic_stroke = not self._stroke_active
         if automatic_stroke:
             self.begin_stroke()
         color = (0, 0, 0, 0) if erase else self.brush
-        if self.images[self.selected].get_at((x, y)) == color:
-            if automatic_stroke:
-                self.end_stroke()
-            return False
-        self.images[self.selected].set_at((x, y), color)
-        self.dirty.add(self.selected)
-        self._stroke_changed = True
+        start = self._stroke_last_pixel if self._stroke_slot == self.selected else None
+        changed = False
+        for target in self._line_pixels(start or pixel, pixel):
+            if self.images[self.selected].get_at(target) != color:
+                self.images[self.selected].set_at(target, color)
+                changed = True
+        self._stroke_last_pixel = pixel
+        if changed:
+            self.dirty.add(self.selected)
+            self._stroke_changed = True
         if automatic_stroke:
             self.end_stroke()
-        return True
+        return changed
 
     def fill(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> int:
         if self.tool_mode != "fill" or not canvas.collidepoint(position) or not self.selected:
