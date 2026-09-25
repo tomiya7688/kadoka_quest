@@ -1623,12 +1623,6 @@
       "weight": 42,
       "min_level": 6,
       "max_level": 10
-    },
-    {
-      "species_id": "metal_slime",
-      "weight": 10,
-      "min_level": 8,
-      "max_level": 12
     }
   ],
   "events": [
