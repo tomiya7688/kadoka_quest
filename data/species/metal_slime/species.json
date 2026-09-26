@@ -11,6 +11,11 @@
   },
   "ai_profile": "normal",
   "experience_curve": "hard",
+  "experience_reward": {
+    "base": 300,
+    "per_level": 35,
+    "squared_divisor": 10
+  },
   "flee_rates": {
     "normal": 0.15,
     "metal_area": 0.60

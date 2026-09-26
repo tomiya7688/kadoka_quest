@@ -14,6 +14,7 @@ from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.progress_session import ProgressSession
 from kadoka_quest.core.field_engine import FieldEngine
 from kadoka_quest.core.battle import BattleEngine
+from kadoka_quest.core.battle_rewards import battle_experience
 
 
 Operation = Callable[[], object]
@@ -94,8 +95,13 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
         rng=SimpleNamespace(random=lambda: 0.99),
     )
     flee_actor = SimpleNamespace(alive=True, flee_rates={"normal": 0.15})
+    reward_enemies = [SimpleNamespace(
+        fled=False, hp=0, record=SimpleNamespace(level=100),
+        experience_reward={"base": 300, "per_level": 35, "squared_divisor": 10},
+    ) for _ in range(4)]
 
     return [
+        BenchmarkCase("battle-rewards", lambda: battle_experience(reward_enemies), 50_000.0),
         BenchmarkCase(
             "enemy-flee-check",
             lambda: BattleEngine._try_enemy_flee(flee_engine, flee_actor),

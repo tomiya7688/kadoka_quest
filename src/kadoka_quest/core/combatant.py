@@ -32,6 +32,7 @@ class Combatant:
     timed_buff_baselines: dict[str, float] = field(default_factory=dict)
     flee_rates: dict[str, float] = field(default_factory=dict)
     fled: bool = False
+    experience_reward: dict[str, int] | None = None
 
     def __post_init__(self) -> None:
         self.hp = self.hp or self.stats["hp"]

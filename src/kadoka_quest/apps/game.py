@@ -17,6 +17,7 @@ from kadoka_quest.apps.password_session import PasswordSession
 from kadoka_quest.apps.progress_session import ProgressSession
 from kadoka_quest.core.ai import default_ai
 from kadoka_quest.core.battle import BattleEngine
+from kadoka_quest.core.battle_rewards import battle_experience
 from kadoka_engine.field_engine import FieldEngine
 from kadoka_engine.fixed_mob_controller import FixedMobController
 from kadoka_engine.grid_movement import GridMovement
@@ -745,12 +746,11 @@ class KadokaQuest:
                 self.award_experience()
 
     def award_experience(self) -> None:
-        if not self.battle:
+        if not self.battle or self.battle.outcome != "victory" or not self.battle.learning_enabled:
             return
-        defeated = [enemy for enemy in self.battle.enemies if not enemy.fled]
-        if not defeated:
+        gained = battle_experience(self.battle.enemies)
+        if gained <= 0:
             return
-        gained = 8 + sum(enemy.record.level * 3 for enemy in defeated)
         for ally in self.battle.allies:
             record = self.monsters.get(ally.record.monster_id)
             if not record or record.level >= 100:

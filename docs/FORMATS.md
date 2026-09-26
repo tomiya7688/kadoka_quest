@@ -187,6 +187,10 @@ pygameのキーダウン・キーアップ・終了イベントは `RuntimeInput
 
 ## Species folder
 
+`species.json` の任意キー `experience_reward` は撃破時の専用経験値係数です。メタルスライムの初期値は `{"base": 300, "per_level": 35, "squared_divisor": 10}` で、`base + Lv * per_level + floor(Lv * Lv / squared_divisor)` を計算します。`base` と `per_level` は0以上の整数、`squared_divisor` は1以上の整数です。文字列の式は実行しません。未指定・欠落・不正値の場合は通常敵の計算へ戻ります。
+
+通常敵は従来どおりLv×3と、通常敵を1体以上倒した戦闘ごとに基礎点8。専用式の敵だけなら基礎点8は加えません。混成時は通常敵分（基礎点は1回）と専用式分を合計します。生存・逃走個体は除外し、味方の `experience_curve` やレベルアップ必要量とは独立です。詳細は [種族別撃破経験値機能説明書.md](種族別撃破経験値機能説明書.md) を参照してください。
+
 `data/species/<species_id>/` は起動時にフォルダ単位で発見されます。
 
 モンスターエディターの一覧先頭にある「＋ 新規作成」は、この4ファイルと `assets/characters/<species_id>/` の64×64 PNG 5枚を一括生成します。IDは半角英小文字・数字・`_`・`-`だけを使い、既存IDは上書きできません。

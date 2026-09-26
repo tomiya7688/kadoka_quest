@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from kadoka_quest.apps.battle_flow_dependencies import BattleFlowDependencies
+from kadoka_quest.core.battle_rewards import battle_experience
 
 
 class BattleProgressionService:
@@ -57,12 +58,11 @@ class BattleProgressionService:
 
     def award_experience(self) -> None:
         battle = self.dependencies.session.battle
-        if battle is None:
+        if battle is None or battle.outcome != "victory" or not battle.learning_enabled:
             return
-        defeated = [enemy for enemy in battle.enemies if not enemy.fled]
-        if not defeated:
+        gained = battle_experience(battle.enemies)
+        if gained <= 0:
             return
-        gained = 8 + sum(enemy.record.level * 3 for enemy in defeated)
         for ally in battle.allies:
             record = self.dependencies.monsters.get(ally.record.monster_id)
             if not record or record.level >= 100:

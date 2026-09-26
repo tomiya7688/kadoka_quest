@@ -710,6 +710,13 @@ class BattleLearning
   learn(self, ai: dict[str, Any], skill_id: str, reward: float, context_tags: Iterable[str]=...) -> None
 ```
 
+## kadoka_quest/core/battle_rewards.py
+
+```text
+custom_defeat_experience(level: int, rule: Any) -> int | None
+battle_experience(enemies: Iterable[Combatant]) -> int
+```
+
 ## kadoka_quest/core/combatant.py
 
 ```text
