@@ -11,6 +11,10 @@
   },
   "ai_profile": "normal",
   "experience_curve": "hard",
+  "flee_rates": {
+    "normal": 0.15,
+    "metal_area": 0.60
+  },
   "recruit": {
     "scoutable": true,
     "boss": false

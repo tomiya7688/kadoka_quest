@@ -675,7 +675,7 @@ learn_from_action(ai: dict[str, Any], skill_id: str, reward: float, context_tags
 
 ```text
 class BattleEngine
-  __init__(self, repository: GameRepository, allies: list[MonsterRecord], enemies: list[MonsterRecord], rng: random.Random | None=..., learning_enabled: bool=..., data_loader: BattleDataLoader | None=..., inference: BattleInference | None=..., learning: BattleLearning | None=...) -> None
+  __init__(self, repository: GameRepository, allies: list[MonsterRecord], enemies: list[MonsterRecord], rng: random.Random | None=..., learning_enabled: bool=..., data_loader: BattleDataLoader | None=..., inference: BattleInference | None=..., learning: BattleLearning | None=..., encounter_context: str | None=...) -> None
   run_round(self) -> list[str]
   try_scout(self, multiplier: float=..., fixed_bonus: float=...) -> tuple[bool, MonsterRecord | None, float]
   use_party_item(self) -> None

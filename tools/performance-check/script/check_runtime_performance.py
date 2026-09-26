@@ -13,6 +13,7 @@ from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.battle_session import BattleSession
 from kadoka_quest.apps.progress_session import ProgressSession
 from kadoka_quest.core.field_engine import FieldEngine
+from kadoka_quest.core.battle import BattleEngine
 
 
 Operation = Callable[[], object]
@@ -87,7 +88,19 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     battle_application = BattleCommandApplication(battle_runtime)
     battle_selection_command = AppCommand("battle", "selection.move", {"amount": 1})
 
+    # Isolate per-actor escape checks from repository I/O and skill resolution.
+    flee_engine = SimpleNamespace(
+        learning_enabled=True, encounter_context="normal",
+        rng=SimpleNamespace(random=lambda: 0.99),
+    )
+    flee_actor = SimpleNamespace(alive=True, flee_rates={"normal": 0.15})
+
     return [
+        BenchmarkCase(
+            "enemy-flee-check",
+            lambda: BattleEngine._try_enemy_flee(flee_engine, flee_actor),
+            20_000.0,
+        ),
         BenchmarkCase("dispatch", lambda: bus.dispatch(command), 20_000.0),
         BenchmarkCase("command", lambda: AppCommand("field", "move", payload), 40_000.0),
         BenchmarkCase("payload", lambda: is_plain_data(payload), 30_000.0),

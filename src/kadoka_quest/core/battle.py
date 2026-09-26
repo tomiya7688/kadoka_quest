@@ -41,10 +41,12 @@ class BattleEngine:
         data_loader: BattleDataLoader | None = None,
         inference: BattleInference | None = None,
         learning: BattleLearning | None = None,
+        encounter_context: str | None = None,
     ) -> None:
         self.repository = repository
         self.rng = rng or random.Random()
         self.learning_enabled = learning_enabled
+        self.encounter_context = encounter_context
         self.data_loader = data_loader or BattleDataLoader(repository)
         self.skill_catalog = self.data_loader.skill_catalog
         self.equipment_catalog = self.data_loader.equipment_catalog
@@ -229,8 +231,12 @@ class BattleEngine:
 
     def _check_end(self) -> None:
         if not self._living(self.enemies):
-            self.outcome = "victory"
-            self.log.append("勝利した！")
+            if self.enemies and all(member.fled for member in self.enemies):
+                self.outcome = "enemies_fled"
+                self.log.append("相手は全員逃げ去った。")
+            else:
+                self.outcome = "victory"
+                self.log.append("勝利した！")
         elif not self._living(self.allies):
             self.outcome = "defeat"
             self.log.append("パーティは戦闘不能になった。")
@@ -249,7 +255,8 @@ class BattleEngine:
         for actor, foes, friends in actors:
             if not actor.alive or not self._living(foes):
                 continue
-            self._take_action(actor, self._living(foes), self._living(friends))
+            if friends is not self.enemies or not self._try_enemy_flee(actor):
+                self._take_action(actor, self._living(foes), self._living(friends))
             self._check_end()
             if self.outcome:
                 break
@@ -270,6 +277,20 @@ class BattleEngine:
                 member.physical_locked -= 1
             self._tick_timed_buffs(member)
         return self.log[start_index:]
+
+    def _try_enemy_flee(self, actor: Combatant) -> bool:
+        # Only explicitly contextualized wild battles opt in; simulations do not.
+        if not actor.alive or not self.learning_enabled or self.encounter_context is None:
+            return False
+        try:
+            chance = float(actor.flee_rates.get(self.encounter_context, 0.0))
+        except (TypeError, ValueError):
+            return False
+        if not 0.0 < chance <= 1.0 or self.rng.random() >= chance:
+            return False
+        actor.fled = True
+        self.log.append(f"{actor.name}は逃げ出した！")
+        return True
 
     def _take_action(self, actor: Combatant, foes: list[Combatant], friends: list[Combatant]) -> None:
         usable = [skill for skill in actor.skills if int(skill.get("mp_cost", 0)) <= actor.mp]

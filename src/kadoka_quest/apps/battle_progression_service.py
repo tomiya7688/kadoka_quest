@@ -59,7 +59,10 @@ class BattleProgressionService:
         battle = self.dependencies.session.battle
         if battle is None:
             return
-        gained = 8 + sum(enemy.record.level * 3 for enemy in battle.enemies)
+        defeated = [enemy for enemy in battle.enemies if not enemy.fled]
+        if not defeated:
+            return
+        gained = 8 + sum(enemy.record.level * 3 for enemy in defeated)
         for ally in battle.allies:
             record = self.dependencies.monsters.get(ally.record.monster_id)
             if not record or record.level >= 100:

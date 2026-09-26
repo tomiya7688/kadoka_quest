@@ -646,7 +646,10 @@ class KadokaQuest:
         enemies = [self.make_wild(spawn)]
         if hidden_monster is not None:
             self.hidden_enemies.remove(hidden_monster)
-        battle = BattleEngine(self.repository, self.party(), enemies, self.rng, learning_enabled=True)
+        battle = BattleEngine(
+            self.repository, self.party(), enemies, self.rng, learning_enabled=True,
+            encounter_context=str(self.field_session.map_data.get("encounter_context", "normal")),
+        )
         self.battle_session.begin(
             battle,
             pygame.time.get_ticks(),
@@ -744,7 +747,10 @@ class KadokaQuest:
     def award_experience(self) -> None:
         if not self.battle:
             return
-        gained = 8 + sum(enemy.record.level * 3 for enemy in self.battle.enemies)
+        defeated = [enemy for enemy in self.battle.enemies if not enemy.fled]
+        if not defeated:
+            return
+        gained = 8 + sum(enemy.record.level * 3 for enemy in defeated)
         for ally in self.battle.allies:
             record = self.monsters.get(ally.record.monster_id)
             if not record or record.level >= 100:

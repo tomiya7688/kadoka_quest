@@ -30,6 +30,8 @@ class Combatant:
     action_history: list[str] = field(default_factory=list)
     timed_buff_turns: dict[str, int] = field(default_factory=dict)
     timed_buff_baselines: dict[str, float] = field(default_factory=dict)
+    flee_rates: dict[str, float] = field(default_factory=dict)
+    fled: bool = False
 
     def __post_init__(self) -> None:
         self.hp = self.hp or self.stats["hp"]
@@ -37,7 +39,7 @@ class Combatant:
 
     @property
     def alive(self) -> bool:
-        return self.hp > 0
+        return self.hp > 0 and not self.fled
 
     @property
     def name(self) -> str:

@@ -49,6 +49,9 @@ class BattleRenderer:
         focused = session.focus_id == member.record.monster_id
         if focused:
             pygame.draw.rect(screen, WARN if not ally else GOOD, rect, 4, border_radius=10)
+        if getattr(member, "fled", False):
+            draw_text(screen, f"{member.name}：逃走済み", (rect.x + 12, rect.y + 40), 18, MUTED)
+            return
         appearance = self.images.appearance(member.record.species_id)
         color = self._hex_color(appearance.get("value", "#888888"))
         center = (rect.x + 47 if ally else rect.right - 47, rect.y + 55)

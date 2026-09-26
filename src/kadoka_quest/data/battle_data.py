@@ -40,4 +40,5 @@ class BattleDataLoader:
             resistances=resistances,
             equipment=equipment,
             status_resistances=status_resistances,
+            flee_rates=dict(definition.get("flee_rates", {})),
         )
