@@ -15,6 +15,7 @@ from kadoka_quest.apps.progress_session import ProgressSession
 from kadoka_quest.core.field_engine import FieldEngine
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.battle_rewards import battle_experience
+from kadoka_quest.core.spawn_levels import metal_area_level_range
 
 
 Operation = Callable[[], object]
@@ -101,6 +102,16 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     ) for _ in range(4)]
 
     return [
+        BenchmarkCase(
+            "metal-area-levels",
+            lambda: metal_area_level_range([
+                SimpleNamespace(species_id="maru", level=90),
+                SimpleNamespace(species_id="slime", level=60),
+                SimpleNamespace(species_id="slime", level=40),
+                SimpleNamespace(species_id="kadoka", level=20),
+            ]),
+            30_000.0,
+        ),
         BenchmarkCase("battle-rewards", lambda: battle_experience(reward_enemies), 50_000.0),
         BenchmarkCase(
             "enemy-flee-check",

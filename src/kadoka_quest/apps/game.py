@@ -18,6 +18,7 @@ from kadoka_quest.apps.progress_session import ProgressSession
 from kadoka_quest.core.ai import default_ai
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.battle_rewards import battle_experience
+from kadoka_quest.core.spawn_levels import spawn_level_range
 from kadoka_engine.field_engine import FieldEngine
 from kadoka_engine.fixed_mob_controller import FixedMobController
 from kadoka_engine.grid_movement import GridMovement
@@ -618,7 +619,9 @@ class KadokaQuest:
     def make_wild(self, spawn: dict) -> MonsterRecord:
         species_id = str(spawn["species_id"])
         bundle = self.repository.get_species(species_id)
-        level = self.rng.randint(int(spawn.get("min_level", 1)), int(spawn.get("max_level", 1)))
+        context = str(self.field_session.map_data.get("encounter_context", "normal"))
+        party = self.party() if context == "metal_area" else []
+        level = self.rng.randint(*spawn_level_range(spawn, party, context))
         monster = {
             "schema_version": 1,
             "id": f"wild_{uuid4().hex[:10]}",

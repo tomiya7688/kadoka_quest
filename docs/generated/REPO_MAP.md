@@ -742,6 +742,13 @@ calculate_stats(repository: GameRepository, record: MonsterRecord) -> dict[str, 
 available_skill_ids(repository: GameRepository, record: MonsterRecord) -> list[str]
 ```
 
+## kadoka_quest/core/spawn_levels.py
+
+```text
+metal_area_level_range(party: Sequence[MonsterRecord]) -> tuple[int, int]
+spawn_level_range(spawn: dict[str, Any], party: Sequence[MonsterRecord], encounter_context: str=...) -> tuple[int, int]
+```
+
 ## kadoka_quest/core/status_effects.py
 
 ```text
