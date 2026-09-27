@@ -61,6 +61,28 @@ def draw_field(
             bottom = round(FIELD_RECT.y + (gy + 1 - camera_y) * TILE)
             pygame.draw.rect(screen, color, pygame.Rect(left, top, right - left, bottom - top))
 
+    for monster in session.hidden_enemies.monsters:
+        sx = round((float(monster["x"]) - camera_x) * TILE + FIELD_RECT.x)
+        sy = round((float(monster["y"]) - camera_y) * TILE + FIELD_RECT.y)
+        sprite_rect = pygame.Rect(0, 0, 48, 48)
+        sprite_rect.center = (sx + TILE // 2, sy + TILE // 2 - 7)
+        if not FIELD_RECT.colliderect(sprite_rect):
+            continue
+        species_id = str(monster["spawn"]["species_id"])
+        direction = str(monster.get("direction", "front"))
+        sprite = images.get(species_id, f"field_{direction}", (48, 48))
+        if sprite:
+            screen.blit(sprite, sprite.get_rect(center=sprite_rect.center))
+        else:
+            # Missing MOD artwork must not make an encounter invisible again.
+            color = _hex_color(images.appearance(species_id).get("value", "#888888"))
+            marker = pygame.Rect(0, 0, 24, 24)
+            marker.center = sprite_rect.center
+            pygame.draw.rect(screen, color, marker)
+            pygame.draw.rect(screen, BG, marker, 2)
+            dx, dy = {"left": (-1, 0), "right": (1, 0), "back": (0, -1)}.get(direction, (0, 1))
+            pygame.draw.rect(screen, BG, (marker.centerx + dx * 7 - 2, marker.centery + dy * 7 - 2, 4, 4))
+
     for npc in session.fixed_mobs.npcs:
         movement = npc.get("_movement")
         npc_x, npc_y = (

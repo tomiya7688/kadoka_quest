@@ -6,7 +6,10 @@ from kadoka_engine.field_engine import FieldEngine
 
 
 class HiddenEnemyController:
-    """Own invisible field-enemy population, vision, and timed movement."""
+    """Own wild field-enemy population, vision, and timed movement.
+
+    The historical class name remains for compatibility; UI owns visibility.
+    """
 
     def __init__(
         self,
@@ -65,6 +68,7 @@ class HiddenEnemyController:
                     "x": x,
                     "y": y,
                     "spawn": dict(spawn),
+                    "direction": "front",
                     "next_move_tick": int(now) + self.wander_interval_ms,
                 }
             )
@@ -123,6 +127,9 @@ class HiddenEnemyController:
             x, y = monster_x + dx, monster_y + dy
             if self.field.tile_allows(x, y, "enemy_walkable") and (x, y) not in occupied:
                 monster["x"], monster["y"] = x, y
+                monster["direction"] = self.field.direction_for_step(
+                    dx, dy, str(monster.get("direction", "front"))
+                )
                 monster["sees_player"] = sees_player
                 return bool(dx or dy)
         monster["sees_player"] = sees_player

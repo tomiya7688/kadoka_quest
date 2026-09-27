@@ -23,13 +23,14 @@
 | 開発補助 / コンテキスト | `tools/remote-context/script/sync_remote_context.py`, `tools/affected-tests/script/affected_tests.py`, `tools/import-map/script/python_import_map.py` | `test_remote_context.py`, `test_context_tools.py`, `test_context_router.py` | `tools/README.md`, `docs/context/WORKFLOW.md` | 要約は探索の案内。実装とIssueを正とする。 |
 | CI / 整合性 | `tools/project-integrity/script/check_project_rules.py`, `developer/project_validator.py`, `.github/workflows/python-app.yml` | `test_project_integrity.py`, `test_data_validator.py` | `docs/CODING_RULES.md` | 機械検証の規則を仕様本文へ複写しない。 |
 
-## 敵の逃走・報酬・出現Lv
+## 敵の表示・逃走・報酬・出現Lv
 
 | タスク種別 | 主実装 | 関連テスト | 仕様書 | 境界 |
 | --- | --- | --- | --- | --- |
 | 地域別逃走 | `core/{battle,combatant}.py`, `data/battle_data.py`, `apps/{game,battle_progression_service}.py` | `test_enemy_flee.py` | `docs/敵の地域別逃走機能説明書.md` | 地域は戦闘開始時に渡す。個体JSONへ保存しない。 |
 | 撃破経験値 | `core/battle_rewards.py`, `data/battle_data.py`, `apps/{game,battle_progression_service}.py` | `test_battle_rewards.py`, `test_enemy_flee.py` | `docs/種族別撃破経験値機能説明書.md`, `docs/FORMATS.md` | 種族係数と味方の成長を分離。計算は共通関数、保存はStore。 |
 | メタル域の動的Lv | `core/spawn_levels.py`, `apps/game.py` の `make_wild` | `test_spawn_levels.py`, `test_map_spawn_ranges.py` | `docs/メタルエリア動的レベル機能説明書.md` | 遭遇時の先頭4体で計算し、通常域・所有個体を書き換えない。 |
+| 野生敵表示 | `ui/field_renderer.py`, `kadoka_engine/hidden_enemy_controller.py` | `test_wild_enemy_rendering.py`, `test_session_renderers.py` | `docs/野生モンスター可視化機能説明書.md` | 描画は既存個体の位置と向きだけを読む。 |
 
 ## 更新ルール
 
