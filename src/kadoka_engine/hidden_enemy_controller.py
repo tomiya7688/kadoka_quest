@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 
+from kadoka_engine.field_ai import choose_field_ai
 from kadoka_engine.field_engine import FieldEngine
 
 
@@ -41,7 +42,10 @@ class HiddenEnemyController:
             and (not entry.get("requires_flag") or flags.get(entry["requires_flag"], False))
         ]
 
-    def reset(self, player_position: tuple[int, int], flags: dict, now: int) -> None:
+    def reset(
+        self, player_position: tuple[int, int], flags: dict, now: int,
+        species_ai_weights: dict | None = None,
+    ) -> None:
         self.monsters = []
         options = self.spawn_options(flags)
         if not options:
@@ -68,6 +72,12 @@ class HiddenEnemyController:
                     "x": x,
                     "y": y,
                     "spawn": dict(spawn),
+                    "ai": choose_field_ai(
+                        self.rng,
+                        spawn.get("field_ai_weights"),
+                        self.map_data.get("field_ai_weights"),
+                        (species_ai_weights or {}).get(spawn["species_id"]),
+                    ),
                     "direction": "front",
                     "next_move_tick": int(now) + self.wander_interval_ms,
                 }

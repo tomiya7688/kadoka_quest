@@ -10,6 +10,7 @@
     "symbol": "S"
   },
   "ai_profile": "normal",
+  "field_ai_weights": {"random": 70, "chase": 25, "idle": 5},
   "experience_curve": "normal",
   "recruit": {
     "scoutable": true,

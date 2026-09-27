@@ -576,6 +576,7 @@ class KadokaQuest:
             (self.player_x, self.player_y),
             self.state.get("flags", {}),
             now,
+            species_ai_weights=self.field_data.species_ai_weights(self.map_data),
         )
 
     def move_hidden_monsters(self) -> None:

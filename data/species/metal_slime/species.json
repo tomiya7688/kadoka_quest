@@ -10,6 +10,7 @@
     "symbol": "M"
   },
   "ai_profile": "normal",
+  "field_ai_weights": {"random": 85, "chase": 5, "idle": 10},
   "experience_curve": "hard",
   "experience_reward": {
     "base": 300,

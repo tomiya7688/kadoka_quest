@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import random
 from dataclasses import dataclass
 from statistics import median
 from time import perf_counter_ns
 from types import SimpleNamespace
 from typing import Callable
 
+from kadoka_engine.field_ai import choose_field_ai
 from kadoka_quest.application.app_command import AppCommand, is_plain_data
 from kadoka_quest.application.command_bus import CommandBus
 from kadoka_quest.apps.battle_command_app import BattleCommandApplication
@@ -101,7 +103,13 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
         experience_reward={"base": 300, "per_level": 35, "squared_divisor": 10},
     ) for _ in range(4)]
 
+    field_ai_rng = random.Random(146)
     return [
+        BenchmarkCase(
+            "field-ai-assignment",
+            lambda: choose_field_ai(field_ai_rng, {"random": 70, "chase": 25, "idle": 5}),
+            30_000.0,
+        ),
         BenchmarkCase(
             "metal-area-levels",
             lambda: metal_area_level_range([

@@ -13,6 +13,13 @@ class FieldDataLoader:
     def blocks(self) -> dict[str, dict]:
         return {item["id"]: item for item in self.repository.list_blocks()}
 
+    def species_ai_weights(self, map_data: dict) -> dict:
+        species_ids = sorted({entry["species_id"] for entry in map_data.get("spawns", [])})
+        return {
+            species_id: self.repository.get_species(species_id).definition.get("field_ai_weights")
+            for species_id in species_ids
+        }
+
     def _additional_events(self, map_id: str) -> list[dict]:
         root = self.repository.root / "maps" / str(map_id) / "events"
         events: list[dict] = []

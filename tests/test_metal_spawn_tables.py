@@ -104,9 +104,9 @@ def test_midgame_runtime_uses_full_weight_table_and_samples_rare_metal():
     controller.set_world(world, blocks)
     with mock.patch.object(rng, "choices", wraps=rng.choices) as choose:
         controller.reset((world["start"]["x"], world["start"]["y"]), {}, 0)
-    assert choose.call_count == len(controller.monsters) > 0
-    for call in choose.call_args_list:
-        assert call.args[0] == world["spawns"]
+    species_calls = [call for call in choose.call_args_list if call.args[0] == world["spawns"]]
+    assert len(species_calls) == len(controller.monsters) > 0
+    for call in species_calls:
         assert call.kwargs["weights"] == [60, 39, 1]
     # Seeded smoke check supplements the exact rational probability test above.
     samples = random.Random(141).choices(controller.spawn_options({}), weights=[60, 39, 1], k=100_000)

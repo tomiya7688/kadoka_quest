@@ -15,6 +15,12 @@ class DataValidator
   validate(self) -> list[dict[str, str]]
 ```
 
+## kadoka_engine/field_ai.py
+
+```text
+choose_field_ai(rng: random.Random, *sources: object) -> str
+```
+
 ## kadoka_engine/field_engine.py
 
 ```text
@@ -64,7 +70,7 @@ class HiddenEnemyController
   __init__(self, field: FieldEngine, rng: random.Random, chase_interval_ms: int=..., wander_interval_ms: int=..., vision_range: int=...) -> None
   set_world(self, map_data: dict, blocks: dict[str, dict]) -> None
   spawn_options(self, flags: dict) -> list[dict]
-  reset(self, player_position: tuple[int, int], flags: dict, now: int) -> None
+  reset(self, player_position: tuple[int, int], flags: dict, now: int, species_ai_weights: dict | None=...) -> None
   find_at(self, position: tuple[int, int]) -> dict | None
   remove(self, monster: dict) -> bool
   sees_player(self, monster: dict, player_position: tuple[int, int]) -> bool
@@ -790,6 +796,7 @@ class DeveloperMonsterCreator
 class FieldDataLoader
   __init__(self, repository: GameRepository) -> None
   blocks(self) -> dict[str, dict]
+  species_ai_weights(self, map_data: dict) -> dict
   load_map(self, map_id: str, x: int | None=..., y: int | None=...) -> dict
 ```
 

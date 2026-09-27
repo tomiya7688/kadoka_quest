@@ -32,6 +32,8 @@
 | メタル域の動的Lv | `core/spawn_levels.py`, `apps/game.py` の `make_wild` | `test_spawn_levels.py`, `test_map_spawn_ranges.py` | `docs/メタルエリア動的レベル機能説明書.md` | 遭遇時の先頭4体で計算し、通常域・所有個体を書き換えない。 |
 | 野生敵表示 | `ui/field_renderer.py`, `kadoka_engine/hidden_enemy_controller.py` | `test_wild_enemy_rendering.py`, `test_session_renderers.py` | `docs/野生モンスター可視化機能説明書.md` | 描画は既存個体の位置と向きだけを読む。 |
 
+| 野生個体AI割当 | `kadoka_engine/{field_ai,hidden_enemy_controller}.py`, `data/field_data.py`, `apps/game.py` | `test_field_ai_assignment.py`, `test_metal_spawn_tables.py` | `docs/野生個体AI割当機能説明書.md`, `docs/FORMATS.md` | 種族/マップ重みはDataから注入し、出現時に個体へ保持。移動切替は #147。 |
+
 ## 更新ルール
 
 - シンボルを絞るときだけ `docs/generated/REPO_MAP.md` の該当ファイル名を検索する。公開APIと引数の索引であり、詳細は対象コードを読む。
