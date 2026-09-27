@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Callable
 
 from kadoka_engine.field_ai import choose_field_ai
+from kadoka_engine.hidden_enemy_controller import HiddenEnemyController
 from kadoka_quest.application.app_command import AppCommand, is_plain_data
 from kadoka_quest.application.command_bus import CommandBus
 from kadoka_quest.apps.battle_command_app import BattleCommandApplication
@@ -104,7 +105,16 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     ) for _ in range(4)]
 
     field_ai_rng = random.Random(146)
+    wild_world = {"width": 16, "height": 16, "tiles": [["floor"] * 16 for _ in range(16)]}
+    wild_blocks = {"floor": {"enemy_walkable": True}}
+    wild = HiddenEnemyController(FieldEngine(wild_world, wild_blocks), random.Random(147))
+    wild.set_world(wild_world, wild_blocks)
+    wild.monsters = [
+        {"x": index % 8, "y": index // 8, "ai": ("random", "chase", "idle")[index % 3]}
+        for index in range(24)
+    ]
     return [
+        BenchmarkCase("wild-movement-24", lambda: wild.move_all((12, 1), set()), 1_000_000.0),
         BenchmarkCase(
             "field-ai-assignment",
             lambda: choose_field_ai(field_ai_rng, {"random": 70, "chase": 25, "idle": 5}),

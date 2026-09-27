@@ -1663,13 +1663,13 @@ class FieldFlowTests(unittest.TestCase):
     def test_field_mobs_use_timers_and_chasers_move_faster_than_wanderers(self) -> None:
         self.game.change_map("greenwood", 6, 6)
         spawn = {"species_id": "slime", "min_level": 1, "max_level": 1}
-        chaser = {"x": 9, "y": 6, "spawn": spawn, "next_move_tick": 1000}
+        chaser = {"x": 9, "y": 6, "spawn": spawn, "ai": "chase", "next_move_tick": 1000}
         self.game.hidden_monsters = [chaser]
         self.assertFalse(self.game.update_field_mobs(999))
         self.assertTrue(self.game.update_field_mobs(1000))
         self.assertTrue(chaser["sees_player"])
         self.assertEqual(chaser["next_move_tick"], 1320)
-        wanderer = {"x": 9, "y": 8, "spawn": spawn, "next_move_tick": 2000}
+        wanderer = {"x": 9, "y": 8, "spawn": spawn, "ai": "random", "next_move_tick": 2000}
         self.game.hidden_monsters = [wanderer]
         self.game.update_field_mobs(2000)
         self.assertFalse(wanderer["sees_player"])

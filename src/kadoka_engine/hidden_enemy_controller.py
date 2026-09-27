@@ -120,10 +120,16 @@ class HiddenEnemyController:
         player_position: tuple[int, int],
         visible_positions: set[tuple[int, int]],
     ) -> bool:
+        # Legacy callers may still construct actors without an assigned AI.
+        ai = monster.get("ai", "chase")
         sees_player = self.sees_player(monster, player_position)
+        monster["sees_player"] = sees_player
+        monster["chasing_player"] = ai == "chase" and sees_player
+        if ai == "idle":
+            return False
         monster_x, monster_y = int(monster["x"]), int(monster["y"])
         player_x, player_y = (int(value) for value in player_position)
-        if sees_player:
+        if monster["chasing_player"]:
             dx = 0 if monster_x == player_x else (1 if player_x > monster_x else -1)
             dy = 0 if monster_y == player_y else (1 if player_y > monster_y else -1)
             directions = [(dx, dy), (0, 0)]
@@ -140,9 +146,7 @@ class HiddenEnemyController:
                 monster["direction"] = self.field.direction_for_step(
                     dx, dy, str(monster.get("direction", "front"))
                 )
-                monster["sees_player"] = sees_player
                 return bool(dx or dy)
-        monster["sees_player"] = sees_player
         return False
 
     def move_all(
@@ -166,6 +170,6 @@ class HiddenEnemyController:
             if int(now) < int(monster.get("next_move_tick", 0)):
                 continue
             moved = self.move(monster, player_position, visible_positions) or moved
-            interval = self.chase_interval_ms if monster.get("sees_player") else self.wander_interval_ms
+            interval = self.chase_interval_ms if monster.get("chasing_player") else self.wander_interval_ms
             monster["next_move_tick"] = int(now) + interval
         return moved
