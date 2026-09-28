@@ -7,6 +7,18 @@ Public top-level classes/functions and direct public methods, including __init__
 Defaults are abbreviated as ...; source files remain authoritative.
 Bodies, docstrings, private helpers, nested definitions and call graphs are omitted.
 
+## kadoka_engine/chase_traffic.py
+
+```text
+class ChaseTraffic
+  __init__(self, field: FieldEngine) -> None
+  clear(self) -> None
+  begin(self, now: int, owners: set[int]) -> None
+  release(self, owner: int) -> None
+  record(self, owner: int, position: tuple[int, int]) -> None
+  plan(self, owner: int, start: tuple[int, int], target: tuple[int, int], occupied: set[tuple[int, int]], fixed: set[tuple[int, int]], interval: int) -> tuple[int, int]
+```
+
 ## kadoka_engine/data_validator.py
 
 ```text
@@ -74,7 +86,7 @@ class HiddenEnemyController
   find_at(self, position: tuple[int, int]) -> dict | None
   remove(self, monster: dict) -> bool
   sees_player(self, monster: dict, player_position: tuple[int, int]) -> bool
-  move(self, monster: dict, player_position: tuple[int, int], visible_positions: set[tuple[int, int]]) -> bool
+  move(self, monster: dict, player_position: tuple[int, int], visible_positions: set[tuple[int, int]], traffic: ChaseTraffic | None=...) -> bool
   move_all(self, player_position: tuple[int, int], visible_positions: set[tuple[int, int]]) -> bool
   update(self, player_position: tuple[int, int], visible_positions: set[tuple[int, int]], now: int) -> bool
 ```

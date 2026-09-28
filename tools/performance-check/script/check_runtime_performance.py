@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Callable
 
 from kadoka_engine.field_ai import choose_field_ai
+from kadoka_engine.chase_traffic import ChaseTraffic
 from kadoka_engine.hidden_enemy_controller import HiddenEnemyController
 from kadoka_quest.application.app_command import AppCommand, is_plain_data
 from kadoka_quest.application.command_bus import CommandBus
@@ -113,7 +114,20 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
         {"x": index % 8, "y": index // 8, "ai": ("random", "chase", "idle")[index % 3]}
         for index in range(24)
     ]
+    fork_world = {"width": 10, "height": 5, "tiles": [list(row) for row in (
+        "##########", "#........#", "#...###..#", "#........#", "##########",
+    )]}
+    fork_field = FieldEngine(fork_world, {".": {"enemy_walkable": True}, "#": {"enemy_walkable": False}})
+    traffic = ChaseTraffic(fork_field)
+
+    def chase_fork() -> object:
+        traffic.clear()
+        traffic.begin(1000, {1, 2})
+        traffic.plan(1, (3, 2), (8, 2), set(), set(), 320)
+        return traffic.plan(2, (2, 2), (8, 2), {(3, 2)}, set(), 320)
+
     return [
+        BenchmarkCase("chase-fork-two", chase_fork, 1_000_000.0),
         BenchmarkCase("wild-movement-24", lambda: wild.move_all((12, 1), set()), 1_000_000.0),
         BenchmarkCase(
             "field-ai-assignment",

@@ -35,6 +35,8 @@
 | 野生個体AI割当 | `kadoka_engine/{field_ai,hidden_enemy_controller}.py`, `data/field_data.py`, `apps/game.py` | `test_field_ai_assignment.py`, `test_metal_spawn_tables.py` | `docs/野生個体AI割当機能説明書.md`, `docs/FORMATS.md` | 種族/マップ重みはDataから注入し、出現時に個体へ保持。 |
 | 野生個体AI移動 | `kadoka_engine/hidden_enemy_controller.py` | `test_field_ai_movement.py`, `test_core.py`, `test_wild_enemy_rendering.py` | `docs/野生個体AI移動機能説明書.md` | randomは徘徊、idleは静止、chaseだけ視認時に加速追跡。占有と時間を管理。 |
 
+| 追跡経路分散 | `kadoka_engine/{chase_traffic,hidden_enemy_controller}.py` | `test_chase_traffic.py`, `test_field_ai_movement.py` | `docs/追跡経路分散機能説明書.md` | 次3マスの予約、期限付き混雑履歴、範囲限定探索。実際の占有は厳守。 |
+
 ## 更新ルール
 
 - シンボルを絞るときだけ `docs/generated/REPO_MAP.md` の該当ファイル名を検索する。公開APIと引数の索引であり、詳細は対象コードを読む。

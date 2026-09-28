@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 
 from kadoka_engine.field_ai import choose_field_ai
+from kadoka_engine.chase_traffic import ChaseTraffic
 from kadoka_engine.field_engine import FieldEngine
 
 
@@ -28,8 +29,11 @@ class HiddenEnemyController:
         self.monsters: list[dict] = []
         self.map_data: dict = {}
         self.blocks: dict[str, dict] = {}
+        self.traffic = ChaseTraffic(field)
 
     def set_world(self, map_data: dict, blocks: dict[str, dict]) -> None:
+        if map_data is not self.map_data:
+            self.traffic.clear()
         self.map_data = map_data
         self.blocks = blocks
         self.field.set_world(map_data, blocks)
@@ -47,6 +51,7 @@ class HiddenEnemyController:
         species_ai_weights: dict | None = None,
     ) -> None:
         self.monsters = []
+        self.traffic.clear()
         options = self.spawn_options(flags)
         if not options:
             return
@@ -98,6 +103,7 @@ class HiddenEnemyController:
         if monster not in self.monsters:
             return False
         self.monsters.remove(monster)
+        self.traffic.release(id(monster))
         return True
 
     def sees_player(self, monster: dict, player_position: tuple[int, int]) -> bool:
@@ -119,12 +125,28 @@ class HiddenEnemyController:
         monster: dict,
         player_position: tuple[int, int],
         visible_positions: set[tuple[int, int]],
+        traffic: ChaseTraffic | None = None,
     ) -> bool:
         # Legacy callers may still construct actors without an assigned AI.
         ai = monster.get("ai", "chase")
         sees_player = self.sees_player(monster, player_position)
         monster["sees_player"] = sees_player
         monster["chasing_player"] = ai == "chase" and sees_player
+        if traffic is not None and ai == "chase":
+            if sees_player:
+                monster["chase_target"] = player_position
+                monster["chase_until"] = traffic.now + 4000
+            remembered = (
+                monster.get("chase_target") == player_position
+                and traffic.now < monster.get("chase_until", 0)
+                and abs(int(monster["x"]) - player_position[0])
+                + abs(int(monster["y"]) - player_position[1]) <= self.vision_range + 4
+            )
+            monster["chasing_player"] = sees_player or remembered
+        if traffic is not None and not monster["chasing_player"]:
+            traffic.release(id(monster))
+            monster.pop("chase_target", None)
+            monster.pop("chase_until", None)
         if ai == "idle":
             return False
         monster_x, monster_y = int(monster["x"]), int(monster["y"])
@@ -139,6 +161,12 @@ class HiddenEnemyController:
         occupied = {(player_x, player_y)} | visible_positions | {
             (int(other["x"]), int(other["y"])) for other in self.monsters if other is not monster
         }
+        if traffic is not None and monster["chasing_player"]:
+            x, y = traffic.plan(
+                id(monster), (monster_x, monster_y), (player_x, player_y),
+                occupied, visible_positions, self.chase_interval_ms,
+            )
+            directions = [(x - monster_x, y - monster_y)]
         for dx, dy in directions:
             x, y = monster_x + dx, monster_y + dy
             if self.field.tile_allows(x, y, "enemy_walkable") and (x, y) not in occupied:
@@ -146,6 +174,8 @@ class HiddenEnemyController:
                 monster["direction"] = self.field.direction_for_step(
                     dx, dy, str(monster.get("direction", "front"))
                 )
+                if traffic is not None and monster["chasing_player"] and (dx or dy):
+                    traffic.record(id(monster), (monster_x, monster_y))
                 return bool(dx or dy)
         return False
 
@@ -154,10 +184,20 @@ class HiddenEnemyController:
         player_position: tuple[int, int],
         visible_positions: set[tuple[int, int]],
     ) -> bool:
+        traffic = self._begin_traffic(self.traffic.now + self.chase_interval_ms)
         moved = False
         for monster in list(self.monsters):
-            moved = self.move(monster, player_position, visible_positions) or moved
+            moved = self.move(monster, player_position, visible_positions, traffic) or moved
         return moved
+
+    def _begin_traffic(self, now: int) -> ChaseTraffic | None:
+        if now < self.traffic.now:
+            for monster in self.monsters:
+                monster.pop("chase_target", None)
+                monster.pop("chase_until", None)
+        chasers = [monster for monster in self.monsters if monster.get("ai", "chase") == "chase"]
+        self.traffic.begin(now, {id(monster) for monster in chasers})
+        return self.traffic if len(chasers) > 1 or any("chase_target" in m for m in chasers) else None
 
     def update(
         self,
@@ -165,11 +205,12 @@ class HiddenEnemyController:
         visible_positions: set[tuple[int, int]],
         now: int,
     ) -> bool:
+        traffic = self._begin_traffic(int(now))
         moved = False
         for monster in list(self.monsters):
             if int(now) < int(monster.get("next_move_tick", 0)):
                 continue
-            moved = self.move(monster, player_position, visible_positions) or moved
+            moved = self.move(monster, player_position, visible_positions, traffic) or moved
             interval = self.chase_interval_ms if monster.get("chasing_player") else self.wander_interval_ms
             monster["next_move_tick"] = int(now) + interval
         return moved
