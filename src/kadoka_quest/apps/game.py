@@ -112,7 +112,7 @@ class KadokaQuest:
         self.monster_import_service = MonsterImportService(self.monsters, self.repository, IMPORT_ROOT)
         self.field_party_session = FieldPartySession()
         self.field_party_service = FieldPartyService(self.field_party_session, self.parties, self.monsters, self.states)
-        self.status = "矢印/WASDで移動（長押し対応）。見えない野生モンスターも裏で歩いています。"
+        self.status = "矢印/WASDで移動（長押し対応）。野生モンスターが正面に来ると戦闘になります。"
         self.held_move_key: int | None = None
         self.reset_hidden_monsters()
         self.reset_home_npcs()
@@ -611,11 +611,12 @@ class KadokaQuest:
         return self.check_hidden_collision() or moved
 
     def check_hidden_collision(self) -> bool:
+        if self.mode != "field":
+            return False
         monster = self.hidden_enemies.find_at(self.player_front_position())
         if monster is None:
             return False
-        self.start_wild_battle(monster["spawn"], monster)
-        return True
+        return self.start_wild_battle(monster["spawn"], monster)
 
     def make_wild(self, spawn: dict) -> MonsterRecord:
         species_id = str(spawn["species_id"])
@@ -642,15 +643,15 @@ class KadokaQuest:
         hidden_monster: dict | None = None,
         *,
         fixed_mob_id: str | None = None,
-    ) -> None:
+    ) -> bool:
+        if self.mode != "field" or self.battle_session.battle is not None:
+            return False
         options = self.spawn_options()
         if (not spawn and not options) or not self.party():
-            return
+            return False
         if spawn is None:
             spawn = self.rng.choices(options, weights=[int(item.get("weight", 1)) for item in options])[0]
         enemies = [self.make_wild(spawn)]
-        if hidden_monster is not None:
-            self.hidden_enemies.remove(hidden_monster)
         battle = BattleEngine(
             self.repository, self.party(), enemies, self.rng, learning_enabled=True,
             encounter_context=str(self.field_session.map_data.get("encounter_context", "normal")),
@@ -660,8 +661,11 @@ class KadokaQuest:
             pygame.time.get_ticks(),
             fixed_mob_id=fixed_mob_id,
         )
+        if hidden_monster is not None:
+            self.hidden_enemies.remove(hidden_monster)
         self.mode = "battle"
         self.status = f"{', '.join(record.name for record in enemies)} が現れた。"
+        return True
 
     def start_simulation(self) -> None:
         battle, self.status = self.monster_import_service.create_simulation(self.party(), self.rng)

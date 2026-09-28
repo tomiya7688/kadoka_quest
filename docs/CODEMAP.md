@@ -37,6 +37,8 @@
 
 | 追跡経路分散 | `kadoka_engine/{chase_traffic,hidden_enemy_controller}.py` | `test_chase_traffic.py`, `test_field_ai_movement.py` | `docs/追跡経路分散機能説明書.md` | 次3マスの予約、期限付き混雑履歴、範囲限定探索。実際の占有は厳守。 |
 
+| 野生接触 / 戦闘復帰 | `apps/game.py`, `apps/{battle_session,battle_flow_service,battle_progression_service}.py` | `test_wild_encounter_flow.py`, `test_spawn_levels.py`, `test_core.py` | `docs/野生接触戦闘フロー機能説明書.md` | 開始成功後に接触個体を消費。種族/レベル範囲と終了結果を検証。 |
+
 ## 更新ルール
 
 - シンボルを絞るときだけ `docs/generated/REPO_MAP.md` の該当ファイル名を検索する。公開APIと引数の索引であり、詳細は対象コードを読む。

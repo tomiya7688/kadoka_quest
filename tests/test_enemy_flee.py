@@ -153,6 +153,7 @@ def test_wild_battle_receives_current_map_context(context):
     world = {} if context is None else {"encounter_context": context}
     game = SimpleNamespace(
         spawn_options=lambda: [], party=lambda: [engine.allies[0].record],
+        mode="field",
         make_wild=lambda spawn: engine.enemies[0].record,
         repository=engine.repository, rng=random.Random(1),
         field_session=SimpleNamespace(map_data=world), battle_session=BattleSession(),

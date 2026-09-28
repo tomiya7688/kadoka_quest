@@ -395,7 +395,7 @@ class KadokaQuest
   update_field_mobs(self, now: int) -> bool
   check_hidden_collision(self) -> bool
   make_wild(self, spawn: dict) -> MonsterRecord
-  start_wild_battle(self, spawn: dict | None=..., hidden_monster: dict | None=..., *, fixed_mob_id: str | None=...) -> None
+  start_wild_battle(self, spawn: dict | None=..., hidden_monster: dict | None=..., *, fixed_mob_id: str | None=...) -> bool
   start_simulation(self) -> None
   handle_battle_command(self, command: str) -> None
   reset_battle_presentation(self) -> None

@@ -86,6 +86,7 @@ def game():
     party = [member(level) for level in (62, 58, 43, 21)]
     game = SimpleNamespace(
         repository=repository, rng=random.Random(144), party=mock.Mock(return_value=party),
+        mode="field",
         field_session=SimpleNamespace(map_data={"encounter_context": "metal_area"}),
         spawn_options=lambda: [], hidden_enemies=mock.Mock(), battle_session=BattleSession(),
     )
