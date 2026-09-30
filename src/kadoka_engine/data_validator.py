@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from kadoka_engine.spawn_settings import validate_map_spawns
+
+
 class DataValidator:
     """Collect mod-data problems without stopping application startup."""
 
@@ -265,24 +268,8 @@ class DataValidator:
                 unknown = sorted({str(tile) for row in tiles for tile in row} - block_ids)
                 for block_id in unknown:
                     self._issue("map.block_unknown", path, f"存在しないブロックIDです: {block_id}")
-            spawns = payload.get("spawns", [])
-            if not isinstance(spawns, list):
-                self._issue("map.spawns_invalid", path, "spawns は配列にしてください。")
-                spawns = []
-            for index, spawn in enumerate(spawns):
-                if not isinstance(spawn, dict):
-                    self._issue("map.spawn_invalid", path, f"spawns[{index}] はオブジェクトにしてください。")
-                    continue
-                species_id = str(spawn.get("species_id", ""))
-                if species_id not in species_ids:
-                    self._issue("map.spawn_species_unknown", path, f"出現設定が存在しない種族 {species_id or '(空)'} を参照しています。")
-                if species_id == "ball_slime":
-                    self._issue("map.spawn_starter_only", path, "ボールスライムは初期獲得専用なので出現表へ登録できません。")
-                minimum, maximum = spawn.get("min_level"), spawn.get("max_level")
-                if not isinstance(minimum, int) or not isinstance(maximum, int) or not 1 <= minimum <= 100 or not 1 <= maximum <= 100:
-                    self._issue("map.spawn_level_invalid", path, f"{species_id or index} の出現Lvは1〜100の整数にしてください。")
-                elif minimum > maximum:
-                    self._issue("map.spawn_level_range", path, f"{species_id or index} の最小Lvは最大Lv以下にしてください。")
+            for issue in validate_map_spawns(payload, species_ids):
+                self._issue(issue["code"], path, f"{issue['field']}: {issue['message']}")
             for mob in payload.get("fixed_mobs", []) if isinstance(payload.get("fixed_mobs", []), list) else []:
                 if isinstance(mob, dict) and str(mob.get("species_id", "")) not in species_ids:
                     self._issue("map.mob_species_unknown", path, f"固定モブが存在しない種族 {mob.get('species_id')} を参照しています。")

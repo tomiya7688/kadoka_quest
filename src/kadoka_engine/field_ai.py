@@ -25,6 +25,11 @@ def _valid_weights(source: object) -> tuple[float, ...] | None:
     return tuple(value / largest for value in weights)
 
 
+def is_valid_field_ai_weights(source: object) -> bool:
+    """Use the runtime's weight-table rules for editor/data validation."""
+    return _valid_weights(source) is not None
+
+
 def choose_field_ai(rng: random.Random, *sources: object) -> str:
     """Draw from the first valid weight table, falling back to game defaults."""
     for source in sources:

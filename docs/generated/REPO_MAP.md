@@ -30,6 +30,7 @@ class DataValidator
 ## kadoka_engine/field_ai.py
 
 ```text
+is_valid_field_ai_weights(source: object) -> bool
 choose_field_ai(rng: random.Random, *sources: object) -> str
 ```
 
@@ -102,6 +103,13 @@ class PlayerFieldController
   stop_hold(self, direction: str) -> bool
   clear_hold(self) -> None
   repeated_vector(self, now: int) -> tuple[int, int] | None
+```
+
+## kadoka_engine/spawn_settings.py
+
+```text
+validate_map_spawns(map_data: dict, species_ids: set[str] | None=...) -> list[dict[str, str]]
+normalize_map_spawns(map_data: dict, species_ids: set[str] | None=...) -> dict
 ```
 
 ## kadoka_quest/application/app_command.py
