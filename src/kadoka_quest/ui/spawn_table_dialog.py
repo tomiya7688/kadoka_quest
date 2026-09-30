@@ -32,6 +32,7 @@ class SpawnTableDialog:
 
     def __init__(self, editor: MapEditor) -> None:
         self.editor = editor
+        self.tab = "table"
         self.table_scroll = ScrollBar(pygame.Rect(TABLE.right + 2, TABLE.y, 10, TABLE.height))
         self.species_scroll = ScrollBar(pygame.Rect(SPECIES.right + 2, SPECIES.y, 10, SPECIES.height))
 
@@ -53,6 +54,9 @@ class SpawnTableDialog:
         return True
 
     def close(self) -> None:
+        if self.editor.map_spawn_form.changed:
+            self.editor.status = "マップ全体タブに未反映の入力があります。反映/保存するか、そのタブで入力を戻してください。"
+            return
         if self._discard_guard():
             self.editor.spawn_dialog_open = False
 
@@ -69,6 +73,13 @@ class SpawnTableDialog:
 
     def _buttons(self) -> list[Button]:
         editor = self.editor
+        if self.tab == "map":
+            return [
+                Button(pygame.Rect(945, 95, 100, 36), "閉じる", self.close),
+                Button(pygame.Rect(165, 555, 180, 42), "設定を反映", editor.apply_map_spawn_settings),
+                Button(pygame.Rect(365, 555, 180, 42), "入力を戻す", self.revert_map),
+                Button(pygame.Rect(850, 555, 180, 42), "マップ保存", editor.save),
+            ]
         return [
             Button(pygame.Rect(945, 95, 100, 36), "閉じる", self.close),
             Button(pygame.Rect(140, 550, 140, 40), "新規候補", self.new),
@@ -77,6 +88,24 @@ class SpawnTableDialog:
                    "編集を反映" if editor.current_spawn is not None else "候補を追加", editor.apply_spawn_range),
             Button(pygame.Rect(850, 500, 180, 42), "入力を戻す", self.revert),
             Button(pygame.Rect(850, 555, 180, 42), "マップ保存", editor.save),
+        ]
+
+    def revert_map(self) -> None:
+        self.editor.map_spawn_form.load(self.editor.map_data)
+        self.editor.status = "マップ全体の未反映入力を戻しました。候補タブの入力は維持しています。"
+
+    def select_tab(self, tab: str) -> None:
+        self.tab = tab
+        for field in self.editor.spawn_fields:
+            field.active = False
+        self.editor.map_spawn_form.deactivate()
+
+    def _tabs(self) -> list[Button]:
+        return [
+            Button(pygame.Rect(140, 137, 255, 35), "● 出現候補" if self.tab == "table" else "出現候補",
+                   lambda: self.select_tab("table")),
+            Button(pygame.Rect(410, 137, 310, 35), "● マップ全体 / AI" if self.tab == "map" else "マップ全体 / AI",
+                   lambda: self.select_tab("map")),
         ]
 
     def handle(self, event: pygame.event.Event, mouse: tuple[int, int] | None = None) -> None:
@@ -89,6 +118,15 @@ class SpawnTableDialog:
             if event.key == pygame.K_s and getattr(event, "mod", 0) & pygame.KMOD_CTRL:
                 editor.save()
                 return
+        for button in self._tabs():
+            if button.handle(event):
+                return
+        if self.tab == "map":
+            editor.map_spawn_form.handle(event)
+            for button in self._buttons():
+                if button.handle(event):
+                    return
+            return
         if handle_fields(editor.spawn_fields, event):
             return
         for scrollbar in (self.table_scroll, self.species_scroll):
@@ -122,7 +160,14 @@ class SpawnTableDialog:
         pygame.draw.rect(surface, PANEL, panel, border_radius=14)
         pygame.draw.rect(surface, ACCENT, panel, 2, border_radius=14)
         _cell(surface, f"出現テーブル：{editor.map_data['display_name']}", pygame.Rect(140, 94, 790, 35), ACCENT)
-        draw_text(surface, "候補を選んで編集 → 反映 → マップ保存（Ctrl+S）", (140, 140), 18, MUTED)
+        for button in self._tabs():
+            button.draw(surface, mouse)
+        if self.tab == "map":
+            editor.map_spawn_form.draw(surface, mouse)
+            for button in self._buttons():
+                button.draw(surface, mouse)
+            draw_status_bar(surface, editor.status, pygame.Rect(140, 628, 890, 58))
+            return
         for label, x in (("種族", 140), ("重み", 335), ("Lv", 425), ("比率*", 505)):
             draw_text(surface, label, (x + 5, 180), 16, MUTED)
         spawns = editor.map_data.get("spawns", [])

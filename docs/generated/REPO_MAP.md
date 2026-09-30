@@ -105,6 +105,14 @@ class PlayerFieldController
   repeated_vector(self, now: int) -> tuple[int, int] | None
 ```
 
+## kadoka_engine/spawn_controls.py
+
+```text
+parse_map_spawn_controls(rate: str, weights: dict[str, str] | None) -> dict
+map_ai_ratios(weights: dict) -> list[float] | None
+prepare_spawn_document(document: dict, species_ids: set[str], entry_draft: dict | None=..., controls_draft: dict | None=...) -> dict
+```
+
 ## kadoka_engine/spawn_settings.py
 
 ```text
@@ -525,6 +533,7 @@ class MapEditor
   load_spawn_fields(self) -> None
   spawn_draft_changed(self) -> bool
   open_spawn_dialog(self) -> None
+  apply_map_spawn_settings(self) -> bool
   add_spawn(self) -> bool
   apply_spawn_range(self) -> bool
   remove_spawn(self) -> None
@@ -1110,6 +1119,22 @@ smoke_frames() -> int | None
 draw_field(screen: pygame.Surface, session: FieldSession, images: CharacterImageProvider, party: Sequence[MonsterRecord], selected_index: int, now: int | None=...) -> None
 ```
 
+## kadoka_quest/ui/map_spawn_form.py
+
+```text
+class MapSpawnForm
+  __init__(self) -> None
+  snapshot(self) -> tuple
+  changed(self) -> bool
+  draft(self) -> dict
+  load(self, document: dict) -> None
+  deactivate(self) -> None
+  toggle(self) -> None
+  toggle_button(self) -> Button
+  handle(self, event: pygame.event.Event) -> None
+  draw(self, surface: pygame.Surface, mouse: tuple[int, int]) -> None
+```
+
 ## kadoka_quest/ui/pixel_editor.py
 
 ```text
@@ -1192,6 +1217,8 @@ class SpawnTableDialog
   close(self) -> None
   new(self) -> None
   revert(self) -> None
+  revert_map(self) -> None
+  select_tab(self, tab: str) -> None
   handle(self, event: pygame.event.Event, mouse: tuple[int, int] | None=...) -> None
   draw(self, surface: pygame.Surface, mouse: tuple[int, int]) -> None
 ```

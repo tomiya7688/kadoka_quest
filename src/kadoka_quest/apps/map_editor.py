@@ -7,9 +7,10 @@ import pygame
 from kadoka_quest.data.map_presets import MapPresetStore
 from kadoka_quest.data.repository import GameRepository
 from kadoka_engine.data_validator import DataValidator
-from kadoka_engine.spawn_settings import validate_map_spawns
+from kadoka_engine.spawn_controls import parse_map_spawn_controls, prepare_spawn_document
 from kadoka_engine.spawn_table import prepare_spawn_entry
 from kadoka_quest.ui.spawn_table_dialog import SpawnTableDialog
+from kadoka_quest.ui.map_spawn_form import MapSpawnForm
 from kadoka_quest.ui.common import ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, ScrollBar, TextField, draw_status_bar, draw_text, handle_fields, init_pygame, smoke_frames
 
 
@@ -95,6 +96,7 @@ class MapEditor:
         self.selected_spawn = -1
         self.spawn_table_offset = 0
         self.spawn_species_offset = 0
+        self.map_spawn_form = MapSpawnForm()
         self.new_map_id = TextField(pygame.Rect(435, 205, 330, 40))
         self.new_map_name = TextField(pygame.Rect(435, 285, 330, 40))
         self.new_map_width = TextField(pygame.Rect(435, 365, 150, 40), "48", numeric=True)
@@ -108,15 +110,32 @@ class MapEditor:
         self.status = "ドラッグで連続配置。右クリックでマップ上のブロックを選択できます。"
 
     def save(self) -> None:
-        if self.spawn_dialog_open and self.spawn_draft_changed() and not self.apply_spawn_range():
+        entry_draft = None
+        controls_draft = None
+        if self.spawn_dialog_open:
+            if self.spawn_draft_changed():
+                entry_draft = {
+                    "index": self.selected_spawn, "species_id": self.selected_species_id,
+                    "weight_text": self.spawn_weight.value, "minimum_text": self.spawn_min_level.value,
+                    "maximum_text": self.spawn_max_level.value,
+                }
+            if self.map_spawn_form.changed:
+                controls_draft = self.map_spawn_form.draft
+        try:
+            candidate = prepare_spawn_document(self.map_data, set(self.species_ids), entry_draft, controls_draft)
+        except ValueError as exc:
+            self.status = f"保存できません（入力を反映できません）: {exc}"
             return
-        issues = validate_map_spawns(self.map_data, set(self.species_ids))
-        if issues:
-            self.status = f"保存できません: {issues[0]['field']}: {issues[0]['message']}"
-            return
-        for event in self.transitions:
-            event.setdefault("activation", "step")
-        self.repository.save_map(self.map_data)
+        for event in candidate.get("events", []):
+            if event.get("type") == "transition":
+                event.setdefault("activation", "step")
+        self.repository.save_map(candidate)
+        self.map_data = candidate
+        if entry_draft is not None and self.selected_spawn < 0:
+            self.selected_spawn = len(candidate["spawns"]) - 1
+        if self.spawn_dialog_open:
+            self.load_spawn_fields()
+            self.map_spawn_form.load(candidate)
         self.dirty = False
         self.status = f"data/maps/{self.map_id}/map.json を保存しました。"
         issues = DataValidator(self.repository.root).validate()
@@ -415,7 +434,20 @@ class MapEditor:
         self.spawn_dialog_open = True
         self.select_species(self.selected_species)
         self.load_spawn_fields()
+        self.map_spawn_form.load(self.map_data)
         self.status = "編集を反映してから「マップ保存」でJSONへ保存します。"
+
+    def apply_map_spawn_settings(self) -> bool:
+        try:
+            controls = parse_map_spawn_controls(**self.map_spawn_form.draft)
+        except ValueError as exc:
+            self.status = f"反映できません: {exc}"
+            return False
+        self.map_data.update(controls)
+        self.map_spawn_form.load(self.map_data)
+        self.dirty = True
+        self.status = "マップ全体の出現設定を反映しました。マップ保存で確定します。"
+        return True
 
     def add_spawn(self) -> bool:
         self.new_spawn()
