@@ -112,6 +112,13 @@ validate_map_spawns(map_data: dict, species_ids: set[str] | None=...) -> list[di
 normalize_map_spawns(map_data: dict, species_ids: set[str] | None=...) -> dict
 ```
 
+## kadoka_engine/spawn_table.py
+
+```text
+prepare_spawn_entry(spawns: list[dict], index: int, species_id: str, weight_text: str, minimum_text: str, maximum_text: str, species_ids: set[str]) -> dict
+spawn_weight_ratios(spawns: list[dict]) -> list[float] | None
+```
+
 ## kadoka_quest/application/app_command.py
 
 ```text
@@ -513,7 +520,10 @@ class MapEditor
   current_spawn(self) -> dict | None
   spawn_fields(self) -> list[TextField]
   select_species(self, index: int) -> None
+  select_spawn(self, index: int) -> None
+  new_spawn(self) -> None
   load_spawn_fields(self) -> None
+  spawn_draft_changed(self) -> bool
   open_spawn_dialog(self) -> None
   add_spawn(self) -> bool
   apply_spawn_range(self) -> bool
@@ -1172,4 +1182,16 @@ class RuntimeInputAdapter
 class RuntimeMouseAdapter
   __init__(self, password_keys: Iterable[tuple[str, pygame.Rect]], password_actions: Mapping[str, pygame.Rect], battle_buttons: Iterable[tuple[str, pygame.Rect]]) -> None
   translate(self, event: pygame.event.Event, mode: str, *, battle_enabled: bool=..., now: int | None=...) -> list[dict]
+```
+
+## kadoka_quest/ui/spawn_table_dialog.py
+
+```text
+class SpawnTableDialog
+  __init__(self, editor: MapEditor) -> None
+  close(self) -> None
+  new(self) -> None
+  revert(self) -> None
+  handle(self, event: pygame.event.Event, mouse: tuple[int, int] | None=...) -> None
+  draw(self, surface: pygame.Surface, mouse: tuple[int, int]) -> None
 ```
