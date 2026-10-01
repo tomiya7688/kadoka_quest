@@ -165,6 +165,7 @@ class RuntimeOrchestrator
 
 ```text
 class AiInspector
+  summarize_tendencies(ai: dict[str, Any], skills: dict[str, dict]) -> list[dict[str, Any]]
   summarize(ai: dict[str, Any], limit: int=...) -> dict[str, Any]
 ```
 
@@ -722,6 +723,12 @@ class SimulationRosterService
 default_ai(profile: str=..., tactic: str=...) -> dict[str, Any]
 choose_skill(ai: dict[str, Any], skills: Iterable[dict[str, Any]], hp_ratio: float, ally_missing_hp_ratio: float, mp_ratio: float, rng: random.Random, context_tags: Iterable[str]=...) -> dict[str, Any] | None
 learn_from_action(ai: dict[str, Any], skill_id: str, reward: float, context_tags: Iterable[str]=...) -> None
+```
+
+## kadoka_quest/core/ai_tendencies.py
+
+```text
+summarize_tendencies(ai: Mapping, skills: Mapping) -> list[dict[str, Any]]
 ```
 
 ## kadoka_quest/core/battle.py

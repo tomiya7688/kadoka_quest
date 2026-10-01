@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from kadoka_quest.core.ai_tendencies import summarize_tendencies
+
 
 class AiInspector:
     """Build a compact, plain-data view of one individual's learned AI."""
+
+    @staticmethod
+    def summarize_tendencies(ai: dict[str, Any], skills: dict[str, dict]) -> list[dict[str, Any]]:
+        return summarize_tendencies(ai, skills)
 
     @staticmethod
     def summarize(ai: dict[str, Any], limit: int = 3) -> dict[str, Any]:
