@@ -41,7 +41,7 @@ For headless UI tests set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and 
 - `ui/` owns pygame rendering/input adaptation; renderers do not decide gameplay outcomes.
 - Player and Developer entry points stay separated. Developer tooling must not leak into the Player launcher/build.
 - Preserve direct JSON/editor-to-runtime formats. When a data contract changes, update `docs/FORMATS.md`.
-- Follow `docs/CODING_RULES.md` for architecture/responsibility changes.
+- Follow `docs/CODING_RULES.md` for architecture/responsibility changes. New or changed classes/functions/methods also follow its JSON-like Comment Outs rule; the canonical format is `tomiya7688/Json-like-comment-outs`.
 
 Machine-checkable boundaries belong in tests/CI rather than duplicated prose. Run `python tools/project-integrity/script/check_project_rules.py` when that tool exists on the working branch.
 
