@@ -5,6 +5,7 @@ import random
 from kadoka_engine.field_ai import choose_field_ai
 from kadoka_engine.chase_traffic import ChaseTraffic
 from kadoka_engine.field_engine import FieldEngine
+from kadoka_engine.wild_spawn import draw_wild_spawn, relative_spawn_weights
 
 
 class HiddenEnemyController:
@@ -69,9 +70,11 @@ class HiddenEnemyController:
             len(spawn_tiles),
             max(12, min(24, int(self.map_data["width"] * self.map_data["height"]) // 60)),
         )
-        weights = [int(item.get("weight", 1)) for item in options]
+        weights = relative_spawn_weights(options)
         for x, y in spawn_tiles[:population]:
-            spawn = self.rng.choices(options, weights=weights)[0]
+            spawn = draw_wild_spawn(self.rng, options, weights, self.map_data.get("pop_rate", 100))
+            if spawn is None:
+                continue
             self.monsters.append(
                 {
                     "x": x,

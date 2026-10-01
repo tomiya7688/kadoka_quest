@@ -127,6 +127,14 @@ prepare_spawn_entry(spawns: list[dict], index: int, species_id: str, weight_text
 spawn_weight_ratios(spawns: list[dict]) -> list[float] | None
 ```
 
+## kadoka_engine/wild_spawn.py
+
+```text
+relative_spawn_weights(options: list[dict]) -> list[float] | None
+pop_allowed(rng: random.Random, rate: object) -> bool
+draw_wild_spawn(rng: random.Random, options: list[dict], weights: list[float] | None, rate: object=...) -> dict | None
+```
+
 ## kadoka_quest/application/app_command.py
 
 ```text
@@ -792,6 +800,7 @@ available_skill_ids(repository: GameRepository, record: MonsterRecord) -> list[s
 ```text
 metal_area_level_range(party: Sequence[MonsterRecord]) -> tuple[int, int]
 spawn_level_range(spawn: dict[str, Any], party: Sequence[MonsterRecord], encounter_context: str=...) -> tuple[int, int]
+wild_encounter_level(spawn: dict[str, Any], party: Sequence[MonsterRecord], encounter_context: str, rng: random.Random) -> int
 ```
 
 ## kadoka_quest/core/status_effects.py

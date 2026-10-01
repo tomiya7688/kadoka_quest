@@ -62,7 +62,7 @@ class MapSpawnForm:
     def draw(self, surface: pygame.Surface, mouse: tuple[int, int]) -> None:
         self.rate.draw(surface, "マップ全体のポップ率（0〜100%）")
         draw_text(surface, "%", (367, 247), 22)
-        draw_text(surface, "注意：ポップ率のゲーム内反映は後続実装です。", (165, 291), 17, WARN)
+        draw_text(surface, "生成候補1枠ごとの確率です。0%では野生個体を生成しません。", (165, 291), 17, MUTED)
         self.toggle_button().draw(surface, mouse)
         if self.inherit:
             draw_text(surface, "マップではAIを指定しません。種族の設定 → 既定70/25/5を使います。", (165, 411), 18, MUTED)

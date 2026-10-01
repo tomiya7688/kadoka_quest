@@ -106,6 +106,17 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     ) for _ in range(4)]
 
     field_ai_rng = random.Random(146)
+    spawn_world = {
+        "width": 40, "height": 36, "tiles": [["floor"] * 40 for _ in range(36)],
+        "pop_rate": 75, "spawns": [
+            {"species_id": "slime", "weight": 0.6, "min_level": 3, "max_level": 8},
+            {"species_id": "ghost", "weight": 0.3, "min_level": 4, "max_level": 9},
+            {"species_id": "metal_slime", "weight": 0.01, "min_level": 1, "max_level": 2},
+        ],
+    }
+    spawn_blocks = {"floor": {"enemy_spawnable": True, "enemy_walkable": True}}
+    spawning = HiddenEnemyController(FieldEngine(spawn_world, spawn_blocks), random.Random(153))
+    spawning.set_world(spawn_world, spawn_blocks)
     wild_world = {"width": 16, "height": 16, "tiles": [["floor"] * 16 for _ in range(16)]}
     wild_blocks = {"floor": {"enemy_walkable": True}}
     wild = HiddenEnemyController(FieldEngine(wild_world, wild_blocks), random.Random(147))
@@ -127,6 +138,7 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
         return traffic.plan(2, (2, 2), (8, 2), {(3, 2)}, set(), 320)
 
     return [
+        BenchmarkCase("wild-population-24-slots", lambda: spawning.reset((0, 0), {}, 1000), 5_000_000.0),
         BenchmarkCase("chase-fork-two", chase_fork, 1_000_000.0),
         BenchmarkCase("wild-movement-24", lambda: wild.move_all((12, 1), set()), 1_000_000.0),
         BenchmarkCase(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+import random
 from typing import Any
 
 from kadoka_quest.core.monster import MonsterRecord
@@ -30,3 +31,16 @@ def spawn_level_range(
     if encounter_context == "metal_area":
         return metal_area_level_range(party)
     return int(spawn.get("min_level", 1)), int(spawn.get("max_level", 1))
+
+
+def wild_encounter_level(
+    spawn: dict[str, Any], party: Sequence[MonsterRecord],
+    encounter_context: str, rng: random.Random,
+) -> int:
+    """Keep normal field levels; metal areas still scale at encounter time."""
+    low, high = spawn_level_range(spawn, party, encounter_context)
+    rolled = spawn.get("rolled_level")
+    if (encounter_context != "metal_area" and isinstance(rolled, int)
+            and not isinstance(rolled, bool) and low <= rolled <= high):
+        return rolled
+    return rng.randint(low, high)

@@ -18,7 +18,8 @@ from kadoka_quest.apps.progress_session import ProgressSession
 from kadoka_quest.core.ai import default_ai
 from kadoka_quest.core.battle import BattleEngine
 from kadoka_quest.core.battle_rewards import battle_experience
-from kadoka_quest.core.spawn_levels import spawn_level_range
+from kadoka_quest.core.spawn_levels import wild_encounter_level
+from kadoka_engine.wild_spawn import draw_wild_spawn, relative_spawn_weights
 from kadoka_engine.field_engine import FieldEngine
 from kadoka_engine.fixed_mob_controller import FixedMobController
 from kadoka_engine.grid_movement import GridMovement
@@ -623,7 +624,7 @@ class KadokaQuest:
         bundle = self.repository.get_species(species_id)
         context = str(self.field_session.map_data.get("encounter_context", "normal"))
         party = self.party() if context == "metal_area" else []
-        level = self.rng.randint(*spawn_level_range(spawn, party, context))
+        level = wild_encounter_level(spawn, party, context, self.rng)
         monster = {
             "schema_version": 1,
             "id": f"wild_{uuid4().hex[:10]}",
@@ -650,7 +651,12 @@ class KadokaQuest:
         if (not spawn and not options) or not self.party():
             return False
         if spawn is None:
-            spawn = self.rng.choices(options, weights=[int(item.get("weight", 1)) for item in options])[0]
+            spawn = draw_wild_spawn(
+                self.rng, options, relative_spawn_weights(options),
+                self.field_session.map_data.get("pop_rate", 100),
+            )
+            if spawn is None:
+                return False
         enemies = [self.make_wild(spawn)]
         battle = BattleEngine(
             self.repository, self.party(), enemies, self.rng, learning_enabled=True,
