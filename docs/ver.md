@@ -16,6 +16,17 @@
 
 ```
 
+# 69. 起動・フィールド・イベント・save/load E2E（Issue #202）
+
+本番PlayerランチャーへSDLのクリック/文字入力を送り、新規作成・名前選択・別名保存を通した後、選択先の本番Store/runtimeを組み直すsource journeyを追加。街の開始地点/初期個体、異なるマップのセーブ復元と別セーブ不変、コピー後の独立性、移動方向の実画像/描画位置、5種類の衝突、長押し、正規の街端/新緑の森の岩とactivation差、まるの会話デッキ/正面停止、湧き場の仮想キー・取得・誤答/取消・保存/reloadを検証。カタログP01～P12に実テストを登録し、対応済み12・未対応25・意図的除外1となった。
+
+追加: `tests/e2e/{launcher_driver,render_observation,test_field_journeys}.py`。
+更新: E2Eのconftest/runtime_driver/worker/observations/test_harness/README、E2E_EXPECTATIONS、CODEMAP。
+
+検証: 新journey16件と基盤11件、計27件成功。最終版27件を2回連続成功（新規開始・暗号取得などはテスト内でも同seedを反復）。最終全テスト688件・サブテスト35件成功。lint、構造規約、生成資料、カタログ参照、diff --check成功。利用者セーブを指定した親環境でも、ランチャーから専用セーブへ切り替わり、sentinel/別セーブ/コピー元fixtureが不変なことを検証。
+
+境界: 私有プロジェクトに正規wrapperをコピーして任意legacy-save検索を隔離。外部起動要求を受け取った先のcomposition rootを使うが、OSの実プロセス起動やwrapper実行の証拠ではない。headlessの本番renderer/画像選択とmouse adapterを使うが、実画面の視認性・マウス操作・配布EXE・ピクセル完全一致は未検証。ゲーム処理と保存形式は変更なし。詳細な戦闘journeyは #203、管理アプリは #204、CI/quality専用統合は #205。
+
 # 68. 決定的Source E2E基盤（Issue #201）
 
 本番KadokaQuest・入力アダプター・runtime・loader/Storeを使う別プロセスのharnessを追加。ゲームimport前にセーブ/インポート先を専用領域へ切り替え、headless SDL・seed付きgame RNG・手動clock・別乱数列のUUID・固定日時を設定する。sleepやゲーム結果の代替実装は使わない。保存JSONと状態checkpointを観測し、Store/セッション/runtimeを作り直すreloadを用意。初期セーブfixtureはコピーして使い、新規獲得時に初期個体のID列を再発行しない。

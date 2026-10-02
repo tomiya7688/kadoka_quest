@@ -27,7 +27,7 @@
 | Developer / 配布 | `developer/{workflow,build_core,distribution_smoke}.py`, `apps/developer_launcher.py` | `test_developer_workflow.py`, `test_distribution_process.py`, `test_distribution_paths.py` | `docs/Developer環境説明書.md` | PlayerとDeveloperの起動・ビルドを分離する。 |
 | 開発補助 / コンテキスト | `tools/remote-context/script/sync_remote_context.py`, `tools/affected-tests/script/affected_tests.py`, `tools/import-map/script/python_import_map.py` | `test_remote_context.py`, `test_context_tools.py`, `test_context_router.py` | `tools/README.md`, `docs/context/WORKFLOW.md` | 要約は探索の案内。実装とIssueを正とする。 |
 | CI / 整合性 | `tools/project-integrity/script/check_project_rules.py`, `developer/project_validator.py`, `.github/workflows/python-app.yml` | `test_project_integrity.py`, `test_data_validator.py` | `docs/CODING_RULES.md` | 機械検証の規則を仕様本文へ複写しない。 |
-| E2E期待動作 / 未対応一覧 | `tools/e2e-catalog/script/check_e2e_catalog.py`, `tests/e2e/harness.py`, `tests/e2e/runtime_driver.py` | `test_e2e_catalog.py`, `tests/e2e/test_harness.py` | `docs/testing/E2E_EXPECTATIONS.md`, `tests/e2e/README.md` | Given/When/Thenと保存/reloadを追跡。#201は別プロセス・一時セーブ・RNG/clock固定の基盤。主要シナリオは #202～#204。参照チェックは実行成功の代替ではない。 |
+| E2E期待動作 / 未対応一覧 | `tools/e2e-catalog/script/check_e2e_catalog.py`, `tests/e2e/{harness,runtime_driver,launcher_driver,render_observation}.py` | `test_e2e_catalog.py`, `tests/e2e/{test_harness,test_field_journeys}.py` | `docs/testing/E2E_EXPECTATIONS.md`, `tests/e2e/README.md` | #201は一時セーブ・RNG/clock固定、#202は本番launcher/field/event/save/load（P01～P12）。次は #203/#204。参照チェックは実行成功の代替ではない。 |
 
 ## 敵の表示・逃走・報酬・出現Lv
 

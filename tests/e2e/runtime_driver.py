@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 import random
+from pathlib import Path
 
 import pygame
 
-from kadoka_quest.apps.game import KadokaQuest, MOVE_KEY_DIRECTIONS
+from kadoka_quest.apps.game import KadokaQuest, MOVE_KEY_DIRECTIONS, password_controls
+from kadoka_quest.data.monsters import MonsterStore
+from kadoka_quest.data.parties import PartyStore
+from kadoka_quest.data.repository import GameRepository
+from kadoka_quest.data.state import StateStore
+from kadoka_quest.paths import SAVE_ROOT, SAVEDATA_ROOT
 from kadoka_quest.ui.runtime_input_adapter import RuntimeInputAdapter
+from kadoka_quest.ui.runtime_mouse_adapter import RuntimeMouseAdapter
+from launcher_driver import drive_launcher
+from render_observation import render
 from scenario_clock import ScenarioClock, nonnegative_integer
 
 
@@ -25,13 +34,40 @@ class RuntimeDriver:
         self.seed = seed
         self.clock = clock
         self.input = RuntimeInputAdapter(MOVE_KEY_DIRECTIONS)
+        keys, erase, decide, cancel = password_controls()
+        self.mouse = RuntimeMouseAdapter(keys, {"backspace": erase, "submit": decide, "cancel": cancel}, [])
+        self.save_root = SAVE_ROOT
+        self.launcher_runs = []
         self.frames = 0
         self.reload()
 
     def reload(self) -> None:
-        self.game = KadokaQuest(rng=random.Random(self.seed))
+        repository = GameRepository()
+        self.game = KadokaQuest(
+            repository=repository,
+            monsters=MonsterStore(self.save_root / "monsters", repository),
+            states=StateStore(self.save_root / "state.json"),
+            parties=PartyStore(self.save_root / "parties"),
+            rng=random.Random(self.seed),
+        )
         self.game.field_party_service.now = self.clock.datetime_now
         self.running = True
+        self.last_render = None
+
+    def launcher(self, step: dict) -> None:
+        result = drive_launcher(step["frames"], self.clock, SAVEDATA_ROOT.parent)
+        self.launcher_runs.append({key: value for key, value in result.items() if key != "save_root"})
+        if result["save_root"] is not None:
+            self.save_root = Path(result["save_root"])
+            self.reload()
+
+    def password_click(self, value: str) -> None:
+        if self.game.mode != "password":
+            raise ValueError("Password controls are not visible")
+        controls = dict(self.mouse.password_keys) | self.mouse.password_actions
+        if value not in controls:
+            raise ValueError(f"Unknown password control: {value}")
+        self.event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=controls[value].center))
 
     def frame(self) -> None:
         if not self.running:
@@ -59,6 +95,10 @@ class RuntimeDriver:
                     self.game.runtime.dispatch(
                         request["target"], request["action"], **request["payload"]
                     )
+            battle = self.game.battle_session.battle
+            enabled = bool(battle and not battle.outcome and not self.game.battle_session.playback)
+            for request in self.mouse.translate(queued, self.game.mode, battle_enabled=enabled, now=self.clock.now):
+                self.game.runtime.dispatch(request["target"], request["action"], **request["payload"])
         self.frame()
 
     def command(self, step: dict) -> None:
@@ -92,6 +132,9 @@ class RuntimeDriver:
         if kind == "reload":
             self.reload()
             return
+        if kind == "launcher":
+            self.launcher(step)
+            return
         if not self.running:
             raise ValueError("Runtime quit; reload before further input")
         if kind in {"key_down", "key_up"}:
@@ -107,5 +150,9 @@ class RuntimeDriver:
             self.command(step)
         elif kind == "advance":
             self.advance(step)
+        elif kind == "password_click":
+            self.password_click(step["value"])
+        elif kind == "render":
+            self.last_render = render(self)
         else:
             raise ValueError(f"Unsupported step kind: {kind}")

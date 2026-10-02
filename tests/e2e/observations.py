@@ -6,6 +6,8 @@ from copy import deepcopy
 from pathlib import Path
 
 from kadoka_quest.data.jsonio import read_json
+from kadoka_quest.data.savedata import SaveDataManager
+from kadoka_quest.paths import SAVEDATA_ROOT
 
 
 def mob_observation(mob: dict) -> dict:
@@ -40,6 +42,7 @@ def battle_observation(session) -> dict | None:
 
 def observe(driver, save_root: Path) -> dict:
     game = driver.game
+    saves = SaveDataManager(SAVEDATA_ROOT)
     # Do not call movement.position(): it can snap/mutate completed movement.
     result = {
         "clock_ms": driver.clock.now, "running": driver.running,
@@ -56,6 +59,14 @@ def observe(driver, save_root: Path) -> dict:
                      "input": game.password_session.input_text,
                      "message": game.password_session.message},
         "battle": battle_observation(game.battle_session),
+        "render": driver.last_render,
+        "launcher_runs": driver.launcher_runs,
+        "active_save": saves.active_name(),
+        "saved_profiles": {
+            name: {path.relative_to(saves.profile_root(name)).as_posix(): read_json(path)
+                   for path in sorted(saves.profile_root(name).rglob("*.json"))}
+            for name in saves.list_names()
+        },
         "saved_files": {path.relative_to(save_root).as_posix(): read_json(path)
                         for path in sorted(save_root.rglob("*.json"))},
     }

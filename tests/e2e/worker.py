@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import random
 import sys
+from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import UUID
 
@@ -36,9 +37,11 @@ def run(request: dict) -> dict:
     # All path constants now resolve to the sandbox, even if the parent pytest
     # process has already imported production modules with different paths.
     import pygame
-    from kadoka_quest.paths import ASSET_ROOT, DATA_ROOT, SAVE_ROOT
+    from kadoka_quest.paths import ASSET_ROOT, DATA_ROOT, SAVE_ROOT, ensure_runtime_directories
     from observations import observe
     from runtime_driver import RuntimeDriver
+
+    ensure_runtime_directories()
 
     initial_ids = sorted(path.parent.name for path in (SAVE_ROOT / "monsters").glob("*/monster.json"))
     # Salt resumed fixtures with their existing IDs. Restarting the fresh-save
@@ -55,6 +58,7 @@ def run(request: dict) -> dict:
             stack.enter_context(patch.object(pygame.time, "get_ticks", clock.ticks))
             stack.enter_context(patch("kadoka_quest.data.monsters.uuid4", next_identity))
             stack.enter_context(patch("kadoka_quest.apps.game.uuid4", next_identity))
+            stack.enter_context(patch("kadoka_quest.data.savedata.datetime", SimpleNamespace(now=clock.datetime_now)))
             # A game-only scenario must fail rather than secretly launch/fake a
             # second application. Multi-app ranch flows belong to Issue #204.
             stack.enter_context(patch(
@@ -62,7 +66,7 @@ def run(request: dict) -> dict:
                 side_effect=RuntimeError("External manager launch needs a multi-app E2E driver (#204)"),
             ))
             driver = RuntimeDriver(request["seed"], clock)
-            checkpoints = {"initial": observe(driver, SAVE_ROOT)}
+            checkpoints = {"initial": observe(driver, driver.save_root)}
             for index, step in enumerate(request["steps"]):
                 label = ""
                 try:
@@ -73,13 +77,14 @@ def run(request: dict) -> dict:
                         raise ValueError(f"Duplicate/reserved checkpoint label: {label}")
                     driver.execute(step)
                     if label:
-                        checkpoints[label] = observe(driver, SAVE_ROOT)
+                        checkpoints[label] = observe(driver, driver.save_root)
                 except Exception as error:
                     context = label or (step.get("kind", "?") if isinstance(step, dict) else "?")
                     raise RuntimeError(
                         f"Step {index} ({context}) failed: {error}"
                     ) from error
-            checkpoints["final"] = observe(driver, SAVE_ROOT)
+            checkpoints["final"] = observe(driver, driver.save_root)
+            paths["save"] = driver.save_root
             return {
                 "seed": request["seed"], "start_ms": request["start_ms"],
                 "paths": {name: str(path) for name, path in paths.items()},

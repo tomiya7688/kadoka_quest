@@ -103,7 +103,10 @@ def test_inherited_user_paths_are_not_touched(scenario_runner, tmp_path, monkeyp
         sentinel.write_text('{"do_not_change": "利用者セーブ"}', encoding="utf-8")
         sentinels[sentinel] = sentinel.read_bytes()
         monkeypatch.setenv(variable, str(user_dir))
-    report = scenario_runner.run([{"kind": "key_down", "key": "right"}])
+    report = scenario_runner.run([
+        {"kind": "launcher", "frames": [[{"kind": "click", "pos": [500, 175]}]]},
+        {"kind": "key_down", "key": "right"},
+    ])
     for path, content in sentinels.items():
         assert path.read_bytes() == content
         assert list(path.parent.iterdir()) == [path]

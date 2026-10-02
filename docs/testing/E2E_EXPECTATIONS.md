@@ -1,6 +1,6 @@
 # E2E期待動作カタログ（#200 / 親 #199）
 
-この表をユーザー操作シナリオの正本とする。内部関数一覧やunitカバレッジ表ではない。#201の決定的harnessは実装済み（`tests/e2e/README.md`）。基盤の再現性・隔離テストは主要操作フローの代替ではないため、下記は引き続き `missing`。既存テストの根拠は末尾に示すが、それだけでE2E対応済みとはしない。
+この表をユーザー操作シナリオの正本とする。内部関数一覧やunitカバレッジ表ではない。#201の決定的harnessと #202の起動・フィールド・イベント・save/loadシナリオは実装済み（`tests/e2e/README.md`）。対応行に実行済みテストを登録する。基盤の再現性・隔離テストや既存unit/integrationの成功だけで主要操作をcoveredにしない。
 
 ## 対応状況と読み方
 
@@ -19,18 +19,18 @@ python tools/e2e-catalog/script/check_e2e_catalog.py --missing
 
 | ID | 機能/画面 | Given | When | Then | Persistence | E2E | Status | 理由/次の担当 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| KQ-P01 | Player起動 | 正規data/assetsと隔離セーブ | Player入口からゲーム開始 | fieldモードで現在マップが表示され、Developer編集機能が出ない | no | - | missing | game composition rootのharnessは #201。Player入口・表示のシナリオは未対応。#202 |
-| KQ-P02 | 新規ゲーム | 未使用のセーブ名 | ランチャーで新規作成して開始、再起動 | starting_town、主人公とボールスライムの個体、最大4枠の初期パーティが作られ、同IDが復元される | yes | - | missing | ランチャー→runtime→reload未対応。#202 |
-| KQ-P03 | ロード | 異なる位置/パーティを持つ2セーブ | 名前を選択してロード、再起動 | 選択したセーブのマップ/整数座標/個体/パーティ/所持品/AIを復元し、他セーブを変更しない | yes | - | missing | 名前切替とプロセス相当再生成未対応。#202 |
-| KQ-P04 | 別名保存 | 個体AI・アイテム・プリセット付きセーブA、未使用名B | 別名Bへ保存しBをロード | Aの内容をBに複製し、個体ID/AI/所持品/編成を維持する。B編集後もAは元のまま | yes | - | missing | フォルダ複製後の操作・reload未対応。#202 |
-| KQ-P05 | フィールド移動 | 敵のいない通行可能な1マス先 | 移動入力後に時刻を進め、再起動 | 指定方向へ整数座標が1マス進み、向きと表示位置が同期する。保存座標も同じ | yes | - | missing | 入力adapter→runtime→保存未対応。#202 |
-| KQ-P06 | 衝突 | 壁/岩/看板/固定モブ/野生個体で塞がれた隣マス | 対象へ歩こうとする | 同じマスへ侵入せず、位置を維持する。敵への接触戦闘はP16で検証 | no | - | missing | 各障害を本番移動経路で操作するケース未対応。#202 |
-| KQ-P07 | 長押し | 複数マスの通路、固定clock | 方向キーを長押しし、離して時刻を進める | リピート待機後に連続移動し、離した後は移動が止まる | no | - | missing | sleepに依存しないキー入力列未対応。#202 |
-| KQ-P08 | 触れる移動ポイント | step遷移が地形と同じマスにある | そのマスへ歩き、再起動 | targetのmap_id/座標へ1回遷移し、移動先が復元される | yes | - | missing | 編集JSONとruntimeの遷移連携未対応。#202 |
-| KQ-P09 | 調べる移動ポイント | interact遷移の隣にいる | 通り過ぎる、戻って調べる、再起動 | 通過だけでは遷移せず、調べたときだけ指定先へ移る。新緑の森の岩から住処に入れる | yes | - | missing | activation差と既存入口のシナリオ未対応。#202 |
-| KQ-P10 | NPC会話 | 複数台詞デッキの固定モブが正面にいる | 時刻を進めながら複数回話す | 正面のNPCは勝手に移動せず、デッキを一巡するまで同じ台詞を繰り返さない | no | - | missing | NPC入力と周期更新を合わせた経路未対応。#202 |
-| KQ-P11 | 住処の暗号 | まる/かどか未所有、住処の湧き場にいる | 調べ、7文字の「へいわなすみか」を入力、再起動 | 入力画面からfieldへ戻り2個体と取得フラグが保存される。住処の2体は残る | yes | - | missing | イベント→入力→取得→reload未対応。#202/#204 |
-| KQ-P12 | 暗号誤答/取消 | 湧き場で入力中、2個体未所有 | 8文字目を入力、誤答を送信、取消 | 入力は7文字以内、誤答では仲間が増えず、取消でfieldへ戻る | no | - | missing | パスワード画面操作列未対応。#202 |
+| KQ-P01 | Player起動 | 正規data/assetsと隔離セーブ | Player入口からゲーム開始 | fieldモードで現在マップが表示され、Developer編集機能が出ない | no | `tests/e2e/test_field_journeys.py::test_player_new_game_and_reload` | covered | #202。headlessの本番launcher→composition root→renderer。OSプロセス起動・配布EXEは別の検証 |
+| KQ-P02 | 新規ゲーム | 未使用のセーブ名 | ランチャーで新規作成して開始、再起動 | starting_town、主人公とボールスライムの個体、最大4枠の初期パーティが作られ、同IDが復元される | yes | `tests/e2e/test_field_journeys.py::test_player_new_game_and_reload` | covered | #202。実UI入力→名前付き保存→Store/runtime再生成 |
+| KQ-P03 | ロード | 異なる位置/パーティを持つ2セーブ | 名前を選択してロード、再起動 | 選択したセーブのマップ/整数座標/個体/パーティ/所持品/AIを復元し、他セーブを変更しない | yes | `tests/e2e/test_field_journeys.py::test_named_load_restores_selected_profile_without_changing_other` | covered | #202。住処/街と異なる個体IDの2セーブで全保存JSONを比較 |
+| KQ-P04 | 別名保存 | 個体AI・アイテム・プリセット付きセーブA、未使用名B | 別名Bへ保存しBをロード | Aの内容をBに複製し、個体ID/AI/所持品/編成を維持する。B編集後もAは元のまま | yes | `tests/e2e/test_field_journeys.py::test_save_as_copies_owned_data_and_keeps_source_independent` | covered | #202。本番別名保存ボタンとB変更/reload後のA不変を検証 |
+| KQ-P05 | フィールド移動 | 敵のいない通行可能な1マス先 | 移動入力後に時刻を進め、再起動 | 指定方向へ整数座標が1マス進み、向きと表示位置が同期する。保存座標も同じ | yes | `tests/e2e/test_field_journeys.py::test_walk_and_visual_position_survive_reload` | covered | #202。キー→保存・rendererの向き画像/実表示位置→reload |
+| KQ-P06 | 衝突 | 壁/岩/看板/固定モブ/野生個体で塞がれた隣マス | 対象へ歩こうとする | 同じマスへ侵入せず、位置を維持する。敵への接触戦闘はP16で検証 | no | `tests/e2e/test_field_journeys.py::test_collision_does_not_overlap` | covered | #202。5種類のJSON fixture。野生は本番抽選で1体生成、戦闘開始後も主人公座標を維持 |
+| KQ-P07 | 長押し | 複数マスの通路、固定clock | 方向キーを長押しし、離して時刻を進める | リピート待機後に連続移動し、離した後は移動が止まる | no | `tests/e2e/test_field_journeys.py::test_hold_repeat_stops_when_released` | covered | #202。179/180ms・追加90ms・keyup後500msをsleepなしで検証 |
+| KQ-P08 | 触れる移動ポイント | step遷移が地形と同じマスにある | そのマスへ歩き、再起動 | targetのmap_id/座標へ1回遷移し、移動先が復元される | yes | `tests/e2e/test_field_journeys.py::test_canonical_step_transition_and_reload` | covered | #202。正規の街東端→はじまりの森をキーで通過、保存/reload |
+| KQ-P09 | 調べる移動ポイント | interact遷移の隣にいる | 通り過ぎる、戻って調べる、再起動 | 通過だけでは遷移せず、調べたときだけ指定先へ移る。新緑の森の岩から住処に入れる | yes | `tests/e2e/test_field_journeys.py::test_interact_transition_is_not_a_step_transition`<br>`tests/e2e/test_field_journeys.py::test_fresh_forest_rock_blocks_and_enters_ghost_home` | covered | #202。通行可能ポイントのactivation差と正規の岩の衝突/調査/保存/reload |
+| KQ-P10 | NPC会話 | 複数台詞デッキの固定モブが正面にいる | 時刻を進めながら複数回話す | 正面のNPCは勝手に移動せず、デッキを一巡するまで同じ台詞を繰り返さない | no | `tests/e2e/test_field_journeys.py::test_maru_dialogue_deck_and_facing_pause` | covered | #202。正規まるとの6回の会話、複数移動周期でも正面のまま |
+| KQ-P11 | 住処の暗号 | まる/かどか未所有、住処の湧き場にいる | 調べ、7文字の「へいわなすみか」を入力、再起動 | 入力画面からfieldへ戻り2個体と取得フラグが保存される。住処の2体は残る | yes | `tests/e2e/test_field_journeys.py::test_spring_virtual_keyboard_acquisition_persists` | covered | #202。実イベント→描画→本番仮想キーのmouse adapter→獲得JSON/AI/reload。同seed反復も一致 |
+| KQ-P12 | 暗号誤答/取消 | 湧き場で入力中、2個体未所有 | 8文字目を入力、誤答を送信、取消 | 入力は7文字以内、誤答では仲間が増えず、取消でfieldへ戻る | no | `tests/e2e/test_field_journeys.py::test_wrong_password_length_erase_and_cancel` | covered | #202。keyboardと仮想ボタンの消去/取消、誤答と7文字上限、未獲得を検証 |
 | KQ-P13 | 固定モブ消滅 | despawn=true、再出現可/不可の2モブ | 会話または固定戦勝利、マップ再入場、reload | 消滅し、再出現可だけ初期位置へ戻る。不可は保存後も消えたまま | yes | - | missing | 消滅・再入場・保存を跨ぐ経路未対応。#202/#203 |
 | KQ-P14 | 野生個体AI | random/chase/idle、既定seed/clockのfixture | 主人公を止めて時刻を進め、chaseへ視認させる | idleは静止、randomは周期で徘徊、chaseは視認時に通常より速く追跡する。個体は重ならない | no | - | missing | 時刻/RNG注入の代表シナリオ未対応。#201/#202 |
 | KQ-P15 | 野生ポップ | pop_rate=0/100、小数weight、通常/メタル域のfixture | マップへ入り、対象個体と遭遇 | 0では生成なし。100は有効枠で生成し、設定の種族/Lv/AIを利用する。ball_slimeは湧かない | no | - | missing | 編集→出現→遭遇の境界未対応。#202 |
@@ -74,7 +74,7 @@ python tools/e2e-catalog/script/check_e2e_catalog.py --missing
 
 ここは索引であり、期待値の詳細を複製しない。更新時は該当CODEMAP行から実装とテストへ戻る。
 
-- 起動/保存/移動/NPC/暗号/個体/編成: `tests/test_core.py`、`tests/test_app_smoke.py`、`docs/FORMATS.md`。本番入口からreloadまでの共通E2Eは未整備。
+- 起動/保存/移動/NPC/暗号: `tests/e2e/test_field_journeys.py`（#202）。本番launcherの入力→選択保存先のStore/runtime→保存JSON/reloadを検証。個体/編成の管理アプリjourneyは #204。従来の `tests/test_core.py`、`tests/test_app_smoke.py` は別の証拠。
 - 野生移動/出現/遭遇: `tests/test_field_ai_movement.py`、`tests/test_wild_spawn_runtime.py`、`tests/test_wild_encounter_flow.py`。個別のruntime統合検証を持つが、入力列と永続化を含む共通E2Eではない。
 - 戦闘/勝敗/報酬: `tests/test_battle_flow_service.py`、`tests/test_battle_rewards.py`、`tests/test_enemy_flee.py`、`tests/test_battle_resistance.py`、`tests/test_battle_status_cure.py`。
 - アイテム使用イベント: `tests/test_field_use_events.py`。使用条件・保存を個別に検証済み。
