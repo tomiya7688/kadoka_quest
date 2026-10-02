@@ -16,6 +16,23 @@
 
 ```
 
+# 72. GDScript版の初期個体／所有一覧
+
+新規stateの初回F5で主人公・ボールスライムのLv1個体と初期パーティを生成。既存と同じmonster.json/ai.jsonを使い、初期AI辞書はPython default_aiと一致する。個体の2ファイルは固有の一時フォルダへ書いてから公開し、state保存が後で失敗した場合は再試行で公開済み初期個体を再利用する。既存stateへ仲間を勝手に追加しない。
+
+F6で全保有個体と先頭4パーティ枠を読み取り専用表示。名前・種族・Lv・＋数・装備ID・AIプロファイル/作戦/戦闘経験を確認でき、縦スクロールバー/ホイール・↑↓・PageUp/Down・Home/End、F6/Escで閉じる操作に対応。一覧中の移動/調べる/F5/F9は停止。個体数にプログラム上の上限を設けず、日本語IDと未知JSONキーも読込/保持する。欠損/破損・不正ID/Lv・未知種族・未対応schemaは注意を表示し、元ファイル/欠損パーティIDを削除/修復しない。
+
+追加: `gdscript/{engine/monster_record_contract.gd,data/monster_store.gd,application/owned_roster.gd,ui/roster_view.gd,tests/run_roster_probe.gd}` と各uid、`tests/test_gdscript_roster.py`。
+更新: field_application、field_persistence、field_save_store、README、FORMATS、CODEMAP、移植境界説明書。
+
+検証: 新規16テスト・78サブテストを含め、最終全テスト726件・507サブテスト成功（116.62秒、Python 3.14.7、pygame-ce 2.5.8、Godot 4.7.2）。AI初期値35条件、7種族×5Lvの個体JSON契約、初期パーティ/再起動/再保存、既存の日本語ID・学習済みAI/未知キー/party順序の不変、120体スクロールとmodal入力停止、実ホイール・上方向キー、不正個体11条件、既存ID/パス拒否8条件、state置換失敗後の再試行、欠損種族/不正孤立個体の初回保存拒否を検証した。以前の空セーブへ仲間を追加しないことも確認。
+
+headlessの物理Windowが64pxだったため、当初のホイールprobeはゲーム座標を画面外へ送っていた。Viewportの実変換とマウス入場通知で本番入力経路に合わせて修正し、UIのスクロール処理を代替しない。初期fixtureのID引数重複と診断用assert整形も修正した。Godotインポート/正規コンテンツのheadless起動、lint/構文、構造規約、生成資料、E2E参照、diff --check成功。
+
+最新UPD checker（ae4636155b5e）は既存Python対象にエラー0・警告13・注意100。既存Python性能ガードは標準20000回/7sample/2000warmupで13項目成功（生成24枠約2.11ms、移動24体約0.67ms）。初回性能実行のimportエラーはPYTHONPATH=srcで解消した。これらはGDScriptのFPS/ファイル走査速度の実測や、Python E2Eカタログの全面移植ではない。
+
+境界: 能力値/スキル/＋効果/装備補正、AI判断/学習/リセット、編成変更、牧場/外部個体取得/模擬戦は未移植。実ウィンドウでの視認性・手動操作、配布export、並行writer排他は未検証/未対応。保存先はPython版と分離したままで、既存個体/AI/items/parties/metaの書換えなし。正規data/assetsとPython runtimeは変更なし。ローカルコミットのみでGitHub push/PR/Issue完了操作は行わない。
+
 # 71. GDScript版のフィールド保存／復元
 
 F5で現在マップ・マス座標・向きを保存、F9で読込、別プロセスでの次回起動時にも復元するようにした。既定保存先はPython版と分離した `user://savedata/default/`。環境変数で名前付きフォルダを選択でき、初回F5でstate/meta/itemsと空のmonsters/partiesを作る。既存stateの位置以外のキーを引き継ぎ、個体/AI/items/プリセット/metaの既存ファイルは書き換えない。向きのない旧形式は正面で復元する。

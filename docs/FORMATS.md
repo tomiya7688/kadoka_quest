@@ -345,7 +345,11 @@ GDScript版は同じフォルダ形式を、既定で `user://savedata/<save_nam
 
 `state.json.player.direction` は任意で `front / back / left / right` のいずれかです。GDScript版は保存時に追加し、旧形式で欠けていれば `front` として復元します。Python側の位置読込は追加キーを無視できます。既存stateの位置以外のキーは引き継ぎ、個体/AI/items/parties/metaの既存ファイルは変更しません。stateのJSON再出力はbyte単位の維持ではなく、Godotの数値精度外のMOD値の完全往復は保証しません。
 
-初回保存は空のmonsters/partiesと初期itemsを用意しますが、初期個体生成やAI利用は未移植です。位置のない/不正な既存state、未対応schema、復元できないマップや座標は上書きしません。既存セーブの移行はコピーで試してください。操作・失敗時の扱いは [GDScript README](../gdscript/README.md) を参照してください。
+初回保存は主人公・ボールスライムをLv1/＋選択なし/装備なしで生成し、既存の `monster.json / ai.json` 形式と `source: starter` を使います。`current_party` は主人公→ボールスライムの個体IDです。AI初期値はPythonの `default_ai` と同じで、AI判断/学習/リセットはまだ実行しません。保存失敗後に初期個体が公開済みなら再利用しますが、既存stateへ仲間を自動追加したり既存AIをリセットしたりはしません。
+
+F6は全保有個体と先頭4パーティ枠の読み取り専用表示です。個体フォルダとJSON内のIDの一致、1〜100の整数Lv、種族の存在、JSON/schemaを確認し、読込できない個体を警告します。元ファイルと欠損パーティIDは保持します。能力値/スキル/＋効果/装備補正の再構築や編成変更は未移植です。
+
+位置のない/不正な既存state、未対応schema、復元できないマップや座標は上書きしません。既存セーブの移行はコピーで試してください。操作・失敗時の扱いは [GDScript README](../gdscript/README.md) を参照してください。
 
 ## Import
 

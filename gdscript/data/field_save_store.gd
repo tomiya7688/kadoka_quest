@@ -24,7 +24,7 @@ static func validate_name(name: String) -> Dictionary:
 	return {"ok": true, "name": name.left(40)}
 
 
-func _profile(name: String) -> Dictionary:
+func resolve_profile(name: String) -> Dictionary:
 	var result := validate_name(name)
 	if not result["ok"]:
 		return result
@@ -36,21 +36,21 @@ func _profile(name: String) -> Dictionary:
 		return {"ok": false, "error": "linked_profile", "message": "リンクされたセーブフォルダは使用できません。"}
 	var inside := DirAccess.open(path)
 	if inside != null:
-		for child in ["state.json", "items", "meta.json"]:
+		for child in ["state.json", "items", "meta.json", "monsters", "parties"]:
 			if inside.is_link(child):
 				return {"ok": false, "error": "linked_profile", "message": "リンクされた保存データは使用できません。"}
 	return {"ok": true, "path": path, "name": result["name"]}
 
 
 func load_profile(name: String) -> Dictionary:
-	var profile := _profile(name)
+	var profile := resolve_profile(name)
 	if not profile["ok"]:
 		return profile
 	return Documents.read_object(profile["path"].path_join("state.json"))
 
 
 func save_profile(name: String, value: Dictionary, expected_digest: String, inventory: Dictionary) -> Dictionary:
-	var profile := _profile(name)
+	var profile := resolve_profile(name)
 	if not profile["ok"]:
 		return profile
 	var path: String = profile["path"]

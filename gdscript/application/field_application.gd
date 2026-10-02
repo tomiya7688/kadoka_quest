@@ -6,6 +6,7 @@ const Session = preload("res://application/field_session.gd")
 const Keyboard = preload("res://ui/field_input.gd")
 const Images = preload("res://ui/content_images.gd")
 const FieldView = preload("res://ui/field_view.gd")
+const RosterView = preload("res://ui/roster_view.gd")
 const SaveStore = preload("res://data/field_save_store.gd")
 const Persistence = preload("res://application/field_persistence.gd")
 
@@ -19,6 +20,8 @@ var title: Label
 var status: Label
 var persistence: RefCounted
 var profile_name := "default"
+var owned_snapshot: Dictionary = {"records": {}, "party": [], "warnings": []}
+var roster_view: PanelContainer
 
 
 func _ready() -> void:
@@ -52,8 +55,13 @@ func _create_ui() -> void:
 	status.position = Vector2(16, 478)
 	status.size = Vector2(928, 54)
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status.text = "矢印 / WASD：移動　Enter / Space / E：調べる　F5：保存　F9：読込（戦闘は未移植）"
+	status.text = "矢印 / WASD：移動　Enter / Space / E：調べる　F5：保存　F9：読込　F6：個体確認"
 	add_child(status)
+	roster_view = RosterView.new()
+	roster_view.position = Vector2(48, 64)
+	roster_view.size = Vector2(864, 396)
+	add_child(roster_view)
+	roster_view.hide()
 
 
 func open_map(map_id: String, entry: Dictionary = {}) -> bool:
@@ -91,6 +99,8 @@ func save_current_position() -> bool:
 		return false
 	var result: Dictionary = persistence.save_position(session)
 	status.text = "保存しました: " + profile_name if result["ok"] else "保存失敗: " + str(result["message"])
+	if result["ok"]:
+		_refresh_owned_snapshot()
 	return result["ok"]
 
 
@@ -104,11 +114,12 @@ func load_saved_position(silent_missing: bool = false) -> bool:
 	entry["direction"] = entry.get("direction", "front")
 	_enter_world(result["world"], entry)
 	status.text = "読み込みました: " + profile_name
+	_refresh_owned_snapshot()
 	return true
 
 
 func _process(delta: float) -> void:
-	if session.world.is_empty():
+	if session.world.is_empty() or roster_view.visible:
 		return
 	var step: Vector2i = keyboard.movement_step(delta)
 	if step != Vector2i.ZERO:
@@ -131,6 +142,35 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_:
 			return
 	get_viewport().set_input_as_handled()
+
+
+func _input(event: InputEvent) -> void:
+	if not event is InputEventKey or not event.pressed or persistence == null:
+		return
+	if event.physical_keycode == KEY_F6 and not event.echo:
+		if roster_view.visible:
+			roster_view.hide()
+		else:
+			_refresh_owned_snapshot()
+			roster_view.show_snapshot(owned_snapshot)
+			roster_view.show()
+	elif roster_view.visible:
+		if event.physical_keycode == KEY_ESCAPE:
+			roster_view.hide()
+		else:
+			roster_view.handle_key(event.physical_keycode)
+	else:
+		return
+	get_viewport().set_input_as_handled()
+
+
+func _refresh_owned_snapshot() -> void:
+	var result: Dictionary = persistence.read_owned_roster()
+	if result["ok"]:
+		owned_snapshot = result
+	else:
+		owned_snapshot = {"records": {}, "party": [], "warnings": [result["message"]],
+			"new_profile": result.get("error") == "not_found"}
 
 
 func _handle_event(event: Dictionary) -> void:

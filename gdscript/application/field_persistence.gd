@@ -2,10 +2,12 @@ extends RefCounted
 ## Validate before applying a load or writing a save. Does not render or move a session.
 
 const Contract = preload("res://engine/field_save_contract.gd")
+const Roster = preload("res://application/owned_roster.gd")
 var repository: RefCounted
 var store: RefCounted
 var blocks: Dictionary
 var profile_name: String
+var roster: RefCounted
 
 
 func _init(content: RefCounted, saves: RefCounted, definitions: Dictionary, name: String) -> void:
@@ -13,6 +15,7 @@ func _init(content: RefCounted, saves: RefCounted, definitions: Dictionary, name
 	store = saves
 	blocks = definitions
 	profile_name = name
+	roster = Roster.new(content, saves, name)
 
 
 func load_position() -> Dictionary:
@@ -42,4 +45,16 @@ func save_position(session: RefCounted) -> Dictionary:
 	var valid := Contract.validate_location(snapshot, session.world, blocks)
 	if not valid["ok"]:
 		return valid
+	if not previous["ok"]:
+		var starters: Dictionary = roster.prepare_starters()
+		if not starters["ok"]:
+			return starters
+		snapshot["current_party"] = starters["members"]
 	return store.save_profile(profile_name, snapshot, previous.get("digest", ""), Contract.INITIAL_INVENTORY)
+
+
+func read_owned_roster() -> Dictionary:
+	var loaded := load_position()
+	if not loaded["ok"]:
+		return loaded
+	return roster.read_snapshot(loaded["value"])
