@@ -1,6 +1,6 @@
 # E2E期待動作カタログ（#200 / 親 #199）
 
-この表をユーザー操作シナリオの正本とする。内部関数一覧やunitカバレッジ表ではない。現在はE2E harness未実装のため、下記の主要フローは `missing`。既存テストの根拠は末尾に示すが、それだけでE2E対応済みとはしない。
+この表をユーザー操作シナリオの正本とする。内部関数一覧やunitカバレッジ表ではない。#201の決定的harnessは実装済み（`tests/e2e/README.md`）。基盤の再現性・隔離テストは主要操作フローの代替ではないため、下記は引き続き `missing`。既存テストの根拠は末尾に示すが、それだけでE2E対応済みとはしない。
 
 ## 対応状況と読み方
 
@@ -19,7 +19,7 @@ python tools/e2e-catalog/script/check_e2e_catalog.py --missing
 
 | ID | 機能/画面 | Given | When | Then | Persistence | E2E | Status | 理由/次の担当 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| KQ-P01 | Player起動 | 正規data/assetsと隔離セーブ | Player入口からゲーム開始 | fieldモードで現在マップが表示され、Developer編集機能が出ない | no | - | missing | 本番入口harness未整備。#201/#202 |
+| KQ-P01 | Player起動 | 正規data/assetsと隔離セーブ | Player入口からゲーム開始 | fieldモードで現在マップが表示され、Developer編集機能が出ない | no | - | missing | game composition rootのharnessは #201。Player入口・表示のシナリオは未対応。#202 |
 | KQ-P02 | 新規ゲーム | 未使用のセーブ名 | ランチャーで新規作成して開始、再起動 | starting_town、主人公とボールスライムの個体、最大4枠の初期パーティが作られ、同IDが復元される | yes | - | missing | ランチャー→runtime→reload未対応。#202 |
 | KQ-P03 | ロード | 異なる位置/パーティを持つ2セーブ | 名前を選択してロード、再起動 | 選択したセーブのマップ/整数座標/個体/パーティ/所持品/AIを復元し、他セーブを変更しない | yes | - | missing | 名前切替とプロセス相当再生成未対応。#202 |
 | KQ-P04 | 別名保存 | 個体AI・アイテム・プリセット付きセーブA、未使用名B | 別名Bへ保存しBをロード | Aの内容をBに複製し、個体ID/AI/所持品/編成を維持する。B編集後もAは元のまま | yes | - | missing | フォルダ複製後の操作・reload未対応。#202 |

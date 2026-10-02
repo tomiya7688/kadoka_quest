@@ -16,6 +16,17 @@
 
 ```
 
+# 68. 決定的Source E2E基盤（Issue #201）
+
+本番KadokaQuest・入力アダプター・runtime・loader/Storeを使う別プロセスのharnessを追加。ゲームimport前にセーブ/インポート先を専用領域へ切り替え、headless SDL・seed付きgame RNG・手動clock・別乱数列のUUID・固定日時を設定する。sleepやゲーム結果の代替実装は使わない。保存JSONと状態checkpointを観測し、Store/セッション/runtimeを作り直すreloadを用意。初期セーブfixtureはコピーして使い、新規獲得時に初期個体のID列を再発行しない。
+
+追加: `tests/e2e/{__init__,conftest,harness,worker,scenario_clock,runtime_driver,observations,test_harness}.py`。
+更新: `tests/e2e/README.md`、E2E_EXPECTATIONS、CODEMAP。
+
+検証: 最終基盤テスト11件を3回連続で成功（各回の同一seed反復と戦闘反復も一致）。別seedで本番の野生配置が変化すること、固定時間で長押し移動/オート戦闘/ログ再生が進むこと、親のセーブ先を使わないこと、コピー元fixtureのJSONが不変なこと、新規獲得・reload・エラーの操作位置を検証。最終全テスト672件・サブテスト35件成功（Python 3.14.7、pygame-ce 2.5.8）。構造規約・生成資料・lint・カタログ検査も成功。ゲームruntimeと保存形式の変更なし。
+
+未検証: 実ウィンドウの描画/マウス、配布EXE、ランチャーのクリック操作、複数アプリの牧場フロー。管理アプリ起動は未対応として明示的に失敗させ、harness専用のsimulation hookは追加しない。主要37フローは引き続きmissingで、基盤テストをcoveredへ混同しない。次は #202～#204、CI/quality専用統合は #205。
+
 # 67. E2E期待動作カタログ（Issue #200）
 
 Player/Developerの主要37シナリオにGiven・When・Then・保存/reload・対応E2E・未対応理由を記録。現時点のE2E対応済みは0、未対応37、装飾のみの除外1。既存unit/integration/smokeをE2Eと混同しない。カタログの形式とtests/e2e内の定義参照を静的チェックし、対応テストの削除時は実効missingとして失敗させる。新機能時の更新手順と専用領域を追加。harness本体は #201。
