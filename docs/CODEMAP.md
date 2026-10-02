@@ -45,6 +45,12 @@
 
 | 野生接触 / 戦闘復帰 | `apps/game.py`, `apps/{battle_session,battle_flow_service,battle_progression_service}.py` | `test_wild_encounter_flow.py`, `test_spawn_levels.py`, `test_core.py` | `docs/野生接触戦闘フロー機能説明書.md` | 開始成功後に接触個体を消費。種族/レベル範囲と終了結果を検証。 |
 
+## GDScript移植（source試作）
+
+| タスク種別 | 主実装 | 関連テスト | 仕様 | 境界 |
+| --- | --- | --- | --- | --- |
+| Godot起動 / JSON / マス移動 | `gdscript/{project.godot,engine/field_engine.gd,data/content_repository.gd,application/field_session.gd,application/field_application.gd,ui/}` | `tests/test_gdscript_bootstrap.py`, `gdscript/tests/{run_contracts,run_scene_smoke}.gd` | `gdscript/README.md`, `docs/移植境界機能説明書.md` | 正規data/assetsをread-only利用。純粋なFieldEngine入出力をPythonと比較。保存・戦闘・AI・exportは未移植。 |
+
 ## 更新ルール
 
 - シンボルを絞るときだけ `docs/generated/REPO_MAP.md` の該当ファイル名を検索する。公開APIと引数の索引であり、詳細は対象コードを読む。

@@ -16,6 +16,19 @@
 
 ```
 
+# 70. GDScript版のフィールド移植を開始
+
+ユーザーのGDScript開始指示により、独立した `gdscript/project.godot` とフィールドSceneを追加。はじまりの街から正規の6マップ/ブロック/キャラクターPNGをread-onlyで読み、長押しマス移動、地形/固定モブ/看板/岩の衝突、step/interactの移動ポイント、メッセージを接続した。engineの純粋な空間判定、data読込、sessionの一時状態、applicationの調停、uiの入力/描画を分離。#111のpython/unity開始用READMEも追加したが、既存Pythonファイルの大移動は行わない。
+
+追加: `gdscript/` のGodot設定/Scene/engine/data/application/ui/tests/README、`python/README.md`、`unity/README.md`、`tests/test_gdscript_bootstrap.py`。
+更新: README、CODEMAP、移植境界説明書。
+
+検証: Godot 4.7.2の実エンジンで13テスト・比較365サブテスト成功。衝突優先度/6マップの移動/イベント/前方マス/通行/軸経路のPython契約一致、追加JSON読込、path traversal拒否、正本と専用セーブの不変、押下/リピート/解放、実Sceneの移動/step/interact接続を検証。Godotインポートと正規データでのheadless起動成功。最終全テスト701件・サブテスト400件成功（64.37秒）。最新UPD checkerは既存Python対象にエラー0・警告13・注意100で成功。Godot未指定の環境では実エンジンテストは理由付きskipで、成功とは扱わない。
+
+境界: source checkout専用の初回試作。戦闘/野生敵/AI/固定モブ徘徊や会話/暗号取得/牧場/セーブ/エディタ/ランチャー/exportは未移植。未対応イベントは明示し副作用なし。Python runtime・保存形式・正規data/assetsは変更なし。実ウィンドウでの視認性/手動操作と配布物は未検証。#111や移行EpicをGitHubで完了扱いにしない。
+
+最終補助検証: 新規テストのstyle lintと構文、全体の致命的lint、構造規約、生成repo map/class diagram、E2Eカタログ参照、diff --check成功。既存Python性能ガードは標準試行数で13項目すべて成功。これはGodotのFPS/描画性能の実測ではない。
+
 # 69. 起動・フィールド・イベント・save/load E2E（Issue #202）
 
 本番PlayerランチャーへSDLのクリック/文字入力を送り、新規作成・名前選択・別名保存を通した後、選択先の本番Store/runtimeを組み直すsource journeyを追加。街の開始地点/初期個体、異なるマップのセーブ復元と別セーブ不変、コピー後の独立性、移動方向の実画像/描画位置、5種類の衝突、長押し、正規の街端/新緑の森の岩とactivation差、まるの会話デッキ/正面停止、湧き場の仮想キー・取得・誤答/取消・保存/reloadを検証。カタログP01～P12に実テストを登録し、対応済み12・未対応25・意図的除外1となった。
