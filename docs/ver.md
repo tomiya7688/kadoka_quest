@@ -16,6 +16,15 @@
 
 ```
 
+# 67. E2E期待動作カタログ（Issue #200）
+
+Player/Developerの主要37シナリオにGiven・When・Then・保存/reload・対応E2E・未対応理由を記録。現時点のE2E対応済みは0、未対応37、装飾のみの除外1。既存unit/integration/smokeをE2Eと混同しない。カタログの形式とtests/e2e内の定義参照を静的チェックし、対応テストの削除時は実効missingとして失敗させる。新機能時の更新手順と専用領域を追加。harness本体は #201。
+
+追加: `docs/testing/E2E_EXPECTATIONS.md`、`tests/e2e/README.md`、`tools/e2e-catalog/script/check_e2e_catalog.py`、`tests/test_e2e_catalog.py`。
+更新: WORKFLOW、CODEMAP、tools/README。
+
+検証: 関連21件、最終全テスト661件・サブテスト35件成功。テスト削除/定義欠落/不正参照/不完全な期待値を検証。Python 3.10のCLIとPowerShellの日本語パイプ出力、構造規約・生成資料・lint成功。共有pytest一時領域でのWinError 5は専用領域へ切替後に解消。チェック成功はE2E実行成功を意味しない。ゲームruntime・保存形式の変更なし。
+
 # 66. 個体管理のAI学習傾向表示（Issue #184）
 
 牧場と開発用個体管理の個体情報に5項目の傾向ゲージと日本語段階を追加。未学習・データ不足を空ゲージで明示し、個体切替・AIリセット・F5/フォーカス復帰での再読込に追従する。両画面は同じパネルを使用し、スキルや状況の生テーブルを表示しない。

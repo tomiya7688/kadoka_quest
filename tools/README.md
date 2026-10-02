@@ -26,6 +26,7 @@ embedded. Search only the relevant file section after reading CODEMAP. Tests:
 - `upd-commander`: installs the latest Python checker from `tomiya7688/upd-commander-base-design` `main`. UPD errors are blocking; warnings and attentions remain visible migration guidance. Checker-side improvements belong in the upstream repository rather than a Kadoka-only fork.
 - `performance-check`: Kadoka Quest-owned runtime microbenchmarks. It starts with command routing overhead and should gain focused benchmarks as new performance-sensitive paths appear. It is development/CI-only and is never imported by Player runtime.
 - `task-workflow`: small task-selection helpers. `script/start_task.bat` returns only the oldest open Issue at the highest available priority (`critical -> high -> medium -> low`) instead of scanning the full Issue list.
+- `e2e-catalog`: validates `docs/testing/E2E_EXPECTATIONS.md` and statically checks covered source E2E node references. Run `python tools/e2e-catalog/script/check_e2e_catalog.py`; use `--missing` for unresolved scenarios. It never imports game/test modules or runs tests. This is a catalog check, not proof that E2E passed. Tests: `python -m pytest tests/test_e2e_catalog.py`.
 
 UPD checker setup and execution:
 

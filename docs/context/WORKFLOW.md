@@ -43,3 +43,14 @@ Use these compact outputs to narrow the working set. Do not load their complete 
 5. Report any materially relevant area not checked as **Unverified** instead of continuing open-ended exploration merely for reassurance.
 
 Keep development utilities under `tools/<tool-name>/script/`; tool-specific config/support files stay inside that tool directory.
+
+## User-visible expectations
+
+For user-observable changes, update the matching Given / When / Then row in
+`docs/testing/E2E_EXPECTATIONS.md`, including persistence/reload expectations.
+Use its stable scenario ID in the corresponding source E2E. If the harness or
+scenario is not implemented, leave the row `missing` with a reason; do not relabel
+unit/integration/smoke evidence as E2E coverage. Run
+`python tools/e2e-catalog/script/check_e2e_catalog.py` after catalog/test-reference
+changes. It checks references only; executing E2E is separate. CI/quality command
+integration remains Issue #205 after the harness and scenarios exist.
