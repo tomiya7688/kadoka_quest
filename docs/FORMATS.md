@@ -339,6 +339,14 @@ savedata/<save_name>/
 
 プレイヤー座標は引き続き整数のマス座標として保存します。滑らかな歩行に使う小数の表示座標や補間途中の状態はセーブせず、読込時は保存されたマスへ即時同期します。詳細は [移動補間機能説明書.md](移動補間機能説明書.md) を参照してください。
 
+### GDScriptフィールド試作の保存
+
+GDScript版は同じフォルダ形式を、既定で `user://savedata/<save_name>/` に保存します。Python版の正規セーブへ自動接続せず、`active.json` も使用しません。保存rootは `KADOKA_GDSCRIPT_SAVE_ROOT` の絶対パス、名前は `KADOKA_GDSCRIPT_SAVE_NAME`（既定 `default`）で指定します。GUIでのスロット管理は未移植です。
+
+`state.json.player.direction` は任意で `front / back / left / right` のいずれかです。GDScript版は保存時に追加し、旧形式で欠けていれば `front` として復元します。Python側の位置読込は追加キーを無視できます。既存stateの位置以外のキーは引き継ぎ、個体/AI/items/parties/metaの既存ファイルは変更しません。stateのJSON再出力はbyte単位の維持ではなく、Godotの数値精度外のMOD値の完全往復は保証しません。
+
+初回保存は空のmonsters/partiesと初期itemsを用意しますが、初期個体生成やAI利用は未移植です。位置のない/不正な既存state、未対応schema、復元できないマップや座標は上書きしません。既存セーブの移行はコピーで試してください。操作・失敗時の扱いは [GDScript README](../gdscript/README.md) を参照してください。
+
 ## Import
 
 - `imports/acquire/`: 再走査で所有フォルダへコピー。同じ個体IDは上書きしない

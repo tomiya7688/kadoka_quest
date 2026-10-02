@@ -49,7 +49,8 @@
 
 | タスク種別 | 主実装 | 関連テスト | 仕様 | 境界 |
 | --- | --- | --- | --- | --- |
-| Godot起動 / JSON / マス移動 | `gdscript/{project.godot,engine/field_engine.gd,data/content_repository.gd,application/field_session.gd,application/field_application.gd,ui/}` | `tests/test_gdscript_bootstrap.py`, `gdscript/tests/{run_contracts,run_scene_smoke}.gd` | `gdscript/README.md`, `docs/移植境界機能説明書.md` | 正規data/assetsをread-only利用。純粋なFieldEngine入出力をPythonと比較。保存・戦闘・AI・exportは未移植。 |
+| Godot起動 / JSON / マス移動 | `gdscript/{project.godot,engine/field_engine.gd,data/content_repository.gd,application/field_session.gd,application/field_application.gd,ui/}` | `tests/test_gdscript_bootstrap.py`, `gdscript/tests/{run_contracts,run_scene_smoke}.gd` | `gdscript/README.md`, `docs/移植境界機能説明書.md` | 正規data/assetsをread-only利用。純粋なFieldEngine入出力をPythonと比較。戦闘・AI・exportは未移植。 |
+| Godotフィールド保存 / 復元 | `gdscript/{engine/field_save_contract.gd,data/json_documents.gd,data/field_save_store.gd,application/field_persistence.gd}` | `tests/test_gdscript_save.py`, `gdscript/tests/run_save_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | F5/F9/起動復元。user://の名前付きフォルダ。既存個体/AI/items不変、破損・不正位置・置換失敗は上書き拒否。フィールドのみで、個体/AI利用・スロットUIは未移植。 |
 
 ## 更新ルール
 

@@ -16,6 +16,21 @@
 
 ```
 
+# 71. GDScript版のフィールド保存／復元
+
+F5で現在マップ・マス座標・向きを保存、F9で読込、別プロセスでの次回起動時にも復元するようにした。既定保存先はPython版と分離した `user://savedata/default/`。環境変数で名前付きフォルダを選択でき、初回F5でstate/meta/itemsと空のmonsters/partiesを作る。既存stateの位置以外のキーを引き継ぎ、個体/AI/items/プリセット/metaの既存ファイルは書き換えない。向きのない旧形式は正面で復元する。
+
+純粋なfield_save_contract、JSON/名前付き保存I/O、field_persistence調停、Sceneの適用を分離。破損JSON、未対応schema、欠損マップや壁/看板/NPC上などの不正位置は読込・上書きを拒否。変更digestを確認し、同一フォルダの固有一時ファイルから置換する。置換失敗時に以前のstateを削除するfallbackは使わない。
+
+追加: `gdscript/{engine/field_save_contract.gd,data/json_documents.gd,data/field_save_store.gd,application/field_persistence.gd,tests/run_save_probe.gd}` と各uid、`tests/test_gdscript_save.py`。
+更新: field_application、bootstrapテストの保存先隔離、README、FORMATS、CODEMAP、移植境界説明書。
+
+検証: Godot 4.7.2の実Scene/入力・別プロセス再起動、Python StateStoreでの生成形式読込、2つの名前付きセーブの独立、未知キーと所有ファイルの不変、破損/不正位置10条件、名前19条件、digest不一致、Windows実ファイルロックでの保存失敗と固有一時ファイル回収を検証。関連22テスト・394サブテスト成功。旧形式のF9復元方向の確認も加えた最終全テスト710件・429サブテスト成功（67.56秒、Python 3.14.7、pygame-ce 2.5.8）。初回全体実行はbasetempの親未作成で133 setupエラー、専用親フォルダ作成後の再実行で解消した。
+
+Godotインポート/正規コンテンツでのheadless起動、style/致命的lint、構文、構造規約、生成資料、E2Eカタログ参照、diff --check成功。最新UPD checker（ae4636155b5e）は既存Python対象にエラー0・警告13・注意100。既存Python性能ガードは標準試行数で13項目すべて成功。カタログはPython版の12 covered/25 missing/1除外のまま、Godot全機能の移植済みとは扱わない。
+
+境界: フィールド保存のみ。初期個体生成、AI/戦闘/牧場、セーブ選択UI/コピー/インポートは未移植。既存Pythonセーブの正本は使わずコピーで試す。複数ファイルの初回作成一括原子性、複数writer排他、数値精度外のMOD値の無損失往復は保証しない。正規data/assetsとPython runtimeは変更なし。実ウィンドウ手動操作・配布export・Godot FPSは未検証。GitHub push/PR/Issue完了操作は行わない。
+
 # 70. GDScript版のフィールド移植を開始
 
 ユーザーのGDScript開始指示により、独立した `gdscript/project.godot` とフィールドSceneを追加。はじまりの街から正規の6マップ/ブロック/キャラクターPNGをread-onlyで読み、長押しマス移動、地形/固定モブ/看板/岩の衝突、step/interactの移動ポイント、メッセージを接続した。engineの純粋な空間判定、data読込、sessionの一時状態、applicationの調停、uiの入力/描画を分離。#111のpython/unity開始用READMEも追加したが、既存Pythonファイルの大移動は行わない。

@@ -33,7 +33,10 @@ def run_godot(script: str, content_root: Path, fixture: Path | None = None) -> d
     command = [str(GODOT), "--headless", "--path", str(ROOT / "gdscript"), "--script", script]
     if fixture is not None:
         command.extend(["--", str(fixture)])
-    environment = dict(os.environ, KADOKA_CONTENT_ROOT=str(content_root), KADOKA_SAVE_DIR=str(content_root / "savedata"))
+    environment = dict(
+        os.environ, KADOKA_CONTENT_ROOT=str(content_root), KADOKA_SAVE_DIR=str(content_root / "savedata"),
+        KADOKA_GDSCRIPT_SAVE_ROOT=str(content_root / "savedata"), KADOKA_GDSCRIPT_SAVE_NAME="default",
+    )
     completed = subprocess.run(
         command, cwd=content_root, env=environment, text=True, encoding="utf-8",
         errors="replace", capture_output=True, timeout=30, check=False,
