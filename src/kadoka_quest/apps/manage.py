@@ -16,6 +16,7 @@ from kadoka_quest.data.parties import PartyStore
 from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.data.state import StateStore
 from kadoka_quest.paths import ASSET_ROOT, IMPORT_ROOT
+from kadoka_quest.ui.ai_tendency_panel import draw_ai_tendencies
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, ScrollBar, draw_status_bar, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
@@ -44,6 +45,7 @@ class Manager:
         self.refresh()
 
     def refresh(self) -> None:
+        self.skills = self.repository.get_skills()
         current_id = self.records[self.selected].monster_id if self.records and self.selected < len(self.records) else None
         self.records = self.monsters.list_records()
         if current_id:
@@ -57,6 +59,11 @@ class Manager:
     @property
     def selected_record(self):
         return self.records[self.selected] if self.records else None
+
+    @property
+    def selected_tendencies(self) -> list[dict]:
+        record = self.selected_record
+        return AiInspector.summarize_tendencies(record.ai, self.skills) if record else []
 
     def create(self) -> None:
         species_id = self.species_ids[self.selected_species]
@@ -195,7 +202,7 @@ def main() -> None:
         Button(pygame.Rect(650, 300, 165, 42), "パーティから外す", manager.remove_party),
         Button(pygame.Rect(830, 300, 165, 42), "行動指針を切替", manager.cycle_tactic),
         Button(pygame.Rect(1010, 300, 165, 42), "AIをリセット", manager.reset_ai),
-        Button(pygame.Rect(470, 575, 220, 45), "選択した種族を作成", manager.create),
+        Button(pygame.Rect(950, 540, 220, 35), "選択した種族を作成", manager.create),
     ]
     party_buttons = [
         Button(pygame.Rect(835, 555, 105, 42), "新規保存", manager.save_preset),
@@ -209,7 +216,7 @@ def main() -> None:
         Button(pygame.Rect(860, 285, 300, 48), "インポート個体と模擬戦", manager.simulation),
     ]
     owned_scroll = ScrollBar(pygame.Rect(412, 120, 9, 540), "vertical", total=len(manager.records), page=10)
-    species_scroll = ScrollBar(pygame.Rect(1192, 440, 9, 92), "vertical", total=len(manager.species_ids), page=8)
+    species_scroll = ScrollBar(pygame.Rect(1192, 580, 9, 92), "vertical", total=len(manager.species_ids), page=8)
     preset_scroll = ScrollBar(pygame.Rect(1177, 150, 9, 376), "vertical", total=len(manager.presets), page=8)
 
     while running:
@@ -218,6 +225,8 @@ def main() -> None:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+            if event.type == pygame.WINDOWFOCUSGAINED or (event.type == pygame.KEYDOWN and event.key == pygame.K_F5):
+                manager.refresh()
 
             owned_scroll.configure(len(manager.records), 10)
             species_scroll.configure(len(manager.species_ids), 8)
@@ -246,9 +255,9 @@ def main() -> None:
                     index = manager.offset + row
                     if 0 <= index < len(manager.records):
                         manager.selected = index
-                if manager.tab == "individual" and 470 <= event.pos[0] < 1180 and 440 <= event.pos[1] < 532:
+                if manager.tab == "individual" and 470 <= event.pos[0] < 1180 and 580 <= event.pos[1] < 672:
                     column = (event.pos[0] - 470) // 177
-                    row = (event.pos[1] - 440) // 46
+                    row = (event.pos[1] - 580) // 46
                     index = manager.species_offset + row * 4 + column
                     if 0 <= index < len(manager.species_ids):
                         manager.selected_species = index
@@ -268,7 +277,7 @@ def main() -> None:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 if mouse_x < 435:
                     manager.offset = max(0, min(owned_scroll.maximum, manager.offset - event.y))
-                elif manager.tab == "individual" and mouse_y >= 420:
+                elif manager.tab == "individual" and mouse_y >= 560:
                     manager.species_offset = max(0, min(species_scroll.maximum, manager.species_offset - event.y * 4))
                 elif manager.tab == "party" and mouse_x >= 820:
                     manager.preset_offset = max(0, min(preset_scroll.maximum, manager.preset_offset - event.y))
@@ -311,26 +320,15 @@ def main() -> None:
                 draw_text(screen, f"{record.species_id}  /  Lv{record.level}  /  +{len(record.plus_choices)}", (610, 180), 16, MUTED)
                 draw_text(screen, f"装備: {record.equipment_id or 'なし'}  /  行動指針: {record.ai.get('tactic', 'balanced')}", (610, 207), 15, MUTED)
                 draw_text(screen, f"AI戦闘 {record.ai.get('battles', 0)}回・行動 {record.ai.get('actions', 0)}回", (610, 232), 15, MUTED)
-                insight = AiInspector.summarize(record.ai)
-                draw_text(screen, f"AIプロファイル: {insight['profile']}", (610, 257), 15, MUTED)
-                action_text = " / ".join(
-                    f"{row['skill_id']} {row['score']:+.2f}"
-                    for row in insight["action_preferences"]
-                ) or "まだ学習したスキル傾向はありません"
-                context_text = " / ".join(
-                    f"{row['tag']}→{row['skill_id']} {row['score']:+.2f}"
-                    for row in insight["context_preferences"]
-                ) or "まだ状況別の学習はありません"
-                draw_text(screen, "学習したスキル: " + action_text, (610, 282), 14, GOOD)
-                draw_text(screen, "状況別の傾向: " + context_text, (610, 306), 14, GOOD)
                 stats = calculate_stats(manager.repository, record)
                 for index, key in enumerate(("hp", "mp", "attack", "defense", "speed", "magic")):
                     x = 895 + (index % 2) * 135
                     y = 142 + (index // 2) * 43
                     pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(x, y, 125, 35), border_radius=5)
                     draw_text(screen, f"{STAT_LABELS[key]} {stats[key]}", (x + 8, y + 8), 14)
-            draw_text(screen, "新しい個体を作成", (470, 395), 19, MUTED, True)
-            draw_text(screen, "種族を選択して作成します。名前やAIは個体フォルダへ保存されます。", (680, 399), 14, MUTED)
+            draw_ai_tendencies(screen, manager.selected_tendencies, pygame.Rect(470, 350, 705, 180), columns=3)
+            draw_text(screen, "新しい個体を作成", (470, 545), 19, MUTED, True)
+            draw_text(screen, "種族を選択して作成", (680, 549), 14, MUTED)
             for row in range(2):
                 for column in range(4):
                     index = manager.species_offset + row * 4 + column
@@ -338,7 +336,7 @@ def main() -> None:
                         continue
                     species_id = manager.species_ids[index]
                     bundle = manager.repository.get_species(species_id)
-                    rect = pygame.Rect(470 + column * 177, 440 + row * 46, 165, 39)
+                    rect = pygame.Rect(470 + column * 177, 580 + row * 46, 165, 39)
                     pygame.draw.rect(screen, GOOD if index == manager.selected_species else PANEL_ALT, rect, border_radius=6)
                     image = portrait(species_id, 30)
                     if image:

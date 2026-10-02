@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pygame
 
+from kadoka_quest.apps.ai_inspector import AiInspector
 from kadoka_quest.core.ai import TACTICS
 from kadoka_quest.core.monster import calculate_stats
 from kadoka_quest.data.jsonio import read_json
@@ -13,6 +14,7 @@ from kadoka_quest.data.parties import PartyStore
 from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.data.state import StateStore
 from kadoka_quest.paths import ASSET_ROOT
+from kadoka_quest.ui.ai_tendency_panel import draw_ai_tendencies
 from kadoka_quest.ui.common import (
     ACCENT,
     BG,
@@ -62,6 +64,7 @@ class RanchManager:
         self.refresh()
 
     def refresh(self) -> None:
+        self.skills = self.repository.get_skills()
         current_id = self.records[self.selected].monster_id if self.records and self.selected < len(self.records) else None
         self.records = self.monsters.list_records()
         if current_id:
@@ -75,6 +78,11 @@ class RanchManager:
     @property
     def selected_record(self):
         return self.records[self.selected] if self.records else None
+
+    @property
+    def selected_tendencies(self) -> list[dict]:
+        record = self.selected_record
+        return AiInspector.summarize_tendencies(record.ai, self.skills) if record else []
 
     def add_party(self) -> None:
         record = self.selected_record
@@ -194,6 +202,8 @@ def main() -> None:
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+            if event.type == pygame.WINDOWFOCUSGAINED or (event.type == pygame.KEYDOWN and event.key == pygame.K_F5):
+                manager.refresh()
 
             owned_scroll.configure(len(manager.records), 9)
             preset_scroll.configure(len(manager.presets), 8)
@@ -273,13 +283,7 @@ def main() -> None:
                     draw_text(screen, f"{STAT_LABELS[key]} {stats[key]}", (x + 8, y + 8), 14)
             for button in individual_buttons:
                 button.draw(screen, pygame.mouse.get_pos())
-            draw_wrapped(
-                screen,
-                "新しい個体の作成、外部個体の取り込み、模擬戦などの開発用機能は牧場にはありません。",
-                pygame.Rect(455, 400, 650, 55),
-                16,
-                MUTED,
-            )
+            draw_ai_tendencies(screen, manager.selected_tendencies, pygame.Rect(455, 380, 650, 240))
         else:
             draw_text(screen, "現在パーティ（4枠）", (455, 108), 24, ACCENT, True)
             party = StateStore.party_records(manager.state, manager.monsters)

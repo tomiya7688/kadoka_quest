@@ -475,6 +475,7 @@ class Manager
   __init__(self) -> None
   refresh(self) -> None
   selected_record(self)
+  selected_tendencies(self) -> list[dict]
   create(self) -> None
   add_party(self) -> None
   remove_party(self) -> None
@@ -653,6 +654,7 @@ class RanchManager
   __init__(self) -> None
   refresh(self) -> None
   selected_record(self)
+  selected_tendencies(self) -> list[dict]
   add_party(self) -> None
   remove_party(self) -> None
   reset_ai(self) -> None
@@ -1083,6 +1085,12 @@ is_frozen() -> bool
 runtime_root() -> Path
 active_save_name() -> str
 ensure_runtime_directories() -> None
+```
+
+## kadoka_quest/ui/ai_tendency_panel.py
+
+```text
+draw_ai_tendencies(surface: pygame.Surface, rows: list[dict[str, Any]], rect: pygame.Rect, columns: int=...) -> None
 ```
 
 ## kadoka_quest/ui/battle_renderer.py
