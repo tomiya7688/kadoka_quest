@@ -7,6 +7,8 @@ const Keyboard = preload("res://ui/field_input.gd")
 const Images = preload("res://ui/content_images.gd")
 const FieldView = preload("res://ui/field_view.gd")
 const RosterView = preload("res://ui/roster_view.gd")
+const PartyView = preload("res://ui/party_view.gd")
+const PartyEditor = preload("res://application/party_editor.gd")
 const SaveStore = preload("res://data/field_save_store.gd")
 const Persistence = preload("res://application/field_persistence.gd")
 
@@ -22,6 +24,8 @@ var persistence: RefCounted
 var profile_name := "default"
 var owned_snapshot: Dictionary = {"records": {}, "party": [], "warnings": []}
 var roster_view: PanelContainer
+var party_view: PanelContainer
+var party_editor: RefCounted
 
 
 func _ready() -> void:
@@ -62,6 +66,15 @@ func _create_ui() -> void:
 	roster_view.size = Vector2(864, 396)
 	add_child(roster_view)
 	roster_view.hide()
+	roster_view.edit_requested.connect(begin_party_edit)
+	party_view = PartyView.new()
+	party_view.position = Vector2(48, 64)
+	party_view.size = Vector2(864, 396)
+	add_child(party_view)
+	party_view.hide()
+	party_view.assigned.connect(assign_party_member)
+	party_view.save_requested.connect(save_party_edit)
+	party_view.cancel_requested.connect(cancel_party_edit)
 
 
 func open_map(map_id: String, entry: Dictionary = {}) -> bool:
@@ -119,7 +132,7 @@ func load_saved_position(silent_missing: bool = false) -> bool:
 
 
 func _process(delta: float) -> void:
-	if session.world.is_empty() or roster_view.visible:
+	if session.world.is_empty() or roster_view.visible or party_view.visible:
 		return
 	var step: Vector2i = keyboard.movement_step(delta)
 	if step != Vector2i.ZERO:
@@ -130,6 +143,8 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if party_view.visible or roster_view.visible:
+		return
 	if not event is InputEventKey or not event.pressed or event.echo or session.world.is_empty():
 		return
 	match event.physical_keycode:
@@ -147,6 +162,27 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or persistence == null:
 		return
+	if party_view.visible:
+		if event.echo:
+			return
+		match event.physical_keycode:
+			KEY_ESCAPE, KEY_F6:
+				cancel_party_edit()
+			KEY_DELETE:
+				party_view.clear_selected()
+			KEY_S:
+				if not event.ctrl_pressed:
+					return
+				save_party_edit()
+			KEY_F5, KEY_F9:
+				pass  # A draft can only be saved explicitly through the editor.
+			KEY_HOME, KEY_END, KEY_PAGEUP, KEY_PAGEDOWN:
+				if not party_view.handle_navigation(event.physical_keycode):
+					return
+			_:
+				return  # Native ItemList/Button/Tab keyboard handling.
+		get_viewport().set_input_as_handled()
+		return
 	if event.physical_keycode == KEY_F6 and not event.echo:
 		if roster_view.visible:
 			roster_view.hide()
@@ -157,11 +193,53 @@ func _input(event: InputEvent) -> void:
 	elif roster_view.visible:
 		if event.physical_keycode == KEY_ESCAPE:
 			roster_view.hide()
+		elif event.physical_keycode == KEY_E and not event.echo:
+			begin_party_edit()
 		else:
 			roster_view.handle_key(event.physical_keycode)
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+func begin_party_edit() -> void:
+	var editor = PartyEditor.new(persistence)
+	var result: Dictionary = editor.begin()
+	if not result["ok"]:
+		status.text = "編成を開けません: " + str(result["message"])
+		return
+	party_editor = editor
+	roster_view.hide()
+	party_view.show()
+	party_view.show_snapshot(party_editor.snapshot(), true)
+
+
+func assign_party_member(slot: int, id: Variant) -> void:
+	var result: Dictionary = party_editor.assign(slot, id)
+	party_view.show_snapshot(party_editor.snapshot())
+	party_view.message.text = "未保存の編成です。保存またはキャンセルを選んでください。" if result["ok"] else str(result["message"])
+
+
+func save_party_edit() -> void:
+	var result: Dictionary = party_editor.save()
+	if not result["ok"]:
+		party_view.message.text = "編成保存失敗: " + str(result["message"])
+		return
+	status.text = result["message"]
+	_finish_party_edit()
+
+
+func cancel_party_edit() -> void:
+	status.text = "編成をキャンセルしました。保存データは変更していません。"
+	_finish_party_edit()
+
+
+func _finish_party_edit() -> void:
+	party_view.hide()
+	party_editor = null
+	_refresh_owned_snapshot()
+	roster_view.show_snapshot(owned_snapshot)
+	roster_view.show()
 
 
 func _refresh_owned_snapshot() -> void:

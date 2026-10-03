@@ -1,5 +1,8 @@
 extends PanelContainer
-## Read-only scrollable projection. No repository, creation, saving or AI decisions.
+## Read-only projection and explicit editor entry. No persistence or AI decisions.
+
+signal edit_requested
+var edit_button: Button
 
 var heading: Label
 var scrolling: ScrollContainer
@@ -19,9 +22,14 @@ func _ready() -> void:
 	heading.add_theme_font_size_override("font_size", 20)
 	column.add_child(heading)
 	var help := Label.new()
-	help.text = "確認専用　↑↓ / PageUp・Down / Home・End：スクロール　F6 / Esc：閉じる"
+	help.text = "↑↓ / PageUp・Down / Home・End：スクロール　E：編成　F6 / Esc：閉じる"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(help)
+	edit_button = Button.new()
+	edit_button.text = "パーティを編成する（E）"
+	edit_button.focus_mode = Control.FOCUS_NONE
+	edit_button.pressed.connect(func(): edit_requested.emit())
+	column.add_child(edit_button)
 	scrolling = ScrollContainer.new()
 	scrolling.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scrolling.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

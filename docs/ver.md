@@ -16,6 +16,27 @@
 
 ```
 
+# 73. GDScript版の現在パーティ編成
+
+F6一覧のE/ボタンから4枠の編成画面を開けるようにした。左右のリストで枠と所有個体を選択して追加/解除/配置変更し、Ctrl+S/保存ボタンで反映、Esc/F6/キャンセルで下書きを破棄する。↑↓、Home/End、PageUp/Down、Tab/Shift+Tabとクリックに対応。編成中はフィールド移動/調べる/F5/F9を停止する。
+
+下書きと選択規則は純粋なparty_selection、所有と再検証はparty_editor、入力/表示/signalはparty_view、Sceneは接続に分離。保存はstate.current_partyだけを4枠のID/null配列へ更新し、保存済み位置と他のキー、既存個体/AI/items/meta/プリセットを保持する。未保存の現在地はそのまま残し、次のF5でも新しい編成を保持する。空編成を許可し、個体自体は削除しない。
+
+同一個体の重複を拒否し、保存直前に個体フォルダを再走査する。欠損/重複の既存枠は明示解除で修正、不正型/5枠以上は切り捨てず開く時点で拒否。外部state更新・破損JSON・Windows置換ロック等は上書きを拒否して下書きを残す。変更なし/キャンセルはstateのbyteも維持する。digest確認は並行writerの完全な排他ではない。
+
+追加: `gdscript/{engine/party_selection.gd,application/party_editor.gd,ui/party_view.gd,tests/run_party_probe.gd}` と各uid、`tests/test_gdscript_party.py`。
+更新: field_application、roster_view、README、GDScript README、FORMATS、CODEMAP、移植境界説明書。
+
+検証: 最終の編成テスト25件・17サブテスト成功（43.01秒、実Godot 4.7.2）。キーのみ/クリックの追加・解除・保存、Tab巡回とEnter保存、取消のbyte保持、Python形式/日本語ID/未知キー、再起動、123体一覧、外部更新/破損、選択個体のAI消失、未選択の不正個体、欠損/重複の明示解除、不正型/枠溢れ、新規保存前の拒否、Windowsの実ファイル置換ロック、位置保存との連携を専用コピーで検証した。
+
+初回キー検証ではHome/Endのリスト選択が変わらず9件失敗した。UI側へHome/End/PageUp/Downの選択移動を追加して解消した。最終レビューでは省略可能なLvがUIで直接参照されていたため、契約と同じLv1の既定値へ合わせ、旧形式の回帰テストを追加した。実セーブ/正規コンテンツ/Python runtimeは変更しない。
+
+最終全テスト751件・524サブテスト成功（159.13秒、Python 3.14.7、pygame-ce 2.5.8、Godot 4.7.2）。Godot 4領域は旧形式の追加前に62件・489サブテスト成功し、追加後は編成25件の集中テストと全体で再検証した。最初の個体一覧の集中テストでは既存pytest cacheの警告が出たため、その後の検証ではcacheproviderを無効化し、明示的な一時ディレクトリを使った。
+
+最新UPD checker（ae4636155b5e）は既存Python対象にエラー0・警告13・注意100。標準性能ガード（20000回/7sample/2000warmup）13項目成功: 生成24枠約3.84ms、移動24体約0.61ms。これらはGDScriptの走査速度/FPSや全責務の検証ではない。Godot import/正規コンテンツのheadless起動、lint/構文、構造規約、生成資料、E2E参照、diff --check成功。最初のlint globはPowerShellから未展開で渡されたため、rgで列挙した引数へ修正した。
+
+境界: プリセット、牧場導線、個体編集、戦闘/AI、外部取得/模擬戦は引き続き未移植。実ウィンドウの視認性/手動操作、配布exportは未検証。Python E2Eカタログの全面移植や#204の完了とは扱わない。今回分だけのローカルコミットとし、GitHub push/PR/Issue完了操作は行わない。
+
 # 72. GDScript版の初期個体／所有一覧
 
 新規stateの初回F5で主人公・ボールスライムのLv1個体と初期パーティを生成。既存と同じmonster.json/ai.jsonを使い、初期AI辞書はPython default_aiと一致する。個体の2ファイルは固有の一時フォルダへ書いてから公開し、state保存が後で失敗した場合は再試行で公開済み初期個体を再利用する。既存stateへ仲間を勝手に追加しない。

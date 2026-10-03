@@ -19,7 +19,8 @@ Godot 4.7.2で検証。`project.godot` をGodotからインポートし、F6で�
 - 固定モブは初期地点に静止表示（まだAI移植前）。移動/調べるイベント自体に色や印は付けない。
 - ゲーム内のF5で現在のマップ・マス座標・向きを保存、F9で読込。次回起動時にも選択中のセーブから復元。
 - 新規セーブの初回F5で主人公・ボールスライムの個体と初期パーティを生成。
-- F6で現在パーティと保有個体の読み取り専用一覧。縦スクロールとキーボード操作に対応。
+- F6で現在パーティと保有個体の一覧。縦スクロールとキーボード操作に対応。
+- 一覧からE/ボタンで現在パーティ4枠を編成。追加/解除/順番変更と明示的な保存・キャンセル。
 
 ## フィールドのセーブ／ロード
 
@@ -47,9 +48,19 @@ $env:KADOKA_GDSCRIPT_SAVE_NAME = '冒険1'  # 未指定ならdefault
 
 一覧を開く際に個体フォルダを再走査しますが、これは所有フォルダ内の読込で、外部importsからの獲得ではありません。欠損/破損・不正ID・未対応schema・未知種族の個体は注意を表示して除外し、元ファイルは削除/修復しません。パーティの欠損IDは「読込不可」、nullは空き枠として表示し、保存された順番やIDは書き換えません。個体IDには日本語も使用でき、フォルダ名とJSON内のIDの一致が必要です。
 
+## 現在パーティの編成
+
+F6の一覧でEまたは「パーティを編成する」を押します。新規プロフィールは先にフィールドのF5で保存してください。左の4枠から編集する枠、右の保有個体から仲間を選び、「選択個体を入れる」または右リストのEnterで入れ替えます。「選択枠から外す」またはDeleteでnullの空き枠にできます。順番を変えるときは元の枠を空けてから別枠へ入れます。同じ個体の複数枠への追加は拒否します。主人公の固定枠は設けず、空編成もPythonの現行管理と同様に許可します。
+
+↑↓・Home/End・PageUp/Downで選択、Tab/Shift+Tabでリストとボタンを巡回できます。保有数に合わせて右リストがスクロールします。Ctrl+S/「編成を保存」で反映、Esc/F6/「キャンセル」で下書きを破棄して一覧へ戻ります。閉じる操作で自動保存しません。編成中は移動・調べる・F5/F9を止めます。
+
+保存は既存 `state.json.current_party` だけを4枠のID/null配列へ変更します。保存済み位置・フラグ・未知キーと個体/AI/items/meta/プリセットを保持します。未保存のフィールド位置はそのままで、編成保存は位置保存の代わりにはなりません。変更なしで保存した場合はstateも書き換えません。
+
+保存前に所有フォルダを再走査し、選択個体を再検証します。欠損/重複の既存IDは自動修復せず、該当枠を明示的に外してください。5枠以上や不正な枠型は編成を開く時点で拒否し、切り捨てません。編集中のstate外部更新、破損JSON、置換ロック等の保存失敗では上書きせず下書きを残します。外部更新時はキャンセルして編成を開き直してください。digest確認は並行writerの完全な排他ではありません。
+
 ## 未移植
 
-戦闘、野生敵、AI判断/学習/リセット、固定モブの徘徊/会話、暗号/仲間取得、牧場、個体編集/編成変更、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
+戦闘、野生敵、AI判断/学習/リセット、固定モブの徘徊/会話、暗号/仲間取得、牧場への導線、個体編集/パーティプリセット、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
 
 現在はsource checkout専用です。正本がGodotのresource root外にあるため、export済みexeでこのまま共有コンテンツを読めるとは主張しません。配布時のコンテンツ配置とexportは別段階で検証します。
 
@@ -59,7 +70,7 @@ $env:KADOKA_GDSCRIPT_SAVE_NAME = '冒険1'  # 未指定ならdefault
 
 ```powershell
 $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
-& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py tests/test_gdscript_party.py -q
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -72,4 +83,6 @@ Python版FieldEngineとの同一入力/出力比較、正本の読込一致、�
 
 Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)、[JSON](https://docs.godotengine.org/en/stable/classes/class_json.html)、[Image](https://docs.godotengine.org/en/stable/classes/class_image.html)。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。
-一覧UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)。
+一覧/編成UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)、[ItemList](https://docs.godotengine.org/en/stable/classes/class_itemlist.html)。
+
+編成の責務: `engine/party_selection.gd` は純粋な4枠の下書き/選択規則、`application/party_editor.gd` は下書き所有と保存前再検証、`ui/party_view.gd` は入力/表示と操作signal。Sceneは結果表示と接続、既存Dataはstateのatomic更新を担当します。
