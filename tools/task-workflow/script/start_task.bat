@@ -18,12 +18,8 @@ set "ISSUE_PRIORITY="
 
 for %%P in ("priority: p0" "priority: p1" "priority: p2" "priority: p3" "priority: p4") do (
   if not defined ISSUE_NUMBER (
-    for /f "usebackq delims=" %%I in (`gh issue list --state open --label "%%~P" --limit 20 --search "sort:created-asc" --json number --jq ".[].number" 2^>nul`) do (
-      if not defined ISSUE_NUMBER (
-        set "ISSUE_NUMBER=%%I"
-        set "ISSUE_PRIORITY=%%~P"
-      )
-    )
+    if "%%~P"=="priority: p1" call :find_issue "%%~P" "gdscript"
+    if not defined ISSUE_NUMBER call :find_issue "%%~P" ""
   )
 )
 
@@ -36,3 +32,14 @@ echo Priority: !ISSUE_PRIORITY!
 echo.
 call gh issue view !ISSUE_NUMBER!
 exit /b %ERRORLEVEL%
+
+:find_issue
+set "TASK_LABEL_FILTER="
+if not "%~2"=="" set "TASK_LABEL_FILTER=--label %~2"
+for /f "usebackq delims=" %%I in (`gh issue list --state open --label "%~1" !TASK_LABEL_FILTER! --limit 20 --search "sort:created-asc" --json number --jq ".[].number" 2^>nul`) do (
+  if not defined ISSUE_NUMBER (
+    set "ISSUE_NUMBER=%%I"
+    set "ISSUE_PRIORITY=%~1"
+  )
+)
+exit /b 0

@@ -219,9 +219,7 @@ func _input(event: InputEvent) -> void:
 		if roster_view.visible:
 			roster_view.hide()
 		else:
-			_refresh_owned_snapshot()
-			roster_view.show_snapshot(owned_snapshot)
-			roster_view.show()
+			open_owned_roster()
 	elif roster_view.visible:
 		if event.physical_keycode == KEY_ESCAPE:
 			roster_view.hide()
@@ -232,6 +230,12 @@ func _input(event: InputEvent) -> void:
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+func open_owned_roster() -> void:
+	_refresh_owned_snapshot()
+	roster_view.show_snapshot(owned_snapshot)
+	roster_view.show()
 
 
 func begin_party_edit() -> void:
@@ -331,6 +335,9 @@ func _handle_event(event: Dictionary) -> void:
 			status.text = str(event.get("text", "マップを移動しました。"))
 	elif event.get("type") == "message":
 		status.text = str(event.get("text", ""))
+	elif event.get("type") == "open_manager":
+		open_owned_roster()
+		status.text = "牧場台帳を開きました。Eで編成、編成のPでプリセット。個体編集・AI変更は未移植です。"
 	else:
 		status.text = "[未移植: %s] %s" % [event.get("type", "event"), event.get("text", "")]
 

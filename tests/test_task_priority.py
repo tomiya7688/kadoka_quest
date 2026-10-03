@@ -12,6 +12,11 @@ SCRIPT = ROOT / "tools/task-workflow/script/start_task.bat"
 PRIORITIES = [f"priority: p{index}" for index in range(5)]
 
 
+def requests_through(index):
+    return [entry for offset, label in enumerate(PRIORITIES) if offset <= index
+            for entry in ([label + "+gdscript", label] if offset == 1 else [label])]
+
+
 class PriorityPolicyTests(unittest.TestCase):
     def test_batch_checks_all_five_priorities_in_order(self):
         source = SCRIPT.read_text(encoding="utf-8")
@@ -35,13 +40,16 @@ class PriorityPolicyTests(unittest.TestCase):
 
 @unittest.skipUnless(os.name == "nt", "Real cmd.exe batch selection is Windows-specific")
 class WindowsPrioritySelectionTests(unittest.TestCase):
-    def run_batch(self, available, *, auth_status=0, view_status=0):
+    def run_batch(self, available, *, migration=(), auth_status=0, view_status=0):
         with tempfile.TemporaryDirectory(prefix="kadoka-priority-") as directory:
             private = Path(directory)
             trace = private / "requests.txt"
             stub = ["@echo off", 'if "%1 %2"=="auth status" exit /b ' + str(auth_status),
                     'if "%1 %2"=="issue view" (', '  echo VIEW:%~3', f"  exit /b {view_status}", ")",
-                    'if not "%1 %2"=="issue list" exit /b 9', 'echo %~6>>"%KADOKA_TEST_PRIORITY_TRACE%"']
+                    'if not "%1 %2"=="issue list" exit /b 9', 'if "%~8"=="gdscript" (',
+                    '  echo %~6+gdscript>>"%KADOKA_TEST_PRIORITY_TRACE%"']
+            stub.extend(f"  echo {number}" for number in migration)
+            stub.extend(["  exit /b 0", ")", 'echo %~6>>"%KADOKA_TEST_PRIORITY_TRACE%"'])
             for label, numbers in available.items():
                 stub.append(f'if "%~6"=="{label}" (')
                 stub.extend(f"  echo {number}" for number in numbers)
@@ -64,12 +72,12 @@ class WindowsPrioritySelectionTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertIn(f"Priority: {label}", result.stdout)
                 self.assertIn(f"VIEW:{900 - index}", result.stdout)
-                self.assertEqual(requests, PRIORITIES[:index + 1])
+                self.assertEqual(requests, requests_through(index))
 
     def test_no_prioritized_issue_returns_two(self):
         result, requests = self.run_batch({})
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertEqual(requests, PRIORITIES)
+        self.assertEqual(requests, requests_through(4))
         self.assertNotIn("VIEW:", result.stdout)
 
     def test_auth_failure_stops_before_issue_queries(self):
@@ -81,14 +89,27 @@ class WindowsPrioritySelectionTests(unittest.TestCase):
     def test_view_failure_preserves_cli_exit_status(self):
         result, requests = self.run_batch({PRIORITIES[1]: [42]}, view_status=5)
         self.assertEqual(result.returncode, 5, result.stdout + result.stderr)
-        self.assertEqual(requests, PRIORITIES[:2])
+        self.assertEqual(requests, requests_through(1))
 
     def test_only_first_number_from_sorted_result_is_selected(self):
         result, requests = self.run_batch({PRIORITIES[2]: [91, 42]})
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("VIEW:91", result.stdout)
         self.assertNotIn("VIEW:42", result.stdout)
-        self.assertEqual(requests, PRIORITIES[:3])
+        self.assertEqual(requests, requests_through(2))
+
+    def test_gdscript_p1_is_preferred_over_older_general_p1(self):
+        result, requests = self.run_batch({PRIORITIES[1]: [22]}, migration=[218])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("VIEW:218", result.stdout)
+        self.assertNotIn("VIEW:22", result.stdout)
+        self.assertEqual(requests, [PRIORITIES[0], PRIORITIES[1] + "+gdscript"])
+
+    def test_emergency_p0_still_precedes_gdscript_p1(self):
+        result, requests = self.run_batch({PRIORITIES[0]: [999], PRIORITIES[1]: [22]}, migration=[218])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("VIEW:999", result.stdout)
+        self.assertEqual(requests, [PRIORITIES[0]])
 
 
 if __name__ == "__main__":

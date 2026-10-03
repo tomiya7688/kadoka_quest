@@ -22,6 +22,7 @@ Godot 4.7.2で検証。`project.godot` をGodotからインポートし、F6で�
 - F6で現在パーティと保有個体の一覧。縦スクロールとキーボード操作に対応。
 - 一覧からE/ボタンで現在パーティ4枠を編成。追加/解除/順番変更と明示的な保存・キャンセル。
 - 編成のP/ボタンからパーティプリセットを新規保存・一覧選択・下書きへ読込。枠数は無制限。
+- はじまりの街→牧場の台帳から、同じ一覧/編成/プリセット画面へ進む。
 
 ## フィールドのセーブ／ロード
 
@@ -42,6 +43,8 @@ $env:KADOKA_GDSCRIPT_SAVE_NAME = '冒険1'  # 未指定ならdefault
 個体の2ファイルは固有の一時フォルダに書いてから公開します。state保存が後で失敗しても、次の初回保存は公開済みの主人公/ボールスライムを再利用し、同種の初期仲間を重複生成しません。初回保存前の既存個体に破損があれば生成を拒否し、修復や削除を自動実行しません。並行する複数writerの排他はまだ保証しません。
 
 ## 個体・パーティの確認
+
+街の西側の牧場入口をEnter/Space/Eで調べて入り、奥の台帳（14,5）の正面から同じキーで調べます。既存の一覧が開き、E/ボタンで編成、編成のP/ボタンでプリセットへ進めます。台帳はblockingのため通り抜けません。Esc/F6で一覧を閉じると同じ牧場の位置・向きへ戻ります。画面を開くだけでは個体/AI/保存JSONを変更せず、個体編集・AI変更はまだできません。
 
 ゲーム内のF6で一覧を開き、F6またはEscで閉じます。↑↓、PageUp/Down、Home/Endと縦スクロールバー・ホイールで移動できます。開いている間は主人公の移動、調べる、F5/F9を止めます。
 
@@ -74,7 +77,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 
 ## 未移植
 
-戦闘、野生敵、AI判断/学習/リセット、固定モブの徘徊/会話、暗号/仲間取得、牧場への導線、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
+戦闘、野生敵、AI判断/学習/リセット、固定モブの徘徊/会話、暗号/仲間取得、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
 
 現在はsource checkout専用です。正本がGodotのresource root外にあるため、export済みexeでこのまま共有コンテンツを読めるとは主張しません。配布時のコンテンツ配置とexportは別段階で検証します。
 
@@ -84,7 +87,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 
 ```powershell
 $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
-& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py tests/test_gdscript_party.py tests/test_gdscript_presets.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py tests/test_gdscript_party.py tests/test_gdscript_presets.py tests/test_gdscript_ranch.py -q
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -94,6 +97,7 @@ $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 Python版FieldEngineとの同一入力/出力比較、正本の読込一致、実Sceneの入力・移動ポイント・F5/F9と別プロセス再起動、旧形式・名前付きセーブの互換、保存失敗時の不変性をheadlessで検証します。テストは実セーブを使わず一時コピーに保存します。Windowsでは実ファイルの置換ロックも検証します。Godotの指定がない環境では実エンジンテストは理由付きskipになります。skipは移植成功ではありません。
 
 関連: #10/#111、[移植境界](../docs/移植境界機能説明書.md)。次の段階では個体・戦闘などを、既存の期待動作カタログと比較しながら移植します。今回のテストをPython版のE2Eカタログ全項目の移植済み証拠とは扱いません。
+[P1の移行実装単位](../docs/ワークフロー/GDScript移行実装単位.md)を依存順で進めます。#218の牧場テストは正規の街入口/台帳イベント→実Sceneのキー→編成/プリセット→明示保存/取消・再起動を専用コピーで検証します。Python版の管理子プロセスや実ウィンドウ操作の証拠ではありません。
 
 Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)、[JSON](https://docs.godotengine.org/en/stable/classes/class_json.html)、[Image](https://docs.godotengine.org/en/stable/classes/class_image.html)。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。

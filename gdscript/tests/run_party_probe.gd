@@ -27,6 +27,11 @@ func _run() -> void:
 		match action["kind"]:
 			"key":
 				await _press(scene, action)
+			"key_down", "key_up":
+				await _set_key(action, action["kind"] == "key_down")
+				scene._process(0.01 if action["kind"] == "key_down" else 0.0)
+			"tick":
+				scene._process(float(action.get("seconds", 0.14)))
 			"click":
 				await _click(scene, action)
 			"text":
@@ -78,17 +83,19 @@ func _run() -> void:
 
 
 func _press(scene: Control, action: Dictionary) -> void:
+	await _set_key(action, true)
+	scene._process(0.01)
+	await _set_key(action, false)
+	scene._process(0.0)  # A real release frame clears held movement without advancing time.
+
+
+func _set_key(action: Dictionary, pressed: bool) -> void:
 	var event := InputEventKey.new()
 	event.physical_keycode = KEYS[action["key"]]
 	event.keycode = event.physical_keycode
 	event.ctrl_pressed = action.get("ctrl", false)
 	event.shift_pressed = action.get("shift", false)
-	event.pressed = true
-	Input.parse_input_event(event.duplicate())
-	Input.flush_buffered_events()
-	await process_frame
-	scene._process(0.01)
-	event.pressed = false
+	event.pressed = pressed
 	Input.parse_input_event(event.duplicate())
 	Input.flush_buffered_events()
 	await process_frame
@@ -156,6 +163,8 @@ func _snapshot(scene: Control) -> Dictionary:
 	for index in scene.party_view.slots.item_count:
 		texts.append(scene.party_view.slots.get_item_text(index))
 	return {"editing": scene.party_view.visible, "roster_visible": scene.roster_view.visible,
+		"map_id": scene.session.world.get("id", ""), "direction": scene.session.direction,
+		"roster_text": scene.roster_view.body.text, "owned_ids": Array(scene.owned_snapshot.get("records", {}).keys()),
 		"preset_visible": scene.preset_view.visible, "preset_message": scene.preset_view.message.text,
 		"preset_name": scene.preset_view.name_input.text, "preset_count": scene.preset_view.listing.item_count,
 		"preset_selection": Array(scene.preset_view.listing.get_selected_items()),

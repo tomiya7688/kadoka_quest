@@ -2,6 +2,7 @@
 
 Read this file and the assigned Issue first. Do not read the whole repository up front.
 Use [Issue priority policy](docs/ワークフロー/Issue優先度方針.md): P0 is emergency-only; normal priority starts at P1.
+During active migration, prefer gdscript P1 units; read [migration units](docs/ワークフロー/GDScript移行実装単位.md) to skip locally implemented work.
 
 ## Context Budget
 
