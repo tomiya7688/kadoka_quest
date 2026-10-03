@@ -7,7 +7,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-gh auth status >nul 2>&1
+call gh auth status >nul 2>&1
 if errorlevel 1 (
   echo [ERROR] GitHub CLI is not authenticated. Run: gh auth login
   exit /b 1
@@ -16,7 +16,7 @@ if errorlevel 1 (
 set "ISSUE_NUMBER="
 set "ISSUE_PRIORITY="
 
-for %%P in ("priority: critical" "priority: high" "priority: medium" "priority: low") do (
+for %%P in ("priority: p0" "priority: p1" "priority: p2" "priority: p3" "priority: p4") do (
   if not defined ISSUE_NUMBER (
     for /f "usebackq delims=" %%I in (`gh issue list --state open --label "%%~P" --limit 20 --search "sort:created-asc" --json number --jq ".[].number" 2^>nul`) do (
       if not defined ISSUE_NUMBER (
@@ -34,5 +34,5 @@ if not defined ISSUE_NUMBER (
 
 echo Priority: !ISSUE_PRIORITY!
 echo.
-gh issue view !ISSUE_NUMBER!
+call gh issue view !ISSUE_NUMBER!
 exit /b %ERRORLEVEL%

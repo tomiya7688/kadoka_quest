@@ -1,6 +1,7 @@
 # Kadoka Quest agent router
 
 Read this file and the assigned Issue first. Do not read the whole repository up front.
+Use [Issue priority policy](docs/ワークフロー/Issue優先度方針.md): P0 is emergency-only; normal priority starts at P1.
 
 ## Context Budget
 

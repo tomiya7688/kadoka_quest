@@ -5,6 +5,7 @@ Use the smallest context that can complete the assigned task. Accuracy comes bef
 ## Start and stop conditions
 
 1. If no Issue is explicitly assigned, run `tools/task-workflow/script/start_task.bat` and use the single Issue it returns.
+   Follow the [Issue priority policy](../ワークフロー/Issue優先度方針.md): P0 is reserved for emergencies; normal work uses P1 through P4. Check dependencies before implementing the returned candidate.
 2. Extract the task's **Goal / Required / Acceptance** from the Issue before broad exploration.
 3. Run `python tools/remote-context/script/sync_remote_context.py` before implementation to fetch and summarize remote changes.
 4. Read the selected Issue and only its Read scope / related routing information.
