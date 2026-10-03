@@ -16,6 +16,27 @@
 
 ```
 
+# 74. GDScript版のパーティプリセット
+
+F6 → E → P/プリセットボタンから新規保存・一覧・下書きへの読込を追加。名前欄のEnterで追加保存、一覧のEnterで読込、F5で再走査、Esc/F6で下書きを保持して編成へ戻る。Tab/Shift+Tab、Home/End/Page、クリックと縦スクロールに対応し、フィールド操作を停止する。
+
+Python互換のschema/name/members形式で、同名は `_2` 等の別ファイルとして追加し、既存プリセットを上書き/削除しない。ファイル数に上限を設けず、日本語表示名と安全なASCIIファイル名を使う。読込は下書きだけを置換し、現在パーティの反映は編成画面の明示保存。新規プリセットを明示保存した後に編成をキャンセルしても、そのプリセットは残す。
+
+純粋な形式/欠損枠契約、ファイルI/O、検証/下書き適用、入力/表示/signalを分離。保存/読込時に所有個体を再走査し、消失/読込不可IDはnullと注意へ変換、重複した既知ID・不正型・5枠以上・破損JSON/未対応schemaは適用せず元の下書きを保持する。プリセット操作だけではstate/個体/AI/items/metaを変更しない。
+
+追加: `gdscript/{engine/party_preset_contract.gd,data/party_preset_store.gd,application/party_presets.gd,ui/party_preset_view.gd}` と各uid、`tests/test_gdscript_presets.py`。
+更新: field_application、party_editor、party_selection、party_view、run_party_probe、README、GDScript README、FORMATS、CODEMAP、移植境界説明書。
+
+検証: 最終の新規23テスト・28サブテスト成功（29.42秒、実Godot 4.7.2）。キー/クリックの新規保存・選択読込・明示state保存、Unicode文字入力/名前編集/フォーカス、121ファイルのスクロール、同名追加とPython PartyStore互換、再起動、欠損枠、破損/外部変更、実Windows読込ロック、取消/失敗時の下書きと既存ファイルの不変を専用コピーで確認した。既存編成25テスト・17サブテストも成功。
+
+初回検証のWindows fixtureパスと一覧ソート後のクリック位置を修正した。一覧失敗時の初期フォーカスを補い、partiesがフォルダではなくファイルである場合のDirAccess例外を検出して、明示的な型/オープン失敗ガードへ修正した。既存ファイルを残したまま理由を表示する回帰テストも成功した。
+
+最終全テスト774件・552サブテスト成功（147.90秒、Python 3.14.7、pygame-ce 2.5.8、Godot 4.7.2）。Godot import/正規コンテンツのheadless起動、style/致命的lint・構文、構造規約、生成資料、E2E参照、diff --check成功。実セーブ・正規data/assets・Python runtimeは変更しない。
+
+最新UPD checker（ae4636155b5e）は既存Python対象にエラー0・警告13・注意100。標準性能ガード（20000回/7sample/2000warmup）13項目成功: 生成24枠約1.61ms、移動24体約0.53ms。これらはGDScriptの性能/全責務の証拠ではない。Python E2Eカタログは12 covered/25 missing/1除外のままで、全面移植や#204完了とは扱わない。
+
+境界: プリセット更新/削除、牧場導線、個体編集、戦闘/AI、外部取得/模擬戦は未移植。実IME/ウィンドウの視認性・手動操作、配布exportは未検証。並行writerの排他は未対応。今回分だけのローカルコミットとし、GitHub push/PR/Issue完了操作は行わない。
+
 # 73. GDScript版の現在パーティ編成
 
 F6一覧のE/ボタンから4枠の編成画面を開けるようにした。左右のリストで枠と所有個体を選択して追加/解除/配置変更し、Ctrl+S/保存ボタンで反映、Esc/F6/キャンセルで下書きを破棄する。↑↓、Home/End、PageUp/Down、Tab/Shift+Tabとクリックに対応。編成中はフィールド移動/調べる/F5/F9を停止する。

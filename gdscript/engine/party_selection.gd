@@ -46,3 +46,14 @@ func validate(records: Dictionary) -> Dictionary:
 
 func is_dirty() -> bool:
 	return members != original
+
+
+func replace_members(value: Array, records: Dictionary) -> Dictionary:
+	var candidate = get_script().new()
+	var valid: Dictionary = candidate.start(value)
+	if not valid["ok"]:
+		return valid
+	valid = candidate.validate(records)
+	if valid["ok"]:
+		members = candidate.members.duplicate(true)
+	return valid

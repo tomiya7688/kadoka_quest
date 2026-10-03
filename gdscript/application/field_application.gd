@@ -9,6 +9,8 @@ const FieldView = preload("res://ui/field_view.gd")
 const RosterView = preload("res://ui/roster_view.gd")
 const PartyView = preload("res://ui/party_view.gd")
 const PartyEditor = preload("res://application/party_editor.gd")
+const PresetService = preload("res://application/party_presets.gd")
+const PresetView = preload("res://ui/party_preset_view.gd")
 const SaveStore = preload("res://data/field_save_store.gd")
 const Persistence = preload("res://application/field_persistence.gd")
 
@@ -26,6 +28,8 @@ var owned_snapshot: Dictionary = {"records": {}, "party": [], "warnings": []}
 var roster_view: PanelContainer
 var party_view: PanelContainer
 var party_editor: RefCounted
+var presets: RefCounted
+var preset_view: PanelContainer
 
 
 func _ready() -> void:
@@ -75,6 +79,16 @@ func _create_ui() -> void:
 	party_view.assigned.connect(assign_party_member)
 	party_view.save_requested.connect(save_party_edit)
 	party_view.cancel_requested.connect(cancel_party_edit)
+	party_view.presets_requested.connect(open_party_presets)
+	preset_view = PresetView.new()
+	preset_view.position = Vector2(48, 64)
+	preset_view.size = Vector2(864, 396)
+	add_child(preset_view)
+	preset_view.hide()
+	preset_view.save_requested.connect(save_party_preset)
+	preset_view.load_requested.connect(load_party_preset)
+	preset_view.refresh_requested.connect(refresh_party_presets)
+	preset_view.back_requested.connect(close_party_presets)
 
 
 func open_map(map_id: String, entry: Dictionary = {}) -> bool:
@@ -103,6 +117,7 @@ func _setup_persistence() -> void:
 	if not configured_name.is_empty():
 		profile_name = configured_name
 	persistence = Persistence.new(repository, SaveStore.new(save_root), blocks, profile_name)
+	presets = PresetService.new(persistence)
 	load_saved_position(true)
 	_refresh_view()
 
@@ -132,7 +147,7 @@ func load_saved_position(silent_missing: bool = false) -> bool:
 
 
 func _process(delta: float) -> void:
-	if session.world.is_empty() or roster_view.visible or party_view.visible:
+	if session.world.is_empty() or roster_view.visible or party_view.visible or preset_view.visible:
 		return
 	var step: Vector2i = keyboard.movement_step(delta)
 	if step != Vector2i.ZERO:
@@ -143,7 +158,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if party_view.visible or roster_view.visible:
+	if party_view.visible or roster_view.visible or preset_view.visible:
 		return
 	if not event is InputEventKey or not event.pressed or event.echo or session.world.is_empty():
 		return
@@ -162,6 +177,21 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or persistence == null:
 		return
+	if preset_view.visible:
+		match event.physical_keycode:
+			KEY_ESCAPE, KEY_F6:
+				close_party_presets()
+			KEY_F5:
+				refresh_party_presets()
+			KEY_F9:
+				pass  # Never field-load while a party draft is open.
+			KEY_HOME, KEY_END, KEY_PAGEUP, KEY_PAGEDOWN:
+				if not preset_view.handle_navigation(event.physical_keycode):
+					return
+			_:
+				return  # Native list/LineEdit/Button keyboard handling, including text.
+		get_viewport().set_input_as_handled()
+		return
 	if party_view.visible:
 		if event.echo:
 			return
@@ -170,6 +200,8 @@ func _input(event: InputEvent) -> void:
 				cancel_party_edit()
 			KEY_DELETE:
 				party_view.clear_selected()
+			KEY_P:
+				open_party_presets()
 			KEY_S:
 				if not event.ctrl_pressed:
 					return
@@ -240,6 +272,44 @@ func _finish_party_edit() -> void:
 	_refresh_owned_snapshot()
 	roster_view.show_snapshot(owned_snapshot)
 	roster_view.show()
+
+
+func open_party_presets() -> void:
+	party_view.hide()
+	preset_view.show()
+	preset_view.name_input.clear()
+	preset_view.show_catalog(presets.read_catalog(), true)
+
+
+func refresh_party_presets() -> void:
+	preset_view.show_catalog(presets.read_catalog())
+
+
+func save_party_preset(name: String) -> void:
+	var result: Dictionary = presets.save_new(name, party_editor.member_ids())
+	if not result["ok"]:
+		preset_view.message.text = "追加保存失敗: " + str(result["message"])
+		return
+	preset_view.show_catalog(presets.read_catalog(), false, result["filename"])
+	preset_view.message.text = "追加保存しました: " + result["filename"] + "（現在パーティは未保存）"
+
+
+func load_party_preset(filename: String) -> void:
+	var result: Dictionary = presets.load_draft(filename, party_editor)
+	if not result["ok"]:
+		preset_view.message.text = "読込失敗: " + str(result["message"])
+		return
+	close_party_presets()
+	party_view.show_snapshot(party_editor.snapshot(), true)
+	party_view.message.text = "プリセットを下書きへ読み込みました。保存またはキャンセルを選んでください。"
+	if not result["warnings"].is_empty():
+		party_view.message.text = "注意%d件: %s（下書きのみ変更）" % [result["warnings"].size(), str(result["warnings"][0])]
+
+
+func close_party_presets() -> void:
+	preset_view.hide()
+	party_view.show()
+	party_view.slots.grab_focus.call_deferred()
 
 
 func _refresh_owned_snapshot() -> void:

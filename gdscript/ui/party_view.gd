@@ -4,6 +4,8 @@ extends PanelContainer
 signal assigned(slot: int, id: Variant)
 signal save_requested
 signal cancel_requested
+signal presets_requested
+var presets_button: Button
 var slots: ItemList
 var owned: ItemList
 var heading: Label
@@ -20,9 +22,17 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", style)
 	var column := VBoxContainer.new()
 	add_child(column)
+	var title_row := HBoxContainer.new()
+	column.add_child(title_row)
 	heading = Label.new()
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_theme_font_size_override("font_size", 20)
-	column.add_child(heading)
+	title_row.add_child(heading)
+	presets_button = Button.new()
+	presets_button.text = "プリセット（P）"
+	presets_button.focus_mode = Control.FOCUS_NONE
+	presets_button.pressed.connect(func(): presets_requested.emit())
+	title_row.add_child(presets_button)
 	var help := Label.new()
 	help.text = "左で枠、右で個体を選択 → 入れる / Enter　Delete：外す\n↑↓・Home/End・PageUp/Down：選択　Tab：フォーカス移動　Ctrl+S：保存　Esc / F6：キャンセル"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

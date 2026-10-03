@@ -21,6 +21,7 @@ Godot 4.7.2で検証。`project.godot` をGodotからインポートし、F6で�
 - 新規セーブの初回F5で主人公・ボールスライムの個体と初期パーティを生成。
 - F6で現在パーティと保有個体の一覧。縦スクロールとキーボード操作に対応。
 - 一覧からE/ボタンで現在パーティ4枠を編成。追加/解除/順番変更と明示的な保存・キャンセル。
+- 編成のP/ボタンからパーティプリセットを新規保存・一覧選択・下書きへ読込。枠数は無制限。
 
 ## フィールドのセーブ／ロード
 
@@ -58,9 +59,22 @@ F6の一覧でEまたは「パーティを編成する」を押します。新�
 
 保存前に所有フォルダを再走査し、選択個体を再検証します。欠損/重複の既存IDは自動修復せず、該当枠を明示的に外してください。5枠以上や不正な枠型は編成を開く時点で拒否し、切り捨てません。編集中のstate外部更新、破損JSON、置換ロック等の保存失敗では上書きせず下書きを残します。外部更新時はキャンセルして編成を開き直してください。digest確認は並行writerの完全な排他ではありません。
 
+## パーティプリセット
+
+F6 → E → P、または編成画面の「プリセット」ボタンで開きます。保存済みプロフィールの `parties/*.json` を一覧表示し、枠数にプログラム上の上限を設けません。↑↓・Home/End・PageUp/Downと縦スクロールに対応し、Tab/Shift+Tabで一覧・名前・各ボタンを巡回します。名前欄のHome/End/Deleteは通常の文字編集です。
+
+- 新規保存: 名前を入力して名前欄のEnter、または「下書きを追加保存」。現在の下書き4枠を新しいプリセットへ保存します。現在パーティのstateは変更しません。
+- 読込: 一覧から選びEnter、または「選択を下書きへ読込」。編成画面へ戻り、下書きだけを置き換えます。Ctrl+S/「編成を保存」で現在パーティへ反映するか、Esc/キャンセルで破棄してください。
+- 再走査: F5/「一覧更新」。ここでのF5はフィールド保存ではありません。F9や移動・調べるは停止します。
+- 戻る: Esc/F6/「編成へ戻る」。下書きを保持して編成へ戻ります。明示的に追加保存したプリセットは、その後に現在パーティの下書きをキャンセルしても残ります。
+
+JSONはPython版と同じ `schema_version / name / members` です。表示名は日本語を使えます。新規ファイル名はASCIIの安全な名前（80文字まで、空なら `party`、Windows予約名は `party_` を付加）から作り、同名なら `_2`、`_3` と追加します。既存プリセットの上書き・削除は行いません。
+
+読込時はファイルと所有個体を再走査し、消失/読込不可の個体はnullの空き枠として注意を表示します。既存のプリセット自体は修正しません。既知個体の重複、不正な枠型、5枠以上、壊れたJSONや未対応schemaは下書きへ適用せず、変更前の下書きを残します。無効な一覧ファイルは除外し、注意件数と先頭の理由を表示します。追加保存も個体を再検証し、失敗時に以前のファイルを削除しません。並行する複数writerの排他はまだ保証しません。
+
 ## 未移植
 
-戦闘、野生敵、AI判断/学習/リセット、固定モブの徘徊/会話、暗号/仲間取得、牧場への導線、個体編集/パーティプリセット、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
+戦闘、野生敵、AI判断/学習/リセット、固定モブの徘徊/会話、暗号/仲間取得、牧場への導線、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
 
 現在はsource checkout専用です。正本がGodotのresource root外にあるため、export済みexeでこのまま共有コンテンツを読めるとは主張しません。配布時のコンテンツ配置とexportは別段階で検証します。
 
@@ -70,7 +84,7 @@ F6の一覧でEまたは「パーティを編成する」を押します。新�
 
 ```powershell
 $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
-& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py tests/test_gdscript_party.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py tests/test_gdscript_party.py tests/test_gdscript_presets.py -q
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -86,3 +100,5 @@ Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stab
 一覧/編成UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)、[ItemList](https://docs.godotengine.org/en/stable/classes/class_itemlist.html)。
 
 編成の責務: `engine/party_selection.gd` は純粋な4枠の下書き/選択規則、`application/party_editor.gd` は下書き所有と保存前再検証、`ui/party_view.gd` は入力/表示と操作signal。Sceneは結果表示と接続、既存Dataはstateのatomic更新を担当します。
+
+プリセットの責務: `engine/party_preset_contract.gd` は純粋な形式/名前/欠損枠の契約、`data/party_preset_store.gd` は一覧/読込/新規JSONのI/O、`application/party_presets.gd` は所有個体の検証と下書きへの適用、`ui/party_preset_view.gd` は入力/フォーカス/表示とsignalです。実Sceneのキー/クリック・再起動、Python PartyStoreでの読込、121ファイルの一覧、不正/外部変更/実Windows読込ロック、state/個体/AI/元プリセットの不変性を専用コピーで検証します。日本語テキストのイベント入力は検証しますが、実IME・ウィンドウの視認性・exportの証拠ではありません。

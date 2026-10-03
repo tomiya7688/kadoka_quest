@@ -36,6 +36,18 @@ func assign(slot: int, id: Variant) -> Dictionary:
 	return selection.assign(slot, id, records)
 
 
+func member_ids() -> Array:
+	return selection.members.duplicate(true)
+
+
+func replace_members(members: Array, available: Dictionary, notes: Array) -> Dictionary:
+	var result: Dictionary = selection.replace_members(members, available)
+	if result["ok"]:
+		records = available
+		warnings = notes
+	return result
+
+
 func snapshot() -> Dictionary:
 	return {"records": records, "party": RecordContract.party_entries({"current_party": selection.members}, records),
 		"dirty": selection.is_dirty(), "warnings": warnings}
