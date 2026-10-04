@@ -16,6 +16,23 @@
 
 ```
 
+# 78. GDScript版の＋選択・装備制限/能力値補正
+
+P1移行単位#220を実装した。種族plus/全装備のread-only読込をData、選択済み効果/装備whitelist/偶数丸めを純粋engine、基礎結果との結合と走査内キャッシュをapplication、補正前後と理由の表示を一覧へ分離した。既存の基礎値/習得スキル契約は補正前のまま残し、個体別modifiersへ補正後の能力値と＋追加スキルを返す。1走査内の同種族plusと装備I/Oを共用し、次の走査では外部変更を反映する。
+
+選択IDの重複を除き、効果はJSON定義順で適用する。加算/各倍率の偶数丸め→許可装備の各能力倍率→最後に最低1制限というPython正本と同じ計算順。装備許可は装備側allowed_species_idsだけで、未記載/空は不可、重複装備定義は最後を採用する。計算時に選択数/段階/前提条件を修復しない点も現Python版と同じ。未知選択/装備IDや装備不可は理由付き無補正で元IDを残す。破損/不正型/非有限値/精度超過は補正結果を失敗にし、基礎値を完成値へ代用しない。有効な個体/AI/partyは保持し、計算結果を原本へ保存しない。
+
+追加: `gdscript/engine/{monster_modifiers,stat_numbers}.gd`、`gdscript/application/monster_reconstruction.gd`、`gdscript/tests/run_modifiers_probe.gd` と各uid、`tests/test_gdscript_modifiers.py`。
+更新: monster_progressionの数値変換共通化、content_repository、owned_roster、roster_view、基礎値テストのUI文言、README、GDScript README、FORMATS、CODEMAP、移植境界説明書、移行単位表。
+
+検証（2026-10-04）: 新規20件を含む関連36件・2534サブテスト成功（37.55秒）。全8種族×3Lv×8選択パターン×7装備状態の1344比較、正負の丸め/近接境界、宣言順と逐次丸め、重複/未知ID/前提不一致/選択数超過、追加スキルの重複除去、許可/拒否/未記載whitelistと重複装備、旧形式/数値文字列/不正定義、入力と返却値の独立、走査内I/O共用と再走査の外部更新を実GodotとPythonで確認した。同種同Lvで異なる個体補正、補正前後の一覧と失敗理由、個体/AI/party/種族/装備原本のbyte保持を専用コピーで検証した。
+
+初回の全テストはサンドボックスの一時ディレクトリへのアクセス拒否で検証できず、専用一時領域への権限付き再実行で解消した。新規テストの未使用import/行折返しもlintに合わせて修正した。最終全テスト828件・3099サブテスト成功（245.65秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2）。Godot import/正規コンテンツのheadless起動、Python210ファイルの致命的lint、新規テストstyle/構文、構造規約、REPO_MAP/追跡対象application図、E2E参照、diff --checkも成功。仕様更新後のルーター/優先度/補正31件・1450サブテストも実Godot指定で成功（24.62秒、skipなし）。
+
+最新版UPD（ae4636155b5e）を再取得し、Python対象のエラー0・警告13・注意100を確認した。標準Python性能ガード（20000回/7sample/2000warmup）は13項目成功: 生成24枠約1.24ms、移動24体約0.45ms。いずれもGodotのFPS/全責務の証拠ではない。GodotのI/O回数と原本不変性は専用probeで別に確認した。Python E2Eカタログは12 covered/25 missing/1除外のままで、全機能移植や#204完了とは扱わない。
+
+境界: ＋の特性/耐性と装備のskill_modifiers/fixed_bonus_damage/resistance_steps等の戦闘効果、装備/＋編集UI、戦闘進行、AIは今回未移植。実ウィンドウの視認性/手動操作、IME、配布exportは未検証。実セーブ/正規JSON/画像/既存ユーザー作業を保持し、今回分だけをローカルコミットする。push/PR/Issue完了操作は行わない。次は#221の通常攻撃・防御・会心の数値契約。
+
 # 77. GDScript版のLv別基礎能力値・習得スキル
 
 P1移行単位#219を実装した。種族stats/skillsのread-only読込をData、明示Lv行の整数化と順序付きlearnsetの重複除去を純粋engine、個体Lvとの結合をapplication、結果表示を既存の所有一覧へ分離した。1回の一覧走査では同種族の読込を共用し、再走査では読み直す。個体/AI/パーティIDや種族原本を再出力せず、基礎値だけが不正でも個体自体を除外/修復せず警告する。

@@ -3,7 +3,7 @@ extends RefCounted
 
 const Contract = preload("res://engine/monster_record_contract.gd")
 const MonsterStore = preload("res://data/monster_store.gd")
-const Progression = preload("res://application/monster_progression.gd")
+const Progression = preload("res://application/monster_reconstruction.gd")
 const STARTERS := [{"species_id": "hero", "name": "主人公"}, {"species_id": "ball_slime", "name": "ボールスライム"}]
 var repository: RefCounted
 var saves: RefCounted
@@ -40,6 +40,8 @@ func read_snapshot(state: Dictionary) -> Dictionary:
 		records[entry["folder_id"]]["progression"] = rebuilt
 		if not rebuilt["ok"]:
 			warnings.append(entry["folder_id"] + ": 基礎能力値/習得スキルを読込できません: " + rebuilt["message"])
+		elif not rebuilt["modifiers"]["ok"]:
+			warnings.append(entry["folder_id"] + ": 能力値補正を読込できません: " + rebuilt["modifiers"]["message"])
 	if not state.get("current_party", []) is Array:
 		warnings.append("current_partyが配列ではありません")
 	return {"ok": true, "records": records, "warnings": warnings, "party": Contract.party_entries(state, records)}

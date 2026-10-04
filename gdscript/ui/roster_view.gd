@@ -83,13 +83,29 @@ static func _record_summary(record: Dictionary) -> String:
 static func _progression_summary(progression: Dictionary) -> String:
 	if not progression.get("ok", false):
 		return "  基礎能力値/習得スキル: 読込不可（完成能力値ではありません）"
-	var stats: Dictionary = progression["stats"]
+	var lines: PackedStringArray = ["  基礎能力値（＋/装備補正前）: " + _stats_text(progression["stats"]),
+		"  Lv習得スキルID（＋追加前）: " + _skill_text(progression["skill_ids"])]
+	var modified: Dictionary = progression.get("modifiers", {})
+	if not modified.get("ok", false):
+		lines.append("  補正後能力値: 読込不可（基礎値を補正後の代用にしません）: " + str(modified.get("message", "未構築")))
+	else:
+		lines.append("  補正後能力値（＋/装備）: " + _stats_text(modified["stats"]))
+		lines.append("  使用可能スキルID（Lv習得＋＋追加）: " + _skill_text(modified["skill_ids"]))
+		for note in modified.get("warnings", []):
+			lines.append("  注意: " + str(note))
+	return "\n".join(lines)
+
+
+static func _stats_text(stats: Dictionary) -> String:
+	return "HP %d / MP %d / 攻 %d / 防 %d / 速 %d / 魔 %d" % [
+		stats["hp"], stats["mp"], stats["attack"], stats["defense"], stats["speed"], stats["magic"]]
+
+
+static func _skill_text(ids: Array) -> String:
 	var skills: PackedStringArray = []
-	for id in progression["skill_ids"]:
+	for id in ids:
 		skills.append(str(id))
-	return "  基礎能力値（＋/装備補正は未反映）: HP %d / MP %d / 攻 %d / 防 %d / 速 %d / 魔 %d\n  Lv習得スキルID（＋追加は未反映）: %s" % [
-		stats["hp"], stats["mp"], stats["attack"], stats["defense"], stats["speed"], stats["magic"],
-		", ".join(skills) if not skills.is_empty() else "なし"]
+	return ", ".join(skills) if not skills.is_empty() else "なし"
 
 
 func handle_key(key: int) -> void:

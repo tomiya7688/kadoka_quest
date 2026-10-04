@@ -104,3 +104,21 @@ func load_progression(species_id: String) -> Dictionary:
 			return {"ok": false, "error": "invalid_content", "message": last_error}
 		bundle[name] = document
 	return bundle
+
+
+func load_plus(species_id: String) -> Dictionary:
+	if not valid_id(species_id):
+		last_error = "Invalid species id: " + species_id
+		return {"ok": false, "error": "invalid_species_id", "message": last_error}
+	return _content_result("data/species/" + species_id + "/plus.json")
+
+
+func load_equipment() -> Dictionary:
+	return _content_result("data/equipment/equipment.json")
+
+
+func _content_result(relative: String) -> Dictionary:
+	var document := _read_dictionary(relative)
+	if not last_error.is_empty():
+		return {"ok": false, "error": "invalid_content", "message": last_error}
+	return {"ok": true, "value": document}

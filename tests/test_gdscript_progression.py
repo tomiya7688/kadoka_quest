@@ -258,8 +258,8 @@ class GDScriptProgressionTests(unittest.TestCase):
             rebuilt = actual["owned"]["records"][identifier]["progression"]
             self.assertEqual(rebuilt["stats"], repository.stats_at(species, level))
             self.assertEqual(rebuilt["skill_ids"], repository.skill_ids_at(species, level))
-        self.assertIn("基礎能力値（＋/装備補正は未反映）", actual["text"])
-        self.assertIn("Lv習得スキルID（＋追加は未反映）", actual["text"])
+        self.assertIn("基礎能力値（＋/装備補正前）", actual["text"])
+        self.assertIn("Lv習得スキルID（＋追加前）", actual["text"])
         self.assertIn("HP 650 / MP 390", actual["text"])
         self.assertEqual(self.saved_files(), before)
         self.assertEqual(self.content_hashes(), content)

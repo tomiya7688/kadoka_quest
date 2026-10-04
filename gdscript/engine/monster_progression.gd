@@ -2,7 +2,7 @@ extends RefCounted
 ## Read explicit level rows and ordered learnsets. Plain values, no I/O or final modifiers.
 
 const STAT_KEYS := ["attack", "defense", "speed", "magic", "hp", "mp"]
-const MAX_EXACT_INTEGER := 9007199254740991
+const Numbers = preload("res://engine/stat_numbers.gd")
 
 
 static func rebuild(stats_document: Variant, skills_document: Variant, level: Variant = 1) -> Dictionary:
@@ -62,19 +62,7 @@ static func _supported_document(value: Variant) -> bool:
 
 
 static func _integer(value: Variant) -> Dictionary:
-	# Python int-compatible finite numbers / integer strings; reject bool and unsafe JSON magnitudes.
-	if value is String:
-		var text: String = value.strip_edges()
-		if not text.is_valid_int():
-			return {"ok": false}
-		if absf(text.to_float()) > MAX_EXACT_INTEGER:
-			return {"ok": false}
-		return {"ok": true, "value": text.to_int()}
-	if not (value is int or value is float) or not is_finite(float(value)):
-		return {"ok": false}
-	if absf(float(value)) > MAX_EXACT_INTEGER:
-		return {"ok": false}
-	return {"ok": true, "value": int(value)}
+	return Numbers.integer_value(value)
 
 
 static func _failure(message: String) -> Dictionary:
