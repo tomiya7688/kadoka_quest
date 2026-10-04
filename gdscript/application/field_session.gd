@@ -43,6 +43,14 @@ func move_player(dx: int, dy: int) -> Dictionary:
 	return result
 
 
+func interact() -> Dictionary:
+	var front: Array = rules.front_position(x, y, direction)
+	var npc: Dictionary = fixed_mobs.find_at(int(front[0]), int(front[1]))
+	if not npc.is_empty():
+		return fixed_mobs.talk(npc, direction)
+	return {"kind": "event", "event": interaction_event()}
+
+
 func interaction_event() -> Dictionary:
 	var front: Array = rules.front_position(x, y, direction)
 	for event: Dictionary in world.get("events", []):

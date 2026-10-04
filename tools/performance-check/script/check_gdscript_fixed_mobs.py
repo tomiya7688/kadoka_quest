@@ -1,4 +1,4 @@
-"""Developer-only actual Godot update+snapshot timing; never imported by Player."""
+"""Developer-only actual Godot fixed-mob movement/dialogue timing; never imported by Player."""
 from __future__ import annotations
 
 import argparse
@@ -25,7 +25,8 @@ def main() -> int:
         return 2
     world = {"id": "benchmark", "width": 32, "height": 32, "tiles": [["floor"] * 32 for _ in range(32)],
              "fixed_mobs": [{"id": str(i), "species_id": "slime", "x": i % 8 + 5, "y": i // 8 + 5,
-                             "ai": ("random", "chase")[i % 2], "move_interval_ms": 100} for i in range(24)]}
+                             "ai": ("random", "chase")[i % 2], "move_interval_ms": 100,
+                             "dialogue": ["a", "b", "c", "d", "e"]} for i in range(24)]}
     request = {"performance": True, "world": world, "blocks": {"floor": {"player_walkable": True}},
                "player": [20, 20], "iterations": max(1, args.iterations), "samples": max(1, args.samples),
                "warmup": max(0, args.warmup)}
@@ -46,7 +47,10 @@ def main() -> int:
                   f"{result['microseconds']:.2f}us <= 2000us "
                   f"[{int(result['iterations'])} iterations, {int(result['samples'])} samples, "
                   f"{int(result['warmup'])} warmup]")
-            return 0 if passed else 1
+            dialogue_passed = result["dialogue_microseconds"] <= 100
+            print(f"{'OK' if dialogue_passed else 'FAIL'} Godot fixed-mob-talk (5 cards, last of 24 actors) "
+                  f"{result['dialogue_microseconds']:.2f}us <= 100us")
+            return 0 if passed and dialogue_passed else 1
     print("FAIL: missing Godot result")
     return 1
 

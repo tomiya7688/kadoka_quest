@@ -173,7 +173,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_F9:
 			load_saved_position()
 		KEY_ENTER, KEY_SPACE, KEY_E:
-			_handle_event(session.interaction_event())
+			_handle_interaction(session.interact())
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -328,6 +328,19 @@ func _refresh_owned_snapshot() -> void:
 	else:
 		owned_snapshot = {"records": {}, "party": [], "warnings": [result["message"]],
 			"new_profile": result.get("error") == "not_found"}
+
+
+func _handle_interaction(result: Dictionary) -> void:
+	match result["kind"]:
+		"event":
+			_handle_event(result["event"])
+		"dialogue":
+			status.text = "%s『%s』" % [result["name"], result["line"]]
+			if result.get("unported_despawn", false):
+				status.text += " [未移植: 会話後の消滅]"
+		"dialogue_error":
+			status.text = "%s: %s" % [result["name"], result["message"]]
+	_refresh_view()  # Publish the NPC's turned direction, not a renderer-side effect.
 
 
 func _handle_event(event: Dictionary) -> void:

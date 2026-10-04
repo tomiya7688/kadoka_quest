@@ -2,12 +2,15 @@ extends RefCounted
 ## Clock/RNG-injected fixed-actor rules. No I/O, UI, scene, battle or acquisition effects.
 
 const Rules = preload("res://engine/field_engine.gd")
+const Dialogue = preload("res://engine/dialogue_deck.gd")
+const OPPOSITE = {"left": "right", "right": "left", "back": "front", "front": "back"}
 const STEPS = [[-1, 0], [1, 0], [0, -1], [0, 1]]
 var field: RefCounted
 var rng: RefCounted
 var npcs: Array = []
 var warnings: Array = []
 var movements: Array = []
+var dialogue_states: Array = []
 var movement_duration_ms: int
 
 
@@ -21,6 +24,7 @@ func reset(world: Dictionary, blocks: Dictionary, despawned: Array, player: Arra
 	field.set_world(world, blocks)
 	npcs.clear()
 	movements.clear()
+	dialogue_states.clear()
 	warnings.clear()
 	for source: Dictionary in world.get("fixed_mobs", []):
 		var key := "%s:%s" % [world.get("id", ""), source.get("id", "")]
@@ -44,8 +48,37 @@ func reset(world: Dictionary, blocks: Dictionary, despawned: Array, player: Arra
 		npc["move_count"] = 0
 		npc["next_move_tick"] = now + maxi(100, int(npc["move_interval_ms"]))
 		npcs.append(npc)
+		dialogue_states.append(Dialogue.create(source))
 		movements.append({"start": Vector2(npc["x"], npc["y"]),
 			"target": Vector2(npc["x"], npc["y"]), "time": now})
+
+
+func find_at(x: int, y: int) -> Dictionary:
+	for npc: Dictionary in npcs:
+		if int(npc["x"]) == x and int(npc["y"]) == y:
+			return npc
+	return {}
+
+
+func talk(npc: Dictionary, player_direction: String) -> Dictionary:
+	var index := npcs.find(npc)
+	if index < 0:
+		return {"kind": "dialogue_error", "name": "固定モブ", "error": "not_present",
+			"message": "対象の固定モブがいません。"}
+	npc["direction"] = OPPOSITE.get(player_direction, "front")
+	var result := {"kind": "dialogue", "npc_id": npc["id"], "name": npc["name"]}
+	var interaction := str(npc.get("interaction", "talk"))
+	if interaction != "talk":
+		result.merge({"kind": "dialogue_error", "error": "unported_interaction",
+			"message": "[未移植: %s] この固定モブの操作はまだ接続されていません。" % interaction}, true)
+		return result  # Do not consume dialogue/RNG or pretend to start a battle.
+	var line: Dictionary = Dialogue.next_line(dialogue_states[index], rng)
+	result.merge(line, true)
+	if not line["ok"]:
+		result["kind"] = "dialogue_error"
+	else:
+		result["unported_despawn"] = bool(npc.get("despawn_after_interaction", npc.get("despawn_after_talk", false)))
+	return result
 
 
 func _free(x: int, y: int, player: Array, others: Array) -> bool:

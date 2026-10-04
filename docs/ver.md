@@ -16,6 +16,26 @@
 
 ```
 
+# 81. GDScript版の固定モブ会話デッキと正面停止連携
+
+P1移行単位#223を実装した。純粋なdialogue_deckへ文字列検証/Unicode空白除去/一巡/再抽選を分離し、controllerが各モブのカード状態と向きを所有する。Sessionがプレイヤー正面のモブをイベントより先に選び、Sceneが実Enter/Space/Eキーを接続してplain結果をstatusへ表示する。echo/管理modalではカードを消費しない。話しかけるとモブがこちらを向くため既存の正面停止が働き、離れると次の周期で移動する。会話自体はmodalではなく、他のモブやフィールド時計は停止しない。
+
+有効な文字列デッキはPython next_dialogueと同じshuffle→末尾pop、補充時の前回末尾回避を使う。単一/重複カードは原本どおり保持し、全角/ノーブレーク等の空白をPython str.stripと同じ集合で除去する。未設定/非配列/非文字列カード/有効台詞なしは理由付き拒否で、Pythonの不正型文字列化/「……」fallbackは流用しない。会話プール/前回台詞は保存せず再入場/読込で初期化する。仲間取得前後で住処の2体を隠さない。
+
+固定戦闘・未知interactionは未移植を表示しカード/RNGを消費しない。会話後消滅設定は台詞と未移植注意だけで除去/保存しない。湧き場の暗号/仲間取得・条件付き戦闘セリフ・野生戦闘を代用の成功処理で埋めない。
+
+追加: `gdscript/engine/dialogue_deck.gd` とuid、`tests/test_gdscript_dialogue.py`、`docs/GDScript固定モブ会話契約.md`。
+更新: `gdscript/engine/fixed_mob_controller.gd`、`application/{field_session,field_application}.gd`、`tests/run_fixed_mobs_probe.gd`、`tools/performance-check/script/check_gdscript_fixed_mobs.py`、README/GDScript README、CODEMAP、FORMATS、移動契約、移植境界説明書、移行単位表、tools README、本履歴。Python runtime・正規data/assets・保存形式は変更なし。
+
+検証（2026-10-05）: 初回関連47件・1850サブテスト成功（35.77秒）。取得前後fixtureを正規ghost_entrance_openフラグと実際の所有フォルダの有無へ整え、継続行styleを修正した。最終新規12件・877サブテスト成功（10.54秒、skipなし）。実GodotとPythonで37デッキ×23回=851条件の選択/残数/前回カード/RNG消費を比較した。単一/重複/全29種Unicode空白・ゼロ幅文字、巡回境界、個別状態/再初期化、不正診断、正面対象/4方向/実キー/echo、占有/停止/周期再開、管理modal、イベント優先、取得前後の住処2体、原本/個体/AI/assets byte保持を専用コピーで確認した。
+
+最新版UPD（ae4636155b5e）を再取得しPython対象エラー0・警告13・注意100。実Godot性能ガードには24体update+snapshotに加え、5枚の会話デッキ選択/効果生成（24体の最後の対象）を追加した。手動ウィンドウの視認性・FPS・exportは未検証。
+全体871件・5430サブテスト成功（240.70秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2、skipなし）。標準Python性能13項目成功（生成24枠約0.95ms、移動24体約0.37ms）。Godotの標準20000回/7sample/2000warmupは24体update+snapshot約0.715msで2ms以下、会話約4.90µsで100µs以下。Python214ファイル致命的lint、新規style/構文、project rules、REPO_MAP/追跡対象application図、E2E参照、Godot import/専用保存rootの正規コンテンツ6000frame headless起動、diff --check成功。Python E2Eカタログは12 covered/25 missing/1除外で、#204完了や全移植の証拠ではない。
+
+次のP1/gdscript単位として#224（湧き場の7文字暗号入力/仮想キーボード）と#225（まる/かどか取得・保存）を起票し、GitHubのblocked-byを#223→#224→#225に登録した。UI判定と複数ファイルの取得処理を別単位にし、未接続を加入成功として表示しない。次は#224。
+
+実セーブと既存ユーザー作業を保持し、今回分だけローカルコミットする。push/PR/Issue完了操作は行わない。#218〜#223の最初の移行6単位はローカル実装済みだが、ゲーム全体の移植完了ではない。
+
 # 80. GDScript版の固定モブ時間周期移動とマス占有
 
 P1移行単位#222を実装した。clock/RNG注入型の純粋なfixed_mob_controller、独立した乱数アダプタ、フィールド時間を所有するSession、snapshotを描くUIへ分離した。主人公が動かなくてもidle/random/chaseを時間周期で更新する。既存JSONのinterval/chanceを利用し、まる450ms/100%、かどか900ms/45%を反映。最低100ms、各締切1試行/追いつき連打なし、180msのsmoothstep補間。管理一覧/編成/プリセット中は時計・移動・補間が停止する。

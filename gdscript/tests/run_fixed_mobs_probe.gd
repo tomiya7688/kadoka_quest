@@ -3,6 +3,7 @@ extends SceneTree
 
 const Rules = preload("res://engine/field_engine.gd")
 const Controller = preload("res://engine/fixed_mob_controller.gd")
+const Dialogue = preload("res://engine/dialogue_deck.gd")
 
 class TapeRandom extends RefCounted:
 	var rolls: Array = [0]
@@ -37,12 +38,28 @@ func _run() -> void:
 		result = await _scene(request)
 	elif request.get("performance", false):
 		result = _performance(request)
+	elif request.get("dialogue", false):
+		result = []
+		for case: Dictionary in request["cases"]:
+			result.append(_dialogue(case))
 	else:
 		result = []
 		for case: Dictionary in request["cases"]:
 			result.append(_engine(case))
 	print("KADOKA_FIXED_MOBS=" + Marshalls.utf8_to_base64(JSON.stringify(result)))
 	quit(0)
+
+
+func _dialogue(request: Dictionary) -> Dictionary:
+	var original := JSON.stringify(request["source"])
+	var state: Dictionary = Dialogue.create(request["source"])
+	var rng = TapeRandom.new([0])
+	var observations: Array = []
+	for index in int(request["count"]):
+		var result: Dictionary = Dialogue.next_line(state, rng)
+		observations.append({"result": result, "remaining": state.get("remaining", []).duplicate(),
+			"last": state.get("last"), "shuffles": rng.shuffle_index})
+	return {"selections": observations, "source_unchanged": original == JSON.stringify(request["source"])}
 
 
 func _engine(request: Dictionary) -> Array:
@@ -59,11 +76,15 @@ func _engine(request: Dictionary) -> Array:
 		now = int(action.get("now", now))
 		player = action.get("player", player)
 		var moved := false
+		var outcome: Dictionary = {}
 		if action.get("kind", "update") == "reset":
 			controller.reset(world, request["blocks"], request.get("despawned", []), player, now)
 		elif action.get("kind", "update") == "update":
 			moved = controller.update(player, now)
+		elif action["kind"] == "talk":
+			outcome = controller.talk(controller.npcs[int(action.get("index", 0))], action.get("direction", "right"))
 		var item := _observation(controller, now, moved)
+		item["outcome"] = outcome
 		item["source_unchanged"] = original == JSON.stringify(world)
 		item["rolls_used"] = rng.roll_index
 		item["shuffles_used"] = rng.shuffle_index
@@ -103,6 +124,19 @@ func _scene(request: Dictionary) -> Array:
 			"place":
 				scene.session.x = int(action["x"])
 				scene.session.y = int(action["y"])
+				scene.session.direction = action.get("direction", scene.session.direction)
+			"key":
+				var key := InputEventKey.new()
+				key.physical_keycode = {"Enter": KEY_ENTER, "Space": KEY_SPACE, "E": KEY_E, "F6": KEY_F6}[action["key"]]
+				key.pressed = true
+				key.echo = action.get("echo", false)
+				Input.parse_input_event(key.duplicate())
+				Input.flush_buffered_events()
+				await process_frame
+				key.pressed = false
+				key.echo = false
+				Input.parse_input_event(key.duplicate())
+				Input.flush_buffered_events()
 			"refresh":
 				scene._refresh_view()
 		await process_frame  # Exercise actual renderer without advancing the field clock.
@@ -130,5 +164,17 @@ func _performance(request: Dictionary) -> Dictionary:
 			controller.snapshot(now)
 		samples.append(float(Time.get_ticks_usec() - started) / int(request["iterations"]))
 	samples.sort()
-	return {"microseconds": samples[samples.size() / 2], "actors": controller.npcs.size(),
+	var movement_us: float = samples[samples.size() / 2]
+	var npc: Dictionary = controller.npcs[-1]
+	for index in int(request["warmup"]):
+		controller.talk(npc, "left")
+	samples.clear()
+	for sample in int(request["samples"]):
+		var started := Time.get_ticks_usec()
+		for index in int(request["iterations"]):
+			controller.talk(npc, "left")
+		samples.append(float(Time.get_ticks_usec() - started) / int(request["iterations"]))
+	samples.sort()
+	return {"microseconds": movement_us, "dialogue_microseconds": samples[samples.size() / 2],
+		"actors": controller.npcs.size(),
 		"iterations": request["iterations"], "samples": request["samples"], "warmup": request["warmup"]}
