@@ -58,6 +58,7 @@
 | Godot牧場台帳の導線 | `gdscript/application/field_application.gd`, `data/maps/{starting_town,starting_ranch}/map.json` | `tests/test_gdscript_ranch.py`, `gdscript/tests/run_party_probe.gd` | `gdscript/README.md`, `docs/ワークフロー/GDScript移行実装単位.md` | #218。open_manager→既存一覧/編成/プリセット。開くだけでは保存しない。台帳blockingとmodal入力停止。個体編集/AI変更は未移植。 |
 | Godot基礎能力値 / Lv習得スキル | `gdscript/{engine/monster_progression.gd,engine/stat_numbers.gd,data/content_repository.gd,application/monster_progression.gd,application/owned_roster.gd,ui/roster_view.gd}` | `tests/test_gdscript_progression.py`, `gdscript/tests/run_progression_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | #219。明示Lv表/順序付きlearnsetをPythonと比較。基礎契約は補正前のまま、#220が補正後を別に結合。不正表でも個体/AIは保持。成長式は生成時でruntime補完なし。 |
 | Godot＋選択 / 装備制限・能力補正 | `gdscript/{engine/monster_modifiers.gd,engine/stat_numbers.gd,application/monster_reconstruction.gd,data/content_repository.gd,ui/roster_view.gd}` | `tests/test_gdscript_modifiers.py`, `gdscript/tests/run_modifiers_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | #220。Python宣言順/重複除去/偶数丸め/装備側whitelistを比較。不明IDは理由付き保持、破損は補正結果なし。走査内I/O共用、次走査で更新。装備編集/戦闘効果は別単位。 |
+| Godot通常攻撃 / 防御・会心数値 | `gdscript/engine/{attack_numbers,stat_numbers}.gd` | `tests/test_gdscript_attack_numbers.py`, `gdscript/tests/run_attack_probe.gd`, `test_core.py`のguard/critical | `docs/GDScript通常攻撃数値契約.md`, `gdscript/README.md` | #221。明示乱数/0方向切捨て/最低1、会心1/16と防御無視、guardは物理のみ。#220結果/許可装備のattack威力と固定追加。Scene/ターン/耐性/全スキル/AIは未接続。 |
 
 ## 更新ルール
 

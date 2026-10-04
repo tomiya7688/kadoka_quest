@@ -80,6 +80,8 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 
 ## 未移植
 
+#221の[通常攻撃・防御・会心の数値契約](../docs/GDScript通常攻撃数値契約.md)は `engine/attack_numbers.gd` に実装済みです。会心乱数と0.92〜1.08の倍率を明示入力し、会心率1/16・防御無視・物理だけの防御軽減を比較できます。通常攻撃に効く許可装備の威力倍率/固定追加値も数値契約で扱います。共通の最終処理は魔法等にguardを掛けませんが、魔法/耐性/全スキルを実装したわけではありません。戦闘Scene/ターンには未接続で、ゲーム内で戦闘はまだできません。
+
 戦闘、野生敵、AI判断/学習/リセット、固定モブの徘徊/会話、暗号/仲間取得、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
 
 現在はsource checkout専用です。正本がGodotのresource root外にあるため、export済みexeでこのまま共有コンテンツを読めるとは主張しません。配布時のコンテンツ配置とexportは別段階で検証します。
@@ -92,6 +94,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py tests/test_gdscript_party.py tests/test_gdscript_presets.py tests/test_gdscript_ranch.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_progression.py tests/test_gdscript_modifiers.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_attack_numbers.py -q
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -103,7 +106,8 @@ Python版FieldEngineとの同一入力/出力比較、正本の読込一致、�
 関連: #10/#111、[移植境界](../docs/移植境界機能説明書.md)。次の段階では個体・戦闘などを、既存の期待動作カタログと比較しながら移植します。今回のテストをPython版のE2Eカタログ全項目の移植済み証拠とは扱いません。
 [P1の移行実装単位](../docs/ワークフロー/GDScript移行実装単位.md)を依存順で進めます。#218の牧場テストは正規の街入口/台帳イベント→実Sceneのキー→編成/プリセット→明示保存/取消・再起動を専用コピーで検証します。Python版の管理子プロセスや実ウィンドウ操作の証拠ではありません。
 #219は `engine/monster_progression.gd` の純粋な再構築、Dataの種族表読込、`application/monster_progression.gd` の個体との結合を分け、一覧は結果だけを表示します。同種族の読込キャッシュは1回の一覧走査だけ。全8種族の全100Lv、成長式で生成した表と明示編集、習得境界、旧形式/不正データ、原本/個体/AIの不変を実Godotで比較します。
-#220は純粋な `engine/monster_modifiers.gd / stat_numbers.gd`、Dataのplus/equipment読込、`application/monster_reconstruction.gd` の結合により補正結果を追加します。基礎結果は従来の契約のまま保持し、一覧は両方を表示します。同種族のplus読込と装備カタログの読込は走査内で共用し、次の走査で更新を反映します。全8種族×3Lv×8選択パターン×7装備状態、丸め/宣言順/重複、装備許可/拒否、破損定義、同種同Lvの個体差、一覧と再走査、個体/AI/原本byte不変を専用コピーで検証します。次は#221の通常攻撃・防御・会心の数値契約です。
+#220は純粋な `engine/monster_modifiers.gd / stat_numbers.gd`、Dataのplus/equipment読込、`application/monster_reconstruction.gd` の結合により補正結果を追加します。基礎結果は従来の契約のまま保持し、一覧は両方を表示します。同種族のplus読込と装備カタログの読込は走査内で共用し、次の走査で更新を反映します。全8種族×3Lv×8選択パターン×7装備状態、丸め/宣言順/重複、装備許可/拒否、破損定義、同種同Lvの個体差、一覧と再走査、個体/AI/原本byte不変を専用コピーで検証します。
+#221は通常攻撃・基本防御倍率・共通の最終ダメージの純粋な数値APIです。実GodotとPython BattleEngineで通常/防御/会心・乱数境界・装備数値効果・原本/AI不変を比較します。演出/ターン/スキル全種類/耐性/AIの移植完了とは扱いません。次の未対応単位は#222の固定モブ周期移動です。
 
 Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)、[JSON](https://docs.godotengine.org/en/stable/classes/class_json.html)、[Image](https://docs.godotengine.org/en/stable/classes/class_image.html)。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。
