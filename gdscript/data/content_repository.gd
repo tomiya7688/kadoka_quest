@@ -91,3 +91,16 @@ func load_species(species_id: String) -> Dictionary:
 		last_error = "Invalid species id: " + species_id
 		return {}
 	return _read_dictionary("data/species/" + species_id + "/species.json")
+
+
+func load_progression(species_id: String) -> Dictionary:
+	if not valid_id(species_id):
+		last_error = "Invalid species id: " + species_id
+		return {"ok": false, "error": "invalid_species_id", "message": last_error}
+	var bundle: Dictionary = {"ok": true}
+	for name: String in ["stats", "skills"]:
+		var document := _read_dictionary("data/species/" + species_id + "/" + name + ".json")
+		if not last_error.is_empty():
+			return {"ok": false, "error": "invalid_content", "message": last_error}
+		bundle[name] = document
+	return bundle

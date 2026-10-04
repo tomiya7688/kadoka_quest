@@ -23,6 +23,7 @@ Godot 4.7.2で検証。`project.godot` をGodotからインポートし、F6で�
 - 一覧からE/ボタンで現在パーティ4枠を編成。追加/解除/順番変更と明示的な保存・キャンセル。
 - 編成のP/ボタンからパーティプリセットを新規保存・一覧選択・下書きへ読込。枠数は無制限。
 - はじまりの街→牧場の台帳から、同じ一覧/編成/プリセット画面へ進む。
+- 個体一覧にLv別の基礎能力値とLv習得スキルIDを表示（＋/装備補正は未反映）。
 
 ## フィールドのセーブ／ロード
 
@@ -48,7 +49,7 @@ $env:KADOKA_GDSCRIPT_SAVE_NAME = '冒険1'  # 未指定ならdefault
 
 ゲーム内のF6で一覧を開き、F6またはEscで閉じます。↑↓、PageUp/Down、Home/Endと縦スクロールバー・ホイールで移動できます。開いている間は主人公の移動、調べる、F5/F9を止めます。
 
-一覧は先頭4つのパーティ枠と全保有個体を表示し、所有数にプログラム上の上限を設けません。表示項目は名前・種族・Lv・＋選択数・装備ID・AIプロファイル/作戦・戦闘経験回数です。＋効果/装備補正の計算やステータス・スキル再構築、AI判断/学習はまだ実装していません。既存のAI JSONは保持・確認するだけです。
+一覧は先頭4つのパーティ枠と全保有個体を表示し、所有数にプログラム上の上限を設けません。名前・種族・Lv・＋選択数・装備ID・AIプロファイル/作戦・戦闘経験回数に加え、6つの基礎能力値とLv習得スキルIDを表示します。基礎値は明示Lv表、スキルは宣言順のlearnsetから復元し、重複を除きます。＋/装備補正と＋の追加スキルは未反映と表示し、完成能力値とは扱いません。成長式の結果はデータ生成時のLv表を利用し、欠損行を自動補間しません。能力値/スキルJSONの破損は注意を表示し、有効な個体/AIやパーティID自体は残します。AI判断/学習はまだ実装していません。既存のAI JSONは保持・確認するだけです。
 
 一覧を開く際に個体フォルダを再走査しますが、これは所有フォルダ内の読込で、外部importsからの獲得ではありません。欠損/破損・不正ID・未対応schema・未知種族の個体は注意を表示して除外し、元ファイルは削除/修復しません。パーティの欠損IDは「読込不可」、nullは空き枠として表示し、保存された順番やIDは書き換えません。個体IDには日本語も使用でき、フォルダ名とJSON内のIDの一致が必要です。
 
@@ -88,6 +89,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 ```powershell
 $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py tests/test_gdscript_party.py tests/test_gdscript_presets.py tests/test_gdscript_ranch.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_progression.py -q
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -98,6 +100,7 @@ Python版FieldEngineとの同一入力/出力比較、正本の読込一致、�
 
 関連: #10/#111、[移植境界](../docs/移植境界機能説明書.md)。次の段階では個体・戦闘などを、既存の期待動作カタログと比較しながら移植します。今回のテストをPython版のE2Eカタログ全項目の移植済み証拠とは扱いません。
 [P1の移行実装単位](../docs/ワークフロー/GDScript移行実装単位.md)を依存順で進めます。#218の牧場テストは正規の街入口/台帳イベント→実Sceneのキー→編成/プリセット→明示保存/取消・再起動を専用コピーで検証します。Python版の管理子プロセスや実ウィンドウ操作の証拠ではありません。
+#219は `engine/monster_progression.gd` の純粋な再構築、Dataの種族表読込、`application/monster_progression.gd` の個体との結合を分け、一覧は結果だけを表示します。同種族の読込キャッシュは1回の一覧走査だけ。全8種族の全100Lv、成長式で生成した表と明示編集、習得境界、旧形式/不正データ、原本/個体/AIの不変を実Godotで比較します。＋/装備補正は次の#220です。
 
 Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)、[JSON](https://docs.godotengine.org/en/stable/classes/class_json.html)、[Image](https://docs.godotengine.org/en/stable/classes/class_image.html)。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。

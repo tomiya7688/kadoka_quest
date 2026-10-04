@@ -59,6 +59,7 @@ func show_snapshot(snapshot: Dictionary) -> void:
 		var record: Dictionary = records[id]
 		var ai: Dictionary = record["ai"]
 		lines.append(_record_summary(record) + "\n  ID: " + id)
+		lines.append(_progression_summary(record.get("progression", {})))
 		lines.append("  装備: %s / AI: %s・%s / 戦闘経験: %s回\n" % [
 			str(record["monster"].get("equipment_id")) if record["monster"].get("equipment_id") != null else "なし",
 			str(ai.get("profile", "normal")),
@@ -77,6 +78,18 @@ static func _record_summary(record: Dictionary) -> String:
 	var monster: Dictionary = record["monster"]
 	return "%s（%s） Lv.%d / ＋%d" % [monster["name"], record["species"].get("display_name", monster["species_id"]),
 		int(monster.get("level", 1)), monster.get("plus_choices", []).size()]
+
+
+static func _progression_summary(progression: Dictionary) -> String:
+	if not progression.get("ok", false):
+		return "  基礎能力値/習得スキル: 読込不可（完成能力値ではありません）"
+	var stats: Dictionary = progression["stats"]
+	var skills: PackedStringArray = []
+	for id in progression["skill_ids"]:
+		skills.append(str(id))
+	return "  基礎能力値（＋/装備補正は未反映）: HP %d / MP %d / 攻 %d / 防 %d / 速 %d / 魔 %d\n  Lv習得スキルID（＋追加は未反映）: %s" % [
+		stats["hp"], stats["mp"], stats["attack"], stats["defense"], stats["speed"], stats["magic"],
+		", ".join(skills) if not skills.is_empty() else "なし"]
 
 
 func handle_key(key: int) -> void:

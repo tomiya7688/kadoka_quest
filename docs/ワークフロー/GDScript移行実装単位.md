@@ -7,8 +7,8 @@
 | Issue | 実装単位 | 依存 | 状態 |
 | --- | --- | --- | --- |
 | [#218](https://github.com/tomiya7688/kadoka_quest/issues/218) | 牧場台帳→既存一覧/編成/プリセット | 既存のGodot管理画面 | ローカル実装済み（未push、検証はver#76） |
-| [#219](https://github.com/tomiya7688/kadoka_quest/issues/219) | Lv別基礎能力値・習得スキル | 既存の個体/種族読込 | 次の未対応単位 |
-| [#220](https://github.com/tomiya7688/kadoka_quest/issues/220) | ＋選択・装備制限/補正 | #219 | 未対応 |
+| [#219](https://github.com/tomiya7688/kadoka_quest/issues/219) | Lv別基礎能力値・習得スキル | 既存の個体/種族読込 | ローカル実装済み（未push、検証はver#77） |
+| [#220](https://github.com/tomiya7688/kadoka_quest/issues/220) | ＋選択・装備制限/補正 | #219 | 次の未対応単位 |
 | [#221](https://github.com/tomiya7688/kadoka_quest/issues/221) | 通常攻撃・防御・会心の数値契約 | #220 | 未対応 |
 | [#222](https://github.com/tomiya7688/kadoka_quest/issues/222) | 固定モブの時間周期移動/占有 | 既存のFieldEngine/Session | 未対応 |
 | [#223](https://github.com/tomiya7688/kadoka_quest/issues/223) | 会話デッキと正面での移動停止 | #222 | 未対応 |

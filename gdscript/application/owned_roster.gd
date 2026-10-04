@@ -3,6 +3,7 @@ extends RefCounted
 
 const Contract = preload("res://engine/monster_record_contract.gd")
 const MonsterStore = preload("res://data/monster_store.gd")
+const Progression = preload("res://application/monster_progression.gd")
 const STARTERS := [{"species_id": "hero", "name": "主人公"}, {"species_id": "ball_slime", "name": "ボールスライム"}]
 var repository: RefCounted
 var saves: RefCounted
@@ -24,6 +25,7 @@ func read_snapshot(state: Dictionary) -> Dictionary:
 		return documents
 	var records: Dictionary = {}
 	var warnings: Array = documents["warnings"]
+	var progression = Progression.new(repository)
 	for entry: Dictionary in documents["entries"]:
 		var valid := Contract.validate_record(entry["monster"], entry["ai"], entry["folder_id"])
 		if not valid["ok"]:
@@ -34,6 +36,10 @@ func read_snapshot(state: Dictionary) -> Dictionary:
 			warnings.append(entry["folder_id"] + ": 種族定義がありません")
 			continue
 		records[entry["folder_id"]] = {"monster": entry["monster"], "ai": entry["ai"], "species": species}
+		var rebuilt: Dictionary = progression.rebuild(entry["monster"])
+		records[entry["folder_id"]]["progression"] = rebuilt
+		if not rebuilt["ok"]:
+			warnings.append(entry["folder_id"] + ": 基礎能力値/習得スキルを読込できません: " + rebuilt["message"])
 	if not state.get("current_party", []) is Array:
 		warnings.append("current_partyが配列ではありません")
 	return {"ok": true, "records": records, "warnings": warnings, "party": Contract.party_entries(state, records)}

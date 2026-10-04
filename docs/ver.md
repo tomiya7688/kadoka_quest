@@ -16,6 +16,25 @@
 
 ```
 
+# 77. GDScript版のLv別基礎能力値・習得スキル
+
+P1移行単位#219を実装した。種族stats/skillsのread-only読込をData、明示Lv行の整数化と順序付きlearnsetの重複除去を純粋engine、個体Lvとの結合をapplication、結果表示を既存の所有一覧へ分離した。1回の一覧走査では同種族の読込を共用し、再走査では読み直す。個体/AI/パーティIDや種族原本を再出力せず、基礎値だけが不正でも個体自体を除外/修復せず警告する。
+
+Python正本のstats_atと同じ明示Lv1〜100表を利用する。成長式はサンプル生成時に展開されるため、Godot固有のformula形式や欠損行の補間は追加しない。schema省略、learnset省略、習得level省略、有限数値/整数文字列の整数化を扱う。不正型/bool/非有限値/未対応schema/安全な整数精度を超える値は拒否する。基礎値を完成能力値とは表示せず、＋/装備補正と＋由来の追加スキルが未反映であることを明記する。次は#220。
+
+追加: `gdscript/engine/monster_progression.gd`、`gdscript/application/monster_progression.gd`、`gdscript/tests/run_progression_probe.gd` と各uid、`tests/test_gdscript_progression.py`。
+更新: content_repository、owned_roster、roster_view、README、GDScript README、FORMATS、CODEMAP、移植境界説明書、移行単位表。
+
+検証（2026-10-04）: 新規16テスト・1089サブテストを含む関連41件・1175サブテスト成功（52.58秒）。全8種族×全100Lv、Python成長式で生成した表/手動編集優先/新種族の表、全習得境界、旧形式、順序/重複、範囲外Lvの契約、不正/非有限/精度超過、unsafe IDとJSON破損、結果を変更しても入力不変、走査内キャッシュと次走査の読込、一覧の未補正表示、外部変更の再構築、個体/AI/原本byte保持を実Godotで確認した。
+
+初回のテストは補正確認fixtureに存在しない＋/装備IDを使い1件失敗した。正規定義からIDを選び、実在装備と未習得の＋スキルへ修正して解消した。検証コマンドの初期パス指定不足、venvまで含んだlint、一時pycacheの書込先、追跡対象ではない図の既定出力指定も修正した。プロジェクトPython 209ファイルの致命的lint、新規テストのstyle/構文、構造規約、REPO_MAP/追跡対象application図、E2E参照、diff --checkは成功した。
+
+最終全テスト808件・1654サブテスト成功（240.73秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2）。Godot importと正規コンテンツのheadless起動成功。最新UPD（ae4636155b5e）はPython対象にエラー0・警告13・注意100であり、GDScriptの責務の証拠とは区別する。Python E2Eカタログは12 covered/25 missing/1除外のままで、全面移植や#204完了とは扱わない。
+
+標準Python性能ガード（20000回/7sample/2000warmup）は13項目成功: 生成24枠約1.20ms、移動24体約0.34ms。Godotの再構築速度/FPSや全責務の検証ではない。Godotの同種族I/O共用と再走査時の再読込は専用probeで別途検証した。
+
+境界: ＋/装備補正、戦闘/AI/エディタは未移植。実ウィンドウの視認性/手動操作、IME、配布exportは未検証。実セーブ/正規JSON/画像/ユーザー作業を保持し、今回分だけをローカルコミットする。push/PR/Issue完了操作は行わない。
+
 # 76. GDScript移行単位の起票と牧場の管理導線
 
 GDScript移行をP1内の優先枠とし、GitHub CLIでgdscriptラベルと実装単位#218〜#223を作成した。P0は引き続き緊急復旧専用。#220←#219、#221←#220、#223←#222のblocked-byを登録し再取得して確認した。start_task.batはP0を先に探し、P1ではgdscript付きの候補を一般P1より先に返す。実GitHubの読み取りでも#218の選択を確認した。

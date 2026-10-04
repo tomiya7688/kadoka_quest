@@ -56,6 +56,7 @@
 | Godot現在パーティ編成 | `gdscript/{engine/party_selection.gd,application/party_editor.gd,ui/party_view.gd,application/field_application.gd}` | `tests/test_gdscript_party.py`, `gdscript/tests/run_party_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | 一覧のE/ボタン→下書き→保存/取消。4枠/重複/欠損検証、stateのpartyだけatomic更新、外部digest変更は拒否。個体/AI/items不変。 |
 | Godotパーティプリセット | `gdscript/{engine/party_preset_contract.gd,data/party_preset_store.gd,application/party_presets.gd,ui/party_preset_view.gd}` | `tests/test_gdscript_presets.py`, `gdscript/tests/run_party_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | 編成P/ボタン→無制限一覧/新規保存/下書き読込。既存JSON上書き/削除なし、欠損→null注意。読込だけでstate更新しない。更新/削除UIは未移植。 |
 | Godot牧場台帳の導線 | `gdscript/application/field_application.gd`, `data/maps/{starting_town,starting_ranch}/map.json` | `tests/test_gdscript_ranch.py`, `gdscript/tests/run_party_probe.gd` | `gdscript/README.md`, `docs/ワークフロー/GDScript移行実装単位.md` | #218。open_manager→既存一覧/編成/プリセット。開くだけでは保存しない。台帳blockingとmodal入力停止。個体編集/AI変更は未移植。 |
+| Godot基礎能力値 / Lv習得スキル | `gdscript/{engine/monster_progression.gd,data/content_repository.gd,application/monster_progression.gd,application/owned_roster.gd,ui/roster_view.gd}` | `tests/test_gdscript_progression.py`, `gdscript/tests/run_progression_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | #219。明示Lv表/順序付きlearnsetをPythonと比較。一覧は基礎値のみで＋/装備は未反映。不正表でも個体/AIは保持。成長式は生成時でruntime補完なし。 |
 
 ## 更新ルール
 
