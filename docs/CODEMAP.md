@@ -60,6 +60,8 @@
 | Godot＋選択 / 装備制限・能力補正 | `gdscript/{engine/monster_modifiers.gd,engine/stat_numbers.gd,application/monster_reconstruction.gd,data/content_repository.gd,ui/roster_view.gd}` | `tests/test_gdscript_modifiers.py`, `gdscript/tests/run_modifiers_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | #220。Python宣言順/重複除去/偶数丸め/装備側whitelistを比較。不明IDは理由付き保持、破損は補正結果なし。走査内I/O共用、次走査で更新。装備編集/戦闘効果は別単位。 |
 | Godot通常攻撃 / 防御・会心数値 | `gdscript/engine/{attack_numbers,stat_numbers}.gd` | `tests/test_gdscript_attack_numbers.py`, `gdscript/tests/run_attack_probe.gd`, `test_core.py`のguard/critical | `docs/GDScript通常攻撃数値契約.md`, `gdscript/README.md` | #221。明示乱数/0方向切捨て/最低1、会心1/16と防御無視、guardは物理のみ。#220結果/許可装備のattack威力と固定追加。Scene/ターン/耐性/全スキル/AIは未接続。 |
 
+| Godot固定モブ周期移動 / 占有 | `gdscript/engine/{fixed_mob_controller,field_random}.gd`, `gdscript/application/field_session.gd`, `gdscript/ui/field_view.gd` | `tests/test_gdscript_fixed_mobs.py`, `gdscript/tests/run_fixed_mobs_probe.gd` | `docs/GDScript固定モブ移動契約.md`, `gdscript/README.md` | #222。clock/RNG注入、周期/占有/初期配置/保存座標。実Godot性能ガードcheck_gdscript_fixed_mobs.py。会話/野生/接触戦闘は未移植。 |
+
 ## 更新ルール
 
 - シンボルを絞るときだけ `docs/generated/REPO_MAP.md` の該当ファイル名を検索する。公開APIと引数の索引であり、詳細は対象コードを読む。

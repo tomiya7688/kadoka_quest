@@ -10,8 +10,8 @@
 | [#219](https://github.com/tomiya7688/kadoka_quest/issues/219) | Lv別基礎能力値・習得スキル | 既存の個体/種族読込 | ローカル実装済み（未push、検証はver#77） |
 | [#220](https://github.com/tomiya7688/kadoka_quest/issues/220) | ＋選択・装備制限/補正 | #219 | ローカル実装済み（未push、検証はver#78） |
 | [#221](https://github.com/tomiya7688/kadoka_quest/issues/221) | 通常攻撃・防御・会心の数値契約 | #220 | ローカル実装済み（未push、検証はver#79） |
-| [#222](https://github.com/tomiya7688/kadoka_quest/issues/222) | 固定モブの時間周期移動/占有 | 既存のFieldEngine/Session | 次の未対応単位 |
-| [#223](https://github.com/tomiya7688/kadoka_quest/issues/223) | 会話デッキと正面での移動停止 | #222 | 未対応 |
+| [#222](https://github.com/tomiya7688/kadoka_quest/issues/222) | 固定モブの時間周期移動/占有 | 既存のFieldEngine/Session | ローカル実装済み（未push、検証はver#80） |
+| [#223](https://github.com/tomiya7688/kadoka_quest/issues/223) | 会話デッキと正面での移動停止 | #222 | 次の未対応単位 |
 
 各IssueのGoal / Required / Acceptance / Read scopeを正とし、ここへ詳細仕様を複写しない。上の依存はGitHubのblocked-byにも登録した。別の未移植単位（戦闘進行/スキル/AI/野生/暗号取得/個体編集/各エディタ/export等）は、前提が明らかになった段階で同様に起票する。これらを今回の6件で全て完了できるとは扱わない。
 

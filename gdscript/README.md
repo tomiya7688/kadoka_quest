@@ -16,7 +16,7 @@ Godot 4.7.2で検証。`project.godot` をGodotからインポートし、F6で�
 - `step` と `interact` の移動ポイント。Enter/Space/Eで現在マスまたは正面のイベントを調べる。
 - メッセージ看板。追加 `events/*.json` も読込。
 - JSON指定の画像地形/キャラクター画像をnearestで表示。キャラクターは64px枠、縦横比保持。
-- 固定モブは初期地点に静止表示（まだAI移植前）。移動/調べるイベント自体に色や印は付けない。
+- 固定モブの停止/ランダム/追跡移動を時間周期で更新。まる450ms/100%、かどか900ms/45%。プレイヤー・他モブ・壁・岩/看板と重ならない。移動/調べるイベント自体に色や印は付けない。
 - ゲーム内のF5で現在のマップ・マス座標・向きを保存、F9で読込。次回起動時にも選択中のセーブから復元。
 - 新規セーブの初回F5で主人公・ボールスライムの個体と初期パーティを生成。
 - F6で現在パーティと保有個体の一覧。縦スクロールとキーボード操作に対応。
@@ -39,7 +39,7 @@ $env:KADOKA_GDSCRIPT_SAVE_NAME = '冒険1'  # 未指定ならdefault
 
 既存セーブでは `state.json` の `map_id` と `player.x/y/direction` だけを更新し、進行フラグ・復活地点・現在パーティ・未知キーを引き継ぎます。向きのない旧形式は正面で復元します。既存の個体・AI・アイテム・パーティプリセット・metaファイルは書き換えません。既存セーブへ初期仲間を自動追加せず、前段階で作った空のセーブも勝手には変更しません。新規開始を試すには未使用のセーブ名を指定します。既存Pythonセーブを試すときは専用のコピーを使い、両版を同じ保存先で同時実行しないでください。
 
-壊れたJSON、未対応schema、存在しないマップ、範囲外や壁/看板/固定モブ上の座標は、読込・上書きを拒否して理由を表示します。一時ファイルからの置換に失敗しても、以前の `state.json` を削除しません。読み直した内容のdigestが変わった場合も保存を拒否します。初回作成は複数ファイル一括トランザクションではなく、失敗時に未完成のフォルダが残る場合があります。JSONの再出力によりstateの空白や数値表記は変わり、Godotの数値精度を超えるMOD値の無損失往復は保証しません。
+壊れたJSON、未対応schema、存在しないマップ、範囲外や壁/看板上の座標は、読込・上書きを拒否して理由を表示します。保存は現在のモブ占有も検証しますが、原本の初期地点は現在の占有ではありません。読み込み時はプレイヤーを先に確保し、そこに初期配置されるモブを空きマスへ移します。一時ファイルからの置換に失敗しても、以前の `state.json` を削除しません。読み直した内容のdigestが変わった場合も保存を拒否します。初回作成は複数ファイル一括トランザクションではなく、失敗時に未完成のフォルダが残る場合があります。JSONの再出力によりstateの空白や数値表記は変わり、Godotの数値精度を超えるMOD値の無損失往復は保証しません。
 
 個体の2ファイルは固有の一時フォルダに書いてから公開します。state保存が後で失敗しても、次の初回保存は公開済みの主人公/ボールスライムを再利用し、同種の初期仲間を重複生成しません。初回保存前の既存個体に破損があれば生成を拒否し、修復や削除を自動実行しません。並行する複数writerの排他はまだ保証しません。
 
@@ -82,7 +82,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 
 #221の[通常攻撃・防御・会心の数値契約](../docs/GDScript通常攻撃数値契約.md)は `engine/attack_numbers.gd` に実装済みです。会心乱数と0.92〜1.08の倍率を明示入力し、会心率1/16・防御無視・物理だけの防御軽減を比較できます。通常攻撃に効く許可装備の威力倍率/固定追加値も数値契約で扱います。共通の最終処理は魔法等にguardを掛けませんが、魔法/耐性/全スキルを実装したわけではありません。戦闘Scene/ターンには未接続で、ゲーム内で戦闘はまだできません。
 
-戦闘、野生敵、AI判断/学習/リセット、固定モブの徘徊/会話、暗号/仲間取得、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
+戦闘、野生敵、戦闘AI判断/学習/リセット、固定モブの会話/消滅イベント、暗号/仲間取得、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
 
 現在はsource checkout専用です。正本がGodotのresource root外にあるため、export済みexeでこのまま共有コンテンツを読めるとは主張しません。配布時のコンテンツ配置とexportは別段階で検証します。
 
@@ -95,6 +95,8 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_bootstrap.py tests/test_gdscript_save.py tests/test_gdscript_roster.py tests/test_gdscript_party.py tests/test_gdscript_presets.py tests/test_gdscript_ranch.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_progression.py tests/test_gdscript_modifiers.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_attack_numbers.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_fixed_mobs.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_fixed_mobs.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -107,7 +109,8 @@ Python版FieldEngineとの同一入力/出力比較、正本の読込一致、�
 [P1の移行実装単位](../docs/ワークフロー/GDScript移行実装単位.md)を依存順で進めます。#218の牧場テストは正規の街入口/台帳イベント→実Sceneのキー→編成/プリセット→明示保存/取消・再起動を専用コピーで検証します。Python版の管理子プロセスや実ウィンドウ操作の証拠ではありません。
 #219は `engine/monster_progression.gd` の純粋な再構築、Dataの種族表読込、`application/monster_progression.gd` の個体との結合を分け、一覧は結果だけを表示します。同種族の読込キャッシュは1回の一覧走査だけ。全8種族の全100Lv、成長式で生成した表と明示編集、習得境界、旧形式/不正データ、原本/個体/AIの不変を実Godotで比較します。
 #220は純粋な `engine/monster_modifiers.gd / stat_numbers.gd`、Dataのplus/equipment読込、`application/monster_reconstruction.gd` の結合により補正結果を追加します。基礎結果は従来の契約のまま保持し、一覧は両方を表示します。同種族のplus読込と装備カタログの読込は走査内で共用し、次の走査で更新を反映します。全8種族×3Lv×8選択パターン×7装備状態、丸め/宣言順/重複、装備許可/拒否、破損定義、同種同Lvの個体差、一覧と再走査、個体/AI/原本byte不変を専用コピーで検証します。
-#221は通常攻撃・基本防御倍率・共通の最終ダメージの純粋な数値APIです。実GodotとPython BattleEngineで通常/防御/会心・乱数境界・装備数値効果・原本/AI不変を比較します。演出/ターン/スキル全種類/耐性/AIの移植完了とは扱いません。次の未対応単位は#222の固定モブ周期移動です。
+#221は通常攻撃・基本防御倍率・共通の最終ダメージの純粋な数値APIです。実GodotとPython BattleEngineで通常/防御/会心・乱数境界・装備数値効果・原本/AI不変を比較します。演出/ターン/スキル全種類/耐性/AIの移植完了とは扱いません。
+#222は[固定モブ周期移動](../docs/GDScript固定モブ移動契約.md)をSceneへ接続します。管理画面では時計/移動/補間が止まり、閉じても滞在時間分の追いつき移動を行いません。再入場で初期配置へ戻り、既存の非復活消滅フラグを読むだけで、移動中の座標/乱数/時計を保存しません。次は#223の会話デッキと会話時の向き/停止連携です。
 
 Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)、[JSON](https://docs.godotengine.org/en/stable/classes/class_json.html)、[Image](https://docs.godotengine.org/en/stable/classes/class_image.html)。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。

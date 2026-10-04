@@ -28,15 +28,15 @@ static func _integer(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value) == floorf(float(value))
 
 
-static func validate_location(state: Dictionary, world: Dictionary, blocks: Dictionary) -> Dictionary:
+static func validate_location(
+	state: Dictionary, world: Dictionary, blocks: Dictionary, characters: Array = [],
+) -> Dictionary:
 	var document := validate_document(state)
 	if not document["ok"]:
 		return document
 	var player: Dictionary = state["player"]
-	var characters: Array = []
-	for mob: Dictionary in world.get("fixed_mobs", []):
-		if bool(mob.get("enabled", true)):
-			characters.append(mob)
+	# Source NPC spawn coordinates are not current occupancy. Loading reserves the
+	# player first, then resets/relocates NPCs. Saving supplies live logical actors.
 	var rules = Rules.new(world, blocks)
 	var move: Dictionary = rules.resolve_player_move(
 		int(player["x"]), int(player["y"]), 0, 0, str(player.get("direction", "front")), characters, [],

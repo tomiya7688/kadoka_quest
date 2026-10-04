@@ -42,7 +42,7 @@ func save_position(session: RefCounted) -> Dictionary:
 		return previous
 	var base: Dictionary = previous.get("value", Contract.DEFAULT_STATE)
 	var snapshot := Contract.capture(base, session.world["id"], session.x, session.y, session.direction)
-	var valid := Contract.validate_location(snapshot, session.world, blocks)
+	var valid := Contract.validate_location(snapshot, session.world, blocks, session.visible_characters)
 	if not valid["ok"]:
 		return valid
 	if not previous["ok"]:

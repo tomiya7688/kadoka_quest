@@ -1,8 +1,13 @@
 extends RefCounted
-## In-memory exploration state only. Battle, acquisition and persistence are not ported.
+## In-memory exploration state; clock advances only while the field is active.
 
 const FieldRules = preload("res://engine/field_engine.gd")
+const FixedMobs = preload("res://engine/fixed_mob_controller.gd")
+const RandomSource = preload("res://engine/field_random.gd")
 var rules = FieldRules.new()
+var fixed_mobs = FixedMobs.new(rules, RandomSource.new())
+var clock_ms := 0.0
+var despawned_fixed_mobs: Array = []
 var world: Dictionary = {}
 var visible_characters: Array = []
 var x := 0
@@ -15,10 +20,17 @@ func enter_map(map_data: Dictionary, blocks: Dictionary, entry: Dictionary = {})
 	rules.set_world(world, blocks)
 	x = clampi(int(entry.get("x", world["start"]["x"])), 0, int(world["width"]) - 1)
 	y = clampi(int(entry.get("y", world["start"]["y"])), 0, int(world["height"]) - 1)
-	visible_characters = []
-	for mob: Dictionary in world.get("fixed_mobs", []):
-		if bool(mob.get("enabled", true)):
-			visible_characters.append(mob.duplicate(true))
+	fixed_mobs.reset(world, blocks, despawned_fixed_mobs, [x, y], int(clock_ms))
+	visible_characters = fixed_mobs.npcs
+
+
+func advance(delta: float) -> void:
+	clock_ms += maxf(0.0, delta) * 1000.0
+	fixed_mobs.update([x, y], int(clock_ms))
+
+
+func character_snapshot() -> Array:
+	return fixed_mobs.snapshot(int(clock_ms))
 
 
 func move_player(dx: int, dy: int) -> Dictionary:

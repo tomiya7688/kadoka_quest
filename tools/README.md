@@ -42,9 +42,11 @@ Runtime performance check:
 
 ```text
 python tools/performance-check/script/check_runtime_performance.py
+python tools/performance-check/script/check_gdscript_fixed_mobs.py
 ```
 
 The performance thresholds intentionally allow normal CI variance and fail only large runtime regressions. Grow this tool with the project: when field updates, battle resolution, data transformations, or other runtime paths become performance-sensitive, add representative benchmark cases here rather than introducing runtime profiling overhead into the game.
+The GDScript fixed-mob guard requires `KADOKA_GODOT_EXECUTABLE` and measures real headless Godot update + snapshot for 24 actors (20,000 iterations / 7 samples / 2,000 warmup; median <= 2ms). It uses private fixtures and does not measure drawing, I/O, window FPS, or exported builds. Missing Godot is Unverified with exit 2, never a successful substitute.
 
 Reusable patterns in `code-docs` and `task-workflow` were adapted from `tomiya7688/AI_game_player`.
 

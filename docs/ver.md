@@ -16,6 +16,26 @@
 
 ```
 
+# 80. GDScript版の固定モブ時間周期移動とマス占有
+
+P1移行単位#222を実装した。clock/RNG注入型の純粋なfixed_mob_controller、独立した乱数アダプタ、フィールド時間を所有するSession、snapshotを描くUIへ分離した。主人公が動かなくてもidle/random/chaseを時間周期で更新する。既存JSONのinterval/chanceを利用し、まる450ms/100%、かどか900ms/45%を反映。最低100ms、各締切1試行/追いつき連打なし、180msのsmoothstep補間。管理一覧/編成/プリセット中は時計・移動・補間が停止する。
+
+プレイヤー/他モブ/地形/岩・看板・台帳と重ならない。enabled/既存despawned_fixed_mobs/respawn設定を読んで再入場で原本の初期配置へ戻す。重複/範囲外/通行不能の初期地点は空きマスへ移し、満員なら重ねず理由付き未配置。Python正本のblockingイベント無視と満員時の重複は、Issue条件を優先してGodotで安全側へ強化した。Python runtimeは変更しない。会話デッキ/消滅効果/野生/接触戦闘は未移植で、基本の正面移動停止だけを現Python移動規則から移した。
+
+位置保存を実モブ占有で検証する。原本の初期地点は現在占有ではないため、そこからモブが動けばプレイヤーが入り保存/復元できる。読込ではプレイヤーを先に確保し、重なる初期モブを再配置する。プレイヤー位置を自動修復しない。モブの実行中位置/時計/RNG/補間を保存せず、個体/AI/items/原本JSON/画像を保持する。
+
+追加: `gdscript/engine/{fixed_mob_controller,field_random}.gd`、`gdscript/tests/run_fixed_mobs_probe.gd` と各uid、`tests/test_gdscript_fixed_mobs.py`、`tools/performance-check/script/check_gdscript_fixed_mobs.py`、`docs/GDScript固定モブ移動契約.md`。
+更新: `gdscript/application/{field_session,field_application,field_persistence}.gd`、`engine/field_save_contract.gd`、`ui/field_view.gd`、`tests/test_gdscript_save.py`、README/GDScript README、CODEMAP、FORMATS、移植境界説明書、移行実装単位表、tools README、本履歴。Python runtime・正規data/assets・保存形式は変更なし。
+
+検証（2026-10-05）: 初回関連でJSON由来float配列との正面比較とテスト時計初期化等4件が失敗し、整数要素比較/Scene入場後process停止/正本constructor指定へ修正した。関連44件・1001サブテスト成功（42.11秒）。正常配置の40設定×15時刻=600条件を同じ乱数roll/方向順でPythonと実Godot比較した。AI/確率/締切/回数/補間と入力不変、正規まる/かどか設定、全blockingイベント、占有/初期化/満員/再出現設定、実Sceneの静止中更新/全管理modal停止/描画の副作用なし、補間中の論理占有、元モブ配置での保存/別プロセス再起動と既存JSON/個体AI byte保持を専用コピーで確認した。
+
+全体859件・4553サブテスト成功（290.74秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2、skipなし）。その後RNGの生成をSession側のcompositionへ明示分離し、テストstyleの継続行とルーティング表を整えた。最新版UPD（ae4636155b5e）を再取得しPython対象エラー0・警告13・注意100。標準Python性能13項目成功（生成24枠約1.46ms、移動24体約0.41ms）、追加の実Godot性能ガードも24体update+snapshot約0.764msで2ms以下を達成（標準20000回/7sample/2000warmup）。描画/FPS/exportの証拠ではない。
+
+Python213ファイル致命的lint、構造規約、REPO_MAP/追跡対象application図、E2E参照チェックも成功。Python E2Eカタログは12 covered/25 missing/1除外のままで、全機能移植や#204完了とは扱わない。
+最終境界整理後の関連119件・1129サブテスト成功（132.27秒、skipなし）。新規Python style/構文、Godot import、正規コンテンツを専用保存rootで6000frame headless起動、diff --check成功。
+
+境界: 手動ウィンドウ操作/視認性、配布exportは未検証。会話デッキ/会話時の向き/消滅イベント、固定戦闘、野生/接触戦闘、暗号取得、戦闘AIは今回未移植。実セーブと既存ユーザー作業を保持し、対象だけローカルコミットする。push/PR/Issue完了操作は行わない。次は#223の会話デッキと正面停止連携。
+
 # 79. GDScript版の通常攻撃・防御・会心の数値契約
 
 P1移行単位#221を実装した。純粋なattack_numbersへ通常攻撃、基本防御倍率、共通の最終ダメージを分離した。2つの乱数を明示入力し、Python/Godotのseed列一致には依存しない。UI/ファイルI/O/AIや実戦闘状態へ依存せず、plain入力も変更しない。通常攻撃以外のkind/skill_idは未移植の理由付きで拒否する。#220の補正後能力値/許可装備から数値を渡す経路をprobeで比較し、既存のフィールドSceneへはまだ接続しない。

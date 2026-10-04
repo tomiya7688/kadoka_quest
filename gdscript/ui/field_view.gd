@@ -45,7 +45,8 @@ func _draw_tile(rect: Rect2, block: Dictionary) -> void:
 
 
 func _draw_character(character: Dictionary, camera: Vector2i) -> void:
-	var cell := Vector2i(int(character["x"]), int(character["y"])) - camera
+	var cell := Vector2(float(character.get("display_x", character["x"])),
+		float(character.get("display_y", character["y"]))) - Vector2(camera)
 	var rect := Rect2(cell.x * CELL, cell.y * CELL, CELL, CELL)
 	if not Rect2(Vector2.ZERO, size).intersects(rect):
 		return

@@ -138,7 +138,6 @@ class GDScriptSaveTests(unittest.TestCase):
             self.state(player={"x": 1.5, "y": 14}), self.state(player={"x": True, "y": 14}),
             self.state(player={"x": 999, "y": 14}), self.state(player={"x": -1, "y": 14}),
             self.state(player={"x": 0, "y": 0}), self.state(player={"x": 25, "y": 14}),
-            self.state(map_id="ghost_home", player={"x": 10, "y": 7}),
             self.state(player={"x": 18, "y": 14, "direction": "invalid"}),
         ]
         for index, state in enumerate(cases):

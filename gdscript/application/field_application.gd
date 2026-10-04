@@ -140,6 +140,8 @@ func load_saved_position(silent_missing: bool = false) -> bool:
 		return false
 	var entry: Dictionary = result["value"]["player"].duplicate()
 	entry["direction"] = entry.get("direction", "front")
+	var despawned: Variant = result["value"].get("despawned_fixed_mobs", [])
+	session.despawned_fixed_mobs = despawned.duplicate() if despawned is Array else []
 	_enter_world(result["world"], entry)
 	status.text = "読み込みました: " + profile_name
 	_refresh_owned_snapshot()
@@ -149,12 +151,15 @@ func load_saved_position(silent_missing: bool = false) -> bool:
 func _process(delta: float) -> void:
 	if session.world.is_empty() or roster_view.visible or party_view.visible or preset_view.visible:
 		return
+	session.advance(delta)
 	var step: Vector2i = keyboard.movement_step(delta)
 	if step != Vector2i.ZERO:
 		var result: Dictionary = session.move_player(step.x, step.y)
 		if result["kind"] == "moved" and result.get("event") != null:
 			_handle_event(result["event"])
 		_refresh_view()
+	elif not session.visible_characters.is_empty():
+		_refresh_view()  # Publish interpolated positions; renderer never advances actors.
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -344,7 +349,9 @@ func _handle_event(event: Dictionary) -> void:
 
 func _refresh_view() -> void:
 	title.text = "%s  (%d, %d) — GDScript / %s" % [session.world.get("display_name", ""), session.x, session.y, profile_name]
+	if not session.fixed_mobs.warnings.is_empty():
+		title.text += " / " + str(session.fixed_mobs.warnings[0])
 	view.show_snapshot({
-		"map": session.world, "blocks": blocks, "characters": session.visible_characters,
+		"map": session.world, "blocks": blocks, "characters": session.character_snapshot(),
 		"player": {"species_id": "hero", "x": session.x, "y": session.y, "direction": session.direction},
 	}, images)
