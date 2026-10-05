@@ -18,6 +18,7 @@ Godot 4.7.2で検証。`project.godot` をGodotからインポートし、F6で�
 - JSON指定の画像地形/キャラクター画像をnearestで表示。キャラクターは64px枠、縦横比保持。
 - 固定モブの停止/ランダム/追跡移動を時間周期で更新。まる450ms/100%、かどか900ms/45%。プレイヤー・他モブ・壁・岩/看板と重ならない。移動/調べるイベント自体に色や印は付けない。
 - 正面の固定モブにEnter/Space/Eで会話。デッキを一巡後に再抽選し、こちらを向いて停止。離れると既存の移動周期へ戻る。デッキ不正は理由を表示。
+- 住処の水の湧き場を調べて7文字のかな入力/仮想キーボード。決定・削除・取消、入力中の探索停止。一致判定までで、仲間取得/保存は次の#225。
 - ゲーム内のF5で現在のマップ・マス座標・向きを保存、F9で読込。次回起動時にも選択中のセーブから復元。
 - 新規セーブの初回F5で主人公・ボールスライムの個体と初期パーティを生成。
 - F6で現在パーティと保有個体の一覧。縦スクロールとキーボード操作に対応。
@@ -83,7 +84,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 
 #221の[通常攻撃・防御・会心の数値契約](../docs/GDScript通常攻撃数値契約.md)は `engine/attack_numbers.gd` に実装済みです。会心乱数と0.92〜1.08の倍率を明示入力し、会心率1/16・防御無視・物理だけの防御軽減を比較できます。通常攻撃に効く許可装備の威力倍率/固定追加値も数値契約で扱います。共通の最終処理は魔法等にguardを掛けませんが、魔法/耐性/全スキルを実装したわけではありません。戦闘Scene/ターンには未接続で、ゲーム内で戦闘はまだできません。
 
-戦闘、野生敵、戦闘AI判断/学習/リセット、固定モブの消滅イベント、暗号/仲間取得、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
+戦闘、野生敵、戦闘AI判断/学習/リセット、固定モブの消滅イベント、暗号一致後の仲間取得/保存、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
 
 現在はsource checkout専用です。正本がGodotのresource root外にあるため、export済みexeでこのまま共有コンテンツを読めるとは主張しません。配布時のコンテンツ配置とexportは別段階で検証します。
 
@@ -98,6 +99,7 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_attack_numbers.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_fixed_mobs.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_dialogue.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_password.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_fixed_mobs.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
@@ -116,6 +118,7 @@ Python版FieldEngineとの同一入力/出力比較、正本の読込一致、�
 #223は[固定モブ会話契約](../docs/GDScript固定モブ会話契約.md)です。正面のモブをイベントより先に選び、向きを反転して会話し、正面停止と周期再開へ接続します。会話はmodalではなくstatus表示で、移動キーで離れられます。カード残数/前回台詞は実行時だけで再入場/読込時にリセット。取得前後で住処の2体を隠しません。戦闘モブは理由付き未移植、会話後の消滅設定も明示し、実際には消去/保存しません。
 
 Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)、[JSON](https://docs.godotengine.org/en/stable/classes/class_json.html)、[Image](https://docs.godotengine.org/en/stable/classes/class_image.html)。
+#224は[暗号入力契約](../docs/GDScript暗号入力契約.md)。住処の（17,8）から上を向き、湧き場をEnter/Space/Eで調べます。7枠と46かなキー、入力欄で日本語入力、Tab/Spaceで仮想キー操作、Enter/テンキーEnterで決定、Backspaceで削除、Escで取消。入力中は時計/主人公/固定モブ/保存/管理を止め、閉じても追いつき移動しません。`へいわなすみか` の一致はplain結果と「取得・保存は未移植 (#225)」の表示だけで、個体/AI/フラグを変更しません。native Unicodeイベントと確定文字signalをheadlessで検証しますが、実IME・手動画面・exportの証拠ではありません。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。
 一覧/編成UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)、[ItemList](https://docs.godotengine.org/en/stable/classes/class_itemlist.html)。
 

@@ -16,6 +16,23 @@
 
 ```
 
+# 82. GDScript版の湧き場7文字暗号入力と仮想キーボード
+
+P1移行単位#224を実装した。純粋な `engine/password_session.gd` がPython PasswordSessionと同じopen/append/backspace/submit/cancel、7文字上限、KANA_KEYS、完全一致、案内/誤答/activeを所有する。UIはnative LineEditの確定文字/仮想かなButton/実キーをplain操作signalへ変換し、7枠を描画する。Sceneは正規ghost_homeのpassword_spring、入力中の停止、結果signalを接続する。日本語確定文字は1文字ずつ渡し、native文字キーを重複追加しない。IME変換中のEnter/Backspace/Escはnative側へ委ねるが、実IMEの手動検証は未実施。
+
+Enter/テンキーEnterで決定、Backspaceで削除、Esc/やめるで取消、Tab/Shift+Tab/Spaceで仮想キー操作。入力中は主人公/固定モブ/補間/時計とF5/F9/F6を停止し、直接の位置保存/読込・一覧/編成開始も拒否する。開閉時の長押し時間をresetし、滞在分の追いつき移動を起こさない。一致はpassword_matched、取消はpassword_cancelledのplain結果。誤答は入力を保持する。一致しても「取得と保存は未移植 (#225)」を表示し、仲間加入成功は装わない。住処の2体は取得状態に関わらず残す。入力・結果は実行時だけで保存形式/フラグ/個体/AIを変更しない。
+
+追加: `gdscript/engine/password_session.gd`、`ui/password_view.gd`、`tests/run_password_probe.gd`と各uid、`tests/test_gdscript_password.py`、`docs/GDScript暗号入力契約.md`。
+更新: `gdscript/application/field_application.gd`、`ui/field_input.gd`、README/GDScript README、CODEMAP、FORMATS、移植境界説明書、移行単位表、本履歴。Python runtime・正規data/assets・実セーブは変更なし。以前からの無関係なgame.py/開発予定等は保持する。
+
+検証（2026-10-05）: 初回関連44件のうち3件失敗を確認した。nativeのprogrammatic insertはtext_changedを発行しないため、複数文字確定はadapter signalテストと明示した。保存位置fixtureが水上だったため通行可能な（17,8）へ修正。headlessの64×64仮ウィンドウを正式な960×540に合わせて矩形を検証した。仮想キーのTab/Spaceテストは実キー同様に論理/物理keycodeを設定した。新規11件・2032サブテスト成功（14.56秒、skipなし）。純粋状態の同一操作列、空/誤答/不正文字/上限/終了後/Unicode、正規湧き場→実Unicode/native LineEdit/実mouse click/Tab/Space/決定/取消、modal停止と30秒滞在後の周期再開、取得前後の原本/個体/AI/items/parties/meta byte不変を専用コピーで確認した。
+
+全体882件・7462サブテスト成功（349.84秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2、skipなし）。最新版UPD（ae4636155b5e）を再取得しPython対象エラー0・警告13・注意100。Python標準性能13項目成功（24枠生成約1.41ms、24体移動約0.53ms）。新しい7文字入力は低頻度操作でホットパスではなく、既存ガードで退行を確認する。Python215ファイル致命的lint、新規style/構文、project rules、REPO_MAP/追跡対象application図、E2E参照、Godot import/専用保存rootの正規コンテンツ6000frame headless起動、diff --check成功。E2Eカタログ12 covered/25 missing/1除外は参照構造の確認のみで、全移植の証拠ではない。
+
+Godot標準性能ガード（20000回/7samples/2000warmup）は24体update+snapshot約0.853ms（上限2ms）、5枚の会話デッキ選択約5.91µs（上限100µs）で成功。入力配送/描画/FPSを計測したものではない。
+
+手動画面の視認性、Windows IME候補/確定、exportは未検証。次は#225の暗号一致後のまる/かどか取得・保存。#224はローカル実装済み/未pushとしてIssueを閉じない。
+
 # 81. GDScript版の固定モブ会話デッキと正面停止連携
 
 P1移行単位#223を実装した。純粋なdialogue_deckへ文字列検証/Unicode空白除去/一巡/再抽選を分離し、controllerが各モブのカード状態と向きを所有する。Sessionがプレイヤー正面のモブをイベントより先に選び、Sceneが実Enter/Space/Eキーを接続してplain結果をstatusへ表示する。echo/管理modalではカードを消費しない。話しかけるとモブがこちらを向くため既存の正面停止が働き、離れると次の周期で移動する。会話自体はmodalではなく、他のモブやフィールド時計は停止しない。

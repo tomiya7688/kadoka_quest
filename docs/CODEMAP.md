@@ -61,6 +61,7 @@
 | Godot通常攻撃 / 防御・会心数値 | `gdscript/engine/{attack_numbers,stat_numbers}.gd` | `tests/test_gdscript_attack_numbers.py`, `gdscript/tests/run_attack_probe.gd`, `test_core.py`のguard/critical | `docs/GDScript通常攻撃数値契約.md`, `gdscript/README.md` | #221。明示乱数/0方向切捨て/最低1、会心1/16と防御無視、guardは物理のみ。#220結果/許可装備のattack威力と固定追加。Scene/ターン/耐性/全スキル/AIは未接続。 |
 | Godot固定モブ周期移動 / 占有 | `gdscript/engine/{fixed_mob_controller,field_random}.gd`, `gdscript/application/field_session.gd`, `gdscript/ui/field_view.gd` | `tests/test_gdscript_fixed_mobs.py`, `gdscript/tests/run_fixed_mobs_probe.gd` | `docs/GDScript固定モブ移動契約.md`, `gdscript/README.md` | #222。clock/RNG注入、周期/占有/初期配置/保存座標。実Godot性能ガードcheck_gdscript_fixed_mobs.py。会話は#223、野生/接触戦闘は未移植。 |
 | Godot固定モブ会話 / 正面停止 | `gdscript/engine/{dialogue_deck,fixed_mob_controller}.gd`, `gdscript/application/{field_session,field_application}.gd` | `tests/test_gdscript_dialogue.py`, `gdscript/tests/run_fixed_mobs_probe.gd` | `docs/GDScript固定モブ会話契約.md` | #223。一巡/再抽選/境目の連続回避、正面対象、振り向き/停止/再開。不正デッキは理由付き。取得/戦闘/消滅は代用しない。 |
+| Godot湧き場の暗号入力 | `gdscript/engine/password_session.gd`, `gdscript/ui/password_view.gd`, `gdscript/application/field_application.gd` | `tests/test_gdscript_password.py`, `gdscript/tests/run_password_probe.gd` | `docs/GDScript暗号入力契約.md` | #224。7文字/KANA/純粋状態と仮想・native UI、modal停止/再開。JSON変更なし。一致はplain結果だけ、取得/保存は#225。IME実入力/export未検証。 |
 
 ## 更新ルール
 

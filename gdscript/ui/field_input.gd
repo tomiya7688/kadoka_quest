@@ -6,6 +6,11 @@ var held := Vector2i.ZERO
 var elapsed := 0.0
 
 
+func reset() -> void:
+	held = Vector2i.ZERO
+	elapsed = 0.0
+
+
 func movement_step(delta: float) -> Vector2i:
 	var requested := _pressed_direction()
 	if requested != held:

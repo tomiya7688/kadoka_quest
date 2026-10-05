@@ -13,6 +13,9 @@ const PresetService = preload("res://application/party_presets.gd")
 const PresetView = preload("res://ui/party_preset_view.gd")
 const SaveStore = preload("res://data/field_save_store.gd")
 const Persistence = preload("res://application/field_persistence.gd")
+const PasswordSession = preload("res://engine/password_session.gd")
+const PasswordView = preload("res://ui/password_view.gd")
+signal password_finished(result: Dictionary)
 
 var repository: RefCounted
 var session = Session.new()
@@ -30,6 +33,9 @@ var party_view: PanelContainer
 var party_editor: RefCounted
 var presets: RefCounted
 var preset_view: PanelContainer
+var password_session = PasswordSession.new()
+var password_view: PanelContainer
+var password_outcome: Dictionary = {}
 
 
 func _ready() -> void:
@@ -89,6 +95,16 @@ func _create_ui() -> void:
 	preset_view.load_requested.connect(load_party_preset)
 	preset_view.refresh_requested.connect(refresh_party_presets)
 	preset_view.back_requested.connect(close_party_presets)
+	password_view = PasswordView.new()
+	password_view.position = Vector2(48, 24)
+	password_view.size = Vector2(864, 492)
+	add_child(password_view)
+	password_view.hide()
+	password_view.configure_keys(PasswordSession.KANA_KEYS)
+	password_view.character_requested.connect(append_password)
+	password_view.backspace_requested.connect(backspace_password)
+	password_view.submit_requested.connect(submit_password)
+	password_view.cancel_requested.connect(cancel_password)
 
 
 func open_map(map_id: String, entry: Dictionary = {}) -> bool:
@@ -123,7 +139,7 @@ func _setup_persistence() -> void:
 
 
 func save_current_position() -> bool:
-	if persistence == null or session.world.is_empty():
+	if password_session.active or persistence == null or session.world.is_empty():
 		return false
 	var result: Dictionary = persistence.save_position(session)
 	status.text = "保存しました: " + profile_name if result["ok"] else "保存失敗: " + str(result["message"])
@@ -133,6 +149,8 @@ func save_current_position() -> bool:
 
 
 func load_saved_position(silent_missing: bool = false) -> bool:
+	if password_session.active:
+		return false
 	var result: Dictionary = persistence.load_position()
 	if not result["ok"]:
 		if not silent_missing or result["error"] != "not_found":
@@ -149,7 +167,7 @@ func load_saved_position(silent_missing: bool = false) -> bool:
 
 
 func _process(delta: float) -> void:
-	if session.world.is_empty() or roster_view.visible or party_view.visible or preset_view.visible:
+	if session.world.is_empty() or password_session.active or roster_view.visible or party_view.visible or preset_view.visible:
 		return
 	session.advance(delta)
 	var step: Vector2i = keyboard.movement_step(delta)
@@ -163,7 +181,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if party_view.visible or roster_view.visible or preset_view.visible:
+	if password_session.active or party_view.visible or roster_view.visible or preset_view.visible:
 		return
 	if not event is InputEventKey or not event.pressed or event.echo or session.world.is_empty():
 		return
@@ -180,6 +198,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if password_session.active:
+		if event is InputEventKey and event.pressed and password_view.handle_key(event):
+			get_viewport().set_input_as_handled()
+		return
 	if not event is InputEventKey or not event.pressed or persistence == null:
 		return
 	if preset_view.visible:
@@ -238,12 +260,16 @@ func _input(event: InputEvent) -> void:
 
 
 func open_owned_roster() -> void:
+	if password_session.active:
+		return
 	_refresh_owned_snapshot()
 	roster_view.show_snapshot(owned_snapshot)
 	roster_view.show()
 
 
 func begin_party_edit() -> void:
+	if password_session.active:
+		return
 	var editor = PartyEditor.new(persistence)
 	var result: Dictionary = editor.begin()
 	if not result["ok"]:
@@ -356,8 +382,47 @@ func _handle_event(event: Dictionary) -> void:
 	elif event.get("type") == "open_manager":
 		open_owned_roster()
 		status.text = "牧場台帳を開きました。Eで編成、編成のPでプリセット。個体編集・AI変更は未移植です。"
+	elif event.get("type") == "password_spring":
+		open_password_input()
 	else:
 		status.text = "[未移植: %s] %s" % [event.get("type", "event"), event.get("text", "")]
+
+
+func open_password_input() -> void:
+	password_session.open()
+	password_outcome = {}
+	keyboard.reset()
+	password_view.show_snapshot(password_session.snapshot(), true)
+
+
+func append_password(character: String) -> void:
+	password_session.append(character)
+	password_view.show_snapshot(password_session.snapshot())
+
+
+func backspace_password() -> void:
+	password_session.backspace()
+	password_view.show_snapshot(password_session.snapshot())
+
+
+func submit_password() -> void:
+	if not password_session.submit():
+		password_view.show_snapshot(password_session.snapshot())
+		return
+	_finish_password({"kind": "password_matched"}, "あいことばは一致しました。[未移植: まる・かどかの取得と保存 (#225)]")
+
+
+func cancel_password() -> void:
+	password_session.cancel()
+	_finish_password({"kind": "password_cancelled"}, "あいことばの入力をやめました。保存データは変更していません。")
+
+
+func _finish_password(result: Dictionary, text: String) -> void:
+	password_view.hide()
+	keyboard.reset()
+	password_outcome = result
+	status.text = text
+	password_finished.emit(result.duplicate())  # #225 will own acquisition/persistence, not the UI.
 
 
 func _refresh_view() -> void:
