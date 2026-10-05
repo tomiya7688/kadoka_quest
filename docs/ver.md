@@ -16,6 +16,29 @@
 
 ```
 
+# 83. GDScript版の暗号一致後のおばけ取得・保存
+
+P1移行単位#225を実装した。#224の正規湧き場→7文字入力→password_matchedを、純粋な不足種族/フラグ計画とapplication取得サービスへ接続する。個体/初期AIは既存plain契約、JSON公開/置換は既存Dataを使う。UIは保存せず、2種族の所有と保存内容を再検証してから成功を表示する。取得後は所有一覧を再走査し、牧場/F6と別プロセス再起動で確認できる。
+
+Python reacquire_ghostsと同じmaru→kadokaの不足分だけをLv1/経験0/＋なし/装備null/source=ghost_home_passwordで作る。既存の同種族が1体でもあれば追加せず、名前/Lv/＋/装備/取得元/学習AIや重複個体を変更しない。flags.ghost_entrance_openをtrueにし、既存の保存済み位置/向き/復活地点/party/他フラグ/未知キーを保持する。パーティへ自動追加せず、未保存のフィールド位置も保存しない。所有数/保存スロットの上限を追加しない。住処の2体/徘徊/会話を取得状態によって削除・初期化しない。
+
+新規プロフィールは既存管理画面と同様に先にF5で保存する。取得から初期個体や正規Python保存先を勝手に作らない。既存AI/state/所有フォルダの破損は理由付き拒否で、保存を修復しない。不足全種族の定義・Lv1再構築を公開前に検証し、暗号画面を開いた時のstate digestを各公開前/フラグ保存前に再照合する。外部更新や置換失敗を成功として扱わない。
+
+複数ファイル全体はトランザクションではない。1体公開後の失敗、2体公開後のstate置換失敗等はcreated/flag_saved/partial/stage/errorと「部分保存」を返す。公開済み個体や以前の保存を削除/巻き戻さず、再入力で最新所有を再走査して不足分だけを作る。検証後〜書込の並行writer競合窓は残り、全体排他/原子性を主張しない。誤答/取消は取得サービスを呼ばず書き込まない。
+
+追加: `gdscript/{engine,application}/ghost_acquisition.gd`と各uid、`tests/test_gdscript_ghost_acquisition.py`、`docs/GDScriptおばけ取得契約.md`。
+更新: `gdscript/application/field_application.gd`、`engine/monster_record_contract.gd`、`tests/run_password_probe.gd`、`tests/test_gdscript_password.py`、README/GDScript README、CODEMAP、FORMATS、暗号入力契約、移植境界説明書、移行単位表、本履歴。Python runtime・正規data/assets・実セーブは変更なし。以前からの無関係なgame.py/開発予定等は保持する。
+
+検証（2026-10-05）: 初回関連でGodot取得は成功したが、Python正本比較fixtureのProgressSession初期化不足により4サブテストが失敗した。fixtureを正本の状態所有へ合わせ、継続行styleを修正した。最終関連22件・2049サブテスト成功（62.44秒、skipなし）。実Sceneの正規イベント/実キーから不足2/1/0体と再入力/再起動、Python reacquire_ghosts/MonsterStore/StateStore/default_aiとの出力比較、既存AI/個体/party/位置/未知キー保持を専用コピーで確認した。128個体/126名前付きスロット、既存フラグだけ残った再取得、誤答/取消/未保存、外部更新、破損定義/AI/state/flags/所有フォルダも検証する。
+
+2体目公開失敗はテスト専用fault注入で確認した。実Windowsの読込可能・置換不可ロックでは、2体公開後のstate失敗/以前のstate保持/一時ファイル清掃/解除後の不足0体再試行を確認した。公開後の外部変更も専用コピーで拒否し、既存ID/AIを残したまま再試行できる。実セーブは使わない。
+
+全体893件・7479サブテスト成功（316.81秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2、skipなし）。最新版UPD（ae4636155b5e773d787cfccd1572808829601524）を再取得しPython対象エラー0・警告13・注意100。標準Python性能13項目成功（24枠生成951.96µs、24体移動362.45µs）。Godot標準性能ガード（20000回/7samples/2000warmup）は24体update+snapshot776.47µs（上限2ms）、5枚の会話デッキ選択4.87µs（上限100µs）で成功。取得は低頻度操作でホットパスを変更せず、描画/FPSの計測ではない。
+
+Python216ファイル致命的lint、新規style/構文、project rules、REPO_MAP/追跡対象application図、E2E参照、Godot import/専用保存rootで正規コンテンツ6000frame headless起動、diff --check成功。起動だけでは保存フォルダを作らない。E2Eカタログ12 covered/25 missing/1除外は参照構造の確認のみで、ゲーム全体の移植の証拠ではない。
+
+手動画面の視認性、Windows IME候補/確定、配布exportは未検証。次のP1 #226（教会イベントで復活地点を登録・保存）を起票し、GitHub blocked-byを#225に登録した。#226はcheckpoint登録のみで、実際の敗北→教会復活/HP回復とは別単位。今回分だけローカルコミットし、push/PR/Issue完了操作は行わない。
+
 # 82. GDScript版の湧き場7文字暗号入力と仮想キーボード
 
 P1移行単位#224を実装した。純粋な `engine/password_session.gd` がPython PasswordSessionと同じopen/append/backspace/submit/cancel、7文字上限、KANA_KEYS、完全一致、案内/誤答/activeを所有する。UIはnative LineEditの確定文字/仮想かなButton/実キーをplain操作signalへ変換し、7枠を描画する。Sceneは正規ghost_homeのpassword_spring、入力中の停止、結果signalを接続する。日本語確定文字は1文字ずつ渡し、native文字キーを重複追加しない。IME変換中のEnter/Backspace/Escはnative側へ委ねるが、実IMEの手動検証は未実施。

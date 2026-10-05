@@ -114,7 +114,8 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertFalse(result[-1]["visible"])
         self.assertEqual(result[-1]["result"], {"kind": "password_matched"})
         self.assertEqual(result[-1]["signals"], [{"kind": "password_matched"}])
-        self.assertIn("未移植", result[-1]["status"])
+        self.assertIn("先にF5", result[-1]["status"])
+        self.assertFalse(result[-1]["acquisition"]["ok"])
         self.assertNotIn("仲間にな", result[-1]["status"])
         self.assertFalse((self.content / "saves").exists())
 
@@ -198,7 +199,7 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertEqual(result[-1]["signals"], [])
         self.assertEqual(result[-1]["player"], [17, 8])
 
-    def test_matching_and_cancel_keep_owned_ai_flags_source_assets_and_ghosts_unchanged(self) -> None:
+    def test_cancel_and_already_complete_match_keep_json_and_ghosts_unchanged(self) -> None:
         self.prepare_scene()
         profile = self.content / "saves/default"
         profile.mkdir(parents=True)
@@ -217,10 +218,14 @@ class GDScriptPasswordTests(unittest.TestCase):
                 record = {"id": id, "species_id": id[:-3], "level": 1, "name": id, "plus_choices": []}
                 (folder / "monster.json").write_text(json.dumps(record), encoding="utf-8")
             before = self.content_bytes()
-            result = self.scene([{"kind": "key", "key": "E"}, {"kind": "type", "value": PASSWORD},
-                                 {"kind": "key", "key": "Enter"}, {"kind": "key", "key": "E"},
-                                 {"kind": "key", "key": "Escape"}])
-            self.assertEqual(result[2]["result"], {"kind": "password_matched"})
+            actions = [{"kind": "key", "key": "E"}, {"kind": "type", "value": PASSWORD}]
+            if acquired:
+                actions += [{"kind": "key", "key": "Enter"}, {"kind": "key", "key": "E"}]
+            actions.append({"kind": "key", "key": "Escape"})
+            result = self.scene(actions)
+            if acquired:
+                self.assertEqual(result[2]["result"], {"kind": "password_matched"})
+                self.assertTrue(result[2]["acquisition"]["ok"])
             self.assertEqual(result[-1]["result"], {"kind": "password_cancelled"})
             self.assertEqual([n["species_id"] for n in result[-1]["npcs"]], ["maru", "kadoka"])
             self.assertEqual(self.content_bytes(), before)

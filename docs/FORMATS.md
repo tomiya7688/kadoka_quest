@@ -370,7 +370,11 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 #221の[通常攻撃数値契約](GDScript通常攻撃数値契約.md)は、#220の補正後能力値と許可装備をplain入力として使用します。通常攻撃の `skill_modifiers.attack.power_multiplier / fixed_bonus_damage` をダメージ計算へ反映しますが、再構築stats自体や保存形式は変更しません。乱数を明示入力し、計算結果も実行時だけで、個体HP/AI/stateの書込はありません。戦闘Scene、耐性/全スキル/ターン/AIへの接続は未移植です。
 
-#224の[暗号入力契約](GDScript暗号入力契約.md)は既存 `password_spring` を使い、入力/案内/誤答/activeを純粋な実行時Sessionだけに持ちます。7文字/かな許可/完全一致の結果はplain `password_matched / password_cancelled`。一致しても#225の取得・保存にはまだ接続せず、個体/AI/items/parties/state/metaも新規フォルダも作成/変更しません。暗号入力に新しいJSON/schema/フラグは追加しません。
+#224の[暗号入力契約](GDScript暗号入力契約.md)は既存 `password_spring` を使い、入力/案内/誤答/activeを純粋な実行時Sessionだけに持ちます。7文字/かな許可/完全一致の結果はplain `password_matched / password_cancelled`。入力/誤答/取消は保存せず、一致の取得・保存は#225の[独立applicationサービス](GDScriptおばけ取得契約.md)へ接続します。新しいJSON/schema/フラグは追加しません。
+
+不足するmaru/kadokaの個体だけをLv1/経験0/＋なし/装備null/source:ghost_home_password/種族由来の初期AIで追加し、state.flags.ghost_entrance_openをtrueにします。既存個体/AI/items/parties/metaと、stateの保存済み位置/方向/current_party/復活地点/他フラグ/未知キーは保持します。フラグtrueならstateを不要に再出力せず、不足個体だけを追加します。初回プロフィール作成は従来のF5で行い、未保存/破損なら取得を拒否します。
+
+暗号画面を開いた時点のdigest、所有再走査、取得定義の事前検証、既存Dataの個体2ファイル公開/atomic state置換と保存後照合を使います。複数個体とstateの全件トランザクションではなく、部分失敗はcreated/flag_saved/partial/stage/errorで明示し、公開済み個体と以前のstateを削除しません。次の入力で最新所有から不足分だけ再試行します。並行writerの完全排他は保証しません。
 
 一覧のE/編成ボタンから現在パーティを明示的に編集できます。保存時は `current_party` だけを4枠の個体ID/null配列に更新します。重複ID・未読込個体は保存せず、既存の問題枠はユーザーが外す必要があります。不正型・5枠以上は開く時点で拒否し、自動切捨てしません。空編成も許可し、所有個体は削除しません。変更なし・キャンセルではstateのbyteも維持します。編集中の外部更新をdigestで検出し、置換失敗時も以前のstateと下書きを保持します。個体/AI/items/プリセットと位置は変更しません。牧場の `open_manager` は同じ一覧へ接続し、調べる/閉じるだけでは保存せず、JSON形式も追加しません。
 

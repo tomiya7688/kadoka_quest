@@ -4,6 +4,40 @@ const Password = preload("res://engine/password_session.gd")
 const KEYS := {"Enter": KEY_ENTER, "KPEnter": KEY_KP_ENTER, "Escape": KEY_ESCAPE, "Backspace": KEY_BACKSPACE,
 	"F5": KEY_F5, "F9": KEY_F9, "F6": KEY_F6, "Tab": KEY_TAB, "Space": KEY_SPACE,
 	"Left": KEY_LEFT, "Right": KEY_RIGHT, "E": KEY_E}
+const Documents = preload("res://data/json_documents.gd")
+
+
+class FaultStore extends "res://data/monster_store.gd":
+	var mode: String
+	var profile: String
+	var calls := 0
+
+	func _init(path: String, fault: String) -> void:
+		super(path)
+		profile = path
+		mode = fault
+
+	func create_new(record: Dictionary) -> Dictionary:
+		calls += 1
+		if mode == "fail_second" and calls == 2:
+			return {"ok": false, "error": "write_failed", "message": "test-only second-publication failure"}
+		var result: Dictionary = super.create_new(record)
+		if result["ok"] and mode == "external_state" and calls == 1:
+			var state: Dictionary = Documents.read_object(profile.path_join("state.json"))["value"]
+			state["external_update"] = "kept"
+			Documents.write_atomic(profile.path_join("state.json"), state)
+		return result
+
+
+class FaultService extends "res://application/ghost_acquisition.gd":
+	var mode: String
+
+	func _init(field: RefCounted, fault: String) -> void:
+		super(field)
+		mode = fault
+
+	func _monster_store(path: String) -> RefCounted:
+		return FaultStore.new(path, mode)
 
 
 func _initialize() -> void:
@@ -67,6 +101,12 @@ func _scene(request: Dictionary) -> Array:
 			"load": outcome = scene.load_saved_position()
 			"roster": scene.open_owned_roster()
 			"party": scene.begin_party_edit()
+			"fault": scene.ghost_acquisition = FaultService.new(scene.persistence, action["mode"])
+			"change_state":
+				var profile: Dictionary = scene.persistence.store.resolve_profile(scene.profile_name)
+				var state: Dictionary = scene.persistence.store.load_profile(scene.profile_name)["value"]
+				state.merge(action["changes"], true)
+				Documents.write_atomic(profile["path"].path_join("state.json"), state)
 		await process_frame
 		var slot_texts: Array = []
 		for slot: Label in scene.password_view.slots:
@@ -82,7 +122,9 @@ func _scene(request: Dictionary) -> Array:
 			"outcome": outcome, "signals": signals.duplicate(true), "result": scene.password_outcome.duplicate(),
 			"status": scene.status.text, "message": scene.password_view.message.text,
 			"native_text": scene.password_view.text_input.text, "bounds_ok": bounds_ok,
-			"panel_rect": str(panel), "window_size": str(root.size)})
+			"panel_rect": str(panel), "window_size": str(root.size),
+			"acquisition": scene.acquisition_result.duplicate(true), "owned": scene.owned_snapshot.duplicate(true),
+			"roster_text": scene.roster_view.body.text})
 	return observations
 
 

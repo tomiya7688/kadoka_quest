@@ -28,13 +28,13 @@ static func default_ai(profile: String = "normal", tactic: String = "balanced") 
 	}
 
 
-static func create_record(id: String, species: Dictionary, name: String = "", level: int = 1) -> Dictionary:
+static func create_record(id: String, species: Dictionary, name: String = "", level: int = 1, source: String = "starter") -> Dictionary:
 	return {
 		"monster": {
 			"schema_version": 1, "id": id, "species_id": species["id"],
 			"name": name if not name.is_empty() else species["display_name"],
 			"level": clampi(level, 1, 100), "experience": 0, "plus_choices": [],
-			"equipment_id": null, "source": "starter",
+			"equipment_id": null, "source": source,
 		},
 		"ai": default_ai(str(species.get("ai_profile", "normal"))),
 	}

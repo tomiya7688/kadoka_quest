@@ -22,12 +22,12 @@ LineEditの確定文字signalだけをSessionへ渡し、入力欄フォーカ�
 
 ## 一致結果と未移植
 
-一致は `password_finished({"kind": "password_matched"})`、取消は `password_cancelled` のplain結果。誤答はsignalを出さず、入力画面に残る。#224では一致時も「取得と保存は未移植 (#225)」を表示し、仲間加入成功を装わない。#225でこの結果を取得/保存へ接続する。
+一致は `password_finished({"kind": "password_matched"})`、取消は `password_cancelled` のplain結果。誤答はsignalを出さず、入力画面に残る。#224単独では取得/保存が未接続だった。#225の[おばけ取得契約](GDScriptおばけ取得契約.md)でapplicationサービスへ接続し、保存を確認してから加入成功を表示する。入力UI自体は取得処理を持たない。
 
-入力状態や結果は実行時だけ。保存形式・進行フラグ・所有個体・AI・items・partyは変更しない。新規保存フォルダも暗号操作だけでは作らない。データの暗号化やエディタ専用形式は追加しない。
+入力状態や結果は実行時だけ。入力/誤答/取消は進行フラグ・所有個体・AI・items・partyを変更せず、初期保存フォルダも作らない。一致時の取得/フラグ保存は#225の独立サービスの責務で、未保存なら先にF5を案内する。データの暗号化やエディタ専用形式は追加しない。
 
 ## 検証
 
 `tests/test_gdscript_password.py` →実Godot `tests/run_password_probe.gd`。純粋Sessionの同一操作列（開く/追記/削除/一致/不一致/取消/終了後/許可文字/Unicode）をPythonと比較する。専用コンテンツ/保存コピーで正規湧き場→実Unicodeキー/native LineEdit→仮想Buttonのmouse click/Tab/Space/各操作→停止/再開、960×540内のControl矩形を確認する。確定文字の複数文字signalはadapter検証で、OS IMEを再現したものではない。
 
-一致前後・取得前後のfixtureで正本data/assets、state/個体/AI/items/parties/metaのbyteとフォルダ構成を比較する。実セーブは使わない。Godot未指定時のskipは成功ではない。手動画面の見やすさ、IME実入力、exportは未検証。入力は7文字の低頻度操作で新しいホットパスではなく、既存Python/Godotの標準性能ガードで退行を検証する。
+一致前後・取得前後のfixtureで、入力/取消/取得済み再入力の不変と、#225の許可された新規個体・フラグだけの変更を分けて比較する。実セーブは使わない。Godot未指定時のskipは成功ではない。手動画面の見やすさ、IME実入力、exportは未検証。入力は7文字の低頻度操作で新しいホットパスではなく、既存Python/Godotの標準性能ガードで退行を検証する。

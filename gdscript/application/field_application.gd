@@ -15,6 +15,7 @@ const SaveStore = preload("res://data/field_save_store.gd")
 const Persistence = preload("res://application/field_persistence.gd")
 const PasswordSession = preload("res://engine/password_session.gd")
 const PasswordView = preload("res://ui/password_view.gd")
+const GhostAcquisition = preload("res://application/ghost_acquisition.gd")
 signal password_finished(result: Dictionary)
 
 var repository: RefCounted
@@ -36,6 +37,9 @@ var preset_view: PanelContainer
 var password_session = PasswordSession.new()
 var password_view: PanelContainer
 var password_outcome: Dictionary = {}
+var ghost_acquisition: RefCounted
+var ghost_request: Dictionary = {}
+var acquisition_result: Dictionary = {}
 
 
 func _ready() -> void:
@@ -133,6 +137,8 @@ func _setup_persistence() -> void:
 	if not configured_name.is_empty():
 		profile_name = configured_name
 	persistence = Persistence.new(repository, SaveStore.new(save_root), blocks, profile_name)
+	ghost_acquisition = GhostAcquisition.new(persistence)
+	password_finished.connect(_on_password_finished)
 	presets = PresetService.new(persistence)
 	load_saved_position(true)
 	_refresh_view()
@@ -389,6 +395,8 @@ func _handle_event(event: Dictionary) -> void:
 
 
 func open_password_input() -> void:
+	ghost_request = ghost_acquisition.begin()
+	acquisition_result = {}
 	password_session.open()
 	password_outcome = {}
 	keyboard.reset()
@@ -409,7 +417,7 @@ func submit_password() -> void:
 	if not password_session.submit():
 		password_view.show_snapshot(password_session.snapshot())
 		return
-	_finish_password({"kind": "password_matched"}, "あいことばは一致しました。[未移植: まる・かどかの取得と保存 (#225)]")
+	_finish_password({"kind": "password_matched"}, "あいことばは一致しました。")
 
 
 func cancel_password() -> void:
@@ -422,7 +430,15 @@ func _finish_password(result: Dictionary, text: String) -> void:
 	keyboard.reset()
 	password_outcome = result
 	status.text = text
-	password_finished.emit(result.duplicate())  # #225 will own acquisition/persistence, not the UI.
+	password_finished.emit(result.duplicate())
+
+
+func _on_password_finished(result: Dictionary) -> void:
+	if result["kind"] != "password_matched":
+		return
+	acquisition_result = ghost_acquisition.acquire(ghost_request)
+	status.text = acquisition_result["message"]
+	_refresh_owned_snapshot()  # Publish verified additions, including explicit partial success.
 
 
 func _refresh_view() -> void:

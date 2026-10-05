@@ -13,9 +13,10 @@
 | [#222](https://github.com/tomiya7688/kadoka_quest/issues/222) | 固定モブの時間周期移動/占有 | 既存のFieldEngine/Session | ローカル実装済み（未push、検証はver#80） |
 | [#223](https://github.com/tomiya7688/kadoka_quest/issues/223) | 会話デッキと正面での移動停止 | #222 | ローカル実装済み（未push、検証はver#81） |
 | [#224](https://github.com/tomiya7688/kadoka_quest/issues/224) | 湧き場の7文字暗号入力/仮想キーボード | #223 | ローカル実装済み（未push、検証はver#82） |
-| [#225](https://github.com/tomiya7688/kadoka_quest/issues/225) | 暗号一致後のまる/かどか取得・保存 | #224 | 次の未対応単位 |
+| [#225](https://github.com/tomiya7688/kadoka_quest/issues/225) | 暗号一致後のまる/かどか取得・保存 | #224 | ローカル実装済み（未push、検証はver#83） |
+| [#226](https://github.com/tomiya7688/kadoka_quest/issues/226) | 教会イベントの復活地点登録・保存 | 既存の名前付き保存/#225までのScene | 次の未対応単位 |
 
-各IssueのGoal / Required / Acceptance / Read scopeを正とし、ここへ詳細仕様を複写しない。上の依存はGitHubのblocked-byにも登録した。#224の暗号一致判定だけで仲間取得成功と表示せず、#225の保存完了へ接続する。別の未移植単位（戦闘進行/スキル/AI/野生/個体編集/各エディタ/export等）は、前提が明らかになった段階で同様に起票する。初期6件と追加2件でゲーム全体の移植を完了できるとは扱わない。
+各IssueのGoal / Required / Acceptance / Read scopeを正とし、ここへ詳細仕様を複写しない。上の依存はGitHubのblocked-byにも登録した。#224の一致結果を#225の保存確認後の成功へ接続した。#226は復活地点の登録だけで、実際の敗北→教会復活を代用しない。別の未移植単位（戦闘進行/スキル/AI/野生/個体編集/各エディタ/export等）は、前提が明らかになった段階で同様に起票する。この表だけでゲーム全体の移植を完了できるとは扱わない。
 
 ## 進め方
 
