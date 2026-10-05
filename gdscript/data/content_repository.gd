@@ -56,8 +56,9 @@ func load_map(map_id: String) -> Dictionary:
 	var world := _read_dictionary("data/maps/" + map_id + "/map.json")
 	if world.is_empty():
 		return {}
-	if not world.get("tiles") is Array or int(world.get("width", 0)) <= 0 \
-		or int(world.get("height", 0)) <= 0 or not world.get("start") is Dictionary:
+	if world.get("id") != map_id or not world.get("tiles") is Array \
+		or not _positive_integer(world.get("width")) or not _positive_integer(world.get("height")) \
+		or not world.get("start") is Dictionary or not world.get("events", []) is Array:
 		last_error = "Invalid map dimensions/start: " + map_id
 		return {}
 	if world["tiles"].size() != int(world["height"]):
@@ -84,6 +85,11 @@ func load_map(map_id: String) -> Dictionary:
 				world["events"].append(event)
 	last_error = ""
 	return world
+
+
+static func _positive_integer(value: Variant) -> bool:
+	return (value is int or value is float) and is_finite(float(value)) and float(value) > 0 \
+		and float(value) == floorf(float(value))
 
 
 func load_species(species_id: String) -> Dictionary:

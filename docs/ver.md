@@ -16,6 +16,29 @@
 
 ```
 
+# 84. GDScript版の教会復活地点登録・保存
+
+P1移行単位#226を実装した。正規church/reviveを実Enter/Space/Eから、純粋なrevive_point_contract→application/church_registration→既存Data保存へ接続した。地点の辞書/map_id/name/整数x/y、対象マップid・範囲・通行地形・blockingイベントを検証する。Dataのマップ読込もid/有限正整数の寸法/events配列を確認し、型違いをint変換で黙認しない。UI/rendererは保存を担当しない。
+
+既存stateのrevive_pointだけをイベントの辞書コピーで置き換える。入力地点の未知キーをPython FieldProgressStore.register_churchと同様に保持し、既存の保存位置/方向/current_party/flags/他stateキーと個体/学習済みAI/items/parties/metaは変えない。同じ地点ならstateの再出力もしない。schema/方向/revive_pointを省略した旧形式では、登録するキー以外を補間しない。未保存は先にF5を案内し、教会から保存フォルダ/初期個体を勝手に生成しない。
+
+既存stateとdigestを捕捉し、commitで再照合/対象マップ再読込を行う。既存save_profileの期待digest/リンク拒否/atomic state置換を使い、保存後に期待state全体を確認してから成功を表示する。外部更新・破損・未対応schema・不正保存位置・置換失敗は理由付き失敗で、以前の保存を削除/修復/巻き戻ししない。Dataの書込成功後に照合が失敗した場合もok:false/saved:trueと確認失敗を表示する。検証後〜書込の競合窓/並行writer完全排他の限界は従来どおり。
+
+登録だけで主人公を移動させず、モブ/会話/時計や編成を初期化しない。暗号/一覧/編成/プリセットmodalとechoでは教会登録を漏らさない。HP回復・全滅判定・実戦闘・敗北→教会復活は未接続と表示する。復活地点の再起動保持は実敗北復活の検証ではない。
+
+追加: `gdscript/engine/revive_point_contract.gd`、`gdscript/application/church_registration.gd`、`gdscript/tests/run_church_probe.gd`と各uid、`tests/test_gdscript_church.py`、`docs/GDScript教会登録契約.md`。
+更新: `gdscript/application/field_application.gd`、`gdscript/data/content_repository.gd`、README/GDScript README、CODEMAP、FORMATS、移植境界説明書、移行単位表、本履歴。Python runtime・正規data/assets・実セーブは変更なし。以前からのgame.py/開発予定等のユーザー変更は保持する。
+
+検証（2026-10-06）: 初回関連でリンク拒否自体は成功したが、テスト自身のprivate junctionを作る前のファイル一覧と、別名を含む作成後の一覧を比較した1件が失敗した。比較基準をsetup完了後に合わせ、ctypesの継続行styleを修正した。最終関連33件・2118サブテスト成功（66.22秒、skipなし）。新規13件・58サブテストが対象。正規2教会/実E・Enter・Space→保存→別プロセス再起動、同一地点/旧形式/未知キー、Python StateStore/FieldProgressStore読込と地点コピー、個体/AI/items/party/原本保持、型違い/不正マップ・座標・地形/blockingイベント/保存を専用コピーで確認した。
+
+外部更新はbegin後の変更と書込直前のData digest再照合で保持し、再試行で最新stateを使える。書込後外部更新と虚偽の成功返却は開発者probeだけのfault注入で、登録/保存成功を偽装しないことを確認した。実Windowsの読込可能・置換不可ハンドルでは前のstate/一時ファイル清掃/解除後再試行と、同一地点の書込不要を確認した。private junctionでもリンク先を書き換えず拒否する。実セーブは使わない。
+
+全体906件・7537サブテスト成功（352.57秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2、skipなし）。最新版UPD（ae4636155b5e773d787cfccd1572808829601524）を再取得しPython対象エラー0・警告13・注意100。Python217ファイル致命的lint、新規style/構文、project rules、REPO_MAP/追跡対象application図、E2E参照、Godot import/正規コンテンツ6000frame headless起動、diff --check成功。専用起動保存rootは作成されない。E2Eカタログ12 covered/25 missing/1除外は参照構造の検査だけで、ゲーム全体の移植の証拠ではない。
+
+標準Python性能13項目成功（24枠生成884.89µs、24体移動385.11µs）。Godot標準性能ガード（20000回/7samples/2000warmup）は24体update+snapshot835.24µs（上限2ms）、5枚会話デッキ選択5.29µs（上限100µs）で成功。教会登録は低頻度のI/O操作で新しいフレーム内ホットパスではなく、既存ガードで退行を確認した。登録I/Oのレイテンシや描画/FPSを計測したものではない。既存リモート取得・圧縮ツールでも最終確認し、origin/mainへのbehindは0で取り込む差分なし。
+
+手動画面の視認性、Windows IME、配布exportは未検証。次のP1 #227（戦闘個体のHP/MP・生死状態）を起票し、GitHub blocked-byを#226へ登録した。#219/#220/#221の補正済み能力値/通常攻撃数値を実行時状態へ接続する前提で、戦闘Scene/ターン/全スキル/AI/実敗北復活はさらに別単位。今回分だけローカルコミットし、push/PR/Issue完了操作は行わない。
+
 # 83. GDScript版の暗号一致後のおばけ取得・保存
 
 P1移行単位#225を実装した。#224の正規湧き場→7文字入力→password_matchedを、純粋な不足種族/フラグ計画とapplication取得サービスへ接続する。個体/初期AIは既存plain契約、JSON公開/置換は既存Dataを使う。UIは保存せず、2種族の所有と保存内容を再検証してから成功を表示する。取得後は所有一覧を再走査し、牧場/F6と別プロセス再起動で確認できる。

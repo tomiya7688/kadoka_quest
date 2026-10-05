@@ -63,6 +63,7 @@
 | Godot固定モブ会話 / 正面停止 | `gdscript/engine/{dialogue_deck,fixed_mob_controller}.gd`, `gdscript/application/{field_session,field_application}.gd` | `tests/test_gdscript_dialogue.py`, `gdscript/tests/run_fixed_mobs_probe.gd` | `docs/GDScript固定モブ会話契約.md` | #223。一巡/再抽選/境目の連続回避、正面対象、振り向き/停止/再開。不正デッキは理由付き。取得/戦闘/消滅は代用しない。 |
 | Godot湧き場の暗号入力 | `gdscript/engine/password_session.gd`, `gdscript/ui/password_view.gd`, `gdscript/application/field_application.gd` | `tests/test_gdscript_password.py`, `gdscript/tests/run_password_probe.gd` | `docs/GDScript暗号入力契約.md` | #224。7文字/KANA/純粋状態と仮想・native UI、modal停止/再開。UIは保存しない。一致を#225へ接続。IME実入力/export未検証。 |
 | Godotまる/かどか取得・保存 | `gdscript/{engine,application}/ghost_acquisition.gd`, `gdscript/engine/monster_record_contract.gd`, `gdscript/application/field_application.gd` | `tests/test_gdscript_ghost_acquisition.py`, `gdscript/tests/run_password_probe.gd` | `docs/GDScriptおばけ取得契約.md` | #225。不足だけLv1/source/初期AI、既存AI/party/位置保持、digest/再走査/部分保存と再試行。F5保存前は拒否。住処2体不変。全体原子性は主張しない。 |
+| Godot教会の復活地点登録 | `gdscript/engine/revive_point_contract.gd`, `gdscript/application/{church_registration,field_application}.gd`, `gdscript/data/{content_repository,field_save_store}.gd` | `tests/test_gdscript_church.py`, `gdscript/tests/run_church_probe.gd` | `docs/GDScript教会登録契約.md` | #226。revive_pointだけを保存、通行/型/digest/リンク/置換/保存後照合。HP回復・実敗北復活は未接続。 |
 
 ## 更新ルール
 

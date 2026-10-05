@@ -16,6 +16,7 @@ const Persistence = preload("res://application/field_persistence.gd")
 const PasswordSession = preload("res://engine/password_session.gd")
 const PasswordView = preload("res://ui/password_view.gd")
 const GhostAcquisition = preload("res://application/ghost_acquisition.gd")
+const ChurchRegistration = preload("res://application/church_registration.gd")
 signal password_finished(result: Dictionary)
 
 var repository: RefCounted
@@ -40,6 +41,8 @@ var password_outcome: Dictionary = {}
 var ghost_acquisition: RefCounted
 var ghost_request: Dictionary = {}
 var acquisition_result: Dictionary = {}
+var church_registration: RefCounted
+var church_result: Dictionary = {}
 
 
 func _ready() -> void:
@@ -138,6 +141,7 @@ func _setup_persistence() -> void:
 		profile_name = configured_name
 	persistence = Persistence.new(repository, SaveStore.new(save_root), blocks, profile_name)
 	ghost_acquisition = GhostAcquisition.new(persistence)
+	church_registration = ChurchRegistration.new(persistence)
 	password_finished.connect(_on_password_finished)
 	presets = PresetService.new(persistence)
 	load_saved_position(true)
@@ -390,8 +394,18 @@ func _handle_event(event: Dictionary) -> void:
 		status.text = "牧場台帳を開きました。Eで編成、編成のPでプリセット。個体編集・AI変更は未移植です。"
 	elif event.get("type") == "password_spring":
 		open_password_input()
+	elif event.get("type") == "church":
+		register_church(event.get("revive"))
 	else:
 		status.text = "[未移植: %s] %s" % [event.get("type", "event"), event.get("text", "")]
+
+
+func register_church(revive: Variant) -> Dictionary:
+	if password_session.active or roster_view.visible or party_view.visible or preset_view.visible:
+		return {"ok": false, "error": "modal_active", "message": "画面を閉じてから教会を調べてください。"}
+	church_result = church_registration.register(revive)
+	status.text = church_result["message"]
+	return church_result
 
 
 func open_password_input() -> void:

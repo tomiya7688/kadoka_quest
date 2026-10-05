@@ -19,6 +19,7 @@ Godot 4.7.2で検証。`project.godot` をGodotからインポートし、F6で�
 - 固定モブの停止/ランダム/追跡移動を時間周期で更新。まる450ms/100%、かどか900ms/45%。プレイヤー・他モブ・壁・岩/看板と重ならない。移動/調べるイベント自体に色や印は付けない。
 - 正面の固定モブにEnter/Space/Eで会話。デッキを一巡後に再抽選し、こちらを向いて停止。離れると既存の移動周期へ戻る。デッキ不正は理由を表示。
 - 住処の水の湧き場を調べて7文字のかな入力/仮想キーボード。決定・削除・取消、入力中の探索停止。`へいわなすみか` の一致で不足するまる/かどかを現在のセーブへ追加し、牧場一覧へ反映。
+- はじまりの街/ロクター村の教会を調べて復活地点を保存。登録だけで移動/HP回復はせず、実際の敗北復活は未接続。
 - ゲーム内のF5で現在のマップ・マス座標・向きを保存、F9で読込。次回起動時にも選択中のセーブから復元。
 - 新規セーブの初回F5で主人公・ボールスライムの個体と初期パーティを生成。
 - F6で現在パーティと保有個体の一覧。縦スクロールとキーボード操作に対応。
@@ -84,7 +85,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 
 #221の[通常攻撃・防御・会心の数値契約](../docs/GDScript通常攻撃数値契約.md)は `engine/attack_numbers.gd` に実装済みです。会心乱数と0.92〜1.08の倍率を明示入力し、会心率1/16・防御無視・物理だけの防御軽減を比較できます。通常攻撃に効く許可装備の威力倍率/固定追加値も数値契約で扱います。共通の最終処理は魔法等にguardを掛けませんが、魔法/耐性/全スキルを実装したわけではありません。戦闘Scene/ターンには未接続で、ゲーム内で戦闘はまだできません。
 
-戦闘、野生敵、戦闘AI判断/学習/リセット、固定モブの消滅イベント、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、配布exportは未実装です。教会などは「未移植」を表示し、副作用を起こしません。Python版の置換・完成版ではありません。
+戦闘、野生敵、戦闘AI判断/学習/リセット、固定モブの消滅イベント、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、HP回復/実敗北復活、配布exportは未実装です。教会は復活地点の登録だけを行い、未接続の回復/復活を成功として表示しません。Python版の置換・完成版ではありません。
 
 現在はsource checkout専用です。正本がGodotのresource root外にあるため、export済みexeでこのまま共有コンテンツを読めるとは主張しません。配布時のコンテンツ配置とexportは別段階で検証します。
 
@@ -101,6 +102,7 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_dialogue.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_password.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_ghost_acquisition.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_church.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_fixed_mobs.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
@@ -120,7 +122,8 @@ Python版FieldEngineとの同一入力/出力比較、正本の読込一致、�
 
 Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)、[JSON](https://docs.godotengine.org/en/stable/classes/class_json.html)、[Image](https://docs.godotengine.org/en/stable/classes/class_image.html)。
 #224は[暗号入力契約](../docs/GDScript暗号入力契約.md)。住処の（17,8）から上を向き、湧き場をEnter/Space/Eで調べます。7枠と46かなキー、入力欄で日本語入力、Tab/Spaceで仮想キー操作、Enter/テンキーEnterで決定、Backspaceで削除、Escで取消。入力中は時計/主人公/固定モブ/保存/管理を止め、閉じても追いつき移動しません。native Unicodeイベントと確定文字signalをheadlessで検証しますが、実IME・手動画面・exportの証拠ではありません。
-#225は[おばけ取得契約](../docs/GDScriptおばけ取得契約.md)。未保存なら先にF5で保存してください。一致時は同種族を所有していない分だけLv1/初期AI/source:ghost_home_passwordで追加し、ghost_entrance_openを保存します。既存の名前/Lv/＋/AI/パーティ・保存済み位置・未知キーを保持し、2匹の住処での配置/会話/徘徊も変えません。取得後にF6/台帳で再走査します。部分保存時は追加済み個体を保持して理由を表示し、再入力で不足分のみ再試行します。全件原子性/並行writer排他は保証しません。次は#226の教会復活地点登録です。
+#225は[おばけ取得契約](../docs/GDScriptおばけ取得契約.md)。未保存なら先にF5で保存してください。一致時は同種族を所有していない分だけLv1/初期AI/source:ghost_home_passwordで追加し、ghost_entrance_openを保存します。既存の名前/Lv/＋/AI/パーティ・保存済み位置・未知キーを保持し、2匹の住処での配置/会話/徘徊も変えません。取得後にF6/台帳で再走査します。部分保存時は追加済み個体を保持して理由を表示し、再入力で不足分のみ再試行します。全件原子性/並行writer排他は保証しません。
+#226は[教会登録契約](../docs/GDScript教会登録契約.md)。はじまりの街は（18,10）、ロクター村は（14,9）から上を向いてEnter/Space/Eで教会を調べます。先にF5で保存し、既存revive_pointだけを検証済みの地点へ置き換えます。同一地点なら不要な再出力をせず、位置/編成/フラグ/未知キー/個体/AI/itemsを保持します。外部更新・破損・リンク・置換失敗は拒否し、保存後の照合から成功を表示します。登録だけで移動/HP回復せず、敗北復活は未接続です。次は#227の戦闘個体HP/MP・生死状態です。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。
 一覧/編成UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)、[ItemList](https://docs.godotengine.org/en/stable/classes/class_itemlist.html)。
 
