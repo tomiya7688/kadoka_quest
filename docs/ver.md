@@ -16,6 +16,18 @@
 
 ```
 
+# 91. レビュー基準と共有コーディング規約
+
+ユーザー指定の20禁止事項をR01〜R20として、rootのレビュー基準.mdとコーディング規約.mdへ記載した。レビュー基準はローカル専用として.gitignoreのroot指定で除外し、共有コーディング規約は追跡する。命名、状態と操作のクラス所有、単一責務・単一処理単位、宣言と処理ごとのコメント、バグ予防、計算量・実行性能、冗長性、安全操作、拡張性、CI/E2E、人間が読める設計・仕様、主語別の文体、背景・目的・手段・実行方法、日本語の読みやすさを必須基準にした。
+
+AGENTSから共有規約を参照し、ローカルレビュー基準は存在するときだけ読む。clone/CIでignoredファイルが欠けても共有基準は読める。既存CODING_RULES/COMMENT_RULESにも参照を追加し、意味のある内部処理ごとの通常コメントを必須とした。指定upstreamの日本語正本Draft v0.9/main 5691767a8708407a568a75a242543a4add825253をGitHub CLIで再確認した。上流は内部通常コメントを許容するため、全コメントをJSON形式にする規則へ改変していない。
+
+規約の作成だけで既存全コードが適合したとは扱わない。必要な検証が失敗した場合は修正要求、未検証なら保留とし、静的検査・単体/統合/headless/smoke・E2Eカタログ・実GUI・export・リモートCIの証拠を区別する。文書とignore設定だけの変更で、runtime/JSON/assets/実セーブや既存game.py/開発予定を変更しない。
+
+検証（2026-10-07）: 関連32件・11サブテスト成功。実セーブと分離したheadless全998件・9550サブテスト成功（416.44秒）。両文書のR01〜R20の順序・重複なし、相対リンク、余分な行末空白、レビュー基準だけのignore、AGENTSの6000byte上限（5779byte）を確認した。project rules、宣言コメント304ファイル・2570宣言、生成repo map/application diagramの鮮度、Python 3.10構文互換性のAST検査230ファイル、追跡対象Python230ファイルのblocking lint、git diff --checkが成功した。最初の全フォルダlintはignoredの.venv/venv_3135内の第三者コードまで走査して71件を報告したため、Git管理されたプロジェクトコードを対象に再確認した。第三者ライブラリや検査条件は変更していない。
+
+E2Eカタログは構造・参照だけを確認した（covered 12 / missing 25 / intentionally-not-e2e 1）。実GUI、配布export、リモートCI、別Python版での実行、既存全コードのR01〜R20適合監査はUnverified。runtime/責務境界の変更がないため、新しいUPD checker導入やhot path性能比較は今回の範囲に含めない。今回分だけローカルコミットし、push/PR/Issue変更は行わない。
+
 # 90. GDScript基本ぼうぎょ・Session所有guard・ラウンド終端解除
 
 P1 #251を実装した。pure basic_defend_contractが正規skillsの一意defend/kind:defend・有限MP0・既定倍率0.5だけを検証する。未対応counter/protect/status等はfalse/空でも拒否し、MOD原本を修復しない。basic_defend_actionは厳密な2キー要求→offered読み取り検証→最新生死による単一claim→本人guardだけ更新→finishを同期実行する。重複/古い/既claimed/不正要求は資源/効果/cursorを消費せず、死亡/逃走/敵なし取消は効果を適用しない。

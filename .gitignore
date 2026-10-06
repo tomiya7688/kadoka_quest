@@ -14,3 +14,6 @@ imports/acquire/*/
 !imports/acquire/.gitkeep
 imports/simulation/*/
 !imports/simulation/.gitkeep
+
+# Local-only review criteria; shared coding standards remain tracked.
+/レビュー基準.md
