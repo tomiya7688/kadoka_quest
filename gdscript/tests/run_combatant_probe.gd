@@ -5,6 +5,7 @@ const State = preload("res://engine/combatant_state.gd")
 const Builder = preload("res://application/combatant_builder.gd")
 const Repository = preload("res://data/content_repository.gd")
 const Numbers = preload("res://engine/attack_numbers.gd")
+const Order = preload("res://engine/turn_order.gd")
 
 
 func _initialize() -> void:
@@ -103,20 +104,27 @@ func _join(case: Dictionary, builder: RefCounted) -> Dictionary:
 
 
 func _performance(payload: Dictionary) -> Dictionary:
+	var round_input := _round_input()
+	return {"microseconds": _timing(_cycle, payload),
+		"round_microseconds": _timing(_round_cycle.bind(round_input), payload),
+		"iterations": int(payload.get("iterations", 20000)), "samples": int(payload.get("samples", 7)),
+		"warmup": int(payload.get("warmup", 2000)), "actors": 8}
+
+
+func _timing(operation: Callable, payload: Dictionary) -> float:
 	var iterations := int(payload.get("iterations", 20000))
 	var samples := int(payload.get("samples", 7))
 	var warmup := int(payload.get("warmup", 2000))
 	for index in warmup:
-		_cycle()
+		operation.call()
 	var timings: Array = []
 	for sample in samples:
 		var started := Time.get_ticks_usec()
 		for index in iterations:
-			_cycle()
+			operation.call()
 		timings.append(float(Time.get_ticks_usec() - started) / iterations)
 	timings.sort()
-	return {"microseconds": timings[timings.size() / 2], "iterations": iterations,
-		"samples": samples, "warmup": warmup, "actors": 8}
+	return timings[timings.size() / 2]
 
 
 func _cycle() -> void:
@@ -131,6 +139,24 @@ func _cycle() -> void:
 			state.flee()
 		snapshots.append(state.snapshot())
 	State.living(snapshots)
+
+
+func _round_input() -> Dictionary:
+	var allies: Array = []
+	var enemies: Array = []
+	for index in 8:
+		var state = State.new()
+		state.start({"id": str(index), "species_id": "slime", "name": "test"},
+			{"hp": 100, "mp": 20, "attack": 10, "defense": 10, "magic": 10, "speed": index % 3 + 1})
+		(allies if index < 4 else enemies).append(state.snapshot())
+	var shuffled: Array = Order.participants(allies, enemies)["members"]
+	shuffled.reverse()
+	return {"allies": allies, "enemies": enemies, "shuffle_order": shuffled}
+
+
+func _round_cycle(request: Dictionary) -> void:
+	var planned := Order.plan(request["allies"], request["enemies"], request["shuffle_order"])
+	Order.check_actor(planned["order"][0], request["allies"], request["enemies"])
 
 
 func _copy(value: Variant) -> Variant:

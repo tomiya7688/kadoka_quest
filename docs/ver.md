@@ -16,6 +16,25 @@
 
 ```
 
+# 86. GDScript版の行動順・最新の実行可否
+
+P1移行単位#228を実装した。pure `engine/turn_order.gd` が#227 snapshotの生存味方→敵収集、明示shuffle順検証、補正済み速度のstable降順計画と、行動直前の最新HP/fled/敵生存確認を担当する。side+idで両陣営同IDを区別し、0と1の速度はPython Combatant.speed同様に同速として扱う。Godotの不安定sortへ同速を任せず、最大8体へのstable insertionを使う。
+
+`application/turn_preparation.gd` はread-only Builderから新規戦闘snapshotと計画を組み立てるだけで、行動/保存/AIを実装しない。開始準備を既存戦闘のラウンドごとのHP最大値再生成に使わず、行動直前は現在のsnapshotを入力する。HP0/逃走なら実行不可、敵生存者なしならstopを返すが、勝敗/報酬/復活の成功結果ではない。順序消費や行動済み/pendingは次のSession単位へ分ける。
+
+#227の型/数値/最大値/整合性、各陣営4体/重複とshuffle欠損/重複/未知対象を検証し、自動補完しない。未対応snapshot/identity/stats追加キーを拒否し、状態異常/速度buffを適用済みと扱わない。保有JSONの未知キーは削除せず、入力/返却値を独立コピーにする。所有数/プリセット数は無制限のまま。
+
+追加: 上記engine/applicationと各uid、`gdscript/tests/run_turn_probe.gd`とuid、`tests/test_gdscript_turn_order.py`、`docs/GDScript行動順契約.md`。
+更新: 既存combatant probe/性能checker、README/GDScript README、CODEMAP、FORMATS、戦闘状態契約の導線、移植境界説明書、移行単位表、tools README、本履歴。Python runtime・正規data/assets・実セーブは変更なし。以前からのgame.py/開発予定/未追跡ファイルは保持する。
+
+検証（2026-10-06）: 新規16件（順序96組、8体混合100組、最新生存72組、正規準備108組の計376サブテスト）。初回関連52件成功後に128文字のtest行を127文字以内へ折返し、最終関連52件・1790サブテスト成功（33.33秒、skipなし）。同一shuffleをPythonの実run_roundへ注入して実際にsortされたリストを比較した。参照側の行動/勝敗はmockで止めた部分比較で、AI/攻撃/勝敗移植の証拠ではない。0体/片側空/HP0/逃走/同速/速度差/両陣営同ID、最新死亡/逃走/敵なし、不正型/非有限/精度外/追加snapshotキー/不正shuffle、入力/返却値独立性を確認した。正規8種族×Lv1/50/100×＋/許可装備の開始準備をPython BattleDataLoaderと比較し、個体/学習済AI/party/items/data/assetsのbyte不変を専用コピーで確認した。実セーブは使わない。
+
+全体940件・8472サブテスト成功（382.58秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2、skipなし）。追跡Python222ファイルの致命的lint、新規style、project rules、REPO_MAP/追跡application図、E2E参照、Godot import/正規コンテンツ6000frame headless起動、diff --check成功。専用起動保存rootは作成されない。E2Eカタログ12 covered/25 missing/1除外は参照構造の検査だけで、ゲーム全体の移植証拠ではない。最新版UPD（ae4636155b5e773d787cfccd1572808829601524）を再取得しPython対象エラー0・警告13・注意100。
+
+標準性能（20000回/7samples/2000warmup）: Python13項目成功（24枠生成1035.83µs、24体移動377.04µs）。Godot既存24体update+snapshot823.64µs（上限2ms）、5枚会話デッキ選択6.69µs（上限100µs）。combatantガードは8体資源状態402.50µs（上限1ms）と、新規8体plan＋1回の最新check642.77µs（上限2ms）で成功した。8回行動/実ラウンド/AI/描画/FPS/I/O/exportの性能を計測したものではなく、開発者専用でPlayerにimportしない。
+
+既存リモート取得・圧縮ツールでも最終確認し、origin/mainへのbehindは0で取り込む差分なし。次のP1 #229（戦闘SessionのState保持・ラウンドカーソル）を起票し、GitHub blocked-byを#228へ登録・照合した。戦闘Scene/攻撃・全スキル/状態異常/AI推論・学習/勝敗・報酬保存/実敗北→教会復活は未接続、手動画面/exportは未検証。今回分だけローカルコミットし、push/PR/Issue完了操作は行わない。
+
 # 85. GDScript版の戦闘個体HP/MP・生死状態
 
 P1移行単位#227を実装した。pure `engine/combatant_state.gd` が戦闘専用HP/MP/fled/alive、read-only `application/combatant_builder.gd` が既存個体/schema→#219/#220再構築→独立plain snapshotを担当する。新規生成は最大HP/MP、同じインスタンスの再初期化を拒否し、HP0から勝手に復活しない。非負整数値のダメージ・MP費用と実減少/不足結果、HPが残っている逃走者も除く順序保持の生存一覧を扱う。

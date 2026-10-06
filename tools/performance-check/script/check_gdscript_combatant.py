@@ -1,4 +1,4 @@
-"""Developer-only actual Godot eight-combatant resource/snapshot timing; no Player imports."""
+"""Developer-only real Godot resource states and base turn ordering/eligibility; no Player imports."""
 from __future__ import annotations
 
 import argparse
@@ -30,7 +30,7 @@ def main() -> int:
         fixture.write_text(json.dumps(request), encoding="utf-8")
         process = subprocess.run([godot, "--headless", "--path", str(ROOT / "gdscript"), "--script",
                                   "res://tests/run_combatant_probe.gd", "--", str(fixture)],
-                                 capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
+                                 capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600)
     if process.returncode or "SCRIPT ERROR" in process.stderr or "ERROR:" in process.stderr:
         print(process.stderr + process.stdout)
         return 1
@@ -42,7 +42,10 @@ def main() -> int:
                   f"{result['microseconds']:.2f}us <= 1000us "
                   f"[{int(result['iterations'])} iterations, {int(result['samples'])} samples, "
                   f"{int(result['warmup'])} warmup]")
-            return 0 if passed else 1
+            round_passed = result["round_microseconds"] <= 2000 and result["actors"] == 8
+            print(f"{'OK' if round_passed else 'FAIL'} Godot turn plan+one-latest-eligibility (8 actors) "
+                  f"{result['round_microseconds']:.2f}us <= 2000us")
+            return 0 if passed and round_passed else 1
     print("FAIL: missing Godot result")
     return 1
 

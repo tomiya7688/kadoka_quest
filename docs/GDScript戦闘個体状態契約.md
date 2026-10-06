@@ -52,4 +52,4 @@ Python Combatant.__post_init__の `hp=0 / mp=0` は新規生成時の最大値�
 
 開発者専用 `tools/performance-check/script/check_gdscript_combatant.py` は実Godotで8体のinit/damage/MP/flee/snapshot/livingを計測します。標準は20000回・7samples・2000warmup、中央値1ms以内の余裕ある退行ガード。Playerにはimportせず、描画/FPS・I/O・実ターン戦闘の計測ではありません。
 
-次のP1 [#228](https://github.com/tomiya7688/kadoka_quest/issues/228) は行動順・行動直前の生存/実行可否です。全スキル/AI/実戦闘・自動戦闘UI・敗北復活は後続へ分けます。手動画面/配布exportは未検証です。
+[#228の行動順契約](GDScript行動順契約.md)で、順序と行動直前の最新生存/実行可否を追加しました。次のP1 [#229](https://github.com/tomiya7688/kadoka_quest/issues/229) は戦闘中State保持/ラウンドカーソルです。全スキル/AI/実戦闘・自動戦闘UI・敗北復活は後続へ分けます。手動画面/配布exportは未検証です。

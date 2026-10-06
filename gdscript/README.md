@@ -104,6 +104,7 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_ghost_acquisition.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_church.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_combatant.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_turn_order.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_fixed_mobs.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_combatant.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
@@ -126,7 +127,8 @@ Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stab
 #224は[暗号入力契約](../docs/GDScript暗号入力契約.md)。住処の（17,8）から上を向き、湧き場をEnter/Space/Eで調べます。7枠と46かなキー、入力欄で日本語入力、Tab/Spaceで仮想キー操作、Enter/テンキーEnterで決定、Backspaceで削除、Escで取消。入力中は時計/主人公/固定モブ/保存/管理を止め、閉じても追いつき移動しません。native Unicodeイベントと確定文字signalをheadlessで検証しますが、実IME・手動画面・exportの証拠ではありません。
 #225は[おばけ取得契約](../docs/GDScriptおばけ取得契約.md)。未保存なら先にF5で保存してください。一致時は同種族を所有していない分だけLv1/初期AI/source:ghost_home_passwordで追加し、ghost_entrance_openを保存します。既存の名前/Lv/＋/AI/パーティ・保存済み位置・未知キーを保持し、2匹の住処での配置/会話/徘徊も変えません。取得後にF6/台帳で再走査します。部分保存時は追加済み個体を保持して理由を表示し、再入力で不足分のみ再試行します。全件原子性/並行writer排他は保証しません。
 #226は[教会登録契約](../docs/GDScript教会登録契約.md)。はじまりの街は（18,10）、ロクター村は（14,9）から上を向いてEnter/Space/Eで教会を調べます。先にF5で保存し、既存revive_pointだけを検証済みの地点へ置き換えます。同一地点なら不要な再出力をせず、位置/編成/フラグ/未知キー/個体/AI/itemsを保持します。外部更新・破損・リンク・置換失敗は拒否し、保存後の照合から成功を表示します。登録だけで移動/HP回復せず、敗北復活は未接続です。
-#227は[戦闘個体状態契約](../docs/GDScript戦闘個体状態契約.md)。pure StateがHP/MP/fled/aliveを持ち、read-only Builderが補正済み能力値と個体をplain snapshotへ投影します。初回最大値・HP0保持・MP不足/ちょうど消費・逃走後の生存除外を実GodotとPythonで比較し、保有JSON/学習AI/保存形式を変更しません。4体の戦闘チームと無制限の所有数を区別します。Scene/ターン/全スキル/AI/実敗北復活は未接続。次は#228の行動順・実行可否です。
+#227は[戦闘個体状態契約](../docs/GDScript戦闘個体状態契約.md)。pure StateがHP/MP/fled/aliveを持ち、read-only Builderが補正済み能力値と個体をplain snapshotへ投影します。初回最大値・HP0保持・MP不足/ちょうど消費・逃走後の生存除外を実GodotとPythonで比較し、保有JSON/学習AI/保存形式を変更しません。4体の戦闘チームと無制限の所有数を区別します。Scene/全スキル/AI/実敗北復活は未接続です。
+#228は[行動順契約](../docs/GDScript行動順契約.md)。side+idで両陣営同IDを区別し、開始時生存者→明示shuffle→stable速度順を計算します。行動直前の最新HP/逃走/敵生存を確認しますが、未移植の状態異常/buffや攻撃/AIを成功扱いにしません。新規準備と行動中の最新snapshotを区別します。次は#229のState保持/ラウンドカーソル、Scene/実戦闘/勝敗保存は後続です。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。
 一覧/編成UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)、[ItemList](https://docs.godotengine.org/en/stable/classes/class_itemlist.html)。
 

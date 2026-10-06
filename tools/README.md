@@ -50,6 +50,7 @@ The performance thresholds intentionally allow normal CI variance and fail only 
 The GDScript fixed-mob guard requires `KADOKA_GODOT_EXECUTABLE` and measures real headless Godot update + snapshot for 24 actors (20,000 iterations / 7 samples / 2,000 warmup; median <= 2ms). It uses private fixtures and does not measure drawing, I/O, window FPS, or exported builds. Missing Godot is Unverified with exit 2, never a successful substitute.
 It also measures dialogue selection + plain effect generation for the last of 24 actors with five cards (median <= 100us), including repeated deck refills. This is not timing of keyboard delivery or text rendering.
 The GDScript combatant guard measures eight battle-only resource states (init + damage + MP + flee + snapshot + living) in real headless Godot: 20,000 iterations / 7 samples / 2,000 warmup, median <= 1ms. It does not execute a battle round, AI or scene, and never changes save/content files. Missing Godot exits 2 as Unverified. These tools remain outside Player runtime imports.
+It also measures base-speed round planning plus one latest-resource eligibility check for eight combatants (same standard counts, median <= 2ms). It does not time eight actions, attack/AI resolution, an executed round, rendering or I/O.
 
 Reusable patterns in `code-docs` and `task-workflow` were adapted from `tomiya7688/AI_game_player`.
 
