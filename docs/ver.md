@@ -16,6 +16,22 @@
 
 ```
 
+# 92. GDScriptのMP付き単体物理スキル定義・純粋予測
+
+リモートを取得・要約し、incomingなしを確認した。GitHub CLIでP0/P1と移行候補を確認し、公開P1移行Issueはすべてローカル実装済みだったため、移行表の未起票候補を最小の前提単位へ分けた。今回は定義と数値予測だけ。MP付きスキルを通常attackへ偽装せず、実MP支払い・単一行動権・SessionへのHP適用・AI/Sceneは後続へ残す。公開Issue作成・状態変更やpushは行わない。
+
+engine/physical_skill_contract.gdが正規skillsの指定ID一意性・metadata・kind・正のMP整数・有限威力/会心倍率を検証する。未知効果はfalse/空でも拒否する。quote_damageは未知要求/不正MP/不足を拒否し、元定義・入力資源を変更せずHP/MPの予測を返す。attack_numbers.gdからphysical_damageを共用し、従来のnormal_attackのattack限定とscopeを維持した。新規宣言は構造化コメント、各処理には目的・理由の通常コメントを付けた。
+
+追加: physical_skill_contract.gdとUID、run_physical_skill_probe.gdとUID、tests/test_gdscript_physical_skill.py、tools/performance-check/script/check_gdscript_physical_skill.py、docs/GDScript物理スキル予測契約.md。更新: attack_numbers.gd、CODEMAP、GDScript README、tools案内、移行表。JSON/保存形式は変更せず、実セーブ・既存game.py/開発予定・data/assetsは変更しない。
+
+検証: 関連51件・2466サブテスト成功（41.32秒、実Godot 4.7.2 / Python 3.14.7）。正規3スキル648組と有限MOD121組を実Python BattleEngine._attack(allow_counter=False)と比較した。数値・会心境界・guard・装備投影・最低1/HP上限、MP予測・コピー独立性・未知効果・不正型・native NaN/Inf・精度超過を確認した。AI選択・学習・実MP支払いを検証したとは扱わない。新規予測は54.77us/回（20000回/7samples/2000warmup、上限3000us）。通常攻撃は変更前のGit版を専用コピーへ復元し同条件で1219.64→1244.96us（2000回/3samples/200warmup、8体中1段階、いずれも上限3000us以内）。Godotの標準editor importも成功した。
+
+差分レビュー: R01/R02は目的の分かるAPI名と直線的な呼出順、R03/R08/R09は純粋検証・数値共用・プローブ・計測条件所有の分離、R04/R10は構造化宣言と処理目的の通常コメントを確認した。R05は不正型/境界/未対応効果/コピーを回帰テストへ残し、R06/R11/R12はprepareのO(スキル件数)と固定フィールド数のquote・計算共用・計測結果を確認した。R07は単一用途の新規ファイル（契約153行・プローブ114行・テスト347行・検査117行）、R13は専用一時領域と原本/実セーブ非書込、R14はIDを固定しないMOD対応と未対応範囲の明示を確認した。R15はローカルの必須品質検査、R16はScene変更がないため新規画面E2Eを対象外とし、既存カタログの構造だけを確認する。R17〜R20は新規仕様の背景・目的・手段・開発者の具体的操作・期待結果・失敗対応と日本語を確認した。既存全コードの適合監査ではない。
+
+最終検証: headless全1005件・10319サブテスト成功（498.88秒）。project rules、宣言コメント308ファイル・2598宣言、生成repo map/application diagram鮮度、追跡Python232ファイルのblocking lint、Python 3.10構文AST、pip check、変更文書の相対リンク、git diff --checkが成功した。最新UPD checkerのmain ae4636155b5e773d787cfccd1572808829601524を再導入し、対象PythonはErrorなし・Warning17/Attention100で変更前と同じ。GDScriptの静的責務検査まで成功したとは扱わず、実Godotによる構文・参照・契約検証と分ける。標準Python runtime性能検査は変更前後とも全項目成功した。E2Eカタログは構造・参照のみ成功（covered12/missing25/intentionally-not-e2e1）。
+
+実GUI、IME、export、リモートCI、別Python版での実行、実際の物理スキル行動適用はUnverified。今回の13ファイルだけをローカルコミットし、ユーザーの既存変更を混在させない。push/PR/Issue作成・状態変更は行わない。
+
 # 91. レビュー基準と共有コーディング規約
 
 ユーザー指定の20禁止事項をR01〜R20として、rootのレビュー基準.mdとコーディング規約.mdへ記載した。レビュー基準はローカル専用として.gitignoreのroot指定で除外し、共有コーディング規約は追跡する。命名、状態と操作のクラス所有、単一責務・単一処理単位、宣言と処理ごとのコメント、バグ予防、計算量・実行性能、冗長性、安全操作、拡張性、CI/E2E、人間が読める設計・仕様、主語別の文体、背景・目的・手段・実行方法、日本語の読みやすさを必須基準にした。

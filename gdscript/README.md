@@ -112,6 +112,8 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_battle_session.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_normal_attack.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_basic_defend.py
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_physical_skill.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_physical_skill.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -143,3 +145,5 @@ Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stab
 編成の責務: `engine/party_selection.gd` は純粋な4枠の下書き/選択規則、`application/party_editor.gd` は下書き所有と保存前再検証、`ui/party_view.gd` は入力/表示と操作signal。Sceneは結果表示と接続、既存Dataはstateのatomic更新を担当します。
 
 プリセットの責務: `engine/party_preset_contract.gd` は純粋な形式/名前/欠損枠の契約、`data/party_preset_store.gd` は一覧/読込/新規JSONのI/O、`application/party_presets.gd` は所有個体の検証と下書きへの適用、`ui/party_preset_view.gd` は入力/フォーカス/表示とsignalです。実Sceneのキー/クリック・再起動、Python PartyStoreでの読込、121ファイルの一覧、不正/外部変更/実Windows読込ロック、state/個体/AI/元プリセットの不変性を専用コピーで検証します。日本語テキストのイベント入力は検証しますが、実IME・ウィンドウの視認性・exportの証拠ではありません。
+
+MP付き単体物理スキルの[予測契約](../docs/GDScript物理スキル予測契約.md)は、指定定義・MP不足・未対応効果を検証し、既存通常攻撃と物理数値を共用します。元の定義とHP/MPを変更せず、残MPを予測します。ゲーム画面には未接続で、実際のMP消費・行動権取得・HP適用は後続です。開発者は上記の専用テストと性能検査を実行してください。

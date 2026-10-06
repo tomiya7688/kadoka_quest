@@ -49,6 +49,7 @@ python tools/performance-check/script/check_gdscript_combatant.py
 python tools/performance-check/script/check_gdscript_battle_session.py
 python tools/performance-check/script/check_gdscript_normal_attack.py
 python tools/performance-check/script/check_gdscript_basic_defend.py
+python tools/performance-check/script/check_gdscript_physical_skill.py
 ```
 
 The performance thresholds intentionally allow normal CI variance and fail only large runtime regressions. Grow this tool with the project: when field updates, battle resolution, data transformations, or other runtime paths become performance-sensitive, add representative benchmark cases here rather than introducing runtime profiling overhead into the game.
