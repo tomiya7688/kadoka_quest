@@ -17,9 +17,10 @@
 | [#226](https://github.com/tomiya7688/kadoka_quest/issues/226) | 教会イベントの復活地点登録・保存 | 既存の名前付き保存/#225までのScene | ローカル実装済み（未push、検証はver#84） |
 | [#227](https://github.com/tomiya7688/kadoka_quest/issues/227) | 戦闘個体のHP/MP・生死状態 | #219/#220/#221と#226までの移行 | ローカル実装済み（未push、検証はver#85） |
 | [#228](https://github.com/tomiya7688/kadoka_quest/issues/228) | ラウンドの行動順・実行可否契約 | #227 | ローカル実装済み（未push、検証はver#86） |
-| [#229](https://github.com/tomiya7688/kadoka_quest/issues/229) | 戦闘SessionのState保持/ラウンドカーソル | #228 | 次の未対応単位 |
+| [#229](https://github.com/tomiya7688/kadoka_quest/issues/229) | 戦闘SessionのState保持/ラウンドカーソル | #228 | ローカル実装済み（未push、検証はver#87） |
+| [#230](https://github.com/tomiya7688/kadoka_quest/issues/230) | 通常攻撃の行動解決→Session | #229/#221 | 次の未対応単位 |
 
-各IssueのGoal / Required / Acceptance / Read scopeを正とし、ここへ詳細仕様を複写しない。上の移行順はGitHubのblocked-byにも登録した。#224の一致結果を#225の保存確認後の成功へ接続した。#226は復活地点の登録だけで、実際の敗北→教会復活を代用しない。#227/#228の戦闘状態・順序・最新生存を、#229の戦闘中State保持と段階カーソルへつなぐ。戦闘Scene/攻撃/全スキル/AI/勝敗はさらに後続へ分ける。別の未移植機能（野生/個体編集/各エディタ/export等）は、前提が明らかになった段階で同様に起票する。この表だけでゲーム全体の移植を完了できるとは扱わない。
+各IssueのGoal / Required / Acceptance / Read scopeを正とし、ここへ詳細仕様を複写しない。上の移行順はGitHubのblocked-byにも登録した。#224の一致結果を#225の保存確認後の成功へ接続した。#226は復活地点の登録だけで、実際の敗北→教会復活を代用しない。#227/#228の戦闘状態・順序・最新生存を、#229の戦闘中State保持と段階カーソルへつないだ。#230で通常攻撃だけを接続し、戦闘Scene/全スキル/AI/勝敗はさらに後続へ分ける。別の未移植機能（野生/個体編集/各エディタ/export等）は、前提が明らかになった段階で同様に起票する。この表だけでゲーム全体の移植を完了できるとは扱わない。
 
 ## 進め方
 

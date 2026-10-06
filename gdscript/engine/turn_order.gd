@@ -16,6 +16,10 @@ static func participants(allies: Variant, enemies: Variant) -> Dictionary:
 	return {"ok": true, "members": _keys(prepared)}
 
 
+static func valid_key(key: Variant) -> bool:
+	return _valid_key(key)
+
+
 static func plan(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Dictionary:
 	var prepared := _prepare(allies, enemies)
 	if not prepared["ok"]:

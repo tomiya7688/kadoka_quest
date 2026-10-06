@@ -16,6 +16,27 @@
 
 ```
 
+# 87. GDScript版の戦闘Session・資源保持と段階カーソル
+
+P1移行単位#229を実装した。pure `engine/battle_session.gd` が#227 Stateを戦闘開始時だけ所有し、#228の明示shuffle/stable速度順をラウンドごとに固定する。HP/MP/fledは次ラウンドまで保持し、途中snapshotを最大値へ戻すstart・成功後の再初期化を拒否する。開始失敗は未初期化のまま原子的に拒否し、再試行可能。
+
+候補取得はoffered予約でcan_execute=false、claimだけが最新死亡/逃走/敵生存を再確認して一度だけcan_execute=trueを返す。claimedに対するfinishだけがcursorを一度進める。二重取得/claim/完了、未claim完了、古い/不正ticket、進行中のround開始を拒否し、死亡/逃走者をskipする。stoppedは勝敗/報酬/復活の成功結果ではない。side+idとround/slotで同IDの両陣営・古い同個体の候補を区別する。
+
+資源操作は当該Stateへ委譲するだけで攻撃/AI実行を代用しない。各陣営4体と無制限の所有/プリセットを区別し、#228のstrict snapshot/未対応状態異常/速度buff拒否、独立plain入出力を維持する。applicationはread-only Preparation→Session.start→begin_roundを調停し、全成功後のみ内部Sessionを切り替える。公開は開始とsnapshotだけで、RefCountedを層外へ返さない。
+
+追加: 上記engine/applicationと各uid、`gdscript/tests/run_battle_session_probe.gd`とuid、`tests/test_gdscript_battle_session.py`、`tools/performance-check/script/check_gdscript_battle_session.py`、`docs/GDScript戦闘Session契約.md`。
+更新: turn_orderの安全なkey検証公開、README/GDScript README、CODEMAP、FORMATS、#227/#228仕様への導線、移植境界説明書、移行単位表、tools README、本履歴。Python runtime・正規data/assets・実セーブは変更なし。以前からのgame.py/開発予定/未追跡ファイルは保持する。
+
+検証（2026-10-06）: 新規17テスト・230サブテスト。最初の参照テストの個体属性名を修正して関連51件・1165サブテスト成功（36.38秒、skipなし）。全体957件・8702サブテスト成功（391.42秒、Python 3.14.7 / pygame-ce 2.5.8 / 実Godot 4.7.2、skipなし）。テスト2行の127文字折返し後、#221も含む最終関連69件・2020サブテスト成功（42.68秒）。
+
+8体/同速/両陣営同IDの60組を最大3ラウンド、Python実run_roundの順序/最新生存と比較した。参照側の_take_actionは資源変更stub、_check_endはmockで、攻撃/AI/勝敗移植の証拠ではない。3ラウンド資源保持、途中/取得後の死亡・逃走・敵なし、重複/古い/不正ticket・順序・再初期化、不正型/非有限/未知キー・宛先、初期結果/入力/返却値/個体同士の独立性、8種族の新規開始を確認。個体/学習済AI/party/items/data/assetsのbyte不変は専用コピーで検証し、実セーブは使わない。
+
+新規2ファイルを含む追跡Python224ファイルの致命的lint、新規style/構文、project rules、REPO_MAP/追跡application図、E2E参照、Godot import/正規コンテンツ6000frame headless起動、diffチェック成功。専用起動保存rootは作成されない。E2Eカタログ12 covered/25 missing/1除外は参照構造検査だけ。最新版UPD（ae4636155b5e773d787cfccd1572808829601524）を再取得し、Python対象エラー0・警告13・注意100。GDScript全体をcheckerで検査した結果ではない。
+
+標準性能（20000回/7samples/2000warmup）: 新規8体Sessionの1候補next/claim/0ダメージ・0MP/finishは719.86µs（上限2ms）で成功。8段階ごとのround計画を償却し、初期State構築は計測外。Python13項目成功（24枠生成834.61µs、24体移動334.55µs）。既存Godot24体update+snapshot724.21µs（上限2ms）、5枚会話4.87µs（上限100µs）、8体資源状態411.81µs（上限1ms）、8体plan＋1回の最新check585.67µs（上限2ms）も成功。実攻撃/AI/8体全ラウンド/描画/FPS/I/O/exportの性能ではなく、開発者専用でPlayerへimportしない。
+
+終了前の既存リモート取得・圧縮ツールでもorigin/mainへのbehind=0で取り込む差分なし。次のP1 #230（通常攻撃行動→Session）を起票し、GitHub blocked-by=#229/#221を登録・照合した。Scene/攻撃・全スキル/状態異常/AI推論・学習/勝敗・報酬保存/実敗北→教会復活は未接続、手動画面/exportはUnverified。今回分だけローカルコミットし、push/PR/Issue完了操作は行わない。
+
 # 86. GDScript版の行動順・最新の実行可否
 
 P1移行単位#228を実装した。pure `engine/turn_order.gd` が#227 snapshotの生存味方→敵収集、明示shuffle順検証、補正済み速度のstable降順計画と、行動直前の最新HP/fled/敵生存確認を担当する。side+idで両陣営同IDを区別し、0と1の速度はPython Combatant.speed同様に同速として扱う。Godotの不安定sortへ同速を任せず、最大8体へのstable insertionを使う。

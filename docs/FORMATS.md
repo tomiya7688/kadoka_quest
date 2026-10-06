@@ -374,6 +374,8 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 #228の[行動順契約](GDScript行動順契約.md)は同snapshotを実行時だけ読み、対象を `side:allies/enemies / id` の2キーで識別します。明示shuffleは開始時生存者全員の順列のみ許可し、stable速度順のplain initial/orderを返します。最新状態のcan_act/stop/reasonは行動直前の条件で、勝敗保存や攻撃成功ではありません。未対応のsnapshot/identity/stats追加キーは拒否しますが、保有JSONの未知キーは削除しません。新しいファイル/保存schema/キーを導入せず、AI/個体/party/items/data/assetsは変更しません。
 
+#229の[戦闘Session](GDScript戦闘Session契約.md)はfresh snapshotからStateを一度だけ所有し、plain `phase / round / cursor / order / pending / teams / scope` を返します。pendingは `{ticket:{round,slot,actor:{side,id}},stage:offered/claimed}`、取得だけではcan_execute=false、claim成功で一度だけtrueです。finishはclaimedのみ消費し、古いticket/二重操作を拒否。HP/MP/fledを次ラウンドまで保持します。実行時だけの契約で保存JSON/schemaは増やさず、stoppedは勝敗/報酬/復活成功ではありません。
+
 #224の[暗号入力契約](GDScript暗号入力契約.md)は既存 `password_spring` を使い、入力/案内/誤答/activeを純粋な実行時Sessionだけに持ちます。7文字/かな許可/完全一致の結果はplain `password_matched / password_cancelled`。入力/誤答/取消は保存せず、一致の取得・保存は#225の[独立applicationサービス](GDScriptおばけ取得契約.md)へ接続します。新しいJSON/schema/フラグは追加しません。
 
 不足するmaru/kadokaの個体だけをLv1/経験0/＋なし/装備null/source:ghost_home_password/種族由来の初期AIで追加し、state.flags.ghost_entrance_openをtrueにします。既存個体/AI/items/parties/metaと、stateの保存済み位置/方向/current_party/復活地点/他フラグ/未知キーは保持します。フラグtrueならstateを不要に再出力せず、不足個体だけを追加します。初回プロフィール作成は従来のF5で行い、未保存/破損なら取得を拒否します。

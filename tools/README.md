@@ -44,6 +44,7 @@ Runtime performance check:
 python tools/performance-check/script/check_runtime_performance.py
 python tools/performance-check/script/check_gdscript_fixed_mobs.py
 python tools/performance-check/script/check_gdscript_combatant.py
+python tools/performance-check/script/check_gdscript_battle_session.py
 ```
 
 The performance thresholds intentionally allow normal CI variance and fail only large runtime regressions. Grow this tool with the project: when field updates, battle resolution, data transformations, or other runtime paths become performance-sensitive, add representative benchmark cases here rather than introducing runtime profiling overhead into the game.
@@ -51,6 +52,7 @@ The GDScript fixed-mob guard requires `KADOKA_GODOT_EXECUTABLE` and measures rea
 It also measures dialogue selection + plain effect generation for the last of 24 actors with five cards (median <= 100us), including repeated deck refills. This is not timing of keyboard delivery or text rendering.
 The GDScript combatant guard measures eight battle-only resource states (init + damage + MP + flee + snapshot + living) in real headless Godot: 20,000 iterations / 7 samples / 2,000 warmup, median <= 1ms. It does not execute a battle round, AI or scene, and never changes save/content files. Missing Godot exits 2 as Unverified. These tools remain outside Player runtime imports.
 It also measures base-speed round planning plus one latest-resource eligibility check for eight combatants (same standard counts, median <= 2ms). It does not time eight actions, attack/AI resolution, an executed round, rendering or I/O.
+The GDScript battle-session guard measures one next/claim/zero-resource/finish stage in an eight-actor session (same counts, median <= 2ms), amortizing one new round plan every eight stages. State initialization is outside timing. This is not eight resolved actions, a real battle round, AI, rendering, I/O or export.
 
 Reusable patterns in `code-docs` and `task-workflow` were adapted from `tomiya7688/AI_game_player`.
 

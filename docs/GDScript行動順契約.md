@@ -1,6 +1,6 @@
 # GDScript行動順・実行可否契約（#228）
 
-#227のplain戦闘スナップショットから、ラウンド開始時の順序と、各行動直前の生存条件を計算します。順序を実際に消費するSession・攻撃/スキル/AI・勝敗・戦闘画面・演出はまだ接続しません。
+#227のplain戦闘スナップショットから、ラウンド開始時の順序と、各行動直前の生存条件を計算します。順序消費は[#229のSession](GDScript戦闘Session契約.md)へ接続しました。攻撃/スキル/AI・勝敗・戦闘画面・演出はまだ接続しません。
 
 ## 純粋APIと識別子
 
@@ -34,7 +34,7 @@ snapshotは#227の6キー `identity / stats / hp / mp / fled / alive`、identity
 
 `application/turn_preparation.gd` の `prepare(allies_records, enemies_records, shuffle_order)` は既存CombatantBuilderで新規個体snapshotを作り、Order.planへ渡します。返却は `ok / teams:{allies,enemies} / plan / scope:base_turn_preparation`。再構築失敗は陣営/detail付き拒否で、保存・修復・AI推論は行いません。
 
-これは新規戦闘の開始準備であり、既存戦闘のラウンドごとにrecordsから最大HPを再生成する経路ではありません。行動中は保有recordsから再buildせず、既存戦闘の最新snapshotを純粋Orderへ渡します。戦闘中のState保持と順序消費は次のP1 [#229](https://github.com/tomiya7688/kadoka_quest/issues/229)です。4体のactive制限と無制限の所有/プリセットは従来どおりです。
+これは新規戦闘の開始準備であり、既存戦闘のラウンドごとにrecordsから最大HPを再生成する経路ではありません。行動中は保有recordsから再buildせず、既存戦闘の最新snapshotを純粋Orderへ渡します。戦闘中のState保持と順序消費は[#229のSession契約](GDScript戦闘Session契約.md)で扱います。4体のactive制限と無制限の所有/プリセットは従来どおりです。
 
 ## 検証
 
