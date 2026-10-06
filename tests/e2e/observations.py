@@ -1,4 +1,8 @@
 """Read JSON-like runtime/save observations without changing game progress."""
+# {
+#   責務: [observations: Read JSON-like runtime/save observations without changing game progress.]
+#   フィールド: []
+# }
 
 from __future__ import annotations
 
@@ -10,11 +14,23 @@ from kadoka_quest.data.savedata import SaveDataManager
 from kadoka_quest.paths import SAVEDATA_ROOT
 
 
+# {
+#   責務: [mob_observation: observationsのモブ・observationを求める]
+#   処理: [1: observationsのモブ・observationを求める]
+#   引数: [mob: モブ（dict）]
+#   戻り値: [result: observationsのモブ・observationを求めるための結果（dict）]
+# }
 def mob_observation(mob: dict) -> dict:
     keys = ("id", "name", "species_id", "x", "y", "direction", "ai", "spawn", "next_move_tick")
     return {key: mob[key] for key in keys if key in mob}
 
 
+# {
+#   責務: [combatant_observation: observationsの戦闘個体・observationを求める]
+#   処理: [1: observationsの戦闘個体・observationを求める]
+#   引数: [member: 個体]
+#   戻り値: [result: observationsの戦闘個体・observationを求めるための結果（dict）]
+# }
 def combatant_observation(member) -> dict:
     return {
         "monster": member.record.monster, "ai": member.record.ai,
@@ -24,6 +40,12 @@ def combatant_observation(member) -> dict:
     }
 
 
+# {
+#   責務: [battle_observation: observationsの戦闘・observationを求める]
+#   処理: [1: observationsの戦闘・observationを求める]
+#   引数: [session: セッション]
+#   戻り値: [result: observationsの戦闘・observationを求めるための結果（dict | None）]
+# }
 def battle_observation(session) -> dict | None:
     battle = session.battle
     if battle is None:
@@ -40,6 +62,15 @@ def battle_observation(session) -> dict | None:
     }
 
 
+# {
+#   責務: [observe: observationsのobserveを求める]
+#   処理: [1: observationsのobserveを求める]
+#   引数: [
+#     driver: driver
+#     save_root: 保存・基準ディレクトリ（Path）
+#   ]
+#   戻り値: [result: observationsのobserveを求めるための結果（dict）]
+# }
 def observe(driver, save_root: Path) -> dict:
     game = driver.game
     saves = SaveDataManager(SAVEDATA_ROOT)

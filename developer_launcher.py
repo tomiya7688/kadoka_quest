@@ -1,3 +1,7 @@
+# {
+#   責務: [developer_launcher: developer・launcherの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from pathlib import Path
 import sys
 import traceback
@@ -35,10 +39,22 @@ AUTOMATION_LOGS = {
 }
 
 
+# {
+#   責務: [_dist_root: developer・launcherのdist・基準ディレクトリを求める]
+#   処理: [1: developer・launcherのdist・基準ディレクトリを求める]
+#   引数: []
+#   戻り値: [result: developer・launcherのdist・基準ディレクトリを求めるための結果（Path）]
+# }
 def _dist_root() -> Path:
     return PROJECT_ROOT / "dist"
 
 
+# {
+#   責務: [build_player: 主人公を構築する]
+#   処理: [1: 主人公を構築する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def build_player() -> None:
     if is_frozen():
         output = materialize_player_distribution(
@@ -61,10 +77,22 @@ def build_player() -> None:
         print(f"[ok] {output}")
 
 
+# {
+#   責務: [smoke_player_build: developer・launcherのsmoke・主人公・buildを求める]
+#   処理: [1: developer・launcherのsmoke・主人公・buildを求める]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def smoke_player_build() -> None:
     smoke_distributions(_dist_root(), targets="player")
 
 
+# {
+#   責務: [validate_project: projectを妥当性を検査する]
+#   処理: [1: projectを妥当性を検査する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def validate_project() -> None:
     report = ProjectValidator(PROJECT_ROOT / "data", PROJECT_ROOT / "assets").validate()
     print(report.summary(detail_limit=20))
@@ -72,6 +100,12 @@ def validate_project() -> None:
         raise SystemExit(1)
 
 
+# {
+#   責務: [main: developer・launcherのエントリ処理を実行する]
+#   処理: [1: developer・launcherのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     if "--dev-tool" in sys.argv:
         index = sys.argv.index("--dev-tool")
@@ -105,6 +139,12 @@ def main() -> None:
     launcher_main()
 
 
+# {
+#   責務: [run: developer・launcherを実行する]
+#   処理: [1: developer・launcherを実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def run() -> None:
     automation_flag = next((flag for flag in AUTOMATION_LOGS if flag in sys.argv), None)
     redirected = None

@@ -1,3 +1,7 @@
+# {
+#   責務: [summary: 新規Issueの要約コメントを作るCIフローを定義する]
+#   フィールド: [jobs: 未信頼のIssue本文からの要約作成ジョブ]
+# }
 name: Summarize new issues
 
 on:

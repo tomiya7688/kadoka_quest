@@ -1,4 +1,8 @@
 """Generate a deterministic public-symbol index without importing game code."""
+# {
+#   責務: [generate_repo_map: Generate a deterministic public-symbol index without importing game code.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -11,6 +15,12 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
+# {
+#   責務: [signature: generate・repo・マップのsignatureを求める]
+#   処理: [1: generate・repo・マップのsignatureを求める]
+#   引数: [node: node（ast.FunctionDef | ast.AsyncFunctionDef）]
+#   戻り値: [result: generate・repo・マップのsignatureを求めるための結果（str）]
+# }
 def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     arguments = deepcopy(node.args)
     # Keep optionality, not potentially large implementation expressions.
@@ -24,6 +34,12 @@ def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     return f"{prefix}{node.name}({ast.unparse(arguments)}){returns}"
 
 
+# {
+#   責務: [public_symbols: generate・repo・マップのpublic・symbolsを求める]
+#   処理: [1: generate・repo・マップのpublic・symbolsを求める]
+#   引数: [tree: tree（ast.Module）]
+#   戻り値: [result: lines（list[str]）]
+# }
 def public_symbols(tree: ast.Module) -> list[str]:
     lines = []
     for node in tree.body:
@@ -40,6 +56,12 @@ def public_symbols(tree: ast.Module) -> list[str]:
     return lines
 
 
+# {
+#   責務: [render_repo_map: repo・マップを表示用データを生成する]
+#   処理: [1: repo・マップを表示用データを生成する]
+#   引数: [source: 元データ（Path）]
+#   戻り値: [result: repo・マップを表示用データを生成するための結果（str）]
+# }
 def render_repo_map(source: Path) -> str:
     if not source.is_dir():
         raise ValueError(f"Source directory does not exist: {source}")
@@ -64,6 +86,12 @@ def render_repo_map(source: Path) -> str:
     return "\n".join(lines)
 
 
+# {
+#   責務: [main: generate・repo・マップのエントリ処理を実行する]
+#   処理: [1: generate・repo・マップのエントリ処理を実行する]
+#   引数: [argv: argv（list[str] | None）]
+#   戻り値: [result: generate・repo・マップのエントリ処理を実行するための結果（int）]
+# }
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=REPO_ROOT / "src")

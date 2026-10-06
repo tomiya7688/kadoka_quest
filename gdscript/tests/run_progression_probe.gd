@@ -1,3 +1,7 @@
+# {
+#   責務: [run_progression_probe: Real engine contracts and read-only repository calls; fixture roots only.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Real engine contracts and read-only repository calls; fixture roots only.
 
@@ -5,15 +9,34 @@ const Progression = preload("res://engine/monster_progression.gd")
 const Repository = preload("res://data/content_repository.gd")
 const Service = preload("res://application/monster_progression.gd")
 
+# {
+#   責務: [CountingRepository: counting・データ取得先の状態と振る舞いを担当する]
+#   フィールド: [
+#     calls: calls
+#     bundle: bundle（Dictionary）
+#   ]
+# }
 class CountingRepository:
 	extends RefCounted
 	var calls := 0
 	var bundle: Dictionary
+	# {
+	#   責務: [load_progression: progressionを読み込む]
+	#   処理: [1: progressionを読み込む]
+	#   引数: [_id: 識別子（String）]
+	#   戻り値: [result: progressionを読み込むための結果（Dictionary）]
+	# }
 	func load_progression(_id: String) -> Dictionary:
 		calls += 1
 		return bundle
 
 
+# {
+#   責務: [_initialize: run・progression・probeのエントリ処理を実行する]
+#   処理: [1: run・progression・probeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	var request: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(OS.get_cmdline_user_args()[0]))
 	var results: Array = []

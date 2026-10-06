@@ -1,3 +1,7 @@
+# {
+#   責務: [test_wild_encounter_flow: test・wild・encounter・進行の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import copy
@@ -14,6 +18,12 @@ from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.data.state import StateStore
 
 
+# {
+#   責務: [game: test・wild・encounter・進行のゲームを求める]
+#   処理: [1: test・wild・encounter・進行のゲームを求める]
+#   引数: [tmp_path: tmp・パス]
+#   戻り値: [result: 処理結果（型注釈なし）]
+# }
 @pytest.fixture
 def game(tmp_path):
     repository = GameRepository(Path(__file__).resolve().parents[1] / "data")
@@ -28,6 +38,18 @@ def game(tmp_path):
     return result
 
 
+# {
+#   責務: [wild: test・wild・encounter・進行のwildを求める]
+#   処理: [1: test・wild・encounter・進行のwildを求める]
+#   引数: [
+#     x: X座標
+#     y: Y座標
+#     species: 種族
+#     level: レベル
+#     ai: AI
+#   ]
+#   戻り値: [result: test・wild・encounter・進行のwildを求めるための結果（型注釈なし）]
+# }
 def wild(x, y, species="ghost", level=7, ai="idle"):
     return {
         "x": x, "y": y, "ai": ai, "direction": "front", "next_move_tick": 1000,
@@ -35,6 +57,15 @@ def wild(x, y, species="ghost", level=7, ai="idle"):
     }
 
 
+# {
+#   責務: [test_contact_routes_to_matching_enemy_without_tile_overlap: 検証: contact routes to matching enemy without tile overlap]
+#   処理: [1: 検証: contact routes to matching enemy without tile overlap]
+#   引数: [
+#     game: ゲーム
+#     trigger: trigger
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("trigger", ["walk_into", "walk_near", "enemy_approach", "front_check"])
 def test_contact_routes_to_matching_enemy_without_tile_overlap(game, trigger):
     target = game.hidden_monsters[0]
@@ -60,6 +91,15 @@ def test_contact_routes_to_matching_enemy_without_tile_overlap(game, trigger):
     assert len(game.hidden_monsters) == 3
 
 
+# {
+#   責務: [test_non_front_enemy_does_not_trigger: 検証: non front enemy does not trigger]
+#   処理: [1: 検証: non front enemy does not trigger]
+#   引数: [
+#     game: ゲーム
+#     position: 座標
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("position", [(6, 7), (5, 6), (7, 7)])
 def test_non_front_enemy_does_not_trigger(game, position):
     game.hidden_monsters[0].update(x=position[0], y=position[1])
@@ -67,6 +107,12 @@ def test_non_front_enemy_does_not_trigger(game, position):
     assert game.mode == "field" and game.battle is None
 
 
+# {
+#   責務: [test_no_party_does_not_report_start_or_consume_target: 検証: no party does not report start or consume target]
+#   処理: [1: 検証: no party does not report start or consume target]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_no_party_does_not_report_start_or_consume_target(game):
     game.state["current_party"] = []
     before = copy.deepcopy(game.hidden_monsters)
@@ -75,6 +121,12 @@ def test_no_party_does_not_report_start_or_consume_target(game):
     assert game.mode == "field" and game.battle is None
 
 
+# {
+#   責務: [test_password_mode_cannot_start_encounter: 検証: password mode cannot start encounter]
+#   処理: [1: 検証: password mode cannot start encounter]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_password_mode_cannot_start_encounter(game):
     game.mode = "password"
     target = game.hidden_monsters[0]
@@ -83,6 +135,15 @@ def test_password_mode_cannot_start_encounter(game):
     assert game.battle is None and game.hidden_monsters[0] is target
 
 
+# {
+#   責務: [test_failed_battle_construction_keeps_field_individual: 検証: failed battle construction keeps field individual]
+#   処理: [1: 検証: failed battle construction keeps field individual]
+#   引数: [
+#     game: ゲーム
+#     failure: failure
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("failure", ["generation", "engine", "session"])
 def test_failed_battle_construction_keeps_field_individual(game, failure):
     before = copy.deepcopy(game.hidden_monsters)
@@ -97,6 +158,12 @@ def test_failed_battle_construction_keeps_field_individual(game, failure):
     assert game.mode == "field" and game.battle is None
 
 
+# {
+#   責務: [test_active_battle_cannot_be_replaced_and_field_actors_pause: 検証: active battle cannot be replaced and field actors pause]
+#   処理: [1: 検証: active battle cannot be replaced and field actors pause]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_active_battle_cannot_be_replaced_and_field_actors_pause(game):
     assert game.check_hidden_collision()
     original_battle = game.battle
@@ -112,6 +179,15 @@ def test_active_battle_cannot_be_replaced_and_field_actors_pause(game):
     assert game.hidden_monsters == before
 
 
+# {
+#   責務: [test_contact_command_playback_finalize_and_return: 検証: contact command playback finalize and return]
+#   処理: [1: 検証: contact command playback finalize and return]
+#   引数: [
+#     game: ゲーム
+#     outcome: 結果
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("outcome", ["victory", "defeat", "escaped", "scouted", "enemies_fled"])
 def test_contact_command_playback_finalize_and_return(game, outcome):
     target = game.hidden_monsters[0]
@@ -163,6 +239,12 @@ def test_contact_command_playback_finalize_and_return(game, outcome):
         assert [(record.species_id, record.level) for record in acquired] == [("ghost", 7)]
 
 
+# {
+#   責務: [test_small_remaining_population_replenishes_without_reusing_consumed_actor: 検証: small remaining population replenishes without reusing consumed actor]
+#   処理: [1: 検証: small remaining population replenishes without reusing consumed actor]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_small_remaining_population_replenishes_without_reusing_consumed_actor(game):
     target = game.hidden_monsters[0]
     game.hidden_monsters = [target]
@@ -175,6 +257,12 @@ def test_small_remaining_population_replenishes_without_reusing_consumed_actor(g
     assert len({(m["x"], m["y"]) for m in game.hidden_monsters}) == len(game.hidden_monsters)
 
 
+# {
+#   責務: [test_consumed_actor_releases_chase_reservations: 検証: consumed actor releases chase reservations]
+#   処理: [1: 検証: consumed actor releases chase reservations]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_consumed_actor_releases_chase_reservations(game):
     target = game.hidden_monsters[0]
     traffic = game.hidden_enemies.traffic

@@ -1,4 +1,8 @@
 """Render the player-facing learning summary supplied by the application."""
+# {
+#   責務: [ai_tendency_panel: Render the player-facing learning summary supplied by the application.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from typing import Any
@@ -18,6 +22,17 @@ STAGES = {
 }
 
 
+# {
+#   責務: [draw_ai_tendencies: Draw finite gauges and explicit unknown states without exposing tables.]
+#   処理: [1: Draw finite gauges and explicit unknown states without exposing tables.]
+#   引数: [
+#     surface: 描画面（pygame.Surface）
+#     rows: rows（list[dict[str, Any]]）
+#     rect: 表示矩形（pygame.Rect）
+#     columns: columns（int）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def draw_ai_tendencies(
     surface: pygame.Surface, rows: list[dict[str, Any]], rect: pygame.Rect, columns: int = 2,
 ) -> None:

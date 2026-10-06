@@ -1,4 +1,8 @@
 """Validate expectation rows and source E2E references without importing games."""
+# {
+#   責務: [check_e2e_catalog: Validate expectation rows and source E2E references without importing games.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -14,6 +18,12 @@ STATUSES = ("covered", "missing", "intentionally-not-e2e")
 ID_PATTERN = re.compile(r"KQ-[PDX][0-9]{2}")
 
 
+# {
+#   責務: [catalog_rows: check・e2e・catalogのcatalog・rowsを求める]
+#   処理: [1: check・e2e・catalogのcatalog・rowsを求める]
+#   引数: [text: 文字列（str）]
+#   戻り値: [result: check・e2e・catalogのcatalog・rowsを求めるための結果（tuple[list[dict[str, str]], list[str]]）]
+# }
 def catalog_rows(text: str) -> tuple[list[dict[str, str]], list[str]]:
     rows, errors = [], []
     active = False
@@ -36,6 +46,15 @@ def catalog_rows(text: str) -> tuple[list[dict[str, str]], list[str]]:
     return rows, errors
 
 
+# {
+#   責務: [_defined_test: check・e2e・catalogのdefined・testを求める]
+#   処理: [1: check・e2e・catalogのdefined・testを求める]
+#   引数: [
+#     path: パス（Path）
+#     names: 名前一覧（list[str]）
+#   ]
+#   戻り値: [result: check・e2e・catalogのdefined・testを求めるための結果（bool）]
+# }
 def _defined_test(path: Path, names: list[str]) -> bool:
     tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
     body = tree.body
@@ -50,6 +69,15 @@ def _defined_test(path: Path, names: list[str]) -> bool:
     )
 
 
+# {
+#   責務: [test_reference_error: 検証: reference error]
+#   処理: [1: 検証: reference error]
+#   引数: [
+#     root: 基準ディレクトリ（Path）
+#     reference: reference（str）
+#   ]
+#   戻り値: [result: 検証: reference errorための結果（str | None）]
+# }
 def test_reference_error(root: Path, reference: str) -> str | None:
     parts = reference.strip().strip("`").split("::")
     if len(parts) not in (2, 3):
@@ -71,6 +99,15 @@ def test_reference_error(root: Path, reference: str) -> str | None:
     return None
 
 
+# {
+#   責務: [check_catalog: catalogを検査する]
+#   処理: [1: catalogを検査する]
+#   引数: [
+#     root: 基準ディレクトリ（Path）
+#     catalog: catalog（Path）
+#   ]
+#   戻り値: [result: catalogを検査するための結果（dict）]
+# }
 def check_catalog(root: Path, catalog: Path) -> dict:
     rows, errors = catalog_rows(catalog.read_text(encoding="utf-8-sig"))
     counts = dict.fromkeys(STATUSES, 0)
@@ -104,6 +141,12 @@ def check_catalog(root: Path, catalog: Path) -> dict:
     return {"counts": counts, "missing": missing, "errors": errors}
 
 
+# {
+#   責務: [main: check・e2e・catalogのエントリ処理を実行する]
+#   処理: [1: check・e2e・catalogのエントリ処理を実行する]
+#   引数: [argv: argv（list[str] | None）]
+#   戻り値: [result: check・e2e・catalogのエントリ処理を実行するための結果（int）]
+# }
 def main(argv: list[str] | None = None) -> int:
     if not sys.stdout.isatty() and hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")

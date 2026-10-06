@@ -1,4 +1,8 @@
 """Pure round planning/latest liveness parity; real Godot on private fixtures, no actions/AI ported."""
+# {
+#   責務: [test_gdscript_turn_order: Pure round planning/latest liveness parity; real Godot on private fixtures, no actions/AI ported.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -22,31 +26,90 @@ from kadoka_quest.data.repository import GameRepository
 ROOT = fixture.ROOT
 
 
+# {
+#   責務: [member: test・gdscript・ターン・順序の個体を求める]
+#   処理: [1: test・gdscript・ターン・順序の個体を求める]
+#   引数: [
+#     identifier: identifier
+#     speed: 素早さ
+#     hp: HP
+#     fled: 逃走済み
+#   ]
+#   戻り値: [result: test・gdscript・ターン・順序の個体を求めるための結果（型注釈なし）]
+# }
 def member(identifier, speed=10, *, hp=30, fled=False):
     return {"identity": combatant.identity(identifier), "stats": combatant.stats(speed=speed),
             "hp": hp, "mp": 7, "fled": fled, "alive": hp > 0 and not fled}
 
 
+# {
+#   責務: [key: test・gdscript・ターン・順序のキーを求める]
+#   処理: [1: test・gdscript・ターン・順序のキーを求める]
+#   引数: [
+#     side: 陣営
+#     identifier: identifier
+#   ]
+#   戻り値: [result: test・gdscript・ターン・順序のキーを求めるための結果（型注釈なし）]
+# }
 def key(side, identifier):
     return {"side": side, "id": identifier}
 
 
+# {
+#   責務: [participants: test・gdscript・ターン・順序のparticipantsを求める]
+#   処理: [1: test・gdscript・ターン・順序のparticipantsを求める]
+#   引数: [
+#     allies: 味方
+#     enemies: 敵
+#   ]
+#   戻り値: [result: test・gdscript・ターン・順序のparticipantsを求めるための結果（型注釈なし）]
+# }
 def participants(allies, enemies):
     return [key(side, entry["identity"]["id"]) for side, team in (("allies", allies), ("enemies", enemies))
             for entry in team if entry["alive"]]
 
 
+# {
+#   責務: [request: test・gdscript・ターン・順序の要求を求める]
+#   処理: [1: test・gdscript・ターン・順序の要求を求める]
+#   引数: [
+#     allies: 味方
+#     enemies: 敵
+#     changes: changes
+#   ]
+#   戻り値: [result: test・gdscript・ターン・順序の要求を求めるための結果（型注釈なし）]
+# }
 def request(allies=None, enemies=None, **changes):
     allies = [member("ally")] if allies is None else allies
     enemies = [member("enemy")] if enemies is None else enemies
     return {"allies": allies, "enemies": enemies, "shuffle_order": participants(allies, enemies), **changes}
 
 
+# {
+#   責務: [case: test・gdscript・ターン・順序のcaseを求める]
+#   処理: [1: test・gdscript・ターン・順序のcaseを求める]
+#   引数: [
+#     operation: operation
+#     value: 値
+#     changes: changes
+#   ]
+#   戻り値: [result: test・gdscript・ターン・順序のcaseを求めるための結果（型注釈なし）]
+# }
 def case(operation, value, **changes):
     return {"operation": operation, "input": value, **changes}
 
 
+# {
+#   責務: [TurnBoundaryTests: ターン・boundary・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class TurnBoundaryTests(unittest.TestCase):
+    # {
+    #   責務: [test_order_keeps_io_ui_rng_ai_and_actions_out_of_pure_engine: 検証: order keeps io ui rng ai and actions out of pure engine]
+    #   処理: [1: 検証: order keeps io ui rng ai and actions out of pure engine]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_order_keeps_io_ui_rng_ai_and_actions_out_of_pure_engine(self):
         source = (ROOT / "gdscript/engine/turn_order.gd").read_text(encoding="utf-8")
         for forbidden in ("FileAccess", "DirAccess", "OS.", "randf(", "randi(", "RandomNumberGenerator",
@@ -60,6 +123,12 @@ class TurnBoundaryTests(unittest.TestCase):
         self.assertNotIn("turn_preparation", field)
         self.assertNotIn("turn_order", field)
 
+    # {
+    #   責務: [test_performance_guard_is_developer_only_and_covers_plan_and_latest_check: 検証: performance guard is developer only and covers plan and latest check]
+    #   処理: [1: 検証: performance guard is developer only and covers plan and latest check]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_performance_guard_is_developer_only_and_covers_plan_and_latest_check(self):
         probe = (ROOT / "gdscript/tests/run_combatant_probe.gd").read_text(encoding="utf-8")
         self.assertIn("Order.plan(", probe)
@@ -72,6 +141,16 @@ class TurnBoundaryTests(unittest.TestCase):
                     self.assertNotIn("check_gdscript_combatant", path.read_text(encoding="utf-8"))
 
 
+# {
+#   責務: [GDScriptTurnTests: gdscript・ターン・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     setUp: set・up
+#     seed_state: seed・状態
+#     seed_record: seed・個体レコード
+#     write: write
+#     byte_snapshot: byte・独立した状態の写し
+#   ]
+# }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real turn-order probes")
 class GDScriptTurnTests(unittest.TestCase):
     setUp = fixture.GDScriptRosterTests.setUp
@@ -80,6 +159,16 @@ class GDScriptTurnTests(unittest.TestCase):
     write = fixture.GDScriptRosterTests.write
     byte_snapshot = combatant.GDScriptCombatantTests.byte_snapshot
 
+    # {
+    #   責務: [invoke: gdscript・ターン・testsのinvokeを求める]
+    #   処理: [1: gdscript・ターン・testsのinvokeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     cases: cases
+    #     joined: joined
+    #   ]
+    #   戻り値: [result: gdscript・ターン・testsのinvokeを求めるための結果（型注釈なし）]
+    # }
     def invoke(self, cases=(), joined=()):
         path = self.content / "turn-probe.json"
         path.write_text(json.dumps({"cases": list(cases), "joined": list(joined)}, ensure_ascii=False), encoding="utf-8")
@@ -99,6 +188,16 @@ class GDScriptTurnTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]))
         self.fail(process.stderr + process.stdout[-1600:])
 
+    # {
+    #   責務: [engine: gdscript・ターン・testsのルール処理を求める]
+    #   処理: [1: gdscript・ターン・testsのルール処理を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     allies: 味方
+    #     enemies: 敵
+    #   ]
+    #   戻り値: [result: ルール処理（型注釈なし）]
+    # }
     def engine(self, allies, enemies):
         engine = BattleEngine(GameRepository(self.content / "data"), [], [], learning_enabled=False)
         teams = []
@@ -113,15 +212,39 @@ class GDScriptTurnTests(unittest.TestCase):
         engine.allies, engine.enemies = teams
         return engine
 
+    # {
+    #   責務: [reference: gdscript・ターン・testsのreferenceを求める]
+    #   処理: [1: gdscript・ターン・testsのreferenceを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     parameters: parameters
+    #   ]
+    #   戻り値: [result: gdscript・ターン・testsのreferenceを求めるための結果（型注釈なし）]
+    # }
     def reference(self, parameters):
         engine = self.engine(parameters["allies"], parameters["enemies"])
         captured = {}
         executed = []
 
+        # {
+        #   責務: [actor_key: gdscript・ターン・testsの行動個体・キーを求める]
+        #   処理: [1: gdscript・ターン・testsの行動個体・キーを求める]
+        #   引数: [
+        #     actor: 行動個体
+        #     friends: friends
+        #   ]
+        #   戻り値: [result: gdscript・ターン・testsの行動個体・キーを求めるための結果（型注釈なし）]
+        # }
         def actor_key(actor, friends):
             side = "allies" if any(entry is actor for entry in engine.allies) else "enemies"
             return key(side, actor.record.monster_id)
 
+        # {
+        #   責務: [shuffle: gdscript・ターン・testsの並べ替えを求める]
+        #   処理: [1: gdscript・ターン・testsの並べ替えを求める]
+        #   引数: [actors: actors]
+        #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+        # }
         def shuffle(actors):
             captured["initial"] = [actor_key(actor, friends) for actor, _, friends in actors]
             by_key = {(entry["side"], entry["id"]): actor
@@ -140,10 +263,25 @@ class GDScriptTurnTests(unittest.TestCase):
         return {"initial": captured["initial"],
                 "order": [actor_key(actor, friends) for actor, _, friends in captured["actors"]], "executed": executed}
 
+    # {
+    #   責務: [assert_case: gdscript・ターン・testsのassert・caseを求める]
+    #   処理: [1: gdscript・ターン・testsのassert・caseを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actual: actual
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def assert_case(self, actual):
         self.assertTrue(actual["input_preserved"])
         self.assertEqual(actual["again"], actual["value"])
 
+    # {
+    #   責務: [test_all_shuffle_permutations_preserve_ties_like_actual_python_run_round: 検証: all shuffle permutations preserve ties like actual python run round]
+    #   処理: [1: 検証: all shuffle permutations preserve ties like actual python run round]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_all_shuffle_permutations_preserve_ties_like_actual_python_run_round(self):
         cases = []
         for speeds in ((10, 10, 10, 10), (10, 2, 2, 1), (0, 1, 0, 1), (2**53 - 1, 1, 3, 3)):
@@ -161,6 +299,12 @@ class GDScriptTurnTests(unittest.TestCase):
                 self.assertEqual(actual["value"]["order"], expected["order"])
                 self.assertEqual(expected["order"], expected["executed"])
 
+    # {
+    #   責務: [test_eight_actors_mixed_speeds_dead_and_fled_match_python: 検証: eight actors mixed speeds dead and fled match python]
+    #   処理: [1: 検証: eight actors mixed speeds dead and fled match python]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_eight_actors_mixed_speeds_dead_and_fled_match_python(self):
         generator = random.Random(228)
         cases = []
@@ -179,6 +323,12 @@ class GDScriptTurnTests(unittest.TestCase):
                 self.assertEqual(actual["value"]["order"], expected["order"])
                 self.assertEqual(actual["value"]["initial"], expected["initial"])
 
+    # {
+    #   責務: [test_participants_keep_ally_then_enemy_slot_order_and_side_namespaces: 検証: participants keep ally then enemy slot order and side namespaces]
+    #   処理: [1: 検証: participants keep ally then enemy slot order and side namespaces]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_participants_keep_ally_then_enemy_slot_order_and_side_namespaces(self):
         allies = [member("shared"), member("dead", hp=0), member("fled", fled=True), member("まる")]
         enemies = [member("shared"), member("かどか"), member("other", hp=0)]
@@ -191,6 +341,12 @@ class GDScriptTurnTests(unittest.TestCase):
         for value in actual:
             self.assert_case(value)
 
+    # {
+    #   責務: [test_empty_sides_and_all_dead_or_fled_do_not_invent_actors: 検証: empty sides and all dead or fled do not invent actors]
+    #   処理: [1: 検証: empty sides and all dead or fled do not invent actors]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_empty_sides_and_all_dead_or_fled_do_not_invent_actors(self):
         pairs = [([], []), ([], [member("e")]), ([member("a")], []),
                  ([member("a", hp=0)], [member("e", fled=True)]),
@@ -203,6 +359,12 @@ class GDScriptTurnTests(unittest.TestCase):
             self.assertEqual(value["value"]["order"], expected["order"])
             self.assertEqual(expected["executed"], [])
 
+    # {
+    #   責務: [test_latest_eligibility_matches_python_alive_and_living_for_both_sides: 検証: latest eligibility matches python alive and living for both sides]
+    #   処理: [1: 検証: latest eligibility matches python alive and living for both sides]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_latest_eligibility_matches_python_alive_and_living_for_both_sides(self):
         cases = []
         for side in ("allies", "enemies"):
@@ -227,6 +389,12 @@ class GDScriptTurnTests(unittest.TestCase):
                 self.assertEqual([entry["identity"]["id"] for entry in value["foes"]],
                                  [entry.record.monster_id for entry in engine._living(foes)])
 
+    # {
+    #   責務: [test_plan_does_not_cache_liveness_for_the_next_action: 検証: plan does not cache liveness for the next action]
+    #   処理: [1: 検証: plan does not cache liveness for the next action]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_plan_does_not_cache_liveness_for_the_next_action(self):
         before = request([member("a", 20), member("b", 10)], [member("e", 5)])
         killed = copy.deepcopy(before)
@@ -245,6 +413,12 @@ class GDScriptTurnTests(unittest.TestCase):
         for entry in actual:
             self.assert_case(entry)
 
+    # {
+    #   責務: [test_invalid_shuffle_order_missing_duplicate_unknown_dead_and_side_are_refused: 検証: invalid shuffle order missing duplicate unknown dead and side are refused]
+    #   処理: [1: 検証: invalid shuffle order missing duplicate unknown dead and side are refused]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_shuffle_order_missing_duplicate_unknown_dead_and_side_are_refused(self):
         allies, enemies = [member("a"), member("dead", hp=0)], [member("e")]
         keys = participants(allies, enemies)
@@ -261,6 +435,12 @@ class GDScriptTurnTests(unittest.TestCase):
             self.assertIn("reason", value["value"])
             self.assertNotIn("order", value["value"])
 
+    # {
+    #   責務: [test_invalid_teams_snapshot_fields_and_duplicate_ids_are_refused: 検証: invalid teams snapshot fields and duplicate ids are refused]
+    #   処理: [1: 検証: invalid teams snapshot fields and duplicate ids are refused]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_teams_snapshot_fields_and_duplicate_ids_are_refused(self):
         malformed = [None, {}, member("a"), [None], [member("dup"), member("dup")],
                      [member(str(index)) for index in range(5)], [{**member("bad"), "hp": -1}],
@@ -277,6 +457,12 @@ class GDScriptTurnTests(unittest.TestCase):
             self.assertFalse(result["value"]["ok"])
             self.assertIn("reason", result["value"])
 
+    # {
+    #   責務: [test_invalid_numeric_stats_and_nonfinite_snapshot_values_are_refused: 検証: invalid numeric stats and nonfinite snapshot values are refused]
+    #   処理: [1: 検証: invalid numeric stats and nonfinite snapshot values are refused]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_numeric_stats_and_nonfinite_snapshot_values_are_refused(self):
         cases = []
         for field in combatant.STAT_KEYS:
@@ -294,6 +480,12 @@ class GDScriptTurnTests(unittest.TestCase):
             self.assert_case(result)
             self.assertFalse(result["value"]["ok"])
 
+    # {
+    #   責務: [test_unported_status_speed_buffs_or_unknown_snapshot_fields_are_not_ignored: 検証: unported status speed buffs or unknown snapshot fields are not ignored]
+    #   処理: [1: 検証: unported status speed buffs or unknown snapshot fields are not ignored]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_unported_status_speed_buffs_or_unknown_snapshot_fields_are_not_ignored(self):
         cases = []
         for change in ({"status_effects": []}, {"status_effects": [{"id": "slow"}]}, {"speed_multiplier": 1},
@@ -309,6 +501,12 @@ class GDScriptTurnTests(unittest.TestCase):
             self.assert_case(result)
             self.assertEqual(result["value"]["reason"], "unsupported_combatant_fields")
 
+    # {
+    #   責務: [test_invalid_or_missing_actor_key_refuses_without_assuming_death: 検証: invalid or missing actor key refuses without assuming death]
+    #   処理: [1: 検証: invalid or missing actor key refuses without assuming death]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_or_missing_actor_key_refuses_without_assuming_death(self):
         invalid = [None, {}, [], {"id": "ally"}, key("other", "ally"), key("allies", "../escape"),
                    key("allies", 1), {**key("allies", "ally"), "extra": 1}]
@@ -321,6 +519,12 @@ class GDScriptTurnTests(unittest.TestCase):
             self.assertNotIn("can_act", value["value"])
         self.assertEqual(actual[-1]["value"]["reason"], "actor_missing")
 
+    # {
+    #   責務: [test_readonly_canonical_record_preparation_matches_python_and_keeps_ai: 検証: readonly canonical record preparation matches python and keeps ai]
+    #   処理: [1: 検証: readonly canonical record preparation matches python and keeps ai]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_readonly_canonical_record_preparation_matches_python_and_keeps_ai(self):
         repository = GameRepository(self.content / "data")
         loader = BattleDataLoader(repository)
@@ -358,6 +562,12 @@ class GDScriptTurnTests(unittest.TestCase):
                 self.assertEqual(result["value"]["scope"], "base_turn_preparation")
         self.assertEqual(self.byte_snapshot(), before)
 
+    # {
+    #   責務: [test_preparation_refuses_bad_records_limits_or_reconstruction_without_repairs: 検証: preparation refuses bad records limits or reconstruction without repairs]
+    #   処理: [1: 検証: preparation refuses bad records limits or reconstruction without repairs]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_preparation_refuses_bad_records_limits_or_reconstruction_without_repairs(self):
         joined = [{"allies": value, "enemies": [combatant.record("enemy")], "shuffle_order": []}
                   for value in (None, {}, [None], [combatant.record("one"), combatant.record("one")],
@@ -376,6 +586,12 @@ class GDScriptTurnTests(unittest.TestCase):
         self.assertFalse(result["value"]["ok"])
         self.assertEqual(self.byte_snapshot(), before)
 
+    # {
+    #   責務: [test_individuals_learned_ai_parties_items_and_content_remain_byte_identical: 検証: individuals learned ai parties items and content remain byte identical]
+    #   処理: [1: 検証: individuals learned ai parties items and content remain byte identical]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_individuals_learned_ai_parties_items_and_content_remain_byte_identical(self):
         self.seed_state(current_party=["owned", None, None, None], private={"keep": True})
         monster = self.seed_record("owned", level=50, plus_choices=[], equipment_id=None)

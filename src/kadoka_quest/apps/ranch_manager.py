@@ -1,3 +1,7 @@
+# {
+#   責務: [ranch_manager: ranch・managerの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from datetime import datetime
@@ -43,9 +47,34 @@ STAT_LABELS = {
 }
 
 
+# {
+#   責務: [RanchManager: Player-facing ownership and party management used by the in-world ranch.]
+#   フィールド: [
+#     repository: データ取得先
+#     monsters: モンスター一覧
+#     states: states
+#     state: 状態
+#     parties: parties
+#     records: 個体レコード一覧
+#     selected: 選択中
+#     offset: 表示位置
+#     tab: tab
+#     presets: プリセット一覧
+#     selected_preset: 選択中・プリセット
+#     preset_offset: プリセット・表示位置
+#     status: 状態異常
+#     skills: スキル一覧
+#   ]
+# }
 class RanchManager:
     """Player-facing ownership and party management used by the in-world ranch."""
 
+    # {
+    #   責務: [__init__: ranch・managerが利用する初期状態と依存を設定する]
+    #   処理: [1: ranch・managerが利用する初期状態と依存を設定する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self) -> None:
         self.repository = GameRepository()
         self.monsters = MonsterStore(repository=self.repository)
@@ -63,6 +92,12 @@ class RanchManager:
         self.status = "牧場では所有個体とパーティを管理できます。"
         self.refresh()
 
+    # {
+    #   責務: [refresh: ranch・managerを更新内容を読み直す]
+    #   処理: [1: ranch・managerを更新内容を読み直す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def refresh(self) -> None:
         self.skills = self.repository.get_skills()
         current_id = self.records[self.selected].monster_id if self.records and self.selected < len(self.records) else None
@@ -75,15 +110,33 @@ class RanchManager:
         self.selected_preset = max(0, min(self.selected_preset, max(0, len(self.presets) - 1)))
         self.preset_offset = max(0, min(self.preset_offset, max(0, len(self.presets) - 8)))
 
+    # {
+    #   責務: [selected_record: ranch・managerの選択中・個体レコードを求める]
+    #   処理: [1: ranch・managerの選択中・個体レコードを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ranch・managerの選択中・個体レコードを求めるための結果（型注釈なし）]
+    # }
     @property
     def selected_record(self):
         return self.records[self.selected] if self.records else None
 
+    # {
+    #   責務: [selected_tendencies: ranch・managerの選択中・tendenciesを求める]
+    #   処理: [1: ranch・managerの選択中・tendenciesを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ranch・managerの選択中・tendenciesを求めるための結果（list[dict]）]
+    # }
     @property
     def selected_tendencies(self) -> list[dict]:
         record = self.selected_record
         return AiInspector.summarize_tendencies(record.ai, self.skills) if record else []
 
+    # {
+    #   責務: [add_party: パーティを追加する]
+    #   処理: [1: パーティを追加する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def add_party(self) -> None:
         record = self.selected_record
         if not record:
@@ -99,6 +152,12 @@ class RanchManager:
             self.states.save(self.state)
             self.status = f"{record.name} をパーティへ追加しました。"
 
+    # {
+    #   責務: [remove_party: パーティを取り除く]
+    #   処理: [1: パーティを取り除く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def remove_party(self) -> None:
         record = self.selected_record
         if not record:
@@ -107,6 +166,12 @@ class RanchManager:
         self.states.save(self.state)
         self.status = f"{record.name} をパーティから外しました。個体は牧場に残ります。"
 
+    # {
+    #   責務: [reset_ai: AIの初期状態へ戻す]
+    #   処理: [1: AIの初期状態へ戻す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def reset_ai(self) -> None:
         record = self.selected_record
         if not record:
@@ -115,6 +180,12 @@ class RanchManager:
         self.status = f"{record.name} のAIだけ初期化しました。"
         self.refresh()
 
+    # {
+    #   責務: [cycle_tactic: tacticを順に切り替える]
+    #   処理: [1: tacticを順に切り替える]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def cycle_tactic(self) -> None:
         record = self.selected_record
         if not record:
@@ -126,6 +197,12 @@ class RanchManager:
         self.status = f"{record.name} の行動指針を {next_tactic} に変更しました。"
         self.refresh()
 
+    # {
+    #   責務: [save_preset: プリセットを保存する]
+    #   処理: [1: プリセットを保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save_preset(self) -> None:
         name = "編成_" + datetime.now().strftime("%Y%m%d_%H%M%S")
         path = self.parties.save(name, list(self.state.get("current_party", [])))
@@ -134,6 +211,12 @@ class RanchManager:
         self.selected_preset = self.presets.index(path)
         self.preset_offset = max(0, self.selected_preset - 7)
 
+    # {
+    #   責務: [update_preset: プリセットを更新する]
+    #   処理: [1: プリセットを更新する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def update_preset(self) -> None:
         if not self.presets:
             self.save_preset()
@@ -143,6 +226,12 @@ class RanchManager:
         self.parties.update(path, name, list(self.state.get("current_party", [])))
         self.status = f"{path.name} を現在編成で更新しました。"
 
+    # {
+    #   責務: [load_preset: プリセットを読み込む]
+    #   処理: [1: プリセットを読み込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_preset(self) -> None:
         if not self.presets:
             self.status = "保存済みプリセットがありません。"
@@ -155,6 +244,12 @@ class RanchManager:
         self.status = f"{path.name} を読み込みました（空き{missing}）。"
 
 
+# {
+#   責務: [main: ranch・managerのエントリ処理を実行する]
+#   処理: [1: ranch・managerのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     screen = init_pygame("kadoka quest - 牧場", (1160, 740))
     clock = pygame.time.Clock()
@@ -164,6 +259,15 @@ def main() -> None:
     frames = 0
     portrait_cache: dict[tuple[str, int], pygame.Surface] = {}
 
+    # {
+    #   責務: [portrait: ranch・managerのportraitを求める]
+    #   処理: [1: ranch・managerのportraitを求める]
+    #   引数: [
+    #     species_id: 種族・識別子（str）
+    #     size: 大きさ（int）
+    #   ]
+    #   戻り値: [result: ranch・managerのportraitを求めるための結果（pygame.Surface | None）]
+    # }
     def portrait(species_id: str, size: int) -> pygame.Surface | None:
         key = (species_id, size)
         if key in portrait_cache:

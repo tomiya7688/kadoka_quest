@@ -1,3 +1,7 @@
+# {
+#   責務: [test_battle_rewards: test・戦闘・rewardsの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import copy
@@ -21,11 +25,27 @@ from kadoka_quest.data.monsters import MonsterStore
 from kadoka_quest.data.repository import GameRepository
 
 
+# {
+#   責務: [repository: test・戦闘・rewardsのデータ取得先を求める]
+#   処理: [1: test・戦闘・rewardsのデータ取得先を求める]
+#   引数: []
+#   戻り値: [result: test・戦闘・rewardsのデータ取得先を求めるための結果（型注釈なし）]
+# }
 @pytest.fixture
 def repository():
     return GameRepository(Path(__file__).resolve().parents[1] / "data")
 
 
+# {
+#   責務: [enemy: test・戦闘・rewardsの敵を求める]
+#   処理: [1: test・戦闘・rewardsの敵を求める]
+#   引数: [
+#     repository: データ取得先
+#     species: 種族
+#     level: レベル
+#   ]
+#   戻り値: [result: 処理結果（型注釈なし）]
+# }
 def enemy(repository, species="metal_slime", level=10):
     record = MonsterRecord({
         "id": f"{species}_{level}", "name": species, "species_id": species,
@@ -36,6 +56,16 @@ def enemy(repository, species="metal_slime", level=10):
     return result
 
 
+# {
+#   責務: [test_canonical_metal_reward_and_integer_floor: 検証: canonical metal reward and integer floor]
+#   処理: [1: 検証: canonical metal reward and integer floor]
+#   引数: [
+#     repository: データ取得先
+#     level: レベル
+#     expected: expected
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("level,expected", [
     (1, 335), (10, 660), (11, 697), (20, 1040), (30, 1440),
     (50, 2300), (70, 3240), (100, 4800),
@@ -46,6 +76,12 @@ def test_canonical_metal_reward_and_integer_floor(repository, level, expected):
     assert battle_experience([target]) == expected
 
 
+# {
+#   責務: [test_ordinary_formula_stays_unchanged_and_mixed_rewards_add: 検証: ordinary formula stays unchanged and mixed rewards add]
+#   処理: [1: 検証: ordinary formula stays unchanged and mixed rewards add]
+#   引数: [repository: データ取得先]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_ordinary_formula_stays_unchanged_and_mixed_rewards_add(repository):
     slime = enemy(repository, "slime", 10)
     ghost = enemy(repository, "ghost", 20)
@@ -56,12 +92,27 @@ def test_ordinary_formula_stays_unchanged_and_mixed_rewards_add(repository):
     assert battle_experience([metal, enemy(repository, level=20)]) == 1700
 
 
+# {
+#   責務: [test_custom_formula_is_independent_of_normal_balance: 検証: custom formula is independent of normal balance]
+#   処理: [1: 検証: custom formula is independent of normal balance]
+#   引数: [
+#     repository: データ取得先
+#     monkeypatch: monkeypatch
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_custom_formula_is_independent_of_normal_balance(repository, monkeypatch):
     monkeypatch.setattr(battle_rewards, "NORMAL_VICTORY_BONUS", 1000)
     monkeypatch.setattr(battle_rewards, "NORMAL_EXPERIENCE_PER_LEVEL", 900)
     assert battle_experience([enemy(repository)]) == 660
 
 
+# {
+#   責務: [test_coefficients_are_editable_without_species_id_checks: 検証: coefficients are editable without species id checks]
+#   処理: [1: 検証: coefficients are editable without species id checks]
+#   引数: [repository: データ取得先]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_coefficients_are_editable_without_species_id_checks(repository):
     target = enemy(repository, "slime", 11)
     target.experience_reward = {"base": 7, "per_level": 2, "squared_divisor": 3}
@@ -69,6 +120,15 @@ def test_coefficients_are_editable_without_species_id_checks(repository):
     assert custom_defeat_experience(11, {"base": 0, "per_level": 0, "squared_divisor": 1000}) == 0
 
 
+# {
+#   責務: [test_missing_or_invalid_rule_uses_safe_ordinary_fallback: 検証: missing or invalid rule uses safe ordinary fallback]
+#   処理: [1: 検証: missing or invalid rule uses safe ordinary fallback]
+#   引数: [
+#     repository: データ取得先
+#     rule: rule
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("rule", [
     None, {}, "300 + level * 35", [],
     {"base": -1, "per_level": 35, "squared_divisor": 10},
@@ -85,6 +145,12 @@ def test_missing_or_invalid_rule_uses_safe_ordinary_fallback(repository, rule):
     assert battle_experience([target]) == 38
 
 
+# {
+#   責務: [test_living_or_fled_enemies_never_pay_rewards: 検証: living or fled enemies never pay rewards]
+#   処理: [1: 検証: living or fled enemies never pay rewards]
+#   引数: [repository: データ取得先]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_living_or_fled_enemies_never_pay_rewards(repository):
     fled = enemy(repository)
     fled.fled = True
@@ -95,6 +161,17 @@ def test_living_or_fled_enemies_never_pay_rewards(repository):
     assert battle_experience([fled, enemy(repository, "slime")]) == 38
 
 
+# {
+#   責務: [test_reward_persists_and_growth_thresholds_are_unchanged: 検証: reward persists and growth thresholds are unchanged]
+#   処理: [1: 検証: reward persists and growth thresholds are unchanged]
+#   引数: [
+#     repository: データ取得先
+#     tmp_path: tmp・パス
+#     legacy: legacy
+#     species: 種族
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("legacy", [False, True])
 @pytest.mark.parametrize("species", ["slime", "maru", "kadoka"])
 def test_reward_persists_and_growth_thresholds_are_unchanged(repository, tmp_path, legacy, species):
@@ -129,6 +206,17 @@ def test_reward_persists_and_growth_thresholds_are_unchanged(repository, tmp_pat
     assert store.get(ally.monster_id) == snapshot
 
 
+# {
+#   責務: [test_reward_entrypoints_refuse_nonwinning_or_simulated_battles: 検証: reward entrypoints refuse nonwinning or simulated battles]
+#   処理: [1: 検証: reward entrypoints refuse nonwinning or simulated battles]
+#   引数: [
+#     repository: データ取得先
+#     legacy: legacy
+#     outcome: 結果
+#     learning: 学習
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("legacy", [False, True])
 @pytest.mark.parametrize("outcome,learning", [
     (None, True), ("enemies_fled", True), ("escaped", True),
@@ -151,6 +239,16 @@ def test_reward_entrypoints_refuse_nonwinning_or_simulated_battles(repository, l
     store.save.assert_not_called()
 
 
+# {
+#   責務: [test_level_cap_and_absent_owned_monsters_are_preserved: 検証: level cap and absent owned monsters are preserved]
+#   処理: [1: 検証: level cap and absent owned monsters are preserved]
+#   引数: [
+#     repository: データ取得先
+#     tmp_path: tmp・パス
+#     legacy: legacy
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("legacy", [False, True])
 def test_level_cap_and_absent_owned_monsters_are_preserved(repository, tmp_path, legacy):
     store = MonsterStore(tmp_path / "monsters", repository)

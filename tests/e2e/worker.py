@@ -1,4 +1,8 @@
 """Private process entry: validate isolation BEFORE importing game modules."""
+# {
+#   責務: [worker: Private process entry: validate isolation BEFORE importing game modules.]
+#   フィールド: []
+# }
 
 from __future__ import annotations
 
@@ -15,6 +19,12 @@ from uuid import UUID
 from scenario_clock import ScenarioClock
 
 
+# {
+#   責務: [validate_request: 要求を妥当性を検査する]
+#   処理: [1: 要求を妥当性を検査する]
+#   引数: [request: 要求（dict）]
+#   戻り値: [result: パス一覧（dict[str, Path]）]
+# }
 def validate_request(request: dict) -> dict[str, Path]:
     root = Path(request["root"]).resolve()
     paths = {"save": root / "profile", "savedata": root / "savedata", "imports": root / "imports"}
@@ -31,6 +41,12 @@ def validate_request(request: dict) -> dict[str, Path]:
     return paths
 
 
+# {
+#   責務: [run: workerを実行する]
+#   処理: [1: workerを実行する]
+#   引数: [request: 要求（dict）]
+#   戻り値: [result: workerを実行するための結果（dict）]
+# }
 def run(request: dict) -> dict:
     paths = validate_request(request)
     clock = ScenarioClock(request["start_ms"])
@@ -48,6 +64,12 @@ def run(request: dict) -> dict:
     # UUID sequence would otherwise immediately collide with saved starters.
     identity_rng = random.Random(f"e2e-identities:{request['seed']}:{json.dumps(initial_ids)}")
 
+    # {
+    #   責務: [next_identity: identityを次の値を求める]
+    #   処理: [1: identityを次の値を求める]
+    #   引数: []
+    #   戻り値: [result: identityを次の値を求めるための結果（UUID）]
+    # }
     def next_identity() -> UUID:
         return UUID(int=identity_rng.getrandbits(128), version=4)
 

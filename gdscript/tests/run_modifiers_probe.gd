@@ -1,3 +1,7 @@
+# {
+#   責務: [run_modifiers_probe: Real contracts and scan-local services over test-owned content, never actual user saves.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Real contracts and scan-local services over test-owned content, never actual user saves.
 
@@ -7,21 +11,52 @@ const Numbers = preload("res://engine/stat_numbers.gd")
 const Repository = preload("res://data/content_repository.gd")
 const Reconstruction = preload("res://application/monster_reconstruction.gd")
 
+# {
+#   責務: [CountingRepository: counting・データ取得先の状態と振る舞いを担当する]
+#   フィールド: [
+#     bundle: bundle（Dictionary）
+#     counts: counts
+#   ]
+# }
 class CountingRepository:
 	extends RefCounted
 	var bundle: Dictionary
 	var counts := {"base": 0, "plus": 0, "equipment": 0}
+	# {
+	#   責務: [load_progression: progressionを読み込む]
+	#   処理: [1: progressionを読み込む]
+	#   引数: [_id: 識別子（String）]
+	#   戻り値: [result: progressionを読み込むための結果（Dictionary）]
+	# }
 	func load_progression(_id: String) -> Dictionary:
 		counts["base"] += 1
 		return {"ok": true, "stats": bundle["stats"], "skills": bundle["skills"]}
+	# {
+	#   責務: [load_plus: ＋選択を読み込む]
+	#   処理: [1: ＋選択を読み込む]
+	#   引数: [_id: 識別子（String）]
+	#   戻り値: [result: ＋選択を読み込むための結果（Dictionary）]
+	# }
 	func load_plus(_id: String) -> Dictionary:
 		counts["plus"] += 1
 		return {"ok": true, "value": bundle["plus"]}
+	# {
+	#   責務: [load_equipment: 装備を読み込む]
+	#   処理: [1: 装備を読み込む]
+	#   引数: []
+	#   戻り値: [result: 装備を読み込むための結果（Dictionary）]
+	# }
 	func load_equipment() -> Dictionary:
 		counts["equipment"] += 1
 		return {"ok": true, "value": bundle["equipment"]}
 
 
+# {
+#   責務: [_initialize: run・modifiers・probeのエントリ処理を実行する]
+#   処理: [1: run・modifiers・probeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	var request: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(OS.get_cmdline_user_args()[0]))
 	var results: Array = []

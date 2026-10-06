@@ -1,3 +1,7 @@
+# {
+#   責務: [manage: manageの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from datetime import datetime
@@ -23,7 +27,35 @@ from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, SE
 STAT_LABELS = {"attack": "攻撃", "defense": "防御", "speed": "素早さ", "magic": "魔力", "hp": "HP", "mp": "MP"}
 
 
+# {
+#   責務: [Manager: managerの状態と振る舞いを担当する]
+#   フィールド: [
+#     repository: データ取得先
+#     monsters: モンスター一覧
+#     states: states
+#     state: 状態
+#     parties: parties
+#     records: 個体レコード一覧
+#     selected: 選択中
+#     offset: 表示位置
+#     tab: tab
+#     species_ids: 種族・識別子一覧
+#     selected_species: 選択中・種族
+#     species_offset: 種族・表示位置
+#     presets: プリセット一覧
+#     selected_preset: 選択中・プリセット
+#     preset_offset: プリセット・表示位置
+#     status: 状態異常
+#     skills: スキル一覧
+#   ]
+# }
 class Manager:
+    # {
+    #   責務: [__init__: managerが利用する初期状態と依存を設定する]
+    #   処理: [1: managerが利用する初期状態と依存を設定する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self) -> None:
         self.repository = GameRepository()
         self.monsters = MonsterStore(repository=self.repository)
@@ -44,6 +76,12 @@ class Manager:
         self.status = "所有上限・プリセット数の上限はありません。個体は1体1フォルダです。"
         self.refresh()
 
+    # {
+    #   責務: [refresh: managerを更新内容を読み直す]
+    #   処理: [1: managerを更新内容を読み直す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def refresh(self) -> None:
         self.skills = self.repository.get_skills()
         current_id = self.records[self.selected].monster_id if self.records and self.selected < len(self.records) else None
@@ -56,15 +94,33 @@ class Manager:
         self.selected_preset = max(0, min(self.selected_preset, max(0, len(self.presets) - 1)))
         self.preset_offset = max(0, min(self.preset_offset, max(0, len(self.presets) - 8)))
 
+    # {
+    #   責務: [selected_record: managerの選択中・個体レコードを求める]
+    #   処理: [1: managerの選択中・個体レコードを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: managerの選択中・個体レコードを求めるための結果（型注釈なし）]
+    # }
     @property
     def selected_record(self):
         return self.records[self.selected] if self.records else None
 
+    # {
+    #   責務: [selected_tendencies: managerの選択中・tendenciesを求める]
+    #   処理: [1: managerの選択中・tendenciesを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: managerの選択中・tendenciesを求めるための結果（list[dict]）]
+    # }
     @property
     def selected_tendencies(self) -> list[dict]:
         record = self.selected_record
         return AiInspector.summarize_tendencies(record.ai, self.skills) if record else []
 
+    # {
+    #   責務: [create: managerを作成する]
+    #   処理: [1: managerを作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def create(self) -> None:
         species_id = self.species_ids[self.selected_species]
         record = self.monsters.create(species_id, source="manager")
@@ -73,6 +129,12 @@ class Manager:
         self.selected = next(index for index, item in enumerate(self.records) if item.monster_id == record.monster_id)
         self.offset = max(0, self.selected - 9)
 
+    # {
+    #   責務: [add_party: パーティを追加する]
+    #   処理: [1: パーティを追加する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def add_party(self) -> None:
         record = self.selected_record
         if not record:
@@ -88,6 +150,12 @@ class Manager:
             self.states.save(self.state)
             self.status = f"{record.name} をパーティへ追加しました。"
 
+    # {
+    #   責務: [remove_party: パーティを取り除く]
+    #   処理: [1: パーティを取り除く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def remove_party(self) -> None:
         record = self.selected_record
         if not record:
@@ -96,6 +164,12 @@ class Manager:
         self.states.save(self.state)
         self.status = f"{record.name} をパーティから外しました。個体は所有したままです。"
 
+    # {
+    #   責務: [reset_ai: AIの初期状態へ戻す]
+    #   処理: [1: AIの初期状態へ戻す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def reset_ai(self) -> None:
         record = self.selected_record
         if not record:
@@ -104,6 +178,12 @@ class Manager:
         self.status = f"{record.name} のAIだけ初期化しました。名前・Lv・＋・装備は維持されています。"
         self.refresh()
 
+    # {
+    #   責務: [cycle_tactic: tacticを順に切り替える]
+    #   処理: [1: tacticを順に切り替える]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def cycle_tactic(self) -> None:
         record = self.selected_record
         if not record:
@@ -115,6 +195,12 @@ class Manager:
         self.status = f"{record.name} の行動指針を {next_tactic} に変更しました。"
         self.refresh()
 
+    # {
+    #   責務: [save_preset: プリセットを保存する]
+    #   処理: [1: プリセットを保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save_preset(self) -> None:
         name = "編成_" + datetime.now().strftime("%Y%m%d_%H%M%S")
         path = self.parties.save(name, list(self.state.get("current_party", [])))
@@ -123,6 +209,12 @@ class Manager:
         self.selected_preset = self.presets.index(path)
         self.preset_offset = max(0, self.selected_preset - 7)
 
+    # {
+    #   責務: [update_preset: プリセットを更新する]
+    #   処理: [1: プリセットを更新する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def update_preset(self) -> None:
         if not self.presets:
             self.save_preset()
@@ -132,6 +224,12 @@ class Manager:
         self.parties.update(path, name, list(self.state.get("current_party", [])))
         self.status = f"{path.name} を現在編成で更新しました。"
 
+    # {
+    #   責務: [load_preset: プリセットを読み込む]
+    #   処理: [1: プリセットを読み込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_preset(self) -> None:
         if not self.presets:
             self.status = "保存済みプリセットがありません。"
@@ -143,6 +241,12 @@ class Manager:
         missing = sum(1 for record in loaded if record is None)
         self.status = f"{path.name} を読み込みました。存在しないIDや空欄は空き枠になります（空き{missing}）。"
 
+    # {
+    #   責務: [acquire: managerのacquireを求める]
+    #   処理: [1: managerのacquireを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def acquire(self) -> None:
         try:
             added, skipped = self.monsters.acquire_from_scan(IMPORT_ROOT / "acquire")
@@ -151,6 +255,12 @@ class Manager:
         except (OSError, ValueError, KeyError) as exc:
             self.status = f"再走査できません: {exc}"
 
+    # {
+    #   責務: [simulation: managerのsimulationを求める]
+    #   処理: [1: managerのsimulationを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def simulation(self) -> None:
         imported = self.monsters.discover_external(IMPORT_ROOT / "simulation")
         party = StateStore.party_records(self.state, self.monsters)
@@ -171,6 +281,12 @@ class Manager:
             self.status = f"模擬戦インポートを読めません: {exc}"
 
 
+# {
+#   責務: [main: manageのエントリ処理を実行する]
+#   処理: [1: manageのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     screen = init_pygame("kadoka quest - 個体・パーティ管理", (1240, 780))
     clock = pygame.time.Clock()
@@ -180,6 +296,15 @@ def main() -> None:
     frames = 0
     portrait_cache: dict[tuple[str, int], pygame.Surface] = {}
 
+    # {
+    #   責務: [portrait: manageのportraitを求める]
+    #   処理: [1: manageのportraitを求める]
+    #   引数: [
+    #     species_id: 種族・識別子（str）
+    #     size: 大きさ（int）
+    #   ]
+    #   戻り値: [result: manageのportraitを求めるための結果（pygame.Surface | None）]
+    # }
     def portrait(species_id: str, size: int) -> pygame.Surface | None:
         key = (species_id, size)
         if key in portrait_cache:

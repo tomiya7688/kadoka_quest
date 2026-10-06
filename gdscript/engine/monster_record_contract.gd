@@ -1,7 +1,17 @@
+# {
+#   責務: [monster_record_contract: Plain individual/default-AI documents. No persistence, rendering or battle inference.]
+#   フィールド: []
+# }
 extends RefCounted
 ## Plain individual/default-AI documents. No persistence, rendering or battle inference.
 
 
+# {
+#   責務: [safe_id: モンスター・個体レコード・契約のsafe・識別子を求める]
+#   処理: [1: モンスター・個体レコード・契約のsafe・識別子を求める]
+#   引数: [value: 値（String）]
+#   戻り値: [result: モンスター・個体レコード・契約のsafe・識別子を求めるための結果（bool）]
+# }
 static func safe_id(value: String) -> bool:
 	if value.is_empty() or value != value.strip_edges() or value in [".", ".."] or value.ends_with("."):
 		return false
@@ -13,6 +23,15 @@ static func safe_id(value: String) -> bool:
 		"COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"]
 
 
+# {
+#   責務: [default_ai: モンスター・個体レコード・契約のdefault・AIを求める]
+#   処理: [1: モンスター・個体レコード・契約のdefault・AIを求める]
+#   引数: [
+#     profile: プロファイル（String）
+#     tactic: tactic（String）
+#   ]
+#   戻り値: [result: モンスター・個体レコード・契約のdefault・AIを求めるための結果（Dictionary）]
+# }
 static func default_ai(profile: String = "normal", tactic: String = "balanced") -> Dictionary:
 	var biases := {
 		"normal": {}, "support": {"heal": 0.2, "buff": 0.15},
@@ -28,6 +47,18 @@ static func default_ai(profile: String = "normal", tactic: String = "balanced") 
 	}
 
 
+# {
+#   責務: [create_record: 個体レコードを作成する]
+#   処理: [1: 個体レコードを作成する]
+#   引数: [
+#     id: 識別子（String）
+#     species: 種族（Dictionary）
+#     name: 名前（String）
+#     level: レベル（int）
+#     source: 元データ（String）
+#   ]
+#   戻り値: [result: 個体レコードを作成するための結果（Dictionary）]
+# }
 static func create_record(id: String, species: Dictionary, name: String = "", level: int = 1, source: String = "starter") -> Dictionary:
 	return {
 		"monster": {
@@ -40,6 +71,16 @@ static func create_record(id: String, species: Dictionary, name: String = "", le
 	}
 
 
+# {
+#   責務: [validate_record: 個体レコードを妥当性を検査する]
+#   処理: [1: 個体レコードを妥当性を検査する]
+#   引数: [
+#     monster: モンスター（Dictionary）
+#     ai: AI（Dictionary）
+#     folder_id: フォルダ・識別子（String）
+#   ]
+#   戻り値: [result: 個体レコードを妥当性を検査するための結果（Dictionary）]
+# }
 static func validate_record(monster: Dictionary, ai: Dictionary, folder_id: String) -> Dictionary:
 	if not _version(monster.get("schema_version", 1)) or not _version(ai.get("schema_version", 1)):
 		return {"ok": false, "message": "未対応の個体/AI形式"}
@@ -59,14 +100,35 @@ static func validate_record(monster: Dictionary, ai: Dictionary, folder_id: Stri
 	return {"ok": true}
 
 
+# {
+#   責務: [_integer: モンスター・個体レコード・契約のintegerを求める]
+#   処理: [1: モンスター・個体レコード・契約のintegerを求める]
+#   引数: [value: 値（Variant）]
+#   戻り値: [result: モンスター・個体レコード・契約のintegerを求めるための結果（bool）]
+# }
 static func _integer(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value) == floorf(float(value))
 
 
+# {
+#   責務: [_version: モンスター・個体レコード・契約のversionを求める]
+#   処理: [1: モンスター・個体レコード・契約のversionを求める]
+#   引数: [value: 値（Variant）]
+#   戻り値: [result: モンスター・個体レコード・契約のversionを求めるための結果（bool）]
+# }
 static func _version(value: Variant) -> bool:
 	return _integer(value) and float(value) == 1
 
 
+# {
+#   責務: [party_entries: モンスター・個体レコード・契約のパーティ・項目一覧を求める]
+#   処理: [1: モンスター・個体レコード・契約のパーティ・項目一覧を求める]
+#   引数: [
+#     state: 状態（Dictionary）
+#     records: 個体レコード一覧（Dictionary）
+#   ]
+#   戻り値: [result: モンスター・個体レコード・契約のパーティ・項目一覧を求めるための結果（Array）]
+# }
 static func party_entries(state: Dictionary, records: Dictionary) -> Array:
 	var entries: Array = []
 	var ids: Variant = state.get("current_party", [])

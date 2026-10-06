@@ -1,3 +1,15 @@
+# {
+#   責務: [fixed_mob_controller: Clock/RNG-injected fixed-actor rules. No I/O, UI, scene, battle or acquisition effects.]
+#   フィールド: [
+#     field: フィールド（RefCounted）
+#     rng: 乱数供給元（RefCounted）
+#     npcs: npcs（Array）
+#     warnings: warnings（Array）
+#     movements: movements（Array）
+#     dialogue_states: 会話・states（Array）
+#     movement_duration_ms: 移動・継続時間・ミリ秒（int）
+#   ]
+# }
 extends RefCounted
 ## Clock/RNG-injected fixed-actor rules. No I/O, UI, scene, battle or acquisition effects.
 
@@ -14,12 +26,34 @@ var dialogue_states: Array = []
 var movement_duration_ms: int
 
 
+# {
+#   責務: [_init: fixed・モブ・controllerが利用する初期状態と依存を設定する]
+#   処理: [1: fixed・モブ・controllerが利用する初期状態と依存を設定する]
+#   引数: [
+#     rules: rules（RefCounted）
+#     random_source: 乱数・元データ（RefCounted）
+#     duration_ms: 継続時間・ミリ秒（int）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(rules: RefCounted, random_source: RefCounted, duration_ms: int = 180) -> void:
 	field = rules
 	rng = random_source
 	movement_duration_ms = maxi(1, duration_ms)
 
 
+# {
+#   責務: [reset: fixed・モブ・controllerの初期状態へ戻す]
+#   処理: [1: fixed・モブ・controllerの初期状態へ戻す]
+#   引数: [
+#     world: マップ状態（Dictionary）
+#     blocks: ブロック定義（Dictionary）
+#     despawned: despawned（Array）
+#     player: 主人公（Array）
+#     now: 現在時刻（int）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func reset(world: Dictionary, blocks: Dictionary, despawned: Array, player: Array, now: int) -> void:
 	field.set_world(world, blocks)
 	npcs.clear()
@@ -53,6 +87,15 @@ func reset(world: Dictionary, blocks: Dictionary, despawned: Array, player: Arra
 			"target": Vector2(npc["x"], npc["y"]), "time": now})
 
 
+# {
+#   責務: [find_at: atを探す]
+#   処理: [1: atを探す]
+#   引数: [
+#     x: X座標（int）
+#     y: Y座標（int）
+#   ]
+#   戻り値: [result: atを探すための結果（Dictionary）]
+# }
 func find_at(x: int, y: int) -> Dictionary:
 	for npc: Dictionary in npcs:
 		if int(npc["x"]) == x and int(npc["y"]) == y:
@@ -60,6 +103,15 @@ func find_at(x: int, y: int) -> Dictionary:
 	return {}
 
 
+# {
+#   責務: [talk: fixed・モブ・controllerのtalkを求める]
+#   処理: [1: fixed・モブ・controllerのtalkを求める]
+#   引数: [
+#     npc: npc（Dictionary）
+#     player_direction: 主人公・direction（String）
+#   ]
+#   戻り値: [result: fixed・モブ・controllerのtalkを求めるための結果（Dictionary）]
+# }
 func talk(npc: Dictionary, player_direction: String) -> Dictionary:
 	var index := npcs.find(npc)
 	if index < 0:
@@ -81,12 +133,32 @@ func talk(npc: Dictionary, player_direction: String) -> Dictionary:
 	return result
 
 
+# {
+#   責務: [_free: fixed・モブ・controllerのfreeを求める]
+#   処理: [1: fixed・モブ・controllerのfreeを求める]
+#   引数: [
+#     x: X座標（int）
+#     y: Y座標（int）
+#     player: 主人公（Array）
+#     others: others（Array）
+#   ]
+#   戻り値: [result: fixed・モブ・controllerのfreeを求めるための結果（bool）]
+# }
 func _free(x: int, y: int, player: Array, others: Array) -> bool:
 	if x == int(player[0]) and y == int(player[1]):
 		return false
 	return field.resolve_player_move(x, y, 0, 0, "front", others, [])["kind"] == "moved"
 
 
+# {
+#   責務: [_first_free: fixed・モブ・controllerのfirst・freeを求める]
+#   処理: [1: fixed・モブ・controllerのfirst・freeを求める]
+#   引数: [
+#     world: マップ状態（Dictionary）
+#     player: 主人公（Array）
+#   ]
+#   戻り値: [result: fixed・モブ・controllerのfirst・freeを求めるための結果（Array）]
+# }
 func _first_free(world: Dictionary, player: Array) -> Array:
 	for y in int(world["height"]):
 		for x in int(world["width"]):
@@ -95,11 +167,30 @@ func _first_free(world: Dictionary, player: Array) -> Array:
 	return []
 
 
+# {
+#   責務: [faces_player: fixed・モブ・controllerのfaces・主人公を求める]
+#   処理: [1: fixed・モブ・controllerのfaces・主人公を求める]
+#   引数: [
+#     npc: npc（Dictionary）
+#     player: 主人公（Array）
+#   ]
+#   戻り値: [result: fixed・モブ・controllerのfaces・主人公を求めるための結果（bool）]
+# }
 func faces_player(npc: Dictionary, player: Array) -> bool:
 	var front: Array = field.front_position(int(npc["x"]), int(npc["y"]), str(npc["direction"]))
 	return int(front[0]) == int(player[0]) and int(front[1]) == int(player[1])
 
 
+# {
+#   責務: [move: fixed・モブ・controllerを移動する]
+#   処理: [1: fixed・モブ・controllerを移動する]
+#   引数: [
+#     index: 位置番号（int）
+#     player: 主人公（Array）
+#     now: 現在時刻（int）
+#   ]
+#   戻り値: [result: fixed・モブ・controllerを移動するための結果（bool）]
+# }
 func move(index: int, player: Array, now: int) -> bool:
 	var npc: Dictionary = npcs[index]
 	if npc["ai"] == "idle" or faces_player(npc, player):
@@ -137,6 +228,15 @@ func move(index: int, player: Array, now: int) -> bool:
 	return false
 
 
+# {
+#   責務: [update: fixed・モブ・controllerを更新する]
+#   処理: [1: fixed・モブ・controllerを更新する]
+#   引数: [
+#     player: 主人公（Array）
+#     now: 現在時刻（int）
+#   ]
+#   戻り値: [result: fixed・モブ・controllerを更新するための結果（bool）]
+# }
 func update(player: Array, now: int) -> bool:
 	var moved := false
 	for index in npcs.size():
@@ -150,6 +250,15 @@ func update(player: Array, now: int) -> bool:
 	return moved
 
 
+# {
+#   責務: [_position: fixed・モブ・controllerの座標を求める]
+#   処理: [1: fixed・モブ・controllerの座標を求める]
+#   引数: [
+#     index: 位置番号（int）
+#     now: 現在時刻（int）
+#   ]
+#   戻り値: [result: fixed・モブ・controllerの座標を求めるための結果（Vector2）]
+# }
 func _position(index: int, now: int) -> Vector2:
 	var movement: Dictionary = movements[index]
 	var progress := clampf(float(now - int(movement["time"])) / movement_duration_ms, 0.0, 1.0)
@@ -157,6 +266,12 @@ func _position(index: int, now: int) -> Vector2:
 	return Vector2(movement["start"]).lerp(Vector2(movement["target"]), eased)
 
 
+# {
+#   責務: [snapshot: fixed・モブ・controllerを状態を複製する]
+#   処理: [1: fixed・モブ・controllerを状態を複製する]
+#   引数: [now: 現在時刻（int）]
+#   戻り値: [result: fixed・モブ・controllerを状態を複製するための結果（Array）]
+# }
 func snapshot(now: int) -> Array:
 	var result: Array = []
 	for index in npcs.size():

@@ -1,3 +1,7 @@
+# {
+#   責務: [party_preset_store: Read JSON files and create a uniquely named new preset, never update or delete existing ones.]
+#   フィールド: [root: 基準ディレクトリ（String）]
+# }
 extends RefCounted
 ## Read JSON files and create a uniquely named new preset, never update or delete existing ones.
 
@@ -6,15 +10,33 @@ const Individual = preload("res://engine/monster_record_contract.gd")
 var root: String
 
 
+# {
+#   責務: [_init: パーティ・プリセット・保存先が利用する初期状態と依存を設定する]
+#   処理: [1: パーティ・プリセット・保存先が利用する初期状態と依存を設定する]
+#   引数: [profile_path: プロファイル・パス（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(profile_path: String) -> void:
 	root = profile_path.path_join("parties")
 
 
+# {
+#   責務: [safe_filename: パーティ・プリセット・保存先のsafe・filenameを求める]
+#   処理: [1: パーティ・プリセット・保存先のsafe・filenameを求める]
+#   引数: [filename: filename（String）]
+#   戻り値: [result: パーティ・プリセット・保存先のsafe・filenameを求めるための結果（bool）]
+# }
 static func safe_filename(filename: String) -> bool:
 	return filename.ends_with(".json") and not filename.trim_suffix(".json").is_empty() \
 		and Individual.safe_id(filename) and filename.get_file() == filename
 
 
+# {
+#   責務: [scan_documents: 文書一覧を再走査する]
+#   処理: [1: 文書一覧を再走査する]
+#   引数: []
+#   戻り値: [result: 文書一覧を再走査するための結果（Dictionary）]
+# }
 func scan_documents() -> Dictionary:
 	var entries: Array = []
 	var warnings: Array = []
@@ -38,6 +60,12 @@ func scan_documents() -> Dictionary:
 	return {"ok": true, "entries": entries, "warnings": warnings}
 
 
+# {
+#   責務: [read_document: 文書を読み取る]
+#   処理: [1: 文書を読み取る]
+#   引数: [filename: filename（String）]
+#   戻り値: [result: 文書を読み取るための結果（Dictionary）]
+# }
 func read_document(filename: String) -> Dictionary:
 	if not safe_filename(filename):
 		return {"ok": false, "message": "不正なプリセットファイル名です。"}
@@ -47,6 +75,15 @@ func read_document(filename: String) -> Dictionary:
 	return Documents.read_object(root.path_join(filename))
 
 
+# {
+#   責務: [create_new: newを作成する]
+#   処理: [1: newを作成する]
+#   引数: [
+#     stem: stem（String）
+#     document: 文書（Dictionary）
+#   ]
+#   戻り値: [result: newを作成するための結果（Dictionary）]
+# }
 func create_new(stem: String, document: Dictionary) -> Dictionary:
 	if not safe_filename(stem + ".json"):
 		return {"ok": false, "message": "不正なプリセット保存名です。"}

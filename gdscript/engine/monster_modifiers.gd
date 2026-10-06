@@ -1,3 +1,7 @@
+# {
+#   責務: [monster_modifiers: Ordered plus effects, equipment whitelist, and final six-stat clamp. No I/O or battle rules.]
+#   フィールド: []
+# }
 extends RefCounted
 ## Ordered plus effects, equipment whitelist, and final six-stat clamp. No I/O or battle rules.
 
@@ -5,6 +9,17 @@ const Base = preload("res://engine/monster_progression.gd")
 const Numbers = preload("res://engine/stat_numbers.gd")
 
 
+# {
+#   責務: [apply: モンスター・modifiersを適用する]
+#   処理: [1: モンスター・modifiersを適用する]
+#   引数: [
+#     base: base（Dictionary）
+#     plus: ＋選択（Variant）
+#     equipment: 装備（Variant）
+#     monster: モンスター（Dictionary）
+#   ]
+#   戻り値: [result: モンスター・modifiersを適用するための結果（Dictionary）]
+# }
 static func apply(base: Dictionary, plus: Variant, equipment: Variant, monster: Dictionary) -> Dictionary:
 	if not base.get("ok", false) or not base.get("stats") is Dictionary or not base.get("skill_ids") is Array:
 		return _failure("基礎能力値/習得スキルがありません")
@@ -45,6 +60,17 @@ static func apply(base: Dictionary, plus: Variant, equipment: Variant, monster: 
 		"equipment_status": selected["status"], "equipment": selected["definition"].duplicate(true)}
 
 
+# {
+#   責務: [_apply_plus: ＋選択を適用する]
+#   処理: [1: ＋選択を適用する]
+#   引数: [
+#     stats: 能力値（Dictionary）
+#     skills: スキル一覧（Array）
+#     document: 文書（Variant）
+#     choices: choices（Array）
+#   ]
+#   戻り値: [result: ＋選択を適用するための結果（Dictionary）]
+# }
 static func _apply_plus(stats: Dictionary, skills: Array, document: Variant, choices: Array) -> Dictionary:
 	if not _supported(document) or not document.get("stages", []) is Array:
 		return _failure("＋定義のschema/stagesが不正です")
@@ -72,6 +98,16 @@ static func _apply_plus(stats: Dictionary, skills: Array, document: Variant, cho
 	return {"ok": true, "warnings": notes}
 
 
+# {
+#   責務: [_apply_option: optionを適用する]
+#   処理: [1: optionを適用する]
+#   引数: [
+#     stats: 能力値（Dictionary）
+#     skills: スキル一覧（Array）
+#     option: option（Dictionary）
+#   ]
+#   戻り値: [result: optionを適用するための結果（Dictionary）]
+# }
 static func _apply_option(stats: Dictionary, skills: Array, option: Dictionary) -> Dictionary:
 	var kind: Variant = option.get("kind")
 	if kind == "skill":
@@ -100,6 +136,16 @@ static func _apply_option(stats: Dictionary, skills: Array, option: Dictionary) 
 	return {"ok": true}
 
 
+# {
+#   責務: [_select_equipment: 装備を選択する]
+#   処理: [1: 装備を選択する]
+#   引数: [
+#     document: 文書（Variant）
+#     id: 識別子（Variant）
+#     species: 種族（String）
+#   ]
+#   戻り値: [result: 装備を選択するための結果（Dictionary）]
+# }
 static func _select_equipment(document: Variant, id: Variant, species: String) -> Dictionary:
 	if not _supported(document) or not document.get("equipment") is Array:
 		return _failure("装備定義のschema/equipmentが不正です")
@@ -134,6 +180,15 @@ static func _select_equipment(document: Variant, id: Variant, species: String) -
 		"status": {"requested_id": id, "applied": reason == "applied", "reason": reason}}
 
 
+# {
+#   責務: [_apply_equipment: 装備を適用する]
+#   処理: [1: 装備を適用する]
+#   引数: [
+#     stats: 能力値（Dictionary）
+#     definition: 定義（Dictionary）
+#   ]
+#   戻り値: [result: 装備を適用するための結果（Dictionary）]
+# }
 static func _apply_equipment(stats: Dictionary, definition: Dictionary) -> Dictionary:
 	var multipliers: Variant = definition.get("stat_multipliers", {})
 	if not multipliers is Dictionary:
@@ -152,6 +207,12 @@ static func _apply_equipment(stats: Dictionary, definition: Dictionary) -> Dicti
 	return {"ok": true, "warnings": notes}
 
 
+# {
+#   責務: [_supported: モンスター・modifiersのsupportedを求める]
+#   処理: [1: モンスター・modifiersのsupportedを求める]
+#   引数: [document: 文書（Variant）]
+#   戻り値: [result: モンスター・modifiersのsupportedを求めるための結果（bool）]
+# }
 static func _supported(document: Variant) -> bool:
 	if not document is Dictionary:
 		return false
@@ -159,5 +220,11 @@ static func _supported(document: Variant) -> bool:
 	return (version is int or version is float) and float(version) == 1.0
 
 
+# {
+#   責務: [_failure: モンスター・modifiersのfailureを求める]
+#   処理: [1: モンスター・modifiersのfailureを求める]
+#   引数: [message: message（String）]
+#   戻り値: [result: モンスター・modifiersのfailureを求めるための結果（Dictionary）]
+# }
 static func _failure(message: String) -> Dictionary:
 	return {"ok": false, "error": "invalid_modifiers", "message": message}

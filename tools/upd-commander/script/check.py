@@ -1,3 +1,7 @@
+# {
+#   責務: [check: checkの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -11,6 +15,12 @@ TOOL_ROOT = Path(__file__).resolve().parents[1]
 TARGET = REPO_ROOT / "src" / "kadoka_quest"
 
 
+# {
+#   責務: [build_parser: parserを構築する]
+#   処理: [1: parserを構築する]
+#   引数: []
+#   戻り値: [result: parser（argparse.ArgumentParser）]
+# }
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the pinned UPD Commander checker for Kadoka Quest.")
     parser.add_argument(
@@ -21,6 +31,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# {
+#   責務: [main: checkのエントリ処理を実行する]
+#   処理: [1: checkのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: checkのエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     args = build_parser().parse_args()
     command = [sys.executable, "-m", "upd_commander_checker", str(TARGET)]

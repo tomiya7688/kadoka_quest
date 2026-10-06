@@ -1,11 +1,27 @@
+# {
+#   責務: [run_scene_smoke: Headless integration of the production scene, real Input adapter and coordinator.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Headless integration of the production scene, real Input adapter and coordinator.
 
 
+# {
+#   責務: [_initialize: run・scene・smokeのエントリ処理を実行する]
+#   処理: [1: run・scene・smokeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	_run.call_deferred()
 
 
+# {
+#   責務: [_run: run・scene・smokeを実行する]
+#   処理: [1: run・scene・smokeを実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _run() -> void:
 	var scene = load("res://scenes/field.tscn").instantiate()
 	root.add_child(scene)

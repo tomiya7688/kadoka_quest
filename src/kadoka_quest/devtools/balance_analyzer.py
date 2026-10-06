@@ -1,3 +1,7 @@
+# {
+#   責務: [balance_analyzer: balance・analyzerの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -19,6 +23,15 @@ _RESISTANCE_SCORE = {
 }
 
 
+# {
+#   責務: [BalanceSettings: balance・設定の状態と振る舞いを担当する]
+#   フィールド: [
+#     levels: レベル一覧（tuple[int, ...]）
+#     battles_per_pair: battles・per・pair（int）
+#     seed: seed（int）
+#     max_rounds: max・rounds（int）
+#   ]
+# }
 @dataclass(frozen=True)
 class BalanceSettings:
     levels: tuple[int, ...] = (1, 25, 50, 75, 100)
@@ -26,6 +39,12 @@ class BalanceSettings:
     seed: int = 1
     max_rounds: int = 80
 
+    # {
+    #   責務: [__post_init__: balance・設定が利用する初期状態と依存を設定する]
+    #   処理: [1: balance・設定が利用する初期状態と依存を設定する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __post_init__(self) -> None:
         if not self.levels or any(not 1 <= level <= 100 for level in self.levels):
             raise ValueError("levels must contain values from 1 to 100")
@@ -35,13 +54,39 @@ class BalanceSettings:
             raise ValueError("max_rounds must be at least 1")
 
 
+# {
+#   責務: [BalanceAnalyzer: Runs deterministic, non-learning 1v1 battles and produces advisory data.]
+#   フィールド: [
+#     repository: データ取得先
+#     settings: 設定
+#   ]
+# }
 class BalanceAnalyzer:
     """Runs deterministic, non-learning 1v1 battles and produces advisory data."""
 
+    # {
+    #   責務: [__init__: balance・analyzerが利用する初期状態と依存を設定する]
+    #   処理: [1: balance・analyzerが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     repository: データ取得先（GameRepository）
+    #     settings: 設定（BalanceSettings | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, repository: GameRepository, settings: BalanceSettings | None = None) -> None:
         self.repository = repository
         self.settings = settings or BalanceSettings()
 
+    # {
+    #   責務: [analyze: balance・analyzerのanalyzeを求める]
+    #   処理: [1: balance・analyzerのanalyzeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species_ids: 種族・識別子一覧（Iterable[str] | None）
+    #   ]
+    #   戻り値: [result: balance・analyzerのanalyzeを求めるための結果（dict[str, Any]）]
+    # }
     def analyze(self, species_ids: Iterable[str] | None = None) -> dict[str, Any]:
         selected = sorted(dict.fromkeys(species_ids or self.repository.list_species_ids()))
         known = set(self.repository.list_species_ids())
@@ -75,6 +120,19 @@ class BalanceAnalyzer:
             "recommendations": recommendations,
         }
 
+    # {
+    #   責務: [_run_matchup: matchupを実行する]
+    #   処理: [1: matchupを実行する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     left_id: left・識別子（str）
+    #     right_id: right・識別子（str）
+    #     level: レベル（int）
+    #     master_rng: master・乱数供給元（random.Random）
+    #     scores: scores（dict[str, dict[str, int]]）
+    #   ]
+    #   戻り値: [result: matchupを実行するための結果（dict[str, Any]）]
+    # }
     def _run_matchup(
         self,
         left_id: str,
@@ -110,6 +168,18 @@ class BalanceAnalyzer:
             "history": history,
         }
 
+    # {
+    #   責務: [_fight: balance・analyzerのfightを求める]
+    #   処理: [1: balance・analyzerのfightを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     left_id: left・識別子（str）
+    #     right_id: right・識別子（str）
+    #     level: レベル（int）
+    #     seed: seed（int）
+    #   ]
+    #   戻り値: [result: balance・analyzerのfightを求めるための結果（tuple[str | None, int]）]
+    # }
     def _fight(self, left_id: str, right_id: str, level: int, seed: int) -> tuple[str | None, int]:
         battle = BattleEngine(
             self.repository,
@@ -124,6 +194,17 @@ class BalanceAnalyzer:
                 return (left_id if battle.outcome == "victory" else right_id), battle.round_number
         return None, battle.round_number
 
+    # {
+    #   責務: [_record: balance・analyzerの個体レコードを求める]
+    #   処理: [1: balance・analyzerの個体レコードを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species_id: 種族・識別子（str）
+    #     level: レベル（int）
+    #     side: 陣営（str）
+    #   ]
+    #   戻り値: [result: balance・analyzerの個体レコードを求めるための結果（MonsterRecord）]
+    # }
     def _record(self, species_id: str, level: int, side: str) -> MonsterRecord:
         definition = self.repository.get_species(species_id).definition
         return MonsterRecord(
@@ -138,6 +219,17 @@ class BalanceAnalyzer:
             default_ai(str(definition.get("ai_profile", "normal"))),
         )
 
+    # {
+    #   責務: [_record_outcome: balance・analyzerの個体レコード・結果を求める]
+    #   処理: [1: balance・analyzerの個体レコード・結果を求める]
+    #   引数: [
+    #     scores: scores（dict[str, dict[str, int]]）
+    #     left_id: left・識別子（str）
+    #     right_id: right・識別子（str）
+    #     winner: winner（str | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @staticmethod
     def _record_outcome(scores: dict[str, dict[str, int]], left_id: str, right_id: str, winner: str | None) -> None:
         scores[left_id]["matches"] += 1
@@ -152,6 +244,16 @@ class BalanceAnalyzer:
             scores[right_id]["wins"] += 1
             scores[left_id]["losses"] += 1
 
+    # {
+    #   責務: [_rankings: balance・analyzerのrankingsを求める]
+    #   処理: [1: balance・analyzerのrankingsを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species_ids: 種族・識別子一覧（list[str]）
+    #     scores: scores（dict[str, dict[str, int]]）
+    #   ]
+    #   戻り値: [result: rows（list[dict[str, Any]]）]
+    # }
     def _rankings(self, species_ids: list[str], scores: dict[str, dict[str, int]]) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         for species_id in species_ids:
@@ -164,6 +266,15 @@ class BalanceAnalyzer:
             row["rank"] = rank
         return rows
 
+    # {
+    #   責務: [_recommendations: balance・analyzerのrecommendationsを求める]
+    #   処理: [1: balance・analyzerのrecommendationsを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     rankings: rankings（list[dict[str, Any]]）
+    #   ]
+    #   戻り値: [result: balance・analyzerのrecommendationsを求めるための結果（list[dict[str, Any]]）]
+    # }
     def _recommendations(self, rankings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not rankings:
             return []
@@ -202,15 +313,40 @@ class BalanceAnalyzer:
             })
         return proposals
 
+    # {
+    #   責務: [_resistance_score: balance・analyzerのresistance・scoreを求める]
+    #   処理: [1: balance・analyzerのresistance・scoreを求める]
+    #   引数: [definition: 定義（dict[str, Any]）]
+    #   戻り値: [result: balance・analyzerのresistance・scoreを求めるための結果（float）]
+    # }
     @staticmethod
     def _resistance_score(definition: dict[str, Any]) -> float:
         return sum(_RESISTANCE_SCORE.get(str(value), 0.0) for value in definition.get("resistances", {}).values())
 
+    # {
+    #   責務: [_confidence: balance・analyzerのconfidenceを求める]
+    #   処理: [1: balance・analyzerのconfidenceを求める]
+    #   引数: [
+    #     evidence: evidence（int）
+    #     deviation: deviation（float）
+    #   ]
+    #   戻り値: [result: balance・analyzerのconfidenceを求めるための結果（str）]
+    # }
     @staticmethod
     def _confidence(evidence: int, deviation: float) -> str:
         strength = min(1.0, evidence / 40) * min(1.0, deviation / 0.3)
         return "high" if strength >= 0.65 else "medium" if strength >= 0.3 else "low"
 
+    # {
+    #   責務: [_resistance_candidate: balance・analyzerのresistance・candidateを求める]
+    #   処理: [1: balance・analyzerのresistance・candidateを求める]
+    #   引数: [
+    #     resistance_delta: resistance・経過時間（float）
+    #     direction: direction（int）
+    #     confidence: confidence（str）
+    #   ]
+    #   戻り値: [result: balance・analyzerのresistance・candidateを求めるための結果（dict[str, Any] | None）]
+    # }
     @staticmethod
     def _resistance_candidate(resistance_delta: float, direction: int, confidence: str) -> dict[str, Any] | None:
         if direction < 0 and resistance_delta >= 1.0:

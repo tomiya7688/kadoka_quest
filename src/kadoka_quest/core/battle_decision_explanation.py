@@ -1,11 +1,29 @@
+# {
+#   責務: [battle_decision_explanation: 戦闘・decision・explanationの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from typing import Any, Iterable
 
 
+# {
+#   責務: [BattleDecisionExplanation: Describe an already selected AI action without changing its choice.]
+#   フィールド: []
+# }
 class BattleDecisionExplanation:
     """Describe an already selected AI action without changing its choice."""
 
+    # {
+    #   責務: [describe: 戦闘・decision・explanationを説明用の値を構成する]
+    #   処理: [1: 戦闘・decision・explanationを説明用の値を構成する]
+    #   引数: [
+    #     ai: AI（dict[str, Any]）
+    #     skill: スキル（dict[str, Any]）
+    #     context_tags: 判断用コンテキスト・tags（Iterable[str]）
+    #   ]
+    #   戻り値: [result: 戦闘・decision・explanationを説明用の値を構成するための結果（str）]
+    # }
     @staticmethod
     def describe(
         ai: dict[str, Any],

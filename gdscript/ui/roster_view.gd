@@ -1,3 +1,12 @@
+# {
+#   責務: [roster_view: Read-only projection and explicit editor entry. No persistence or AI decisions.]
+#   フィールド: [
+#     edit_button: edit・button（Button）
+#     heading: heading（Label）
+#     scrolling: scrolling（ScrollContainer）
+#     body: body（Label）
+#   ]
+# }
 extends PanelContainer
 ## Read-only projection and explicit editor entry. No persistence or AI decisions.
 
@@ -9,6 +18,12 @@ var scrolling: ScrollContainer
 var body: Label
 
 
+# {
+#   責務: [_ready: 所有個体台帳・表示のエントリ処理を実行する]
+#   処理: [1: 所有個体台帳・表示のエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _ready() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("#091329")
@@ -41,6 +56,12 @@ func _ready() -> void:
 	scrolling.add_child(body)
 
 
+# {
+#   責務: [show_snapshot: 所有個体台帳・表示のshow・独立した状態の写しを求める]
+#   処理: [1: 所有個体台帳・表示のshow・独立した状態の写しを求める]
+#   引数: [snapshot: 独立した状態の写し（Dictionary）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func show_snapshot(snapshot: Dictionary) -> void:
 	var records: Dictionary = snapshot.get("records", {})
 	heading.text = "パーティ・保有個体（%d体）" % records.size()
@@ -74,12 +95,24 @@ func show_snapshot(snapshot: Dictionary) -> void:
 	scrolling.set_deferred("scroll_vertical", 0)
 
 
+# {
+#   責務: [_record_summary: 所有個体台帳・表示の個体レコード・summaryを求める]
+#   処理: [1: 所有個体台帳・表示の個体レコード・summaryを求める]
+#   引数: [record: 個体レコード（Dictionary）]
+#   戻り値: [result: 所有個体台帳・表示の個体レコード・summaryを求めるための結果（String）]
+# }
 static func _record_summary(record: Dictionary) -> String:
 	var monster: Dictionary = record["monster"]
 	return "%s（%s） Lv.%d / ＋%d" % [monster["name"], record["species"].get("display_name", monster["species_id"]),
 		int(monster.get("level", 1)), monster.get("plus_choices", []).size()]
 
 
+# {
+#   責務: [_progression_summary: 所有個体台帳・表示のprogression・summaryを求める]
+#   処理: [1: 所有個体台帳・表示のprogression・summaryを求める]
+#   引数: [progression: progression（Dictionary）]
+#   戻り値: [result: 所有個体台帳・表示のprogression・summaryを求めるための結果（String）]
+# }
 static func _progression_summary(progression: Dictionary) -> String:
 	if not progression.get("ok", false):
 		return "  基礎能力値/習得スキル: 読込不可（完成能力値ではありません）"
@@ -96,11 +129,23 @@ static func _progression_summary(progression: Dictionary) -> String:
 	return "\n".join(lines)
 
 
+# {
+#   責務: [_stats_text: 所有個体台帳・表示の能力値・文字列を求める]
+#   処理: [1: 所有個体台帳・表示の能力値・文字列を求める]
+#   引数: [stats: 能力値（Dictionary）]
+#   戻り値: [result: 所有個体台帳・表示の能力値・文字列を求めるための結果（String）]
+# }
 static func _stats_text(stats: Dictionary) -> String:
 	return "HP %d / MP %d / 攻 %d / 防 %d / 速 %d / 魔 %d" % [
 		stats["hp"], stats["mp"], stats["attack"], stats["defense"], stats["speed"], stats["magic"]]
 
 
+# {
+#   責務: [_skill_text: 所有個体台帳・表示のスキル・文字列を求める]
+#   処理: [1: 所有個体台帳・表示のスキル・文字列を求める]
+#   引数: [ids: 識別子一覧（Array）]
+#   戻り値: [result: 所有個体台帳・表示のスキル・文字列を求めるための結果（String）]
+# }
 static func _skill_text(ids: Array) -> String:
 	var skills: PackedStringArray = []
 	for id in ids:
@@ -108,6 +153,12 @@ static func _skill_text(ids: Array) -> String:
 	return ", ".join(skills) if not skills.is_empty() else "なし"
 
 
+# {
+#   責務: [handle_key: キーを入力を処理する]
+#   処理: [1: キーを入力を処理する]
+#   引数: [key: キー（int）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func handle_key(key: int) -> void:
 	var bar := scrolling.get_v_scroll_bar()
 	match key:

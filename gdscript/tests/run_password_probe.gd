@@ -1,3 +1,7 @@
+# {
+#   責務: [run_password_probe: Developer-only pure operation parity and production Scene input/modal probes.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Developer-only pure operation parity and production Scene input/modal probes.
 const Password = preload("res://engine/password_session.gd")
@@ -7,16 +11,39 @@ const KEYS := {"Enter": KEY_ENTER, "KPEnter": KEY_KP_ENTER, "Escape": KEY_ESCAPE
 const Documents = preload("res://data/json_documents.gd")
 
 
+# {
+#   責務: [FaultStore: fault・保存先の状態と振る舞いを担当する]
+#   フィールド: [
+#     mode: mode（String）
+#     profile: プロファイル（String）
+#     calls: calls
+#   ]
+# }
 class FaultStore extends "res://data/monster_store.gd":
 	var mode: String
 	var profile: String
 	var calls := 0
 
+	# {
+	#   責務: [_init: run・暗号・probeが利用する初期状態と依存を設定する]
+	#   処理: [1: run・暗号・probeが利用する初期状態と依存を設定する]
+	#   引数: [
+	#     path: パス（String）
+	#     fault: fault（String）
+	#   ]
+	#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+	# }
 	func _init(path: String, fault: String) -> void:
 		super(path)
 		profile = path
 		mode = fault
 
+	# {
+	#   責務: [create_new: newを作成する]
+	#   処理: [1: newを作成する]
+	#   引数: [record: 個体レコード（Dictionary）]
+	#   戻り値: [result: newを作成するための結果（Dictionary）]
+	# }
 	func create_new(record: Dictionary) -> Dictionary:
 		calls += 1
 		if mode == "fail_second" and calls == 2:
@@ -29,21 +56,52 @@ class FaultStore extends "res://data/monster_store.gd":
 		return result
 
 
+# {
+#   責務: [FaultService: fault・serviceの状態と振る舞いを担当する]
+#   フィールド: [mode: mode（String）]
+# }
 class FaultService extends "res://application/ghost_acquisition.gd":
 	var mode: String
 
+	# {
+	#   責務: [_init: run・暗号・probeが利用する初期状態と依存を設定する]
+	#   処理: [1: run・暗号・probeが利用する初期状態と依存を設定する]
+	#   引数: [
+	#     field: フィールド（RefCounted）
+	#     fault: fault（String）
+	#   ]
+	#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+	# }
 	func _init(field: RefCounted, fault: String) -> void:
 		super(field)
 		mode = fault
 
+	# {
+	#   責務: [_monster_store: run・暗号・probeのモンスター・保存先を求める]
+	#   処理: [1: run・暗号・probeのモンスター・保存先を求める]
+	#   引数: [path: パス（String）]
+	#   戻り値: [result: run・暗号・probeのモンスター・保存先を求めるための結果（RefCounted）]
+	# }
 	func _monster_store(path: String) -> RefCounted:
 		return FaultStore.new(path, mode)
 
 
+# {
+#   責務: [_initialize: run・暗号・probeのエントリ処理を実行する]
+#   処理: [1: run・暗号・probeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	_run.call_deferred()
 
 
+# {
+#   責務: [_run: run・暗号・probeを実行する]
+#   処理: [1: run・暗号・probeを実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _run() -> void:
 	var request: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(OS.get_cmdline_user_args()[0]))
 	var result: Variant
@@ -55,6 +113,12 @@ func _run() -> void:
 	quit()
 
 
+# {
+#   責務: [_cases: run・暗号・probeのcasesを求める]
+#   処理: [1: run・暗号・probeのcasesを求める]
+#   引数: [request: 要求（Dictionary）]
+#   戻り値: [result: run・暗号・probeのcasesを求めるための結果（Array）]
+# }
 func _cases(request: Dictionary) -> Array:
 	var result: Array = []
 	for case: Dictionary in request["cases"]:
@@ -73,6 +137,12 @@ func _cases(request: Dictionary) -> Array:
 	return result
 
 
+# {
+#   責務: [_scene: run・暗号・probeのsceneを求める]
+#   処理: [1: run・暗号・probeのsceneを求める]
+#   引数: [request: 要求（Dictionary）]
+#   戻り値: [result: run・暗号・probeのsceneを求めるための結果（Array）]
+# }
 func _scene(request: Dictionary) -> Array:
 	root.size = Vector2i(960, 540)  # Headless OS window defaults to 64x64, not the game's viewport.
 	var scene = load("res://scenes/field.tscn").instantiate()
@@ -128,6 +198,12 @@ func _scene(request: Dictionary) -> Array:
 	return observations
 
 
+# {
+#   責務: [_key: run・暗号・probeのキーを求める]
+#   処理: [1: run・暗号・probeのキーを求める]
+#   引数: [action: action（Dictionary）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _key(action: Dictionary) -> void:
 	var key := InputEventKey.new()
 	key.physical_keycode = KEYS.get(action.get("key", ""), 0)
@@ -145,6 +221,12 @@ func _key(action: Dictionary) -> void:
 	await process_frame
 
 
+# {
+#   責務: [_click: run・暗号・probeのclickを求める]
+#   処理: [1: run・暗号・probeのclickを求める]
+#   引数: [control: control（Control）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _click(control: Control) -> void:
 	var point := root.get_final_transform() * control.get_global_rect().get_center()
 	root.notify_mouse_entered()

@@ -1,3 +1,7 @@
+# {
+#   責務: [run_turn_probe: Developer-only pure turn contracts and isolated read-only record preparation.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Developer-only pure turn contracts and isolated read-only record preparation.
 
@@ -6,6 +10,12 @@ const Preparation = preload("res://application/turn_preparation.gd")
 const Repository = preload("res://data/content_repository.gd")
 
 
+# {
+#   責務: [_initialize: run・ターン・probeのエントリ処理を実行する]
+#   処理: [1: run・ターン・probeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() != 1:
@@ -43,6 +53,15 @@ func _initialize() -> void:
 	quit(0)
 
 
+# {
+#   責務: [_execute: run・ターン・probeを実行する]
+#   処理: [1: run・ターン・probeを実行する]
+#   引数: [
+#     operation: operation（String）
+#     request: 要求（Dictionary）
+#   ]
+#   戻り値: [result: run・ターン・probeを実行するための結果（Dictionary）]
+# }
 func _execute(operation: String, request: Dictionary) -> Dictionary:
 	match operation:
 		"participants": return Order.participants(request.get("allies"), request.get("enemies"))
@@ -51,6 +70,12 @@ func _execute(operation: String, request: Dictionary) -> Dictionary:
 	return {"ok": false, "reason": "unknown_probe_operation"}
 
 
+# {
+#   責務: [_mutate: run・ターン・probeのmutateを求める]
+#   処理: [1: run・ターン・probeのmutateを求める]
+#   引数: [value: 値（Dictionary）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _mutate(value: Dictionary) -> void:
 	if not value["ok"]:
 		return

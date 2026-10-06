@@ -1,4 +1,8 @@
 """Explicit-random Godot damage numbers compared with real Python BattleEngine; no real saves."""
+# {
+#   責務: [test_gdscript_attack_numbers: Explicit-random Godot damage numbers compared with real Python BattleEngine; no real saves.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -19,16 +23,42 @@ from kadoka_quest.data.repository import GameRepository, STAT_KEYS
 ROOT = fixture.ROOT
 
 
+# {
+#   責務: [attack: test・gdscript・攻撃・numbersの攻撃を求める]
+#   処理: [1: test・gdscript・攻撃・numbersの攻撃を求める]
+#   引数: [changes: changes]
+#   戻り値: [result: test・gdscript・攻撃・numbersの攻撃を求めるための結果（型注釈なし）]
+# }
 def attack(**changes):
     return {"attack": 100, "defense": 10, "target_hp": 1_000_000, "critical_roll": 0.5,
             "variance": 1.0, **changes}
 
 
+# {
+#   責務: [case: test・gdscript・攻撃・numbersのcaseを求める]
+#   処理: [1: test・gdscript・攻撃・numbersのcaseを求める]
+#   引数: [
+#     operation: operation
+#     value: 値
+#     changes: changes
+#   ]
+#   戻り値: [result: test・gdscript・攻撃・numbersのcaseを求めるための結果（型注釈なし）]
+# }
 def case(operation, value, **changes):
     return {"operation": operation, "input": value, **changes}
 
 
+# {
+#   責務: [AttackBoundaryTests: 攻撃・boundary・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class AttackBoundaryTests(unittest.TestCase):
+    # {
+    #   責務: [test_pure_numbers_have_no_random_provider_io_rendering_or_ai_dependencies: 検証: pure numbers have no random provider io rendering or ai dependencies]
+    #   処理: [1: 検証: pure numbers have no random provider io rendering or ai dependencies]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_pure_numbers_have_no_random_provider_io_rendering_or_ai_dependencies(self):
         source = (ROOT / "gdscript/engine/attack_numbers.gd").read_text(encoding="utf-8")
         for forbidden in ("FileAccess", "DirAccess", "OS.", "RandomNumberGenerator", "randf(", "randi(",
@@ -38,12 +68,29 @@ class AttackBoundaryTests(unittest.TestCase):
         self.assertIn("critical_roll", source)
         self.assertIn("variance", source)
 
+    # {
+    #   責務: [test_numeric_contract_is_not_wired_as_a_completed_battle_scene: 検証: numeric contract is not wired as a completed battle scene]
+    #   処理: [1: 検証: numeric contract is not wired as a completed battle scene]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_numeric_contract_is_not_wired_as_a_completed_battle_scene(self):
         source = (ROOT / "gdscript/application/field_application.gd").read_text(encoding="utf-8")
         self.assertNotIn("attack_numbers", source)
         self.assertNotIn("run_attack_probe", source)
 
 
+# {
+#   責務: [GDScriptAttackTests: gdscript・攻撃・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     seed_state: seed・状態
+#     seed_record: seed・個体レコード
+#     write: write
+#     saved_files: saved・files
+#     repository: データ取得先
+#     engine: ルール処理
+#   ]
+# }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real damage-number probes")
 class GDScriptAttackTests(unittest.TestCase):
     seed_state = fixture.GDScriptRosterTests.seed_state
@@ -51,12 +98,28 @@ class GDScriptAttackTests(unittest.TestCase):
     write = fixture.GDScriptRosterTests.write
     saved_files = fixture.GDScriptRosterTests.saved_files
 
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self):
         fixture.GDScriptRosterTests.setUp(self)
         self.repository = GameRepository(self.content / "data")
         self.engine = BattleEngine(self.repository, [], [], learning_enabled=False)
         self.engine.learning.learn = mock.Mock()
 
+    # {
+    #   責務: [invoke: gdscript・攻撃・testsのinvokeを求める]
+    #   処理: [1: gdscript・攻撃・testsのinvokeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     cases: cases
+    #     joined: joined
+    #   ]
+    #   戻り値: [result: gdscript・攻撃・testsのinvokeを求めるための結果（型注釈なし）]
+    # }
     def invoke(self, cases=(), joined=()):
         path = self.content / "attack-probe.json"
         path.write_text(json.dumps({"cases": list(cases), "joined": list(joined)}, ensure_ascii=False), encoding="utf-8")
@@ -76,6 +139,17 @@ class GDScriptAttackTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]).decode("utf-8"))
         self.fail(actual.stderr + actual.stdout[-1600:])
 
+    # {
+    #   責務: [reference: gdscript・攻撃・testsのreferenceを求める]
+    #   処理: [1: gdscript・攻撃・testsのreferenceを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     parameters: parameters
+    #     kind: 種別
+    #     final_stage: final・stage
+    #   ]
+    #   戻り値: [result: gdscript・攻撃・testsのreferenceを求めるための結果（型注釈なし）]
+    # }
     def reference(self, parameters, *, kind="physical", final_stage=False):
         actor_record = MonsterRecord({"id": "actor", "name": "こうげき側", "species_id": "slime"}, {"kept": [123]})
         target_record = MonsterRecord({"id": "target", "name": "対象", "species_id": "slime"}, {"kept": [456]})
@@ -108,6 +182,17 @@ class GDScriptAttackTests(unittest.TestCase):
         return {"dealt": before_hp - target.hp, "remaining_hp": target.hp,
                 "critical": any("会心" in line for line in self.engine.log)}
 
+    # {
+    #   責務: [assert_reference: gdscript・攻撃・testsのassert・referenceを求める]
+    #   処理: [1: gdscript・攻撃・testsのassert・referenceを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     result: 処理結果
+    #     parameters: parameters
+    #     options: options
+    #   ]
+    #   戻り値: [result: expected（型注釈なし）]
+    # }
     def assert_reference(self, result, parameters, **options):
         self.assertTrue(result["ok"], result)
         expected = self.reference(parameters, **options)
@@ -119,11 +204,23 @@ class GDScriptAttackTests(unittest.TestCase):
             self.assertEqual(result["damage"], expected["dealt"])
         return expected
 
+    # {
+    #   責務: [byte_snapshot: gdscript・攻撃・testsのbyte・独立した状態の写しを求める]
+    #   処理: [1: gdscript・攻撃・testsのbyte・独立した状態の写しを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: gdscript・攻撃・testsのbyte・独立した状態の写しを求めるための結果（型注釈なし）]
+    # }
     def byte_snapshot(self):
         return {str(path.relative_to(self.content)): hashlib.sha256(path.read_bytes()).hexdigest()
                 for directory in ("data", "assets", "python-saves", "gd-saves")
                 for path in (self.content / directory).rglob("*") if path.is_file()}
 
+    # {
+    #   責務: [test_normal_guard_critical_low_attack_high_defense_and_variance_match_python: 検証: normal guard critical low attack high defense and variance match python]
+    #   処理: [1: 検証: normal guard critical low attack high defense and variance match python]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_normal_guard_critical_low_attack_high_defense_and_variance_match_python(self):
         cases = [case("attack", attack(attack=atk, defense=defense, critical_roll=roll, variance=variance, guard=guard))
                  for atk in (0, 1, 7, 99, 400) for defense in (0, 1, 13, 99, 100_000)
@@ -138,6 +235,12 @@ class GDScriptAttackTests(unittest.TestCase):
         self.assertTrue(all(result["input_preserved"]))
         self.assertFalse(self.profile.exists())
 
+    # {
+    #   責務: [test_uniform_16_bucket_contract_and_exact_critical_threshold: 検証: uniform 16 bucket contract and exact critical threshold]
+    #   処理: [1: 検証: uniform 16 bucket contract and exact critical threshold]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_uniform_16_bucket_contract_and_exact_critical_threshold(self):
         cases = [case("attack", attack(critical_roll=index / 16)) for index in range(16)]
         for roll in (1 / 16 - 1e-12, 1 / 16, 1 / 16 + 1e-12):
@@ -146,6 +249,12 @@ class GDScriptAttackTests(unittest.TestCase):
         self.assertEqual(sum(item["critical"] for item in result[:16]), 1)
         self.assertEqual([item["critical"] for item in result[-3:]], [True, False, False])
 
+    # {
+    #   責務: [test_critical_ignores_defense_but_not_physical_guard_or_variance: 検証: critical ignores defense but not physical guard or variance]
+    #   処理: [1: 検証: critical ignores defense but not physical guard or variance]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_critical_ignores_defense_but_not_physical_guard_or_variance(self):
         cases = [case("attack", attack(defense=defense, critical_roll=0, guard=guard, variance=variance))
                  for guard in (1.0, 0.5) for variance in (0.92, 1.0, 1.08) for defense in (0, 100_000)]
@@ -158,6 +267,12 @@ class GDScriptAttackTests(unittest.TestCase):
         self.assertEqual(result[2]["damage"], 100)
         self.assertEqual(result[8]["damage"], 50)
 
+    # {
+    #   責務: [test_defend_definition_default_custom_and_invalid_multiplier: 検証: defend definition default custom and invalid multiplier]
+    #   処理: [1: 検証: defend definition default custom and invalid multiplier]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_defend_definition_default_custom_and_invalid_multiplier(self):
         definition = self.repository.get_skills()["defend"]
         values = ({}, definition, {"damage_multiplier": "0.25"}, {"damage_multiplier": 0}, {"damage_multiplier": -1})
@@ -169,6 +284,12 @@ class GDScriptAttackTests(unittest.TestCase):
             None, [], {"kind": "magic"}, {"damage_multiplier": True}, {"damage_multiplier": "nan"})])["results"]
         self.assertTrue(all(not item["ok"] for item in result))
 
+    # {
+    #   責務: [test_physical_guard_does_not_leak_to_magic_or_drain_finalization: 検証: physical guard does not leak to magic or drain finalization]
+    #   処理: [1: 検証: physical guard does not leak to magic or drain finalization]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_physical_guard_does_not_leak_to_magic_or_drain_finalization(self):
         cases = [case("finish", {"kind": kind, "damage": damage, "guard": guard,
                                  "variance": variance, "target_hp": 1_000_000})
@@ -181,6 +302,12 @@ class GDScriptAttackTests(unittest.TestCase):
                 self.assertEqual(actual["applied_guard"], item["input"]["guard"]
                                  if item["input"]["kind"] == "physical" else 1)
 
+    # {
+    #   責務: [test_truncate_each_stage_instead_of_round_and_guard_before_variance: 検証: truncate each stage instead of round and guard before variance]
+    #   処理: [1: 検証: truncate each stage instead of round and guard before variance]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_truncate_each_stage_instead_of_round_and_guard_before_variance(self):
         parameters = [attack(attack=5, defense=1, variance=1.08, guard=0.5),
                       attack(attack=5, attack_multiplier=0.5, power=1.9, defense=1, variance=1.08),
@@ -197,6 +324,12 @@ class GDScriptAttackTests(unittest.TestCase):
         self.assertEqual(result[3]["effective_attack"], -2)
         self.assertEqual(result[4]["raw_damage"], 10)
 
+    # {
+    #   責務: [test_equipment_normal_attack_power_and_fixed_bonus_order_match_python: 検証: equipment normal attack power and fixed bonus order match python]
+    #   処理: [1: 検証: equipment normal attack power and fixed bonus order match python]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_equipment_normal_attack_power_and_fixed_bonus_order_match_python(self):
         cases = [case("attack", attack(equipment=equipment, guard=0.5, variance=1.08,
                                        critical_roll=roll, attack_multiplier=0.77))
@@ -210,6 +343,12 @@ class GDScriptAttackTests(unittest.TestCase):
             with self.subTest(**item["input"]):
                 self.assert_reference(actual, item["input"])
 
+    # {
+    #   責務: [test_critical_multiplier_matches_python_without_silent_lower_clamp: 検証: critical multiplier matches python without silent lower clamp]
+    #   処理: [1: 検証: critical multiplier matches python without silent lower clamp]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_critical_multiplier_matches_python_without_silent_lower_clamp(self):
         cases = [case("attack", attack(critical_multiplier=multiplier, critical_roll=roll))
                  for multiplier in (-2, 0, 0.5, 2, 16, 32) for roll in (0, 1 / 16, 0.999999999)]
@@ -220,12 +359,24 @@ class GDScriptAttackTests(unittest.TestCase):
                 chance = min(1, NORMAL_ATTACK_CRITICAL_CHANCE * item["input"]["critical_multiplier"])
                 self.assertEqual(actual["critical_chance"], chance)
 
+    # {
+    #   責務: [test_normal_entry_refuses_unported_skill_ids_and_kinds: 検証: normal entry refuses unported skill ids and kinds]
+    #   処理: [1: 検証: normal entry refuses unported skill ids and kinds]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_normal_entry_refuses_unported_skill_ids_and_kinds(self):
         values = [attack(kind="magic"), attack(kind="random"), attack(skill_id="body_bash"),
                   attack(skill_id="weaken"), attack(kind="drain_mp")]
         result = self.invoke([case("attack", value) for value in values])["results"]
         self.assertTrue(all(not item["ok"] and "未移植" in item["message"] for item in result))
 
+    # {
+    #   責務: [test_zero_hp_overkill_and_minimum_damage_return_actual_dealt_separately: 検証: zero hp overkill and minimum damage return actual dealt separately]
+    #   処理: [1: 検証: zero hp overkill and minimum damage return actual dealt separately]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_zero_hp_overkill_and_minimum_damage_return_actual_dealt_separately(self):
         cases = [case("attack", attack(target_hp=hp, attack=atk, defense=100_000, critical_roll=roll))
                  for hp in (0, 1, 3, 12) for atk in (0, 100) for roll in (0, 0.5)]
@@ -236,6 +387,12 @@ class GDScriptAttackTests(unittest.TestCase):
                 self.assertGreaterEqual(actual["damage"], 1)
                 self.assertLessEqual(actual["dealt"], item["input"]["target_hp"])
 
+    # {
+    #   責務: [test_finite_numeric_strings_match_python_conversion: 検証: finite numeric strings match python conversion]
+    #   処理: [1: 検証: finite numeric strings match python conversion]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_finite_numeric_strings_match_python_conversion(self):
         parameters = attack(attack="  +101 ", defense="13", attack_multiplier="1.25", power="1.1",
                             critical_multiplier="2", critical_roll="0.125", guard="0.5", variance="1.08",
@@ -243,6 +400,12 @@ class GDScriptAttackTests(unittest.TestCase):
         actual = self.invoke([case("attack", parameters)])["results"][0]
         self.assert_reference(actual, parameters)
 
+    # {
+    #   責務: [test_invalid_missing_random_bounds_types_and_precision_return_reasons: 検証: invalid missing random bounds types and precision return reasons]
+    #   処理: [1: 検証: invalid missing random bounds types and precision return reasons]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_missing_random_bounds_types_and_precision_return_reasons(self):
         cases = [case("attack", value) for value in (None, [], {})]
         for key in ("attack", "defense", "attack_multiplier", "power", "critical_multiplier", "critical_roll",
@@ -267,11 +430,23 @@ class GDScriptAttackTests(unittest.TestCase):
                 self.assertNotIn("damage", result)
         self.assertTrue(all(actual["input_preserved"]))
 
+    # {
+    #   責務: [test_actual_nonfinite_inputs_are_rejected: 検証: actual nonfinite inputs are rejected]
+    #   処理: [1: 検証: actual nonfinite inputs are rejected]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_actual_nonfinite_inputs_are_rejected(self):
         cases = [case("attack", attack(), special={key: special})
                  for key in ("critical_roll", "variance", "attack", "guard") for special in ("inf", "nan")]
         self.assertTrue(all(not item["ok"] for item in self.invoke(cases)["results"]))
 
+    # {
+    #   責務: [test_finalizer_rejects_unsupported_kinds_missing_values_and_unsafe_products: 検証: finalizer rejects unsupported kinds missing values and unsafe products]
+    #   処理: [1: 検証: finalizer rejects unsupported kinds missing values and unsafe products]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_finalizer_rejects_unsupported_kinds_missing_values_and_unsafe_products(self):
         valid = {"kind": "physical", "damage": 10, "guard": 0.5, "variance": 1, "target_hp": 100}
         values = [None, [], {}, {**valid, "kind": "immune"}, {**valid, "kind": "absorb"},
@@ -281,12 +456,24 @@ class GDScriptAttackTests(unittest.TestCase):
         result = self.invoke([case("finish", value) for value in values])["results"]
         self.assertTrue(all(not item["ok"] and item["message"] for item in result))
 
+    # {
+    #   責務: [test_result_changes_do_not_mutate_inputs_or_affect_repeated_calculations: 検証: result changes do not mutate inputs or affect repeated calculations]
+    #   処理: [1: 検証: result changes do not mutate inputs or affect repeated calculations]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_result_changes_do_not_mutate_inputs_or_affect_repeated_calculations(self):
         parameters = attack(equipment={"fixed_bonus_damage": 3}, future={"keep": [123]})
         result = self.invoke([case("attack", parameters, mutate_result=True), case("attack", parameters)])
         self.assertEqual(result["results"][0], result["results"][1])
         self.assertEqual(result["input_preserved"], [True, True])
 
+    # {
+    #   責務: [test_plus_equipment_reconstruction_feeds_normal_numbers_without_repair_or_ai_writes: 検証: plus equipment reconstruction feeds normal numbers without repair or ai writes]
+    #   処理: [1: 検証: plus equipment reconstruction feeds normal numbers without repair or ai writes]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_plus_equipment_reconstruction_feeds_normal_numbers_without_repair_or_ai_writes(self):
         actor = self.seed_record("actor", "slime", level=100, plus_choices=["slime_plus_1_hp"], equipment_id="ken")
         target = self.seed_record("target", "hero", level=100, plus_choices=[], equipment_id=None)

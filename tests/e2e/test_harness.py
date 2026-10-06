@@ -1,4 +1,8 @@
 """Issue #201 harness calibration; catalog user flows remain #202--#204."""
+# {
+#   責務: [test_harness: Issue #201 harness calibration; catalog user flows remain #202--#204.]
+#   フィールド: []
+# }
 
 from pathlib import Path
 
@@ -7,6 +11,12 @@ import pytest
 from .harness import PROJECT_ROOT
 
 
+# {
+#   責務: [test_headless_keyboard_clock_and_store_reload: 検証: headless keyboard clock and store reload]
+#   処理: [1: 検証: headless keyboard clock and store reload]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_headless_keyboard_clock_and_store_reload(scenario_runner):
     # Given canonical data and an empty isolated save. When real KEYDOWN/UP
     # events and exact frame time are fed. Then held movement and Store reload
@@ -36,6 +46,12 @@ def test_headless_keyboard_clock_and_store_reload(scenario_runner):
     assert saved["current_party"] == points["loaded"]["party_ids"]
 
 
+# {
+#   責務: [test_same_seed_actions_repeat_identical_observations: 検証: same seed actions repeat identical observations]
+#   処理: [1: 検証: same seed actions repeat identical observations]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_same_seed_actions_repeat_identical_observations(scenario_runner):
     steps = [
         {"kind": "command", "target": "field", "action": "map.change",
@@ -58,6 +74,12 @@ def test_same_seed_actions_repeat_identical_observations(scenario_runner):
     assert points["preset"]["saved_files"]["state.json"]["map_id"] == "greenwood"
 
 
+# {
+#   責務: [test_explicit_different_seed_changes_production_wild_spawn: 検証: explicit different seed changes production wild spawn]
+#   処理: [1: 検証: explicit different seed changes production wild spawn]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_explicit_different_seed_changes_production_wild_spawn(scenario_runner):
     steps = [{"kind": "command", "target": "field", "action": "map.change",
               "payload": {"map_id": "greenwood", "x": 6, "y": 5}}]
@@ -71,6 +93,12 @@ def test_explicit_different_seed_changes_production_wild_spawn(scenario_runner):
     assert first_mobs != second_mobs
 
 
+# {
+#   責務: [test_battle_input_and_playback_use_the_same_clock: 検証: battle input and playback use the same clock]
+#   処理: [1: 検証: battle input and playback use the same clock]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_battle_input_and_playback_use_the_same_clock(scenario_runner):
     # Calibrate battle driving/observation through production commands. Actual
     # encounter/victory/defeat catalog scenarios are still Issue #203.
@@ -94,6 +122,16 @@ def test_battle_input_and_playback_use_the_same_clock(scenario_runner):
     assert points["playback"]["battle"]["visible_log_count"] > points["acted"]["battle"]["visible_log_count"]
 
 
+# {
+#   責務: [test_inherited_user_paths_are_not_touched: 検証: inherited user paths are not touched]
+#   処理: [1: 検証: inherited user paths are not touched]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     tmp_path: tmp・パス
+#     monkeypatch: monkeypatch
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_inherited_user_paths_are_not_touched(scenario_runner, tmp_path, monkeypatch):
     sentinels = {}
     for variable in ("KADOKA_SAVE_DIR", "KADOKA_SAVEDATA_ROOT", "KADOKA_IMPORT_DIR"):
@@ -115,6 +153,16 @@ def test_inherited_user_paths_are_not_touched(scenario_runner, tmp_path, monkeyp
     assert "state.json" in report["checkpoints"]["final"]["saved_files"]
 
 
+# {
+#   責務: [test_invalid_steps_fail_with_context: 検証: invalid steps fail with context]
+#   処理: [1: 検証: invalid steps fail with context]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     step: step
+#     message: message
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("step, message", [
     ({"kind": "advance", "ms": -1}, "ms must be a nonnegative integer"),
     ({"kind": "advance", "ms": 20, "frame_ms": 0}, "frame_ms must be positive"),
@@ -130,6 +178,12 @@ def test_invalid_steps_fail_with_context(scenario_runner, step, message):
     assert message in str(raised.value)
 
 
+# {
+#   責務: [test_save_fixture_is_copied_not_changed: 検証: save fixture is copied not changed]
+#   処理: [1: 検証: save fixture is copied not changed]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_save_fixture_is_copied_not_changed(scenario_runner):
     first = scenario_runner.run([{"kind": "key_down", "key": "right"}])
     fixture = Path(first["paths"]["save"])

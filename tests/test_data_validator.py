@@ -1,3 +1,7 @@
+# {
+#   責務: [test_data_validator: test・データ・検証処理の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import json
@@ -13,10 +17,26 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from kadoka_engine.data_validator import DataValidator
 
 
+# {
+#   責務: [DataValidatorTests: データ・検証処理・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class DataValidatorTests(unittest.TestCase):
+    # {
+    #   責務: [test_bundled_data_has_no_validation_issues: 検証: bundled data has no validation issues]
+    #   処理: [1: 検証: bundled data has no validation issues]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_bundled_data_has_no_validation_issues(self) -> None:
         self.assertEqual(DataValidator(PROJECT_ROOT / "data").validate(), [])
 
+    # {
+    #   責務: [test_reference_and_typo_problems_are_collected_together: 検証: reference and typo problems are collected together]
+    #   処理: [1: 検証: reference and typo problems are collected together]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_reference_and_typo_problems_are_collected_together(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "data"
@@ -58,6 +78,12 @@ class DataValidatorTests(unittest.TestCase):
                 "map.block_unknown",
             }.issubset(codes))
 
+    # {
+    #   責務: [test_invalid_json_is_reported_without_raising: 検証: invalid json is reported without raising]
+    #   処理: [1: 検証: invalid json is reported without raising]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_json_is_reported_without_raising(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "data"
@@ -66,6 +92,12 @@ class DataValidatorTests(unittest.TestCase):
             issues = DataValidator(root).validate()
             self.assertIn("json.invalid", {issue["code"] for issue in issues})
 
+    # {
+    #   責務: [test_invalid_nested_equipment_mapping_is_reported_without_raising: 検証: invalid nested equipment mapping is reported without raising]
+    #   処理: [1: 検証: invalid nested equipment mapping is reported without raising]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_nested_equipment_mapping_is_reported_without_raising(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "data"
@@ -78,6 +110,12 @@ class DataValidatorTests(unittest.TestCase):
             issues = DataValidator(root).validate()
             self.assertIn("equipment.mapping_invalid", {issue["code"] for issue in issues})
 
+    # {
+    #   責務: [test_invalid_map_spawn_level_ranges_are_reported: 検証: invalid map spawn level ranges are reported]
+    #   処理: [1: 検証: invalid map spawn level ranges are reported]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_map_spawn_level_ranges_are_reported(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "data"

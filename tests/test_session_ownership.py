@@ -1,3 +1,7 @@
+# {
+#   責務: [test_session_ownership: test・セッション・ownershipの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import ast
@@ -31,12 +35,27 @@ REMOVED_ALIASES = (
 )
 
 
+# {
+#   責務: [test_unused_alias_is_not_defined_or_recreated: 検証: unused alias is not defined or recreated]
+#   処理: [1: 検証: unused alias is not defined or recreated]
+#   引数: [
+#     game: ゲーム
+#     name: 名前
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("name", REMOVED_ALIASES)
 def test_unused_alias_is_not_defined_or_recreated(game, name):
     assert name not in vars(KadokaQuest)
     assert not hasattr(game, name)
 
 
+# {
+#   責務: [test_runtime_has_no_removed_alias_access: 検証: runtime has no removed alias access]
+#   処理: [1: 検証: runtime has no removed alias access]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_runtime_has_no_removed_alias_access():
     root = Path(__file__).resolve().parents[1]
     paths = [*root.joinpath("src").rglob("*.py"), *root.joinpath("tools").rglob("*.py"), *root.glob("*.py")]
@@ -56,6 +75,12 @@ def test_runtime_has_no_removed_alias_access():
     assert references == []
 
 
+# {
+#   責務: [game: test・セッション・ownershipのゲームを求める]
+#   処理: [1: test・セッション・ownershipのゲームを求める]
+#   引数: [tmp_path: tmp・パス]
+#   戻り値: [result: test・セッション・ownershipのゲームを求めるための結果（型注釈なし）]
+# }
 @pytest.fixture
 def game(tmp_path):
     repository = GameRepository(Path(__file__).resolve().parents[1] / "data")
@@ -68,6 +93,12 @@ def game(tmp_path):
     )
 
 
+# {
+#   責務: [test_progress_session_keeps_identity_and_allows_replacement: 検証: progress session keeps identity and allows replacement]
+#   処理: [1: 検証: progress session keeps identity and allows replacement]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_progress_session_keeps_identity_and_allows_replacement():
     state = {"flags": {}}
     session = ProgressSession(state)
@@ -80,6 +111,12 @@ def test_progress_session_keeps_identity_and_allows_replacement():
     assert "new" not in state["flags"]
 
 
+# {
+#   責務: [test_field_session_rebinds_world_without_copying_actors: 検証: field session rebinds world without copying actors]
+#   処理: [1: 検証: field session rebinds world without copying actors]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_field_session_rebinds_world_without_copying_actors():
     blocks = {"grass": {"player_walkable": True}}
     field = FieldEngine({"id": "first"}, blocks)
@@ -102,6 +139,12 @@ def test_field_session_rebinds_world_without_copying_actors():
     assert (player.visual.target_x, player.visual.target_y) == (4, 5)
 
 
+# {
+#   責務: [test_game_compatibility_views_have_no_shadow_state: 検証: game compatibility views have no shadow state]
+#   処理: [1: 検証: game compatibility views have no shadow state]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_game_compatibility_views_have_no_shadow_state(game):
     for name in ("state", "map_data", "blocks", "field", "player_field", "fixed_mobs", "hidden_enemies"):
         assert name not in vars(game)
@@ -125,6 +168,12 @@ def test_game_compatibility_views_have_no_shadow_state(game):
     assert game.field is game.fixed_mobs.field is game.hidden_enemies.field is replacement_field
 
 
+# {
+#   責務: [test_map_change_preserves_population_reset_and_save_order: 検証: map change preserves population reset and save order]
+#   処理: [1: 検証: map change preserves population reset and save order]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_map_change_preserves_population_reset_and_save_order(game):
     session = game.field_session
     game.player_field.visual.move_to(19, 14, 10)
@@ -150,6 +199,12 @@ def test_map_change_preserves_population_reset_and_save_order(game):
     assert game.map_data["id"] == "starting_town"
 
 
+# {
+#   責務: [test_manager_reload_updates_existing_battle_flow_state_provider: 検証: manager reload updates existing battle flow state provider]
+#   処理: [1: 検証: manager reload updates existing battle flow state provider]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_manager_reload_updates_existing_battle_flow_state_provider(game):
     app = BattleCommandApplication(game)
     flow = app._battle_flow()
@@ -178,6 +233,12 @@ def test_manager_reload_updates_existing_battle_flow_state_provider(game):
     assert game.state is current
 
 
+# {
+#   責務: [test_battle_command_uses_progress_owner_without_reading_state_alias: 検証: battle command uses progress owner without reading state alias]
+#   処理: [1: 検証: battle command uses progress owner without reading state alias]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_battle_command_uses_progress_owner_without_reading_state_alias(game):
     with mock.patch.object(KadokaQuest, "state", new_callable=mock.PropertyMock, side_effect=AssertionError("compatibility state read")):
         app = BattleCommandApplication(game)

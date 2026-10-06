@@ -1,3 +1,7 @@
+# {
+#   責務: [test_kadoka_palette: test・kadoka・パレットの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,15 +29,37 @@ from kadoka_quest.ui.pixel_operations import (
 )
 
 
+# {
+#   責務: [KadokaPaletteTests: kadoka・パレット・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class KadokaPaletteTests(unittest.TestCase):
+    # {
+    #   責務: [setUpClass: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [cls: 対象クラス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @classmethod
     def setUpClass(cls) -> None:
         pygame.init()
 
+    # {
+    #   責務: [tearDownClass: 検証用fixtureと一時的な変更を後始末する]
+    #   処理: [1: 検証用fixtureと一時的な変更を後始末する]
+    #   引数: [cls: 対象クラス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @classmethod
     def tearDownClass(cls) -> None:
         pygame.quit()
 
+    # {
+    #   責務: [make_multicolor_surface: multicolor・描画面を構築する]
+    #   処理: [1: multicolor・描画面を構築する]
+    #   引数: [size: 大きさ（tuple[int, int]）]
+    #   戻り値: [result: 描画面（pygame.Surface）]
+    # }
     @staticmethod
     def make_multicolor_surface(size: tuple[int, int] = (128, 96)) -> pygame.Surface:
         surface = pygame.Surface(size, pygame.SRCALPHA)
@@ -53,6 +79,12 @@ class KadokaPaletteTests(unittest.TestCase):
         pygame.draw.rect(surface, (0, 0, 0, 0), pygame.Rect(0, 0, size[0] // 8, size[1] // 8))
         return surface
 
+    # {
+    #   責務: [test_high_resolution_import_fits_64_canvas_without_losing_transparency: 検証: high resolution import fits 64 canvas without losing transparency]
+    #   処理: [1: 検証: high resolution import fits 64 canvas without losing transparency]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_high_resolution_import_fits_64_canvas_without_losing_transparency(self) -> None:
         source = self.make_multicolor_surface()
 
@@ -61,6 +93,12 @@ class KadokaPaletteTests(unittest.TestCase):
         self.assertEqual(fitted.get_size(), (64, 64))
         self.assertEqual(fitted.get_at((0, 8)).a, 0)
 
+    # {
+    #   責務: [test_palette_reduction_uses_only_basic_colors_and_requested_limit: 検証: palette reduction uses only basic colors and requested limit]
+    #   処理: [1: 検証: palette reduction uses only basic colors and requested limit]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_palette_reduction_uses_only_basic_colors_and_requested_limit(self) -> None:
         source = fit_imported_image(self.make_multicolor_surface(), 64)
 
@@ -79,6 +117,12 @@ class KadokaPaletteTests(unittest.TestCase):
         self.assertTrue(used <= allowed)
         self.assertEqual(reduced.get_at((0, 8)).a, 0)
 
+    # {
+    #   責務: [test_shared_editor_import_defaults_to_five_colors_and_can_reduce_to_three: 検証: shared editor import defaults to five colors and can reduce to three]
+    #   処理: [1: 検証: shared editor import defaults to five colors and can reduce to three]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_shared_editor_import_defaults_to_five_colors_and_can_reduce_to_three(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -1,3 +1,11 @@
+# {
+#   責務: [owned_roster: Coordinate owned-folder validation and the game's first-save starter policy.]
+#   フィールド: [
+#     repository: データ取得先（RefCounted）
+#     saves: saves（RefCounted）
+#     profile_name: プロファイル・名前（String）
+#   ]
+# }
 extends RefCounted
 ## Coordinate owned-folder validation and the game's first-save starter policy.
 
@@ -10,12 +18,28 @@ var saves: RefCounted
 var profile_name: String
 
 
+# {
+#   責務: [_init: owned・所有個体台帳が利用する初期状態と依存を設定する]
+#   処理: [1: owned・所有個体台帳が利用する初期状態と依存を設定する]
+#   引数: [
+#     content: content（RefCounted）
+#     store: 保存先（RefCounted）
+#     name: 名前（String）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(content: RefCounted, store: RefCounted, name: String) -> void:
 	repository = content
 	saves = store
 	profile_name = name
 
 
+# {
+#   責務: [read_snapshot: 独立した状態の写しを読み取る]
+#   処理: [1: 独立した状態の写しを読み取る]
+#   引数: [state: 状態（Dictionary）]
+#   戻り値: [result: 独立した状態の写しを読み取るための結果（Dictionary）]
+# }
 func read_snapshot(state: Dictionary) -> Dictionary:
 	var profile: Dictionary = saves.resolve_profile(profile_name)
 	if not profile["ok"]:
@@ -47,6 +71,12 @@ func read_snapshot(state: Dictionary) -> Dictionary:
 	return {"ok": true, "records": records, "warnings": warnings, "party": Contract.party_entries(state, records)}
 
 
+# {
+#   責務: [prepare_starters: startersを準備する]
+#   処理: [1: startersを準備する]
+#   引数: []
+#   戻り値: [result: startersを準備するための結果（Dictionary）]
+# }
 func prepare_starters() -> Dictionary:
 	var snapshot := read_snapshot({})
 	if not snapshot["ok"]:
@@ -76,6 +106,15 @@ func prepare_starters() -> Dictionary:
 	return {"ok": true, "members": members}
 
 
+# {
+#   責務: [_existing_species: owned・所有個体台帳のexisting・種族を求める]
+#   処理: [1: owned・所有個体台帳のexisting・種族を求める]
+#   引数: [
+#     records: 個体レコード一覧（Dictionary）
+#     species_id: 種族・識別子（String）
+#   ]
+#   戻り値: [result: owned・所有個体台帳のexisting・種族を求めるための結果（String）]
+# }
 static func _existing_species(records: Dictionary, species_id: String) -> String:
 	for id: String in records:
 		if records[id]["monster"]["species_id"] == species_id:

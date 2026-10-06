@@ -1,4 +1,8 @@
 """Real-Godot dialogue deck parity, front-cell key routing and read-only field progress."""
+# {
+#   責務: [test_gdscript_dialogue: Real-Godot dialogue deck parity, front-cell key routing and read-only field progress.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -19,18 +23,46 @@ ROOT = Path(__file__).resolve().parents[1]
 GODOT = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
 
 
+# {
+#   責務: [GDScriptDialogueTests: gdscript・会話・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     content: content
+#   ]
+# }
 @unittest.skipUnless(GODOT, "Set KADOKA_GODOT_EXECUTABLE for actual dialogue tests")
 class GDScriptDialogueTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="kadoka-dialogue-")
         self.addCleanup(self.temporary.cleanup)
         self.content = Path(self.temporary.name)
 
+    # {
+    #   責務: [prepare_scene: sceneを準備する]
+    #   処理: [1: sceneを準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def prepare_scene(self) -> None:
         if not (self.content / "data").exists():
             shutil.copytree(ROOT / "data", self.content / "data")
             shutil.copytree(ROOT / "assets", self.content / "assets")
 
+    # {
+    #   責務: [probe: gdscript・会話・testsのprobeを求める]
+    #   処理: [1: gdscript・会話・testsのprobeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     request: 要求（dict）
+    #   ]
+    #   戻り値: [result: gdscript・会話・testsのprobeを求めるための結果（list）]
+    # }
     def probe(self, request: dict) -> list:
         if request.get("scene"):
             self.prepare_scene()
@@ -51,9 +83,24 @@ class GDScriptDialogueTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]))
         self.fail(process.stderr + process.stdout[-1000:])
 
+    # {
+    #   責務: [scene: gdscript・会話・testsのsceneを求める]
+    #   処理: [1: gdscript・会話・testsのsceneを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actions: actions（list）
+    #   ]
+    #   戻り値: [result: gdscript・会話・testsのsceneを求めるための結果（list）]
+    # }
     def scene(self, actions: list) -> list:
         return self.probe({"scene": True, "actions": actions})
 
+    # {
+    #   責務: [test_card_order_refill_boundary_and_unicode_trim_match_python: 検証: card order refill boundary and unicode trim match python]
+    #   処理: [1: 検証: card order refill boundary and unicode trim match python]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_card_order_refill_boundary_and_unicode_trim_match_python(self) -> None:
         home = json.loads((ROOT / "data/maps/ghost_home/map.json").read_text(encoding="utf-8"))
         sources = [copy.deepcopy(n) for n in home["fixed_mobs"]]
@@ -78,6 +125,12 @@ class GDScriptDialogueTests(unittest.TestCase):
                     self.assertEqual(observation["shuffles"], controller.rng.shuffle_index)
             self.assertTrue(result["source_unchanged"])
 
+    # {
+    #   責務: [test_distinct_deck_visits_each_card_once_and_avoids_repeat_across_refills: 検証: distinct deck visits each card once and avoids repeat across refills]
+    #   処理: [1: 検証: distinct deck visits each card once and avoids repeat across refills]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_distinct_deck_visits_each_card_once_and_avoids_repeat_across_refills(self) -> None:
         result = self.probe({"dialogue": True, "cases": [{"source": {"dialogue": ["a", "b", "c"]}, "count": 30}]})[0]
         lines = [n["result"]["line"] for n in result["selections"]]
@@ -85,6 +138,12 @@ class GDScriptDialogueTests(unittest.TestCase):
             self.assertEqual(set(lines[start:start + 3]), {"a", "b", "c"})
         self.assertTrue(all(a != b for a, b in zip(lines, lines[1:])))
 
+    # {
+    #   責務: [test_missing_invalid_empty_decks_report_reason_and_consume_no_rng: 検証: missing invalid empty decks report reason and consume no rng]
+    #   処理: [1: 検証: missing invalid empty decks report reason and consume no rng]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_missing_invalid_empty_decks_report_reason_and_consume_no_rng(self) -> None:
         cases = [({}, "missing_deck"), ({"dialogue": None}, "invalid_deck"), ({"dialogue": "文字列"}, "invalid_deck"),
                  ({"dialogue": {}}, "invalid_deck"), ({"dialogue": []}, "empty_deck"),
@@ -101,6 +160,12 @@ class GDScriptDialogueTests(unittest.TestCase):
                     self.assertEqual(observation["shuffles"], 0)
             self.assertTrue(result["source_unchanged"])
 
+    # {
+    #   責務: [test_per_mob_decks_are_independent_and_reset_on_map_entry: 検証: per mob decks are independent and reset on map entry]
+    #   処理: [1: 検証: per mob decks are independent and reset on map entry]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_per_mob_decks_are_independent_and_reset_on_map_entry(self) -> None:
         source = world([mob("one", ai="idle", dialogue=["a", "b", "c"]),
                         mob("two", x=5, ai="idle", dialogue=["x", "y"])])
@@ -118,6 +183,12 @@ class GDScriptDialogueTests(unittest.TestCase):
                 self.assertEqual(observation["outcome"]["line"], expected)
             self.assertTrue(observation["source_unchanged"])
 
+    # {
+    #   責務: [test_real_enter_space_e_keys_talk_only_to_front_cell_and_ignore_echo: 検証: real enter space e keys talk only to front cell and ignore echo]
+    #   処理: [1: 検証: real enter space e keys talk only to front cell and ignore echo]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_real_enter_space_e_keys_talk_only_to_front_cell_and_ignore_echo(self) -> None:
         result = self.scene([
             {"kind": "open", "entry": {"x": 9, "y": 7, "direction": "back"}},
@@ -135,6 +206,12 @@ class GDScriptDialogueTests(unittest.TestCase):
         self.assertEqual(result[-1]["drawn"][0]["direction"], "left")
         self.assertFalse((self.content / "saves").exists())
 
+    # {
+    #   責務: [test_talking_turns_npc_towards_player_from_all_four_sides: 検証: talking turns npc towards player from all four sides]
+    #   処理: [1: 検証: talking turns npc towards player from all four sides]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_talking_turns_npc_towards_player_from_all_four_sides(self) -> None:
         sides = [(9, 7, "right", "left"), (11, 7, "left", "right"),
                  (10, 6, "front", "back"), (10, 8, "back", "front")]
@@ -145,6 +222,12 @@ class GDScriptDialogueTests(unittest.TestCase):
                 self.assertTrue(result["status"].startswith("まる『"))
                 self.assertEqual(result["npcs"][0]["direction"], opposite)
 
+    # {
+    #   責務: [test_talking_pauses_movement_keeps_occupancy_and_leaving_resumes_at_deadline: 検証: talking pauses movement keeps occupancy and leaving resumes at deadline]
+    #   処理: [1: 検証: talking pauses movement keeps occupancy and leaving resumes at deadline]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_talking_pauses_movement_keeps_occupancy_and_leaving_resumes_at_deadline(self) -> None:
         result = self.scene([
             {"kind": "open", "entry": {"x": 9, "y": 7, "direction": "right"}}, {"kind": "key", "key": "E"},
@@ -158,6 +241,12 @@ class GDScriptDialogueTests(unittest.TestCase):
         self.assertEqual(result[4]["outcome"]["reason"], "visible_character")
         self.assertEqual(result[-1]["npcs"][0]["move_count"], 1)
 
+    # {
+    #   責務: [test_management_modals_do_not_consume_a_dialogue_card: 検証: management modals do not consume a dialogue card]
+    #   処理: [1: 検証: management modals do not consume a dialogue card]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_management_modals_do_not_consume_a_dialogue_card(self) -> None:
         actions = [{"kind": "open", "entry": {"x": 9, "y": 7, "direction": "right"}}]
         for name in ("roster", "party", "preset"):
@@ -167,6 +256,12 @@ class GDScriptDialogueTests(unittest.TestCase):
         self.assertTrue(all(r["npcs"][0]["direction"] == "front" for r in result[:-1]))
         self.assertEqual(result[-1]["status"], "まる『ここ、へいわ』")
 
+    # {
+    #   責務: [test_front_npc_takes_precedence_over_event_and_battle_is_not_faked: 検証: front npc takes precedence over event and battle is not faked]
+    #   処理: [1: 検証: front npc takes precedence over event and battle is not faked]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_front_npc_takes_precedence_over_event_and_battle_is_not_faked(self) -> None:
         self.prepare_scene()
         path = self.content / "data/maps/ghost_home/map.json"
@@ -181,6 +276,12 @@ class GDScriptDialogueTests(unittest.TestCase):
         self.assertEqual(result["npcs"][0]["direction"], "left")
         self.assertFalse((self.content / "saves").exists())
 
+    # {
+    #   責務: [test_invalid_deck_is_visible_in_scene_and_not_replaced_by_fake_dialogue: 検証: invalid deck is visible in scene and not replaced by fake dialogue]
+    #   処理: [1: 検証: invalid deck is visible in scene and not replaced by fake dialogue]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_deck_is_visible_in_scene_and_not_replaced_by_fake_dialogue(self) -> None:
         self.prepare_scene()
         path = self.content / "data/maps/ghost_home/map.json"
@@ -192,6 +293,12 @@ class GDScriptDialogueTests(unittest.TestCase):
         self.assertIn("会話デッキが設定されていません", result["status"])
         self.assertNotIn("『……』", result["status"])
 
+    # {
+    #   責務: [test_unported_despawn_is_explicit_without_removing_actor_or_saving: 検証: unported despawn is explicit without removing actor or saving]
+    #   処理: [1: 検証: unported despawn is explicit without removing actor or saving]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_unported_despawn_is_explicit_without_removing_actor_or_saving(self) -> None:
         self.prepare_scene()
         path = self.content / "data/maps/ghost_home/map.json"
@@ -205,6 +312,12 @@ class GDScriptDialogueTests(unittest.TestCase):
         self.assertEqual(len(result["npcs"]), 2)
         self.assertFalse((self.content / "saves").exists())
 
+    # {
+    #   責務: [test_acquisition_state_does_not_hide_home_mobs_or_modify_json_ai_assets: 検証: acquisition state does not hide home mobs or modify json ai assets]
+    #   処理: [1: 検証: acquisition state does not hide home mobs or modify json ai assets]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_acquisition_state_does_not_hide_home_mobs_or_modify_json_ai_assets(self) -> None:
         self.prepare_scene()
         profile = self.content / "saves/default"

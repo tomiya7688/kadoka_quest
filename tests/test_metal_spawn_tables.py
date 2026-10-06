@@ -1,3 +1,7 @@
+# {
+#   責務: [test_metal_spawn_tables: test・metal・出現・tablesの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import json
@@ -23,10 +27,25 @@ EARLY_MAPS = (
 MIDGAME_PRESET = "midgame_field"
 
 
+# {
+#   責務: [read_map: マップを読み取る]
+#   処理: [1: マップを読み取る]
+#   引数: [map_id: マップ・識別子]
+#   戻り値: [result: マップを読み取るための結果（型注釈なし）]
+# }
 def read_map(map_id):
     return json.loads((DATA_ROOT / "maps" / map_id / "map.json").read_text(encoding="utf-8"))
 
 
+# {
+#   責務: [test_early_maps_never_offer_metal_slime: 検証: early maps never offer metal slime]
+#   処理: [1: 検証: early maps never offer metal slime]
+#   引数: [
+#     map_id: マップ・識別子
+#     story_complete: story・complete
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("map_id", EARLY_MAPS)
 @pytest.mark.parametrize("story_complete", [False, True])
 def test_early_maps_never_offer_metal_slime(map_id, story_complete):
@@ -38,6 +57,15 @@ def test_early_maps_never_offer_metal_slime(map_id, story_complete):
     assert "metal_slime" not in {entry["species_id"] for entry in options}
 
 
+# {
+#   責務: [test_ordinary_enemy_weights_and_levels_are_preserved: 検証: ordinary enemy weights and levels are preserved]
+#   処理: [1: 検証: ordinary enemy weights and levels are preserved]
+#   引数: [
+#     map_id: マップ・識別子
+#     expected: expected
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("map_id,expected", [
     ("greenwood", [("slime", 72, 2, 5), ("ghost", 23, 3, 6)]),
     ("fresh_forest", [("slime", 48, 5, 9), ("ghost", 42, 6, 10)]),
@@ -49,6 +77,12 @@ def test_ordinary_enemy_weights_and_levels_are_preserved(map_id, expected):
     ] == expected
 
 
+# {
+#   責務: [test_repeated_field_population_contains_no_metal_slime: 検証: repeated field population contains no metal slime]
+#   処理: [1: 検証: repeated field population contains no metal slime]
+#   引数: [map_id: マップ・識別子]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("map_id", ["greenwood", "fresh_forest"])
 def test_repeated_field_population_contains_no_metal_slime(map_id):
     world = read_map(map_id)
@@ -64,6 +98,12 @@ def test_repeated_field_population_contains_no_metal_slime(map_id):
         assert {enemy["spawn"]["species_id"] for enemy in controller.monsters} <= {"slime", "ghost"}
 
 
+# {
+#   責務: [test_midgame_preset_has_exact_one_percent_metal_probability: 検証: midgame preset has exact one percent metal probability]
+#   処理: [1: 検証: midgame preset has exact one percent metal probability]
+#   引数: [story_complete: story・complete]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("story_complete", [False, True])
 def test_midgame_preset_has_exact_one_percent_metal_probability(story_complete):
     presets = MapPresetStore(DATA_ROOT)
@@ -81,6 +121,12 @@ def test_midgame_preset_has_exact_one_percent_metal_probability(story_complete):
     assert all(1 <= entry["min_level"] <= entry["max_level"] <= 100 for entry in options)
 
 
+# {
+#   責務: [test_midgame_preset_is_not_an_automatically_connected_map: 検証: midgame preset is not an automatically connected map]
+#   処理: [1: 検証: midgame preset is not an automatically connected map]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_midgame_preset_is_not_an_automatically_connected_map():
     repository = GameRepository(DATA_ROOT)
     world = MapPresetStore(DATA_ROOT).get(MIDGAME_PRESET)
@@ -96,6 +142,12 @@ def test_midgame_preset_is_not_an_automatically_connected_map():
     assert tile["player_walkable"] and not tile["enemy_spawnable"]
 
 
+# {
+#   責務: [test_midgame_runtime_uses_full_weight_table_and_samples_rare_metal: 検証: midgame runtime uses full weight table and samples rare metal]
+#   処理: [1: 検証: midgame runtime uses full weight table and samples rare metal]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_midgame_runtime_uses_full_weight_table_and_samples_rare_metal():
     world = MapPresetStore(DATA_ROOT).get(MIDGAME_PRESET)
     blocks = {item["id"]: item for item in GameRepository(DATA_ROOT).list_blocks()}
@@ -115,6 +167,15 @@ def test_midgame_runtime_uses_full_weight_table_and_samples_rare_metal():
     assert 900 <= hits <= 1100
 
 
+# {
+#   責務: [test_editor_creates_midgame_map_without_changing_existing_maps: 検証: editor creates midgame map without changing existing maps]
+#   処理: [1: 検証: editor creates midgame map without changing existing maps]
+#   引数: [
+#     tmp_path: tmp・パス
+#     monkeypatch: monkeypatch
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_editor_creates_midgame_map_without_changing_existing_maps(tmp_path, monkeypatch):
     import pygame
     from kadoka_quest.apps.map_editor import MapEditor

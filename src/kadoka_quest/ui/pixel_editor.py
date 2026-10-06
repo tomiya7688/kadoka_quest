@@ -1,3 +1,7 @@
+# {
+#   責務: [pixel_editor: ピクセル・editorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
@@ -16,6 +20,15 @@ from kadoka_quest.ui.pixel_operations import (
 )
 
 
+# {
+#   責務: [PixelTarget: ピクセル・対象の状態と振る舞いを担当する]
+#   フィールド: [
+#     key: キー（str）
+#     label: 表示名（str）
+#     path: パス（str）
+#     size: 大きさ（int）
+#   ]
+# }
 @dataclass(frozen=True)
 class PixelTarget:
     key: str
@@ -41,9 +54,42 @@ UNDO_LIMIT = 50
 PALETTE_LIMIT = 16
 
 
+# {
+#   責務: [PixelArtEditor: Shared pixel editor; callers supply only the image targets and metadata.]
+#   フィールド: [
+#     asset_root: asset・基準ディレクトリ
+#     targets: 対象一覧
+#     selected: 選択中
+#     palette: パレット
+#     brush: brush
+#     images: 画像一覧（dict[str, pygame.Surface]）
+#     paths: パス一覧
+#     dirty: dirty（set[str]）
+#     zoom_index: 拡大率・位置番号
+#     tool_mode: tool・mode
+#     pan_offset: pan・表示位置
+#     _pan_last: pan・last
+#     undo_stacks: undo・stacks
+#     _stroke_active: stroke・active
+#     _stroke_slot: stroke・編成枠
+#     _stroke_changed: stroke・changed
+#     kadoka_palette_limit: kadoka・パレット・limit
+#     _stroke_last_pixel: stroke・last・ピクセル
+#   ]
+# }
 class PixelArtEditor:
     """Shared pixel editor; callers supply only the image targets and metadata."""
 
+    # {
+    #   責務: [__init__: ピクセル・art・editorが利用する初期状態と依存を設定する]
+    #   処理: [1: ピクセル・art・editorが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     asset_root: asset・基準ディレクトリ（Path）
+    #     targets: 対象一覧（Iterable[PixelTarget]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, asset_root: Path, targets: Iterable[PixelTarget] = ()) -> None:
         self.asset_root = asset_root
         self.targets: dict[str, PixelTarget] = {}
@@ -65,18 +111,45 @@ class PixelArtEditor:
         self._stroke_last_pixel: tuple[int, int] | None = None
         self.set_targets(targets)
 
+    # {
+    #   責務: [zoom: ピクセル・art・editorの拡大率を求める]
+    #   処理: [1: ピクセル・art・editorの拡大率を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ピクセル・art・editorの拡大率を求めるための結果（float）]
+    # }
     @property
     def zoom(self) -> float:
         return ZOOM_LEVELS[self.zoom_index]
 
+    # {
+    #   責務: [zoom_percent: ピクセル・art・editorの拡大率・percentを求める]
+    #   処理: [1: ピクセル・art・editorの拡大率・percentを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ピクセル・art・editorの拡大率・percentを求めるための結果（int）]
+    # }
     @property
     def zoom_percent(self) -> int:
         return round(self.zoom * 100)
 
+    # {
+    #   責務: [logical_size: ピクセル・art・editorのlogical・大きさを求める]
+    #   処理: [1: ピクセル・art・editorのlogical・大きさを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ピクセル・art・editorのlogical・大きさを求めるための結果（int）]
+    # }
     @property
     def logical_size(self) -> int:
         return self.images[self.selected].get_width() if self.selected else 64
 
+    # {
+    #   責務: [set_targets: 対象一覧を設定する]
+    #   処理: [1: 対象一覧を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     targets: 対象一覧（Iterable[PixelTarget]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def set_targets(self, targets: Iterable[PixelTarget]) -> None:
         values = list(targets)
         self.targets = {target.key: target for target in values}
@@ -90,6 +163,18 @@ class PixelArtEditor:
         self.end_pan()
         self.reset_zoom()
 
+    # {
+    #   責務: [load_targets: 対象一覧を読み込む]
+    #   処理: [1: 対象一覧を読み込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     targets: 対象一覧（Iterable[PixelTarget]）
+    #     body_color: body・色（tuple[int, int, int]）
+    #     selected: 選択中（str | None）
+    #     kadoka_palette_limit: kadoka・パレット・limit（int | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_targets(
         self,
         targets: Iterable[PixelTarget],
@@ -109,6 +194,16 @@ class PixelArtEditor:
         if selected in self.images:
             self.selected = str(selected)
 
+    # {
+    #   責務: [load_species: 種族を読み込む]
+    #   処理: [1: 種族を読み込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     definition: 定義（dict）
+    #     species_id: 種族・識別子（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_species(self, definition: dict, species_id: str) -> None:
         old_field = str(definition.get("field_sprite_path", ""))
         field_paths = dict(definition.get("field_sprites", {}))
@@ -127,6 +222,16 @@ class PixelArtEditor:
         targets = (PixelTarget(slot, label, paths[slot], 64) for slot, label, _ in MONSTER_VISUAL_SLOTS)
         self.load_targets(targets, body_color, selected="front", kadoka_palette_limit=5)
 
+    # {
+    #   責務: [load_block: ブロックを読み込む]
+    #   処理: [1: ブロックを読み込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     relative_path: relative・パス（str）
+    #     body_color: body・色（tuple[int, int, int]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_block(self, relative_path: str, body_color: tuple[int, int, int] = (128, 128, 128)) -> None:
         size = 64
         try:
@@ -141,6 +246,15 @@ class PixelArtEditor:
             kadoka_palette_limit=5,
         )
 
+    # {
+    #   責務: [resize_canvas: Resize a block with nearest-neighbour sampling as one undo step.]
+    #   処理: [1: Resize a block with nearest-neighbour sampling as one undo step.]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     size: 大きさ（int）
+    #   ]
+    #   戻り値: [result: Resize a block with nearest-neighbour sampling as one undo step.ための結果（bool）]
+    # }
     def resize_canvas(self, size: int) -> bool:
         """Resize a block with nearest-neighbour sampling as one undo step."""
         if size not in CANVAS_SIZES:
@@ -159,6 +273,15 @@ class PixelArtEditor:
         self.reset_zoom()
         return True
 
+    # {
+    #   責務: [_fit: ピクセル・art・editorを表示範囲へ合わせる]
+    #   処理: [1: ピクセル・art・editorを表示範囲へ合わせる]
+    #   引数: [
+    #     source: 元データ（pygame.Surface）
+    #     size: 大きさ（int）
+    #   ]
+    #   戻り値: [result: キャンバス（pygame.Surface）]
+    # }
     @staticmethod
     def _fit(source: pygame.Surface, size: int) -> pygame.Surface:
         canvas = pygame.Surface((size, size), pygame.SRCALPHA)
@@ -168,6 +291,16 @@ class PixelArtEditor:
         canvas.blit(scaled, scaled.get_rect(center=(size // 2, size // 2)))
         return canvas
 
+    # {
+    #   責務: [_placeholder: ピクセル・art・editorのplaceholderを求める]
+    #   処理: [1: ピクセル・art・editorのplaceholderを求める]
+    #   引数: [
+    #     size: 大きさ（int）
+    #     slot: 編成枠（str）
+    #     body_color: body・色（tuple[int, int, int]）
+    #   ]
+    #   戻り値: [result: 画像（pygame.Surface）]
+    # }
     @staticmethod
     def _placeholder(size: int, slot: str, body_color: tuple[int, int, int]) -> pygame.Surface:
         image = pygame.Surface((size, size), pygame.SRCALPHA)
@@ -183,6 +316,15 @@ class PixelArtEditor:
                 pygame.draw.circle(image, (0, 0, 0), center, max(1, size // 16))
         return image
 
+    # {
+    #   責務: [select: ピクセル・art・editorを選択する]
+    #   処理: [1: ピクセル・art・editorを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     slot: 編成枠（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select(self, slot: str) -> None:
         if slot in self.images:
             self.end_stroke()
@@ -190,6 +332,15 @@ class PixelArtEditor:
             self.selected = slot
             self.reset_zoom()
 
+    # {
+    #   責務: [set_tool_mode: tool・modeを設定する]
+    #   処理: [1: tool・modeを設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     mode: mode（str）
+    #   ]
+    #   戻り値: [result: tool・modeを設定するための結果（bool）]
+    # }
     def set_tool_mode(self, mode: str) -> bool:
         if mode not in TOOL_MODES:
             return False
@@ -198,10 +349,22 @@ class PixelArtEditor:
         self.tool_mode = mode
         return True
 
+    # {
+    #   責務: [color_to_hex: ピクセル・art・editorの色・to・hexを求める]
+    #   処理: [1: ピクセル・art・editorの色・to・hexを求める]
+    #   引数: [color: 色（tuple[int, int, int, int]）]
+    #   戻り値: [result: ピクセル・art・editorの色・to・hexを求めるための結果（str）]
+    # }
     @staticmethod
     def color_to_hex(color: tuple[int, int, int, int]) -> str:
         return f"#{color[0]:02X}{color[1]:02X}{color[2]:02X}"
 
+    # {
+    #   責務: [parse_palette_color: パレット・色を解析する]
+    #   処理: [1: パレット・色を解析する]
+    #   引数: [value: 値（str）]
+    #   戻り値: [result: パレット・色を解析するための結果（tuple[int, int, int, int]）]
+    # }
     @staticmethod
     def parse_palette_color(value: str) -> tuple[int, int, int, int]:
         clean = str(value).strip().lstrip("#")
@@ -213,6 +376,12 @@ class PixelArtEditor:
             raise ValueError("色は #RRGGBB 形式で入力してください。") from error
         return red, green, blue, 255
 
+    # {
+    #   責務: [parse_tolerance: toleranceを解析する]
+    #   処理: [1: toleranceを解析する]
+    #   引数: [value: 値（str）]
+    #   戻り値: [result: tolerance（int）]
+    # }
     @staticmethod
     def parse_tolerance(value: str) -> int:
         try:
@@ -223,6 +392,15 @@ class PixelArtEditor:
             raise ValueError("近似色のしきい値は0〜255の整数にしてください。")
         return tolerance
 
+    # {
+    #   責務: [add_palette_color: パレット・色を追加する]
+    #   処理: [1: パレット・色を追加する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     value: 値（str）
+    #   ]
+    #   戻り値: [result: 色（tuple[int, int, int, int]）]
+    # }
     def add_palette_color(self, value: str) -> tuple[int, int, int, int]:
         color = self.parse_palette_color(value)
         if color in self.palette:
@@ -234,6 +412,15 @@ class PixelArtEditor:
         self.brush = color
         return color
 
+    # {
+    #   責務: [remove_palette_color: パレット・色を取り除く]
+    #   処理: [1: パレット・色を取り除く]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     color: 色（tuple[int, int, int, int] | None）
+    #   ]
+    #   戻り値: [result: パレット・色を取り除くための結果（bool）]
+    # }
     def remove_palette_color(self, color: tuple[int, int, int, int] | None = None) -> bool:
         target = color or self.brush
         if target not in self.palette or target[3] == 0:
@@ -247,6 +434,18 @@ class PixelArtEditor:
             self.brush = self.palette[replacement_index]
         return True
 
+    # {
+    #   責務: [palette_rects: ピクセル・art・editorのパレット・rectsを求める]
+    #   処理: [1: ピクセル・art・editorのパレット・rectsを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     origin: origin（tuple[int, int]）
+    #     columns: columns（int）
+    #     swatch_size: swatch・大きさ（tuple[int, int]）
+    #     gap: gap（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: ピクセル・art・editorのパレット・rectsを求めるための結果（list[tuple[tuple[int, int, int, int], pygame.Rect]]）]
+    # }
     def palette_rects(
         self,
         origin: tuple[int, int],
@@ -270,26 +469,63 @@ class PixelArtEditor:
             for index, color in enumerate(self.palette)
         ]
 
+    # {
+    #   責務: [zoom_in: ピクセル・art・editorの拡大率・inを求める]
+    #   処理: [1: ピクセル・art・editorの拡大率・inを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ピクセル・art・editorの拡大率・inを求めるための結果（bool）]
+    # }
     def zoom_in(self) -> bool:
         old = self.zoom_index
         self.zoom_index = min(len(ZOOM_LEVELS) - 1, self.zoom_index + 1)
         return self.zoom_index != old
 
+    # {
+    #   責務: [zoom_out: ピクセル・art・editorの拡大率・outを求める]
+    #   処理: [1: ピクセル・art・editorの拡大率・outを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ピクセル・art・editorの拡大率・outを求めるための結果（bool）]
+    # }
     def zoom_out(self) -> bool:
         old = self.zoom_index
         self.zoom_index = max(0, self.zoom_index - 1)
         return self.zoom_index != old
 
+    # {
+    #   責務: [reset_zoom: 拡大率の初期状態へ戻す]
+    #   処理: [1: 拡大率の初期状態へ戻す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def reset_zoom(self) -> None:
         self.zoom_index = ZOOM_LEVELS.index(1.0)
         self.pan_offset.update(0, 0)
 
+    # {
+    #   責務: [_clamp_pan: ピクセル・art・editorのclamp・panを求める]
+    #   処理: [1: ピクセル・art・editorのclamp・panを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     canvas: キャンバス（pygame.Rect）
+    #     side: 陣営（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _clamp_pan(self, canvas: pygame.Rect, side: int) -> None:
         maximum_x = max(0, (side - canvas.width) / 2)
         maximum_y = max(0, (side - canvas.height) / 2)
         self.pan_offset.x = max(-maximum_x, min(maximum_x, self.pan_offset.x))
         self.pan_offset.y = max(-maximum_y, min(maximum_y, self.pan_offset.y))
 
+    # {
+    #   責務: [image_rect: ピクセル・art・editorの画像・表示矩形を求める]
+    #   処理: [1: ピクセル・art・editorの画像・表示矩形を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     canvas: キャンバス（pygame.Rect）
+    #   ]
+    #   戻り値: [result: ピクセル・art・editorの画像・表示矩形を求めるための結果（pygame.Rect）]
+    # }
     def image_rect(self, canvas: pygame.Rect) -> pygame.Rect:
         side = max(1, round(min(canvas.width, canvas.height) * self.zoom))
         self._clamp_pan(canvas, side)
@@ -300,6 +536,16 @@ class PixelArtEditor:
             side,
         )
 
+    # {
+    #   責務: [begin_pan: panを開始する]
+    #   処理: [1: panを開始する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #     canvas: キャンバス（pygame.Rect）
+    #   ]
+    #   戻り値: [result: panを開始するための結果（bool）]
+    # }
     def begin_pan(self, position: tuple[int, int], canvas: pygame.Rect) -> bool:
         if self.tool_mode != "pan" or not canvas.collidepoint(position):
             return False
@@ -307,6 +553,16 @@ class PixelArtEditor:
         self._pan_last = position
         return True
 
+    # {
+    #   責務: [pan_to: ピクセル・art・editorのpan・toを求める]
+    #   処理: [1: ピクセル・art・editorのpan・toを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #     canvas: キャンバス（pygame.Rect）
+    #   ]
+    #   戻り値: [result: ピクセル・art・editorのpan・toを求めるための結果（bool）]
+    # }
     def pan_to(self, position: tuple[int, int], canvas: pygame.Rect) -> bool:
         if self.tool_mode != "pan" or self._pan_last is None:
             return False
@@ -317,9 +573,21 @@ class PixelArtEditor:
         self.image_rect(canvas)
         return bool(dx or dy)
 
+    # {
+    #   責務: [end_pan: ピクセル・art・editorのend・panを求める]
+    #   処理: [1: ピクセル・art・editorのend・panを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def end_pan(self) -> None:
         self._pan_last = None
 
+    # {
+    #   責務: [begin_stroke: strokeを開始する]
+    #   処理: [1: strokeを開始する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: strokeを開始するための結果（bool）]
+    # }
     def begin_stroke(self) -> bool:
         if self.tool_mode != "pen" or not self.selected or self._stroke_active:
             return False
@@ -333,6 +601,12 @@ class PixelArtEditor:
         self._stroke_last_pixel = None
         return True
 
+    # {
+    #   責務: [end_stroke: ピクセル・art・editorのend・strokeを求める]
+    #   処理: [1: ピクセル・art・editorのend・strokeを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def end_stroke(self) -> None:
         if self._stroke_active and not self._stroke_changed:
             stack = self.undo_stacks.get(self._stroke_slot, [])
@@ -343,6 +617,21 @@ class PixelArtEditor:
         self._stroke_changed = False
         self._stroke_last_pixel = None
 
+    # {
+    #   責務: [
+    #     undo: 選択中の画像に対する直前の編集を一段階戻す
+    #   ]
+    #   処理: [
+    #     1: 進行中のstrokeを確定し、選択/履歴がなければ何もしない
+    #     2: 画像と論理サイズを復元し、選択対象を未保存状態へ印付けする
+    #   ]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #   ]
+    #   戻り値: [
+    #     result: 復元できたらTrue。保存ファイルは変更しない
+    #   ]
+    # }
     def undo(self) -> bool:
         self.end_stroke()
         if not self.selected:
@@ -355,6 +644,15 @@ class PixelArtEditor:
         self.dirty.add(self.selected)
         return True
 
+    # {
+    #   責務: [_replace_selected_image: ピクセル・art・editorのreplace・選択中・画像を求める]
+    #   処理: [1: ピクセル・art・editorのreplace・選択中・画像を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     image: 画像（pygame.Surface）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _replace_selected_image(self, image: pygame.Surface) -> None:
         self.end_stroke()
         stack = self.undo_stacks.setdefault(self.selected, [])
@@ -364,6 +662,16 @@ class PixelArtEditor:
         self.images[self.selected] = image
         self.dirty.add(self.selected)
 
+    # {
+    #   責務: [import_image: 画像を取り込む]
+    #   処理: [1: 画像を取り込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     value: 値（str）
+    #     tolerance: tolerance（int）
+    #   ]
+    #   戻り値: [result: changed（int）]
+    # }
     def import_image(self, value: str, tolerance: int = 24) -> int:
         if not self.selected:
             raise ValueError("編集する画像が選択されていません。")
@@ -384,6 +692,15 @@ class PixelArtEditor:
         self._replace_selected_image(reduced)
         return changed
 
+    # {
+    #   責務: [merge_similar_colors: similar・色一覧を結合する]
+    #   処理: [1: similar・色一覧を結合する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     tolerance: tolerance（int）
+    #   ]
+    #   戻り値: [result: similar・色一覧を結合するための結果（int）]
+    # }
     def merge_similar_colors(self, tolerance: int = 24) -> int:
         if not self.selected:
             return 0
@@ -392,6 +709,15 @@ class PixelArtEditor:
             self._replace_selected_image(reduced)
         return changed
 
+    # {
+    #   責務: [reduce_to_kadoka_colors: ピクセル・art・editorのreduce・to・kadoka・色一覧を求める]
+    #   処理: [1: ピクセル・art・editorのreduce・to・kadoka・色一覧を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     max_colors: max・色一覧（int）
+    #   ]
+    #   戻り値: [result: ピクセル・art・editorのreduce・to・kadoka・色一覧を求めるための結果（tuple[int, int]）]
+    # }
     def reduce_to_kadoka_colors(self, max_colors: int) -> tuple[int, int]:
         if not self.selected:
             return 0, 0
@@ -400,11 +726,27 @@ class PixelArtEditor:
             self._replace_selected_image(reduced)
         return changed, opaque_color_count(reduced)
 
+    # {
+    #   責務: [visible_color_count: ピクセル・art・editorのvisible・色・countを求める]
+    #   処理: [1: ピクセル・art・editorのvisible・色・countを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ピクセル・art・editorのvisible・色・countを求めるための結果（int）]
+    # }
     def visible_color_count(self) -> int:
         if not self.selected:
             return 0
         return opaque_color_count(self.images[self.selected])
 
+    # {
+    #   責務: [draw_checker: checkerを描画する]
+    #   処理: [1: checkerを描画する]
+    #   引数: [
+    #     surface: 描画面（pygame.Surface）
+    #     rect: 表示矩形（pygame.Rect）
+    #     cell: cell（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @staticmethod
     def draw_checker(surface: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
         for y in range(rect.y, rect.bottom, cell):
@@ -412,6 +754,16 @@ class PixelArtEditor:
                 color = (205, 205, 205) if ((x - rect.x) // cell + (y - rect.y) // cell) % 2 == 0 else (150, 150, 150)
                 pygame.draw.rect(surface, color, pygame.Rect(x, y, min(cell, rect.right - x), min(cell, rect.bottom - y)))
 
+    # {
+    #   責務: [draw_canvas: キャンバスを描画する]
+    #   処理: [1: キャンバスを描画する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     surface: 描画面（pygame.Surface）
+    #     canvas: キャンバス（pygame.Rect）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def draw_canvas(self, surface: pygame.Surface, canvas: pygame.Rect) -> None:
         pygame.draw.rect(surface, (38, 45, 55), canvas.inflate(20, 20), border_radius=8)
         self.draw_checker(surface, canvas, 12)
@@ -441,6 +793,16 @@ class PixelArtEditor:
                 pygame.draw.line(surface, grid_color, (image_rect.x, y), (image_rect.right, y), 1)
         surface.set_clip(old_clip)
 
+    # {
+    #   責務: [_pixel_at: ピクセル・art・editorのピクセル・atを求める]
+    #   処理: [1: ピクセル・art・editorのピクセル・atを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #     canvas: キャンバス（pygame.Rect）
+    #   ]
+    #   戻り値: [result: ピクセル・art・editorのピクセル・atを求めるための結果（tuple[int, int] | None）]
+    # }
     def _pixel_at(self, position: tuple[int, int], canvas: pygame.Rect) -> tuple[int, int] | None:
         if not canvas.collidepoint(position) or not self.selected:
             return None
@@ -454,6 +816,15 @@ class PixelArtEditor:
             return None
         return x, y
 
+    # {
+    #   責務: [_line_pixels: ピクセル・art・editorのline・ピクセル一覧を求める]
+    #   処理: [1: ピクセル・art・editorのline・ピクセル一覧を求める]
+    #   引数: [
+    #     start: start（tuple[int, int]）
+    #     end: end（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: ピクセル一覧（list[tuple[int, int]]）]
+    # }
     @staticmethod
     def _line_pixels(start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
         x, y = start
@@ -476,6 +847,24 @@ class PixelArtEditor:
                 error += delta_x
                 y += step_y
 
+    # {
+    #   責務: [
+    #     paint: ペンモードでキャンバス座標をドットへ変換し連続strokeを描く
+    #   ]
+    #   処理: [
+    #     1: 選択・モード・キャンバス範囲を確認する
+    #     2: 前回のドットからの線を塗り、変更がある場合だけdirty/undo用strokeへ記録する
+    #   ]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #     canvas: キャンバス（pygame.Rect）
+    #     erase: erase（bool）
+    #   ]
+    #   戻り値: [
+    #     result: 画像ピクセルを変更した場合True。パンモードでは塗らない
+    #   ]
+    # }
     def paint(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> bool:
         if self.tool_mode != "pen" or not self.selected:
             return False
@@ -501,6 +890,17 @@ class PixelArtEditor:
             self.end_stroke()
         return changed
 
+    # {
+    #   責務: [fill: ピクセル・art・editorのfillを求める]
+    #   処理: [1: ピクセル・art・editorのfillを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #     canvas: キャンバス（pygame.Rect）
+    #     erase: erase（bool）
+    #   ]
+    #   戻り値: [result: ピクセル・art・editorのfillを求めるための結果（int）]
+    # }
     def fill(self, position: tuple[int, int], canvas: pygame.Rect, erase: bool = False) -> int:
         if self.tool_mode != "fill" or not canvas.collidepoint(position) or not self.selected:
             return 0
@@ -516,6 +916,12 @@ class PixelArtEditor:
             self._replace_selected_image(result)
         return changed
 
+    # {
+    #   責務: [save_images: 画像一覧を保存する]
+    #   処理: [1: 画像一覧を保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save_images(self) -> None:
         for key in tuple(self.dirty):
             path = self.asset_root / self.paths[key]
@@ -523,6 +929,15 @@ class PixelArtEditor:
             pygame.image.save(self.images[key], str(path))
         self.dirty.clear()
 
+    # {
+    #   責務: [save_all: allを保存する]
+    #   処理: [1: allを保存する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     definition: 定義（dict）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save_all(self, definition: dict) -> None:
         self.save_images()
         definition["portrait_path"] = self.paths["portrait"]

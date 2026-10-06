@@ -1,3 +1,7 @@
+# {
+#   責務: [check_project_rules: check・project・rulesの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import ast
@@ -37,12 +41,27 @@ REQUIRED_PATHS = (
 )
 
 
+# {
+#   責務: [imported_root: check・project・rulesのimported・基準ディレクトリを求める]
+#   処理: [1: check・project・rulesのimported・基準ディレクトリを求める]
+#   引数: [node: node（ast.Import | ast.ImportFrom）]
+#   戻り値: [result: check・project・rulesのimported・基準ディレクトリを求めるための結果（str）]
+# }
 def imported_root(node: ast.Import | ast.ImportFrom) -> str:
     if isinstance(node, ast.Import):
         return node.names[0].name.split(".", 1)[0]
     return str(node.module or "").split(".", 1)[0]
 
 
+# {
+#   責務: [display_path: check・project・rulesのdisplay・パスを求める]
+#   処理: [1: check・project・rulesのdisplay・パスを求める]
+#   引数: [
+#     path: パス（Path）
+#     root: 基準ディレクトリ（Path | None）
+#   ]
+#   戻り値: [result: check・project・rulesのdisplay・パスを求めるための結果（str）]
+# }
 def display_path(path: Path, root: Path | None = None) -> str:
     for base in (REPO_ROOT, root):
         if base is None:
@@ -54,6 +73,12 @@ def display_path(path: Path, root: Path | None = None) -> str:
     return str(path)
 
 
+# {
+#   責務: [core_boundary_errors: check・project・rulesのcore・boundary・errorsを求める]
+#   処理: [1: check・project・rulesのcore・boundary・errorsを求める]
+#   引数: [root: 基準ディレクトリ（Path）]
+#   戻り値: [result: errors（list[str]）]
+# }
 def core_boundary_errors(root: Path = CORE_ROOT) -> list[str]:
     errors: list[str] = []
     for path in sorted(root.glob("*.py")):
@@ -77,14 +102,32 @@ def core_boundary_errors(root: Path = CORE_ROOT) -> list[str]:
     return errors
 
 
+# {
+#   責務: [required_path_errors: check・project・rulesのrequired・パス・errorsを求める]
+#   処理: [1: check・project・rulesのrequired・パス・errorsを求める]
+#   引数: [repo_root: repo・基準ディレクトリ（Path）]
+#   戻り値: [result: check・project・rulesのrequired・パス・errorsを求めるための結果（list[str]）]
+# }
 def required_path_errors(repo_root: Path = REPO_ROOT) -> list[str]:
     return [f"missing required project path: {relative}" for relative in REQUIRED_PATHS if not (repo_root / relative).exists()]
 
 
+# {
+#   責務: [check: check・project・rulesを検査する]
+#   処理: [1: check・project・rulesを検査する]
+#   引数: []
+#   戻り値: [result: check・project・rulesを検査するための結果（list[str]）]
+# }
 def check() -> list[str]:
     return [*required_path_errors(), *core_boundary_errors()]
 
 
+# {
+#   責務: [main: check・project・rulesのエントリ処理を実行する]
+#   処理: [1: check・project・rulesのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: check・project・rulesのエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     errors = check()
     if errors:

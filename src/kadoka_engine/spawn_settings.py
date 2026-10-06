@@ -1,3 +1,7 @@
+# {
+#   責務: [spawn_settings: 出現・設定の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from copy import deepcopy
@@ -9,6 +13,12 @@ from kadoka_engine.field_ai import is_valid_field_ai_weights
 DEFAULT_POP_RATE = 100
 
 
+# {
+#   責務: [_nonnegative_number: 出現・設定のnonnegative・数値を求める]
+#   処理: [1: 出現・設定のnonnegative・数値を求める]
+#   引数: [value: 値（object）]
+#   戻り値: [result: 出現・設定のnonnegative・数値を求めるための結果（bool）]
+# }
 def _nonnegative_number(value: object) -> bool:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return False
@@ -18,13 +28,41 @@ def _nonnegative_number(value: object) -> bool:
         return False
 
 
+# {
+#   責務: [validate_map_spawns: Validate spawn settings without I/O, mutation, or runtime fallback.]
+#   処理: [1: Validate spawn settings without I/O, mutation, or runtime fallback.]
+#   引数: [
+#     map_data: マップ・データ（dict）
+#     species_ids: 種族・識別子一覧（set[str] | None）
+#   ]
+#   戻り値: [result: issues（list[dict[str, str]]）]
+# }
 def validate_map_spawns(map_data: dict, species_ids: set[str] | None = None) -> list[dict[str, str]]:
     """Validate spawn settings without I/O, mutation, or runtime fallback."""
     issues: list[dict[str, str]] = []
 
+    # {
+    #   責務: [issue: 出現・設定のissueを求める]
+    #   処理: [1: 出現・設定のissueを求める]
+    #   引数: [
+    #     code: code（str）
+    #     field: フィールド（str）
+    #     message: message（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def issue(code: str, field: str, message: str) -> None:
         issues.append({"code": code, "field": field, "message": message})
 
+    # {
+    #   責務: [validate_ai: AIを妥当性を検査する]
+    #   処理: [1: AIを妥当性を検査する]
+    #   引数: [
+    #     source: 元データ（dict）
+    #     field: フィールド（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def validate_ai(source: dict, field: str) -> None:
         weights = source.get("field_ai_weights")
         if weights is not None and not is_valid_field_ai_weights(weights):
@@ -66,6 +104,15 @@ def validate_map_spawns(map_data: dict, species_ids: set[str] | None = None) -> 
     return issues
 
 
+# {
+#   責務: [normalize_map_spawns: Return a detached document with legacy defaults; keep unknown mod keys.]
+#   処理: [1: Return a detached document with legacy defaults; keep unknown mod keys.]
+#   引数: [
+#     map_data: マップ・データ（dict）
+#     species_ids: 種族・識別子一覧（set[str] | None）
+#   ]
+#   戻り値: [result: 処理結果（dict）]
+# }
 def normalize_map_spawns(map_data: dict, species_ids: set[str] | None = None) -> dict:
     """Return a detached document with legacy defaults; keep unknown mod keys."""
     issues = validate_map_spawns(map_data, species_ids)

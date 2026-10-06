@@ -1,3 +1,7 @@
+# {
+#   責務: [attack_numbers: Normal-attack and physical-only guard numbers. Explicit random inputs; no battle state or I/O.]
+#   フィールド: []
+# }
 extends RefCounted
 ## Normal-attack and physical-only guard numbers. Explicit random inputs; no battle state or I/O.
 
@@ -8,6 +12,16 @@ const VARIANCE_MAX := 1.08
 const DAMAGE_KINDS := ["physical", "magic", "drain_mp"]
 
 
+# {
+#   責務: [normal_attack: 明示乱数で通常攻撃の物理ダメージと実HP減少を計算する]
+#   処理: [
+#     1: 有限値・通常攻撃定義・装備効果を検証する
+#     2: 会心率1/16を基準に判定し、会心時だけ防御力を無視する
+#     3: 装備追加・物理guard・揺らぎ・最低1・残HP上限を適用する
+#   ]
+#   引数: [request: 要求（Variant）]
+#   戻り値: [result: 通常攻撃数値または理由付き拒否。状態や乱数源を所有しない]
+# }
 static func normal_attack(request: Variant) -> Dictionary:
 	if not request is Dictionary:
 		return _failure("通常攻撃の入力はオブジェクトです")
@@ -51,6 +65,12 @@ static func normal_attack(request: Variant) -> Dictionary:
 	return result
 
 
+# {
+#   責務: [defend_multiplier: 攻撃・numbersのdefend・multiplierを求める]
+#   処理: [1: 攻撃・numbersのdefend・multiplierを求める]
+#   引数: [definition: 定義（Variant）]
+#   戻り値: [result: 攻撃・numbersのdefend・multiplierを求めるための結果（Dictionary）]
+# }
 static func defend_multiplier(definition: Variant = {}) -> Dictionary:
 	if not definition is Dictionary or definition.get("kind", "defend") != "defend":
 		return _failure("防御倍率にはdefend定義が必要です")
@@ -60,6 +80,15 @@ static func defend_multiplier(definition: Variant = {}) -> Dictionary:
 	return {"ok": true, "guard": value["value"], "scope": "defend_multiplier_only"}
 
 
+# {
+#   責務: [finish_damage: 物理限定guard・揺らぎ・最低1・残HP上限の数値契約を適用する]
+#   処理: [
+#     1: 入力kind・有限値・乱数範囲を検証する
+#     2: physicalだけguardを適用し、最終ダメージと残HPを求める
+#   ]
+#   引数: [request: 要求（Variant）]
+#   戻り値: [result: damage/dealt/remaining_hp/applied_guardまたは拒否結果。魔法や耐性の完全実装ではない]
+# }
 static func finish_damage(request: Variant) -> Dictionary:
 	# Only the final positive-damage path; this does not implement magic, resistance or absorption.
 	if not request is Dictionary or request.get("kind") not in DAMAGE_KINDS:
@@ -83,6 +112,12 @@ static func finish_damage(request: Variant) -> Dictionary:
 		"applied_guard": applied_guard, "variance": variance["value"]}
 
 
+# {
+#   責務: [_equipment_effect: 攻撃・numbersの装備・効果を求める]
+#   処理: [1: 攻撃・numbersの装備・効果を求める]
+#   引数: [definition: 定義（Variant）]
+#   戻り値: [result: 攻撃・numbersの装備・効果を求めるための結果（Dictionary）]
+# }
 static func _equipment_effect(definition: Variant) -> Dictionary:
 	if definition == null:
 		definition = {}
@@ -98,5 +133,11 @@ static func _equipment_effect(definition: Variant) -> Dictionary:
 	return {"ok": true, "power_multiplier": power["value"], "fixed_bonus_damage": bonus["value"]}
 
 
+# {
+#   責務: [_failure: 攻撃・numbersのfailureを求める]
+#   処理: [1: 攻撃・numbersのfailureを求める]
+#   引数: [message: message（String）]
+#   戻り値: [result: 攻撃・numbersのfailureを求めるための結果（Dictionary）]
+# }
 static func _failure(message: String) -> Dictionary:
 	return {"ok": false, "error": "invalid_attack_numbers", "message": message}

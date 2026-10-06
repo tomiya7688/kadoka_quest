@@ -1,3 +1,7 @@
+# {
+#   責務: [chase_traffic: chase・trafficの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import heapq
@@ -5,9 +9,28 @@ import heapq
 from kadoka_engine.field_engine import FieldEngine
 
 
+# {
+#   責務: [ChaseTraffic: Bounded local path selection with soft reservations and expiring trails.]
+#   フィールド: [
+#     field: フィールド
+#     now: 現在時刻
+#     reserved: reserved（dict[tuple[int, int], set[int]]）
+#     recent: recent
+#     plans: plans
+#   ]
+# }
 class ChaseTraffic:
     """Bounded local path selection with soft reservations and expiring trails."""
 
+    # {
+    #   責務: [__init__: chase・trafficが利用する初期状態と依存を設定する]
+    #   処理: [1: chase・trafficが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     field: フィールド（FieldEngine）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, field: FieldEngine) -> None:
         self.field = field
         self.now = 0
@@ -15,11 +38,27 @@ class ChaseTraffic:
         self.recent: dict[tuple[int, int], tuple[int, int]] = {}
         self.plans: dict[int, tuple[list[tuple[int, int]], int]] = {}
 
+    # {
+    #   責務: [clear: chase・trafficを消去する]
+    #   処理: [1: chase・trafficを消去する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def clear(self) -> None:
         self.reserved.clear()
         self.recent.clear()
         self.plans.clear()
 
+    # {
+    #   責務: [begin: chase・trafficを開始する]
+    #   処理: [1: chase・trafficを開始する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     now: 現在時刻（int）
+    #     owners: owners（set[int]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def begin(self, now: int, owners: set[int]) -> None:
         if now < self.now:
             self.clear()
@@ -31,6 +70,15 @@ class ChaseTraffic:
             for position in path:
                 self.reserved.setdefault(position, set()).add(owner)
 
+    # {
+    #   責務: [release: chase・trafficのreleaseを求める]
+    #   処理: [1: chase・trafficのreleaseを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     owner: owner（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def release(self, owner: int) -> None:
         self.plans.pop(owner, None)
         for position in list(self.reserved):
@@ -38,9 +86,30 @@ class ChaseTraffic:
             if not self.reserved[position]:
                 del self.reserved[position]
 
+    # {
+    #   責務: [record: chase・trafficの個体レコードを求める]
+    #   処理: [1: chase・trafficの個体レコードを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     owner: owner（int）
+    #     position: 座標（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def record(self, owner: int, position: tuple[int, int]) -> None:
         self.recent[position] = (owner, self.now + 1280)
 
+    # {
+    #   責務: [_cost: chase・trafficの消費量を求める]
+    #   処理: [1: chase・trafficの消費量を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #     owner: owner（int）
+    #     occupied: occupied（set[tuple[int, int]]）
+    #   ]
+    #   戻り値: [result: 消費量（float）]
+    # }
     def _cost(self, position: tuple[int, int], owner: int, occupied: set[tuple[int, int]]) -> float:
         cost = 1.0 + (3.0 if position in occupied else 0.0)
         if self.reserved.get(position, set()) - {owner}:
@@ -50,6 +119,20 @@ class ChaseTraffic:
             cost += 0.4
         return cost
 
+    # {
+    #   責務: [plan: Return one safe step; future occupancy is soft so corridors can flow.]
+    #   処理: [1: Return one safe step; future occupancy is soft so corridors can flow.]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     owner: owner（int）
+    #     start: start（tuple[int, int]）
+    #     target: 対象（tuple[int, int]）
+    #     occupied: occupied（set[tuple[int, int]]）
+    #     fixed: fixed（set[tuple[int, int]]）
+    #     interval: interval（int）
+    #   ]
+    #   戻り値: [result: Return one safe step; future occupancy is soft so corridors can flow.ための結果（tuple[int, int]）]
+    # }
     def plan(
         self, owner: int, start: tuple[int, int], target: tuple[int, int],
         occupied: set[tuple[int, int]], fixed: set[tuple[int, int]], interval: int,
@@ -65,10 +148,29 @@ class ChaseTraffic:
             self.reserved.setdefault(position, set()).add(owner)
         return path[0]
 
+    # {
+    #   責務: [_search: chase・trafficのsearchを求める]
+    #   処理: [1: chase・trafficのsearchを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     owner: owner（int）
+    #     start: start（tuple[int, int]）
+    #     target: 対象（tuple[int, int]）
+    #     occupied: occupied（set[tuple[int, int]]）
+    #     fixed: fixed（set[tuple[int, int]]）
+    #   ]
+    #   戻り値: [result: chase・trafficのsearchを求めるための結果（list[tuple[int, int]]）]
+    # }
     def _search(
         self, owner: int, start: tuple[int, int], target: tuple[int, int],
         occupied: set[tuple[int, int]], fixed: set[tuple[int, int]],
     ) -> list[tuple[int, int]]:
+        # {
+        #   責務: [remaining: chase・trafficのremainingを求める]
+        #   処理: [1: chase・trafficのremainingを求める]
+        #   引数: [position: 座標（tuple[int, int]）]
+        #   戻り値: [result: chase・trafficのremainingを求めるための結果（int）]
+        # }
         def remaining(position: tuple[int, int]) -> int:
             return max(0, abs(position[0] - target[0]) + abs(position[1] - target[1]) - 1)
 

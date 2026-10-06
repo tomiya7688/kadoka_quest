@@ -1,3 +1,7 @@
+# {
+#   責務: [battle_renderer: 戦闘・描画処理の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from typing import Any
@@ -23,12 +27,31 @@ from kadoka_quest.ui.common import (
 )
 
 
+# {
+#   責務: [BattleRenderer: Draws battle state without executing commands or calculations.]
+#   フィールド: [images: 画像一覧]
+# }
 class BattleRenderer:
     """Draws battle state without executing commands or calculations."""
 
+    # {
+    #   責務: [__init__: 戦闘・描画処理が利用する初期状態と依存を設定する]
+    #   処理: [1: 戦闘・描画処理が利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     images: 画像一覧（CharacterImageProvider）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, images: CharacterImageProvider) -> None:
         self.images = images
 
+    # {
+    #   責務: [_hex_color: 戦闘・描画処理のhex・色を求める]
+    #   処理: [1: 戦闘・描画処理のhex・色を求める]
+    #   引数: [value: 値（str）]
+    #   戻り値: [result: 戦闘・描画処理のhex・色を求めるための結果（tuple[int, int, int]）]
+    # }
     @staticmethod
     def _hex_color(value: str) -> tuple[int, int, int]:
         try:
@@ -37,6 +60,19 @@ class BattleRenderer:
         except (TypeError, ValueError):
             return 130, 130, 130
 
+    # {
+    #   責務: [_draw_combatant: 戦闘個体を描画する]
+    #   処理: [1: 戦闘個体を描画する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     screen: 描画先（pygame.Surface）
+    #     session: セッション（BattleSession）
+    #     member: 個体（Any）
+    #     rect: 表示矩形（pygame.Rect）
+    #     ally: 味方（bool）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _draw_combatant(
         self,
         screen: pygame.Surface,
@@ -71,6 +107,17 @@ class BattleRenderer:
         if focused:
             draw_text(screen, "行動中", (rect.right - 65, rect.y + 75), 13, WARN if not ally else GOOD, True)
 
+    # {
+    #   責務: [draw: 戦闘・描画処理を描画する]
+    #   処理: [1: 戦闘・描画処理を描画する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     screen: 描画先（pygame.Surface）
+    #     session: セッション（BattleSession）
+    #     buttons: buttons（list[Button]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def draw(self, screen: pygame.Surface, session: BattleSession, buttons: list[Button]) -> None:
         battle = session.battle
         if not battle:

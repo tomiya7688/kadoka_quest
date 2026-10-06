@@ -1,4 +1,8 @@
 """Real Godot level-table/learnset parity and read-only owned-roster projection."""
+# {
+#   責務: [test_gdscript_progression: Real Godot level-table/learnset parity and read-only owned-roster projection.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -18,17 +22,44 @@ from kadoka_quest.data.species_creator import SpeciesCreator
 ROOT = fixture.ROOT
 
 
+# {
+#   責務: [row: test・gdscript・progressionのrowを求める]
+#   処理: [1: test・gdscript・progressionのrowを求める]
+#   引数: [value: 値]
+#   戻り値: [result: test・gdscript・progressionのrowを求めるための結果（型注釈なし）]
+# }
 def row(value=12):
     return {key: value for key in STAT_KEYS}
 
 
+# {
+#   責務: [case: test・gdscript・progressionのcaseを求める]
+#   処理: [1: test・gdscript・progressionのcaseを求める]
+#   引数: [
+#     stats: 能力値
+#     skills: スキル一覧
+#     level: レベル
+#     extra: extra
+#   ]
+#   戻り値: [result: test・gdscript・progressionのcaseを求めるための結果（型注釈なし）]
+# }
 def case(stats=None, skills=None, level=1, **extra):
     return {"stats": {"levels": {"1": row()}} if stats is None else stats,
             "skills": {"learnset": [{"skill_id": "attack"}]} if skills is None else skills,
             "level": level, **extra}
 
 
+# {
+#   責務: [ProgressionBoundaryTests: progression・boundary・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class ProgressionBoundaryTests(unittest.TestCase):
+    # {
+    #   責務: [test_pure_calculation_service_and_renderer_keep_separate_responsibilities: 検証: pure calculation service and renderer keep separate responsibilities]
+    #   処理: [1: 検証: pure calculation service and renderer keep separate responsibilities]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_pure_calculation_service_and_renderer_keep_separate_responsibilities(self):
         engine = (ROOT / "gdscript/engine/monster_progression.gd").read_text(encoding="utf-8")
         self.assertIn("extends RefCounted", engine)
@@ -42,6 +73,16 @@ class ProgressionBoundaryTests(unittest.TestCase):
         self.assertNotIn("Progression.rebuild", view)
 
 
+# {
+#   責務: [GDScriptProgressionTests: gdscript・progression・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     setUp: set・up
+#     seed_state: seed・状態
+#     seed_record: seed・個体レコード
+#     write: write
+#     saved_files: saved・files
+#   ]
+# }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real progression and roster probes")
 class GDScriptProgressionTests(unittest.TestCase):
     setUp = fixture.GDScriptRosterTests.setUp
@@ -50,6 +91,15 @@ class GDScriptProgressionTests(unittest.TestCase):
     write = fixture.GDScriptRosterTests.write
     saved_files = fixture.GDScriptRosterTests.saved_files
 
+    # {
+    #   責務: [contracts: gdscript・progression・testsのcontractsを求める]
+    #   処理: [1: gdscript・progression・testsのcontractsを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     request: 要求
+    #   ]
+    #   戻り値: [result: gdscript・progression・testsのcontractsを求めるための結果（型注釈なし）]
+    # }
     def contracts(self, **request):
         path = self.content / "progression-probe.json"
         path.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
@@ -68,18 +118,48 @@ class GDScriptProgressionTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]).decode("utf-8"))
         self.fail(actual.stderr + actual.stdout[-1200:])
 
+    # {
+    #   責務: [roster: gdscript・progression・testsの所有個体台帳を求める]
+    #   処理: [1: gdscript・progression・testsの所有個体台帳を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actions: actions
+    #   ]
+    #   戻り値: [result: gdscript・progression・testsの所有個体台帳を求めるための結果（型注釈なし）]
+    # }
     def roster(self, actions=()):
         return fixture.GDScriptRosterTests.probe(self, actions)["observations"][-1]
 
+    # {
+    #   責務: [template: gdscript・progression・testsのtemplateを求める]
+    #   処理: [1: gdscript・progression・testsのtemplateを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species: 種族
+    #   ]
+    #   戻り値: [result: gdscript・progression・testsのtemplateを求めるための結果（型注釈なし）]
+    # }
     def template(self, species):
         bundle = GameRepository(self.content / "data").get_species(species)
         return {"stats": bundle.stats, "skills": bundle.skills}
 
+    # {
+    #   責務: [content_hashes: gdscript・progression・testsのcontent・hashesを求める]
+    #   処理: [1: gdscript・progression・testsのcontent・hashesを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: gdscript・progression・testsのcontent・hashesを求めるための結果（型注釈なし）]
+    # }
     def content_hashes(self):
         return {str(path.relative_to(self.content)): hashlib.sha256(path.read_bytes()).hexdigest()
                 for directory in ("data", "assets", "python-saves")
                 for path in (self.content / directory).rglob("*") if path.is_file()}
 
+    # {
+    #   責務: [test_all_sample_species_all_100_levels_match_python_base_and_no_plus_skills: 検証: all sample species all 100 levels match python base and no plus skills]
+    #   処理: [1: 検証: all sample species all 100 levels match python base and no plus skills]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_all_sample_species_all_100_levels_match_python_base_and_no_plus_skills(self):
         repository = GameRepository(self.content / "data")
         ids = repository.list_species_ids()
@@ -99,6 +179,12 @@ class GDScriptProgressionTests(unittest.TestCase):
         self.assertEqual(self.content_hashes(), before)
         self.assertFalse(self.profile.exists())
 
+    # {
+    #   責務: [test_growth_generated_explicit_rows_and_manual_override_match_python: 検証: growth generated explicit rows and manual override match python]
+    #   処理: [1: 検証: growth generated explicit rows and manual override match python]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_growth_generated_explicit_rows_and_manual_override_match_python(self):
         spec = importlib.util.spec_from_file_location(
             "kadoka_sample_growth_reference", ROOT / "tools/sample-data/script/_generate_sample_data_impl.py")
@@ -119,6 +205,12 @@ class GDScriptProgressionTests(unittest.TestCase):
                 self.assertEqual(actual["skill_ids"], expected.skill_ids_at("slime", level))
         self.assertEqual(result["results"][49]["stats"], row(777))
 
+    # {
+    #   責務: [test_new_species_draft_growth_is_read_without_a_runtime_formula: 検証: new species draft growth is read without a runtime formula]
+    #   処理: [1: 検証: new species draft growth is read without a runtime formula]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_new_species_draft_growth_is_read_without_a_runtime_formula(self):
         repository = GameRepository(self.content / "data")
         _, stats, skills, _ = SpeciesCreator(repository, self.content / "assets").build_draft()
@@ -129,6 +221,12 @@ class GDScriptProgressionTests(unittest.TestCase):
                 self.assertEqual(actual["stats"], stats["levels"][str(level)])
         self.assertEqual(result["results"][1]["skill_ids"], ["attack", "defend"])
 
+    # {
+    #   責務: [test_every_sample_skill_threshold_before_at_and_after_matches_python: 検証: every sample skill threshold before at and after matches python]
+    #   処理: [1: 検証: every sample skill threshold before at and after matches python]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_every_sample_skill_threshold_before_at_and_after_matches_python(self):
         repository = GameRepository(self.content / "data")
         templates = {identifier: self.template(identifier) for identifier in repository.list_species_ids()}
@@ -140,6 +238,12 @@ class GDScriptProgressionTests(unittest.TestCase):
             with self.subTest(**parameters):
                 self.assertEqual(actual["skill_ids"], repository.skill_ids_at(parameters["template"], parameters["level"]))
 
+    # {
+    #   責務: [test_order_duplicates_defaults_and_missing_learnset_follow_python: 検証: order duplicates defaults and missing learnset follow python]
+    #   処理: [1: 検証: order duplicates defaults and missing learnset follow python]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_order_duplicates_defaults_and_missing_learnset_follow_python(self):
         learnset = [{"level": 20, "skill_id": "later"}, {"skill_id": "first"},
                     {"level": "3", "skill_id": "second"}, {"level": 2.9, "skill_id": "first"}]
@@ -150,6 +254,12 @@ class GDScriptProgressionTests(unittest.TestCase):
         self.assertEqual(actual[1]["skill_ids"], ["later", "first", "second"])
         self.assertEqual(actual[2]["skill_ids"], [])
 
+    # {
+    #   責務: [test_old_schema_numeric_conversion_and_clamp_match_repository_contract: 検証: old schema numeric conversion and clamp match repository contract]
+    #   処理: [1: 検証: old schema numeric conversion and clamp match repository contract]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_old_schema_numeric_conversion_and_clamp_match_repository_contract(self):
         stats = self.template("slime")["stats"]
         stats.pop("schema_version")
@@ -169,6 +279,12 @@ class GDScriptProgressionTests(unittest.TestCase):
                 self.assertEqual(actual["skill_ids"], repository.skill_ids_at("slime", level))
                 self.assertEqual(actual["stats_level"], max(1, min(100, int(level))))
 
+    # {
+    #   責務: [test_invalid_documents_rows_schema_and_numbers_fail_without_placeholder_stats: 検証: invalid documents rows schema and numbers fail without placeholder stats]
+    #   処理: [1: 検証: invalid documents rows schema and numbers fail without placeholder stats]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_documents_rows_schema_and_numbers_fail_without_placeholder_stats(self):
         cases = [case(stats={}), case(stats={"levels": []}), case(stats={"levels": {"1": []}}),
                  case(stats={"levels": {"2": row()}}), case(stats={"schema_version": 2, "levels": {"1": row()}}),
@@ -196,6 +312,12 @@ class GDScriptProgressionTests(unittest.TestCase):
                 self.assertNotIn("skill_ids", result)
         self.assertTrue(all(actual["input_preserved"]))
 
+    # {
+    #   責務: [test_return_values_cannot_mutate_source_documents_or_next_result: 検証: return values cannot mutate source documents or next result]
+    #   処理: [1: 検証: return values cannot mutate source documents or next result]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_return_values_cannot_mutate_source_documents_or_next_result(self):
         actual = self.contracts(cases=[case(nonfinite=kind) for kind in ("level_inf", "stat_inf", "stat_nan")])
         self.assertTrue(all(not result["ok"] for result in actual["results"]))
@@ -207,6 +329,12 @@ class GDScriptProgressionTests(unittest.TestCase):
         self.assertEqual(actual["results"][0], actual["results"][1])
         self.assertEqual(actual["input_preserved"], [True, True])
 
+    # {
+    #   責務: [test_repository_reads_bundles_without_changing_content_or_creating_profile: 検証: repository reads bundles without changing content or creating profile]
+    #   処理: [1: 検証: repository reads bundles without changing content or creating profile]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_repository_reads_bundles_without_changing_content_or_creating_profile(self):
         ids = GameRepository(self.content / "data").list_species_ids()
         before = self.content_hashes()
@@ -217,6 +345,12 @@ class GDScriptProgressionTests(unittest.TestCase):
         self.assertEqual(self.content_hashes(), before)
         self.assertFalse(self.profile.exists())
 
+    # {
+    #   責務: [test_repository_rejects_unsafe_ids_missing_and_malformed_objects: 検証: repository rejects unsafe ids missing and malformed objects]
+    #   処理: [1: 検証: repository rejects unsafe ids missing and malformed objects]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_repository_rejects_unsafe_ids_missing_and_malformed_objects(self):
         invalid_ids = ("../slime", "", "Slime", "slime/../../", "does_not_exist")
         actual = self.contracts(load_ids=invalid_ids)["bundles"]
@@ -231,6 +365,12 @@ class GDScriptProgressionTests(unittest.TestCase):
                 self.assertEqual(self.contracts(load_ids=["slime"])["bundles"][0]["error"], "invalid_content")
                 self.assertEqual(path.read_text(encoding="utf-8"), raw)
 
+    # {
+    #   責務: [test_application_reads_one_bundle_per_species_per_scan_without_final_modifiers: 検証: application reads one bundle per species per scan without final modifiers]
+    #   処理: [1: 検証: application reads one bundle per species per scan without final modifiers]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_application_reads_one_bundle_per_species_per_scan_without_final_modifiers(self):
         actual = self.contracts(join_bundle={"ok": True, **self.template("slime")}, join_monsters=[
             {"species_id": "slime", "level": 1}, {"species_id": "slime", "level": 42},
@@ -242,6 +382,12 @@ class GDScriptProgressionTests(unittest.TestCase):
                 self.assertEqual(result["stats"], GameRepository(self.content / "data").stats_at("slime", level))
                 self.assertFalse(result["modifiers_applied"])
 
+    # {
+    #   責務: [test_roster_projects_base_stats_and_level_skills_leaving_individual_and_ai_bytes: 検証: roster projects base stats and level skills leaving individual and ai bytes]
+    #   処理: [1: 検証: roster projects base stats and level skills leaving individual and ai bytes]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_roster_projects_base_stats_and_level_skills_leaving_individual_and_ai_bytes(self):
         self.seed_state(current_party=["slimeA", "ghostA"])
         repository = GameRepository(self.content / "data")
@@ -267,6 +413,12 @@ class GDScriptProgressionTests(unittest.TestCase):
         self.assertNotEqual(calculate_stats(repository, record), repository.stats_at("slime", 100))
         self.assertNotEqual(repository.skill_ids_at("ghost", 1, [ghost_plus]), repository.skill_ids_at("ghost", 1))
 
+    # {
+    #   責務: [test_roster_invalid_progression_keeps_record_party_ai_and_warns_no_auto_repair: 検証: roster invalid progression keeps record party ai and warns no auto repair]
+    #   処理: [1: 検証: roster invalid progression keeps record party ai and warns no auto repair]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_roster_invalid_progression_keeps_record_party_ai_and_warns_no_auto_repair(self):
         self.seed_state(current_party=["kept"])
         self.seed_record("kept", level=42)
@@ -283,6 +435,12 @@ class GDScriptProgressionTests(unittest.TestCase):
         self.assertEqual(self.saved_files(), before)
         self.assertEqual(self.content_hashes(), content)
 
+    # {
+    #   責務: [test_reopen_rebuilds_external_level_table_changes_without_mutating_individual: 検証: reopen rebuilds external level table changes without mutating individual]
+    #   処理: [1: 検証: reopen rebuilds external level table changes without mutating individual]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_reopen_rebuilds_external_level_table_changes_without_mutating_individual(self):
         self.seed_state(current_party=["kept"])
         self.seed_record("kept", level=42)
@@ -297,6 +455,12 @@ class GDScriptProgressionTests(unittest.TestCase):
         self.assertEqual(second["owned"]["records"]["kept"]["progression"]["stats"], row(4321))
         self.assertEqual(self.saved_files(), before)
 
+    # {
+    #   責務: [test_legacy_individual_without_level_uses_lv1_without_resaving: 検証: legacy individual without level uses lv1 without resaving]
+    #   処理: [1: 検証: legacy individual without level uses lv1 without resaving]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_legacy_individual_without_level_uses_lv1_without_resaving(self):
         self.seed_state(current_party=["old"])
         monster = self.seed_record("old")

@@ -16,6 +16,24 @@
 
 ```
 
+# 89. 全コードのJSON-like宣言コメントと漏れ検査
+
+ユーザーの全コード適用依頼を優先して#212の段階移行を拡張した。公開日本語正本Draft v0.9 / 5691767a8708407a568a75a242543a4add825253をGitHub CLIで確認し、Python/GDScriptの全クラス・関数・メソッド（非公開/ネスト/property/decorator/テスト/ツールを含む）、module/匿名scriptの入口、Windowsバッチの入口/ラベル、実行CIのヘッダーへ構造化コメントを追加した。内部説明/docstringは保持し、引数なしとvoid/Noneを明示する。1エントリの項目は短い形式へまとめ、全コード注釈による読解量増加を抑える。
+
+戦闘の会心・物理guard・単一claim、HP/MP所有、保存の複数ファイル境界、共有ドットエディタのundo/penなどは実装と代表照合した。全コメントの自然言語品質を自動保証するとは扱わない。ゲームの実行ロジックは変更せず、JSON・画像・Scene/config・依存定義やlambdaをコメントのために作り替えない。
+
+追加: tools/comment-check/script/check_comments.py、tests/test_comment_contract.py（15テスト）、docs/COMMENT_RULES.md。Developer/CI専用でゲームをimportしない静的検査により、299ソースファイル・2532宣言の項目/引数/宣言名/番号/既知キー重複を照合する。GDScriptの複数行/型付き配列シグネチャ、未知キーの保持、通常コメントの許容、不正/未解析/読込失敗、batchラベルを回帰検証する。upstream汎用validatorのforkではなく、導入時のupstreamツールは設計段階。Playerへ検査依存を追加しない。
+
+更新: 追跡コード全域のコメント、AGENTS/CODING_RULES/CODEMAP/tools README、CIのコメント検査、本履歴。AGENTSは既存6000byte上限を維持する短い参照案内とした。次のGDScript実装は引き続き#251（基本ぼうぎょ）で、今回その機能を実装済みとはしない。
+
+検証（2026-10-06）: Windowsで日本語UTF-8のrem注釈がOEM文字コードと衝突したため、バッチだけはupstreamで許容される英語キー/ASCII説明へ変更。既存の実cmd.exe・専用fake ghテスト条件は緩めず成功した。関連39件/11サブテスト成功、Python228ファイルの3.10構文契約/致命的lintと新規2ファイルのstyle、project rules、生成REPO_MAP/application図のfreshness、E2Eカタログの構造/参照（12 covered/25 missing/1除外）、diff成功。これはPython3.10実行や実GUI/export/リモートCIの完了を示さない。
+
+225既存Pythonの実行ASTと60GDScript/7batchのコメント以外の実行内容を変更前と比較し一致。既存の未コミットgame.py/開発予定、未追跡メモ/評価/図表/reportsを保持し、game.pyは今回のヘッダーだけをindexへ分離する。実セーブ/個体AI/party/items/data/assetsを作業対象にせず、テストは専用一時領域で実行する。
+
+最新版UPD ae4636155b5e773d787cfccd1572808829601524を再取得し、エラー0・警告17・注意100。コメントだけで行数判定の警告が13→17へ増える最小再現を確認したが、checker抑制/独自forkは行わない。上流の公開Issue投稿は明示承認が必要として停止されたため、許可なしでは投稿しない。GDScript全体をUPDで検査した結果ではない。
+
+最終全体985件・9241サブテスト成功（408.98秒、Python3.14.7 / pygame-ce2.5.8 / 実Godot4.7.2、skipなし）。最初の全体検証でAGENTSが6008byteとなった1件を修正してから全体を再実行した。実セーブを使わず、標準Python性能13項目も成功（20000回/7samples/2000warmup、24枠生成1017.03µs<=5000µs、24体移動352.41µs<=1000µs）。今回runtime hot pathの実装変更はないため、新規Godot性能単位は追加しない。描画/FPS/export性能の検証ではない。リモート再取得でbehind=0、次の#251はOPEN。今回分をローカルコミットするだけでpush/PR/Issue完了は行わない。
+
 # 88. GDScript版の通常攻撃行動・単一Session適用
 
 P1移行単位#230を実装した。pure normal_attack_contractが正規グローバルattack定義とBuilderの許可装備から対応数値効果だけを独立コピーし、normal_attack_actionが厳密な明示要求→offered/最新対象・乱数/数値検証→単一claim→実HP適用→finishを同期実行する。Sessionには読み取り専用inspect_ticketを追加し、攻撃計算を蓄積しない。applicationはread-only準備/開始/行動の呼出調停だけ。Action設定は開始直後のfresh Sessionとの一致を必要とし、再設定を拒否する。

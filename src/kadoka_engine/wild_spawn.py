@@ -1,9 +1,19 @@
+# {
+#   責務: [wild_spawn: wild・出現の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import math
 import random
 
 
+# {
+#   責務: [relative_spawn_weights: Scale finite relative weights without truncation or sum overflow.]
+#   処理: [1: Scale finite relative weights without truncation or sum overflow.]
+#   引数: [options: options（list[dict]）]
+#   戻り値: [result: Scale finite relative weights without truncation or sum overflow.ための結果（list[float] | None）]
+# }
 def relative_spawn_weights(options: list[dict]) -> list[float] | None:
     """Scale finite relative weights without truncation or sum overflow."""
     values = [entry.get("weight", 1) for entry in options]
@@ -19,6 +29,15 @@ def relative_spawn_weights(options: list[dict]) -> list[float] | None:
     return [value / largest for value in weights]
 
 
+# {
+#   責務: [pop_allowed: allowedを取り出す]
+#   処理: [1: allowedを取り出す]
+#   引数: [
+#     rng: 乱数供給元（random.Random）
+#     rate: rate（object）
+#   ]
+#   戻り値: [result: allowedを取り出すための結果（bool）]
+# }
 def pop_allowed(rng: random.Random, rate: object) -> bool:
     if isinstance(rate, bool) or not isinstance(rate, (int, float)):
         return False
@@ -27,6 +46,17 @@ def pop_allowed(rng: random.Random, rate: object) -> bool:
     return rate == 100 or rng.random() < rate / 100
 
 
+# {
+#   責務: [draw_wild_spawn: One slot attempt: pop decision, species, then inclusive level roll.]
+#   処理: [1: One slot attempt: pop decision, species, then inclusive level roll.]
+#   引数: [
+#     rng: 乱数供給元（random.Random）
+#     options: options（list[dict]）
+#     weights: 重み一覧（list[float] | None）
+#     rate: rate（object）
+#   ]
+#   戻り値: [result: One slot attempt: pop decision, species, then inclusive level roll.ための結果（dict | None）]
+# }
 def draw_wild_spawn(
     rng: random.Random, options: list[dict], weights: list[float] | None, rate: object = 100,
 ) -> dict | None:

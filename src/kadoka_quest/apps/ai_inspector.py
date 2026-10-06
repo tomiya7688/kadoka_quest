@@ -1,3 +1,7 @@
+# {
+#   責務: [ai_inspector: AI・inspectorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from typing import Any
@@ -5,13 +9,35 @@ from typing import Any
 from kadoka_quest.core.ai_tendencies import summarize_tendencies
 
 
+# {
+#   責務: [AiInspector: Build a compact, plain-data view of one individual's learned AI.]
+#   フィールド: []
+# }
 class AiInspector:
     """Build a compact, plain-data view of one individual's learned AI."""
 
+    # {
+    #   責務: [summarize_tendencies: tendenciesを要約する]
+    #   処理: [1: tendenciesを要約する]
+    #   引数: [
+    #     ai: AI（dict[str, Any]）
+    #     skills: スキル一覧（dict[str, dict]）
+    #   ]
+    #   戻り値: [result: tendenciesを要約するための結果（list[dict[str, Any]]）]
+    # }
     @staticmethod
     def summarize_tendencies(ai: dict[str, Any], skills: dict[str, dict]) -> list[dict[str, Any]]:
         return summarize_tendencies(ai, skills)
 
+    # {
+    #   責務: [summarize: AI・inspectorを要約する]
+    #   処理: [1: AI・inspectorを要約する]
+    #   引数: [
+    #     ai: AI（dict[str, Any]）
+    #     limit: limit（int）
+    #   ]
+    #   戻り値: [result: AI・inspectorを要約するための結果（dict[str, Any]）]
+    # }
     @staticmethod
     def summarize(ai: dict[str, Any], limit: int = 3) -> dict[str, Any]:
         count = max(1, int(limit))

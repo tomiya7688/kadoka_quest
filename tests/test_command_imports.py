@@ -1,3 +1,7 @@
+# {
+#   責務: [test_command_imports: test・コマンド・importsの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import os
@@ -8,6 +12,12 @@ import sys
 import pytest
 
 
+# {
+#   責務: [test_commands_import_in_fresh_process: 検証: commands import in fresh process]
+#   処理: [1: 検証: commands import in fresh process]
+#   引数: [module: module]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("module", [
     "kadoka_quest.apps.battle_command_app",
     "kadoka_quest.apps.field_command_app",
@@ -32,6 +42,12 @@ def test_commands_import_in_fresh_process(module):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+# {
+#   責務: [test_unknown_application_export_raises_attribute_error: 検証: unknown application export raises attribute error]
+#   処理: [1: 検証: unknown application export raises attribute error]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_unknown_application_export_raises_attribute_error():
     import kadoka_quest.application as application
 

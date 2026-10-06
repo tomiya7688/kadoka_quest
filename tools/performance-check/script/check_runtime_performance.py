@@ -1,3 +1,7 @@
+# {
+#   責務: [check_runtime_performance: check・実行時・performanceの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -25,6 +29,14 @@ from kadoka_quest.core.spawn_levels import metal_area_level_range
 Operation = Callable[[], object]
 
 
+# {
+#   責務: [BenchmarkCase: benchmark・caseの状態と振る舞いを担当する]
+#   フィールド: [
+#     name: 名前（str）
+#     operation: operation（Operation）
+#     limit_ns: limit・ns（float）
+#   ]
+# }
 @dataclass(frozen=True)
 class BenchmarkCase:
     name: str
@@ -32,17 +44,42 @@ class BenchmarkCase:
     limit_ns: float
 
 
+# {
+#   責務: [BenchmarkResult: benchmark・処理結果の状態と振る舞いを担当する]
+#   フィールド: [
+#     name: 名前（str）
+#     ns_per_operation: ns・per・operation（float）
+#     limit_ns: limit・ns（float）
+#   ]
+# }
 @dataclass(frozen=True)
 class BenchmarkResult:
     name: str
     ns_per_operation: float
     limit_ns: float
 
+    # {
+    #   責務: [passed: benchmark・処理結果のpassedを求める]
+    #   処理: [1: benchmark・処理結果のpassedを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: benchmark・処理結果のpassedを求めるための結果（bool）]
+    # }
     @property
     def passed(self) -> bool:
         return self.ns_per_operation <= self.limit_ns
 
 
+# {
+#   責務: [measure: check・実行時・performanceのmeasureを求める]
+#   処理: [1: check・実行時・performanceのmeasureを求める]
+#   引数: [
+#     operation: operation（Operation）
+#     iterations: iterations（int）
+#     samples: samples（int）
+#     warmup: warmup（int）
+#   ]
+#   戻り値: [result: check・実行時・performanceのmeasureを求めるための結果（float）]
+# }
 def measure(operation: Operation, iterations: int, samples: int, warmup: int) -> float:
     for _ in range(warmup):
         operation()
@@ -57,6 +94,12 @@ def measure(operation: Operation, iterations: int, samples: int, warmup: int) ->
     return float(median(timings))
 
 
+# {
+#   責務: [build_benchmark_cases: Return representative hot-path checks; extend this list as Kadoka Quest grows.]
+#   処理: [1: Return representative hot-path checks; extend this list as Kadoka Quest grows.]
+#   引数: []
+#   戻り値: [result: Return representative hot-path checks; extend this list as Kadoka Quest grows.ための結果（list[BenchmarkCase]）]
+# }
 def build_benchmark_cases() -> list[BenchmarkCase]:
     """Return representative hot-path checks; extend this list as Kadoka Quest grows."""
     payload = {
@@ -67,6 +110,12 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     command = AppCommand("field", "move", payload)
     bus = CommandBus()
 
+    # {
+    #   責務: [handler: check・実行時・performanceのhandlerを求める]
+    #   処理: [1: check・実行時・performanceのhandlerを求める]
+    #   引数: [value: 値（AppCommand）]
+    #   戻り値: [result: value.action（str）]
+    # }
     def handler(value: AppCommand) -> str:
         return value.action
 
@@ -131,6 +180,12 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     fork_field = FieldEngine(fork_world, {".": {"enemy_walkable": True}, "#": {"enemy_walkable": False}})
     traffic = ChaseTraffic(fork_field)
 
+    # {
+    #   責務: [chase_fork: check・実行時・performanceのchase・forkを求める]
+    #   処理: [1: check・実行時・performanceのchase・forkを求める]
+    #   引数: []
+    #   戻り値: [result: check・実行時・performanceのchase・forkを求めるための結果（object）]
+    # }
     def chase_fork() -> object:
         traffic.clear()
         traffic.begin(1000, {1, 2})
@@ -183,6 +238,17 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     ]
 
 
+# {
+#   責務: [run_benchmarks: benchmarksを実行する]
+#   処理: [1: benchmarksを実行する]
+#   引数: [
+#     iterations: iterations（int）
+#     samples: samples（int）
+#     warmup: warmup（int）
+#     only: only（set[str] | None）
+#   ]
+#   戻り値: [result: 処理結果一覧（list[BenchmarkResult]）]
+# }
 def run_benchmarks(
     iterations: int,
     samples: int,
@@ -198,6 +264,12 @@ def run_benchmarks(
     return results
 
 
+# {
+#   責務: [build_parser: parserを構築する]
+#   処理: [1: parserを構築する]
+#   引数: []
+#   戻り値: [result: parser（argparse.ArgumentParser）]
+# }
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Check Kadoka Quest runtime performance guardrails.")
     parser.add_argument("--iterations", type=int, default=20_000)
@@ -218,6 +290,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# {
+#   責務: [main: check・実行時・performanceのエントリ処理を実行する]
+#   処理: [1: check・実行時・performanceのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: check・実行時・performanceのエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     args = build_parser().parse_args()
     cases = build_benchmark_cases()

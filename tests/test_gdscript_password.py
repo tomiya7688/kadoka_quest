@@ -1,4 +1,8 @@
 """Real Godot bounded input parity and isolated spring Scene/native/virtual modal tests."""
+# {
+#   責務: [test_gdscript_password: Real Godot bounded input parity and isolated spring Scene/native/virtual modal tests.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -20,18 +24,46 @@ KANA_KEYS = "あいうえおかきくけこさしすせそたちつてとなに�
 OPEN = [{"kind": "open"}, {"kind": "key", "key": "E"}]
 
 
+# {
+#   責務: [GDScriptPasswordTests: gdscript・暗号・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     content: content
+#   ]
+# }
 @unittest.skipUnless(GODOT, "Set KADOKA_GODOT_EXECUTABLE for real password probes")
 class GDScriptPasswordTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="kadoka-password-")
         self.addCleanup(self.temporary.cleanup)
         self.content = Path(self.temporary.name)
 
+    # {
+    #   責務: [prepare_scene: sceneを準備する]
+    #   処理: [1: sceneを準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def prepare_scene(self) -> None:
         if not (self.content / "data").exists():
             shutil.copytree(ROOT / "data", self.content / "data")
             shutil.copytree(ROOT / "assets", self.content / "assets")
 
+    # {
+    #   責務: [probe: gdscript・暗号・testsのprobeを求める]
+    #   処理: [1: gdscript・暗号・testsのprobeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     request: 要求（dict）
+    #   ]
+    #   戻り値: [result: gdscript・暗号・testsのprobeを求めるための結果（list）]
+    # }
     def probe(self, request: dict) -> list:
         if request.get("scene"):
             self.prepare_scene()
@@ -52,13 +84,34 @@ class GDScriptPasswordTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]))
         self.fail(result.stderr + result.stdout[-1000:])
 
+    # {
+    #   責務: [scene: gdscript・暗号・testsのsceneを求める]
+    #   処理: [1: gdscript・暗号・testsのsceneを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actions: actions（list）
+    #   ]
+    #   戻り値: [result: gdscript・暗号・testsのsceneを求めるための結果（list）]
+    # }
     def scene(self, actions: list) -> list:
         return self.probe({"scene": True, "actions": actions})
 
+    # {
+    #   責務: [snapshot: gdscript・暗号・testsを状態を複製する]
+    #   処理: [1: gdscript・暗号・testsを状態を複製する]
+    #   引数: [session: セッション（PasswordSession）]
+    #   戻り値: [result: gdscript・暗号・testsを状態を複製するための結果（dict）]
+    # }
     @staticmethod
     def snapshot(session: PasswordSession) -> dict:
         return {key: getattr(session, key) for key in ("input_text", "message", "active", "maximum_length")}
 
+    # {
+    #   責務: [test_operation_sequences_match_python_including_empty_invalid_full_and_closed: 検証: operation sequences match python including empty invalid full and closed]
+    #   処理: [1: 検証: operation sequences match python including empty invalid full and closed]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_operation_sequences_match_python_including_empty_invalid_full_and_closed(self) -> None:
         basic = [{"kind": "submit"}, {"kind": "append", "value": "へ"}, {"kind": "backspace"},
                  {"kind": "cancel"}, {"kind": "open"}, {"kind": "backspace"}, {"kind": "submit"}]
@@ -83,6 +136,12 @@ class GDScriptPasswordTests(unittest.TestCase):
                     expected = method(operation["value"]) if operation["kind"] == "append" else method()
                     self.assertEqual(observation, {"result": expected, "state": self.snapshot(session)})
 
+    # {
+    #   責務: [test_canonical_constants_and_ui_do_not_own_secret_or_rule: 検証: canonical constants and ui do not own secret or rule]
+    #   処理: [1: 検証: canonical constants and ui do not own secret or rule]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_canonical_constants_and_ui_do_not_own_secret_or_rule(self) -> None:
         source = (ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn(f'PASSWORD = "{PASSWORD}"', source)
@@ -91,6 +150,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         for forbidden in (PASSWORD, "FileAccess", "SaveStore", "secret", "maximum_length"):
             self.assertNotIn(forbidden, view)
 
+    # {
+    #   責務: [test_spring_opens_real_seven_slots_and_full_kana_keyboard: 検証: spring opens real seven slots and full kana keyboard]
+    #   処理: [1: 検証: spring opens real seven slots and full kana keyboard]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_spring_opens_real_seven_slots_and_full_kana_keyboard(self) -> None:
         result = self.scene(OPEN)[-1]
         self.assertTrue(result["visible"])
@@ -101,6 +166,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertTrue(result["bounds_ok"], (result["panel_rect"], result["window_size"]))
         self.assertFalse((self.content / "saves").exists())
 
+    # {
+    #   責務: [test_native_unicode_limit_backspace_and_keypad_enter_match_without_fake_acquisition: 検証: native unicode limit backspace and keypad enter match without fake acquisition]
+    #   処理: [1: 検証: native unicode limit backspace and keypad enter match without fake acquisition]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_native_unicode_limit_backspace_and_keypad_enter_match_without_fake_acquisition(self) -> None:
         result = self.scene(OPEN + [
             {"kind": "type", "value": PASSWORD + "あx😀"},
@@ -119,6 +190,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertNotIn("仲間にな", result[-1]["status"])
         self.assertFalse((self.content / "saves").exists())
 
+    # {
+    #   責務: [test_virtual_key_clicks_erase_and_submit_through_real_controls: 検証: virtual key clicks erase and submit through real controls]
+    #   処理: [1: 検証: virtual key clicks erase and submit through real controls]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_virtual_key_clicks_erase_and_submit_through_real_controls(self) -> None:
         actions = OPEN + [{"kind": "click", "target": char} for char in PASSWORD[:-1] + "あ"]
         actions += [{"kind": "click", "target": "backspace"}, {"kind": "click", "target": "か"},
@@ -128,6 +205,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertEqual(result["signals"], [{"kind": "password_matched"}])
         self.assertFalse(result["visible"])
 
+    # {
+    #   責務: [test_empty_and_wrong_submit_stay_open_cancel_and_reopen_reset_input: 検証: empty and wrong submit stay open cancel and reopen reset input]
+    #   処理: [1: 検証: empty and wrong submit stay open cancel and reopen reset input]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_empty_and_wrong_submit_stay_open_cancel_and_reopen_reset_input(self) -> None:
         result = self.scene(OPEN + [
             {"kind": "key", "key": "Enter"}, {"kind": "click", "target": "あ"},
@@ -143,6 +226,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertEqual(result[-1]["message"], "7文字のあいことばを入力してください。")
         self.assertTrue(result[-1]["visible"])
 
+    # {
+    #   責務: [test_virtual_cancel_and_confirm_echo_do_not_duplicate_a_result: 検証: virtual cancel and confirm echo do not duplicate a result]
+    #   処理: [1: 検証: virtual cancel and confirm echo do not duplicate a result]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_virtual_cancel_and_confirm_echo_do_not_duplicate_a_result(self) -> None:
         result = self.scene(OPEN + [
             {"kind": "type", "value": PASSWORD}, {"kind": "key", "key": "Enter", "echo": True},
@@ -153,6 +242,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertEqual(result[-1]["signals"], [{"kind": "password_cancelled"}])
         self.assertFalse(result[-1]["visible"])
 
+    # {
+    #   責務: [test_committed_text_signal_and_unicode_with_virtual_button_focus_do_not_double_append: 検証: committed text signal and unicode with virtual button focus do not double append]
+    #   処理: [1: 検証: committed text signal and unicode with virtual button focus do not double append]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_committed_text_signal_and_unicode_with_virtual_button_focus_do_not_double_append(self) -> None:
         result = self.scene(OPEN + [
             {"kind": "commit_signal", "value": "へいx😀わなすみかあ"},
@@ -164,6 +259,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertEqual(result[-1]["state"]["input_text"], PASSWORD)
         self.assertEqual(result[-1]["signals"], [{"kind": "password_matched"}])
 
+    # {
+    #   責務: [test_modal_freezes_clock_actor_positions_keyboard_and_direct_save_load_until_resumed: 検証: modal freezes clock actor positions keyboard and direct save load until resumed]
+    #   処理: [1: 検証: modal freezes clock actor positions keyboard and direct save load until resumed]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_modal_freezes_clock_actor_positions_keyboard_and_direct_save_load_until_resumed(self) -> None:
         actions = OPEN + [{"kind": "tick", "delta": 30}, {"kind": "key", "key": "Right"}]
         actions += [{"kind": "key", "key": key} for key in ("F5", "F9", "F6")]
@@ -187,6 +288,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertEqual(result[-1]["npcs"][1]["move_count"], 0)
         self.assertFalse((self.content / "saves").exists())
 
+    # {
+    #   責務: [test_tab_space_virtual_navigation_and_wrong_full_length_stay_modal: 検証: tab space virtual navigation and wrong full length stay modal]
+    #   処理: [1: 検証: tab space virtual navigation and wrong full length stay modal]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_tab_space_virtual_navigation_and_wrong_full_length_stay_modal(self) -> None:
         result = self.scene(OPEN + [
             {"kind": "key", "key": "Tab"}, {"kind": "key", "key": "Space"},
@@ -199,6 +306,12 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertEqual(result[-1]["signals"], [])
         self.assertEqual(result[-1]["player"], [17, 8])
 
+    # {
+    #   責務: [test_cancel_and_already_complete_match_keep_json_and_ghosts_unchanged: 検証: cancel and already complete match keep json and ghosts unchanged]
+    #   処理: [1: 検証: cancel and already complete match keep json and ghosts unchanged]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_cancel_and_already_complete_match_keep_json_and_ghosts_unchanged(self) -> None:
         self.prepare_scene()
         profile = self.content / "saves/default"
@@ -231,6 +344,12 @@ class GDScriptPasswordTests(unittest.TestCase):
             self.assertEqual(self.content_bytes(), before)
         self.assertFalse((self.content / "python-never").exists())
 
+    # {
+    #   責務: [content_bytes: gdscript・暗号・testsのcontent・bytesを求める]
+    #   処理: [1: gdscript・暗号・testsのcontent・bytesを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: gdscript・暗号・testsのcontent・bytesを求めるための結果（dict）]
+    # }
     def content_bytes(self) -> dict:
         return {p.relative_to(self.content): p.read_bytes() for parent in ("data", "assets", "saves")
                 for p in (self.content / parent).rglob("*") if p.is_file()}

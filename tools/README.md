@@ -6,6 +6,8 @@ Each tool keeps executable scripts under `tools/<tool-name>/script/`. Tool-speci
 
 Current tools:
 
+- `comment-check`: `python tools/comment-check/script/check_comments.py` checks declaration-comment coverage and signature agreement for all tracked Python/GDScript, batch entry/subroutines and executable CI workflow headers. It uses static source inspection, never imports Player code, and is read-only. See [COMMENT_RULES](../docs/COMMENT_RULES.md); tests: `tests/test_comment_contract.py`. It is a narrow project guard, not an upstream parser fork or prose correctness guarantee.
+
 REPO_MAP: `python tools/code-docs/script/generate_repo_map.py` generates
 `docs/generated/REPO_MAP.md` from `src/` using only the standard library and AST;
 game modules are never imported. Use `--check` for read-only freshness validation.

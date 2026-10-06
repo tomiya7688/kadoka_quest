@@ -1,3 +1,7 @@
+# {
+#   責務: [battle_data: 戦闘・データの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from typing import Any
@@ -7,17 +11,52 @@ from kadoka_quest.core.monster import MonsterRecord, available_skill_ids, calcul
 from kadoka_quest.data.repository import GameRepository
 
 
+# {
+#   責務: [BattleDataLoader: Loads combat-ready species, skill, resistance, stat and equipment data.]
+#   フィールド: [
+#     repository: データ取得先
+#     skill_catalog: スキル・catalog
+#     equipment_catalog: 装備・catalog
+#   ]
+# }
 class BattleDataLoader:
     """Loads combat-ready species, skill, resistance, stat and equipment data."""
 
+    # {
+    #   責務: [__init__: 戦闘・データ・loaderが利用する初期状態と依存を設定する]
+    #   処理: [1: 戦闘・データ・loaderが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     repository: データ取得先（GameRepository）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, repository: GameRepository) -> None:
         self.repository = repository
         self.skill_catalog = repository.get_skills()
         self.equipment_catalog = repository.get_equipment()
 
+    # {
+    #   責務: [species_definition: 戦闘・データ・loaderの種族・定義を求める]
+    #   処理: [1: 戦闘・データ・loaderの種族・定義を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species_id: 種族・識別子（str）
+    #   ]
+    #   戻り値: [result: self.repository.get・species(species・id).definition（dict[str, Any]）]
+    # }
     def species_definition(self, species_id: str) -> dict[str, Any]:
         return self.repository.get_species(species_id).definition
 
+    # {
+    #   責務: [build_combatant: 戦闘個体を構築する]
+    #   処理: [1: 戦闘個体を構築する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     record: 個体レコード（MonsterRecord）
+    #   ]
+    #   戻り値: [result: 戦闘個体を構築するための結果（Combatant）]
+    # }
     def build_combatant(self, record: MonsterRecord) -> Combatant:
         definition = self.species_definition(record.species_id)
         skill_ids = available_skill_ids(self.repository, record)

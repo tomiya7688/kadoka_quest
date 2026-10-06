@@ -1,3 +1,7 @@
+# {
+#   責務: [generate_class_diagram: generate・クラス・diagramの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -8,6 +12,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
+# {
+#   責務: [render_class_diagram: クラス・diagramを表示用データを生成する]
+#   処理: [1: クラス・diagramを表示用データを生成する]
+#   引数: [source_root: 元データ・基準ディレクトリ（Path）]
+#   戻り値: [result: クラス・diagramを表示用データを生成するための結果（str）]
+# }
 def render_class_diagram(source_root: Path) -> str:
     classes: list[tuple[str, list[str], list[str]]] = []
     for path in sorted(source_root.rglob("*.py")):
@@ -34,6 +44,12 @@ def render_class_diagram(source_root: Path) -> str:
     return "\n".join(lines) + "\n"
 
 
+# {
+#   責務: [main: generate・クラス・diagramのエントリ処理を実行する]
+#   処理: [1: generate・クラス・diagramのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: generate・クラス・diagramのエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Generate a compact Mermaid class diagram from Python sources."

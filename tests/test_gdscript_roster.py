@@ -1,4 +1,8 @@
 """Real-Godot owned-individual bootstrap/read-only UI, isolated from all user saves."""
+# {
+#   責務: [test_gdscript_roster: Real-Godot owned-individual bootstrap/read-only UI, isolated from all user saves.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -19,7 +23,17 @@ ROOT = Path(__file__).resolve().parents[1]
 GODOT = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
 
 
+# {
+#   責務: [GDScriptRosterBoundaryTests: gdscript・所有個体台帳・boundary・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class GDScriptRosterBoundaryTests(unittest.TestCase):
+    # {
+    #   責務: [test_record_rules_and_renderer_do_not_access_persistence: 検証: record rules and renderer do not access persistence]
+    #   処理: [1: 検証: record rules and renderer do not access persistence]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_record_rules_and_renderer_do_not_access_persistence(self):
         paths = ("engine/monster_record_contract.gd", "ui/roster_view.gd")
         for path in paths:
@@ -29,8 +43,23 @@ class GDScriptRosterBoundaryTests(unittest.TestCase):
         self.assertIn("extends RefCounted", (ROOT / "gdscript" / paths[0]).read_text(encoding="utf-8"))
 
 
+# {
+#   責務: [GDScriptRosterTests: gdscript・所有個体台帳・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     content: content
+#     saves: saves
+#     profile: プロファイル
+#     legacy: legacy
+#   ]
+# }
 @unittest.skipUnless(GODOT, "Set KADOKA_GODOT_EXECUTABLE for real roster/keyboard probes")
 class GDScriptRosterTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="kadoka-gdscript-roster-")
         self.addCleanup(temporary.cleanup)
@@ -43,6 +72,16 @@ class GDScriptRosterTests(unittest.TestCase):
         self.legacy.mkdir()
         (self.legacy / "sentinel.json").write_text('{"keep":true}', encoding="utf-8")
 
+    # {
+    #   責務: [probe: gdscript・所有個体台帳・testsのprobeを求める]
+    #   処理: [1: gdscript・所有個体台帳・testsのprobeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actions: actions
+    #     contracts: contracts
+    #   ]
+    #   戻り値: [result: gdscript・所有個体台帳・testsのprobeを求めるための結果（型注釈なし）]
+    # }
     def probe(self, actions=(), **contracts):
         fixture = self.content / "probe.json"
         fixture.write_text(json.dumps({"actions": list(actions), **contracts}, ensure_ascii=False), encoding="utf-8")
@@ -61,6 +100,15 @@ class GDScriptRosterTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]).decode("utf-8"))
         self.fail(result.stdout[-1200:] + result.stderr)
 
+    # {
+    #   責務: [seed_state: gdscript・所有個体台帳・testsのseed・状態を求める]
+    #   処理: [1: gdscript・所有個体台帳・testsのseed・状態を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     changes: changes
+    #   ]
+    #   戻り値: [result: 状態（型注釈なし）]
+    # }
     def seed_state(self, **changes):
         state = json.loads(json.dumps(DEFAULT_STATE, ensure_ascii=False))
         state.pop("inventory")
@@ -68,12 +116,33 @@ class GDScriptRosterTests(unittest.TestCase):
         self.write("state.json", state)
         return state
 
+    # {
+    #   責務: [write: gdscript・所有個体台帳・testsを書き込む]
+    #   処理: [1: gdscript・所有個体台帳・testsを書き込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     relative: relative
+    #     value: 値
+    #   ]
+    #   戻り値: [result: パス（型注釈なし）]
+    # }
     def write(self, relative, value):
         path = self.profile / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
         return path
 
+    # {
+    #   責務: [seed_record: gdscript・所有個体台帳・testsのseed・個体レコードを求める]
+    #   処理: [1: gdscript・所有個体台帳・testsのseed・個体レコードを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     folder_id: フォルダ・識別子
+    #     species_id: 種族・識別子
+    #     changes: changes
+    #   ]
+    #   戻り値: [result: モンスター（型注釈なし）]
+    # }
     def seed_record(self, folder_id, species_id="slime", **changes):
         monster = {"schema_version": 1, "id": folder_id, "species_id": species_id, "name": f"個体{folder_id}",
                    "level": 42, "experience": 17, "plus_choices": ["custom_plus"], "equipment_id": None}
@@ -82,10 +151,25 @@ class GDScriptRosterTests(unittest.TestCase):
         self.write(f"monsters/{folder_id}/ai.json", default_ai("normal"))
         return monster
 
+    # {
+    #   責務: [saved_files: gdscript・所有個体台帳・testsのsaved・filesを求める]
+    #   処理: [1: gdscript・所有個体台帳・testsのsaved・filesを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     exclude_state: exclude・状態
+    #   ]
+    #   戻り値: [result: gdscript・所有個体台帳・testsのsaved・filesを求めるための結果（型注釈なし）]
+    # }
     def saved_files(self, exclude_state=False):
         return {str(path.relative_to(self.profile)): path.read_bytes() for path in self.profile.rglob("*")
                 if path.is_file() and not (exclude_state and path.name == "state.json")}
 
+    # {
+    #   責務: [test_default_ai_matches_python_all_profiles_and_tactics: 検証: default ai matches python all profiles and tactics]
+    #   処理: [1: 検証: default ai matches python all profiles and tactics]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_default_ai_matches_python_all_profiles_and_tactics(self):
         cases = [{"profile": profile, "tactic": tactic}
                  for profile in ("normal", "support", "trickster", "dice", "maru", "kadoka", "mod_profile")
@@ -95,6 +179,12 @@ class GDScriptRosterTests(unittest.TestCase):
             with self.subTest(**case):
                 self.assertEqual(value, default_ai(**case))
 
+    # {
+    #   責務: [test_individual_documents_match_python_factory_and_level_clamp: 検証: individual documents match python factory and level clamp]
+    #   処理: [1: 検証: individual documents match python factory and level clamp]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_individual_documents_match_python_factory_and_level_clamp(self):
         cases = [{"id": f"reference_{index}_{level}", "species_id": species, "level": level, "name": "比較個体"}
                  for index, species in enumerate(("hero", "slime", "ball_slime", "metal_slime", "ghost", "maru", "kadoka"))
@@ -107,6 +197,12 @@ class GDScriptRosterTests(unittest.TestCase):
                                             source="starter", monster_id=case["id"])
                 self.assertEqual(value, {"monster": expected.monster, "ai": expected.ai})
 
+    # {
+    #   責務: [test_new_save_starters_party_reload_and_repeat_save_do_not_duplicate: 検証: new save starters party reload and repeat save do not duplicate]
+    #   処理: [1: 検証: new save starters party reload and repeat save do not duplicate]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_new_save_starters_party_reload_and_repeat_save_do_not_duplicate(self):
         result = self.probe([{"kind": "key", "key": "F5"}, {"kind": "key", "key": "F6"}])["observations"]
         records = result[-1]["owned"]["records"]
@@ -124,6 +220,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertFalse(any(path.name.startswith(".pending_") for path in (self.profile / "monsters").iterdir()))
         self.assertEqual((self.legacy / "sentinel.json").read_text(encoding="utf-8"), '{"keep":true}')
 
+    # {
+    #   責務: [test_existing_individual_ai_unknown_keys_and_party_order_are_readonly: 検証: existing individual ai unknown keys and party order are readonly]
+    #   処理: [1: 検証: existing individual ai unknown keys and party order are readonly]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_existing_individual_ai_unknown_keys_and_party_order_are_readonly(self):
         state = self.seed_state(current_party=["まるA", None, "missing", "hero_01"])
         self.seed_record("hero_01", "hero", name="自分", level=100)
@@ -145,6 +247,12 @@ class GDScriptRosterTests(unittest.TestCase):
         stored = json.loads((self.profile / "state.json").read_text(encoding="utf-8"))
         self.assertEqual(stored["current_party"], state["current_party"])
 
+    # {
+    #   責務: [test_unlimited_roster_scroll_and_modal_input_does_not_move_or_save: 検証: unlimited roster scroll and modal input does not move or save]
+    #   処理: [1: 検証: unlimited roster scroll and modal input does not move or save]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_unlimited_roster_scroll_and_modal_input_does_not_move_or_save(self):
         self.seed_state(current_party=["owned_000"])
         for index in range(120):
@@ -162,6 +270,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual((observations[-1]["x"], observations[-1]["y"]), (19, 14))
         self.assertEqual(self.saved_files(), before)
 
+    # {
+    #   責務: [test_invalid_records_are_reported_without_deletion_or_repair: 検証: invalid records are reported without deletion or repair]
+    #   処理: [1: 検証: invalid records are reported without deletion or repair]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_records_are_reported_without_deletion_or_repair(self):
         self.seed_state(current_party=["valid", "bad_0", None, "missing"])
         self.seed_record("valid")
@@ -180,6 +294,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertIn("読込不可: bad_0", result["text"])
         self.assertEqual(self.saved_files(), before)
 
+    # {
+    #   責務: [test_scroll_wheel_and_upward_keyboard_navigation: 検証: scroll wheel and upward keyboard navigation]
+    #   処理: [1: 検証: scroll wheel and upward keyboard navigation]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_scroll_wheel_and_upward_keyboard_navigation(self):
         self.seed_state()
         for index in range(25):
@@ -193,6 +313,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertLess(observations[4]["scroll"], observations[3]["scroll"])
         self.assertLess(observations[5]["scroll"], observations[4]["scroll"])
 
+    # {
+    #   責務: [test_existing_id_and_path_traversal_are_never_overwritten: 検証: existing id and path traversal are never overwritten]
+    #   処理: [1: 検証: existing id and path traversal are never overwritten]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_existing_id_and_path_traversal_are_never_overwritten(self):
         self.seed_state()
         self.seed_record("existing")
@@ -205,6 +331,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual(self.saved_files(), before)
         self.assertFalse((self.saves / "escape").exists())
 
+    # {
+    #   責務: [test_retry_after_failed_state_write_reuses_published_starter_ids: 検証: retry after failed state write reuses published starter ids]
+    #   処理: [1: 検証: retry after failed state write reuses published starter ids]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_retry_after_failed_state_write_reuses_published_starter_ids(self):
         blocked = self.profile / "state.json"
         blocked.mkdir(parents=True)
@@ -219,6 +351,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual(set(retry["owned"]["records"]), ids)
         self.assertEqual(self.saved_files(exclude_state=True), before)
 
+    # {
+    #   責務: [test_existing_starters_are_reused_on_first_save_with_ai_unchanged: 検証: existing starters are reused on first save with ai unchanged]
+    #   処理: [1: 検証: existing starters are reused on first save with ai unchanged]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_existing_starters_are_reused_on_first_save_with_ai_unchanged(self):
         self.seed_record("my_hero", "hero")
         self.seed_record("my_ball", "ball_slime")
@@ -231,6 +369,12 @@ class GDScriptRosterTests(unittest.TestCase):
         for relative, value in before.items():
             self.assertEqual((self.profile / relative).read_bytes(), value)
 
+    # {
+    #   責務: [test_missing_starter_definition_refuses_first_save_before_creation: 検証: missing starter definition refuses first save before creation]
+    #   処理: [1: 検証: missing starter definition refuses first save before creation]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_missing_starter_definition_refuses_first_save_before_creation(self):
         (self.content / "data/species/ball_slime/species.json").unlink()
         result = self.probe([{"kind": "save"}])["observations"][-1]
@@ -238,6 +382,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertIn("初期種族", result["status"])
         self.assertFalse(self.profile.exists())
 
+    # {
+    #   責務: [test_invalid_orphan_prevents_duplicate_starters_without_repair: 検証: invalid orphan prevents duplicate starters without repair]
+    #   処理: [1: 検証: invalid orphan prevents duplicate starters without repair]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_orphan_prevents_duplicate_starters_without_repair(self):
         self.seed_record("orphan", level=101)
         before = self.saved_files()
@@ -247,6 +397,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual(self.saved_files(), before)
         self.assertFalse((self.profile / "state.json").exists())
 
+    # {
+    #   責務: [test_invalid_party_structure_is_reported_and_not_rewritten: 検証: invalid party structure is reported and not rewritten]
+    #   処理: [1: 検証: invalid party structure is reported and not rewritten]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_party_structure_is_reported_and_not_rewritten(self):
         self.seed_state(current_party={"mod": "not a list"})
         self.seed_record("owned")
@@ -256,6 +412,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertIn("current_partyが配列ではありません", result["text"])
         self.assertEqual(self.saved_files(), before)
 
+    # {
+    #   責務: [test_unsaved_roster_ui_is_readonly_and_does_not_create_a_profile: 検証: unsaved roster ui is readonly and does not create a profile]
+    #   処理: [1: 検証: unsaved roster ui is readonly and does not create a profile]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_unsaved_roster_ui_is_readonly_and_does_not_create_a_profile(self):
         observations = self.probe([{"kind": "key", "key": key} for key in ("F6", "F5", "RIGHT", "F6")])["observations"]
         self.assertIn("F5で初期仲間", observations[1]["text"])
@@ -264,6 +426,12 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual((observations[-1]["x"], observations[-1]["y"]), (18, 14))
         self.assertFalse(self.saves.exists())
 
+    # {
+    #   責務: [test_previous_prototype_empty_save_is_not_silently_given_new_members: 検証: previous prototype empty save is not silently given new members]
+    #   処理: [1: 検証: previous prototype empty save is not silently given new members]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_previous_prototype_empty_save_is_not_silently_given_new_members(self):
         self.seed_state()
         result = self.probe([{"kind": "save"}, {"kind": "key", "key": "F6"}])["observations"][-1]

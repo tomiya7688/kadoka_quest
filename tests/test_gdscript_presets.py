@@ -1,4 +1,8 @@
 """Real-Godot preset UI and state-independent, editable JSON persistence."""
+# {
+#   責務: [test_gdscript_presets: Real-Godot preset UI and state-independent, editable JSON persistence.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import ctypes
@@ -16,7 +20,17 @@ click = fixture.click
 OPEN = [key("F6"), key("E"), key("P")]
 
 
+# {
+#   責務: [GDScriptPresetBoundaryTests: gdscript・プリセット・boundary・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class GDScriptPresetBoundaryTests(unittest.TestCase):
+    # {
+    #   責務: [test_contract_ui_and_service_boundaries: 検証: contract ui and service boundaries]
+    #   処理: [1: 検証: contract ui and service boundaries]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_contract_ui_and_service_boundaries(self):
         for relative in ("engine/party_preset_contract.gd", "ui/party_preset_view.gd"):
             source = (fixture.ROOT / "gdscript" / relative).read_text(encoding="utf-8")
@@ -27,6 +41,16 @@ class GDScriptPresetBoundaryTests(unittest.TestCase):
             self.assertNotIn(forbidden, source)
 
 
+# {
+#   責務: [GDScriptPresetTests: gdscript・プリセット・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     setUp: set・up
+#     probe: probe
+#     seed: seed
+#     write: write
+#     add_c_keyboard: add・c・keyboard
+#   ]
+# }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real preset probes")
 class GDScriptPresetTests(unittest.TestCase):
     setUp = fixture.GDScriptPartyTests.setUp
@@ -35,10 +59,25 @@ class GDScriptPresetTests(unittest.TestCase):
     write = fixture.GDScriptPartyTests.write
     add_c_keyboard = fixture.GDScriptPartyTests.add_c_keyboard
 
+    # {
+    #   責務: [files: gdscript・プリセット・testsのfilesを求める]
+    #   処理: [1: gdscript・プリセット・testsのfilesを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     omit_state: omit・状態
+    #   ]
+    #   戻り値: [result: gdscript・プリセット・testsのfilesを求めるための結果（型注釈なし）]
+    # }
     def files(self, omit_state=False):
         return {name.replace("\\", "/"): data
                 for name, data in fixture.GDScriptPartyTests.files(self, omit_state).items()}
 
+    # {
+    #   責務: [test_keyboard_save_duplicate_names_and_python_load_keep_existing_bytes: 検証: keyboard save duplicate names and python load keep existing bytes]
+    #   処理: [1: 検証: keyboard save duplicate names and python load keep existing bytes]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_keyboard_save_duplicate_names_and_python_load_keep_existing_bytes(self):
         self.seed()
         before = self.files()
@@ -59,6 +98,12 @@ class GDScriptPresetTests(unittest.TestCase):
         loaded = store.load(self.profile / "parties/party.json", monsters)
         self.assertEqual([record.monster_id if record else None for record in loaded], document["members"])
 
+    # {
+    #   責務: [test_mouse_entry_save_and_load_then_explicit_current_party_commit: 検証: mouse entry save and load then explicit current party commit]
+    #   処理: [1: 検証: mouse entry save and load then explicit current party commit]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_mouse_entry_save_and_load_then_explicit_current_party_commit(self):
         self.seed()
         before = self.files()
@@ -72,6 +117,12 @@ class GDScriptPresetTests(unittest.TestCase):
                 self.assertEqual(after[name], value)
         self.assertIn("parties/adventure.json", after)
 
+    # {
+    #   責務: [test_loaded_preset_is_draft_only_and_escape_cancels_without_save: 検証: loaded preset is draft only and escape cancels without save]
+    #   処理: [1: 検証: loaded preset is draft only and escape cancels without save]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_loaded_preset_is_draft_only_and_escape_cancels_without_save(self):
         self.seed()
         before = self.files()
@@ -80,6 +131,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertTrue(actual[-2]["draft"]["dirty"])
         self.assertEqual(self.files(), before)
 
+    # {
+    #   責務: [test_saved_preset_remains_when_current_party_draft_is_cancelled: 検証: saved preset remains when current party draft is cancelled]
+    #   処理: [1: 検証: saved preset remains when current party draft is cancelled]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_saved_preset_remains_when_current_party_draft_is_cancelled(self):
         self.seed()
         before = (self.profile / "state.json").read_bytes()
@@ -91,12 +148,24 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertEqual((self.profile / "state.json").read_bytes(), before)
         self.assertTrue((self.profile / "parties/saved.json").is_file())
 
+    # {
+    #   責務: [test_restart_reads_saved_preset_and_can_apply_it: 検証: restart reads saved preset and can apply it]
+    #   処理: [1: 検証: restart reads saved preset and can apply it]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_restart_reads_saved_preset_and_can_apply_it(self):
         self.seed()
         self.probe(self.add_c_keyboard() + [key("P"), key("TAB"), {"kind": "text", "text": "new"}, key("ENTER")])
         actual = self.probe(OPEN + [key("END"), key("ENTER"), key("S", ctrl=True)])["observations"][-1]
         self.assertEqual(actual["state"]["current_party"], ["a", "b", "c", None])
 
+    # {
+    #   責務: [test_missing_individual_becomes_empty_without_rewriting_preset: 検証: missing individual becomes empty without rewriting preset]
+    #   処理: [1: 検証: missing individual becomes empty without rewriting preset]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_missing_individual_becomes_empty_without_rewriting_preset(self):
         self.seed()
         document = {"schema_version": 1, "name": "古い編成",
@@ -108,6 +177,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertEqual(actual[-1]["state"]["current_party"], [None, "b", None, None])
         self.assertEqual(path.read_bytes(), before)
 
+    # {
+    #   責務: [test_duplicate_preset_refused_without_losing_existing_dirty_draft: 検証: duplicate preset refused without losing existing dirty draft]
+    #   処理: [1: 検証: duplicate preset refused without losing existing dirty draft]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_duplicate_preset_refused_without_losing_existing_dirty_draft(self):
         self.seed()
         self.write("parties/existing.json", {"name": "重複", "members": ["a", "a"]})
@@ -118,6 +193,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertEqual([row["id"] for row in actual["draft"]["party"]], ["a", "b", "c", None])
         self.assertEqual(self.files(), before)
 
+    # {
+    #   責務: [test_corrupt_and_invalid_presets_warn_and_stay_untouched: 検証: corrupt and invalid presets warn and stay untouched]
+    #   処理: [1: 検証: corrupt and invalid presets warn and stay untouched]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_corrupt_and_invalid_presets_warn_and_stay_untouched(self):
         self.seed()
         invalid = [[], {"schema_version": 2, "name": "x", "members": []}, {"name": "", "members": []},
@@ -132,6 +213,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertIn("注意9件", actual["preset_message"])
         self.assertEqual(self.files(), before)
 
+    # {
+    #   責務: [test_changed_preset_is_reread_on_load_not_from_cached_catalog: 検証: changed preset is reread on load not from cached catalog]
+    #   処理: [1: 検証: changed preset is reread on load not from cached catalog]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_changed_preset_is_reread_on_load_not_from_cached_catalog(self):
         self.seed()
         document = {"schema_version": 1, "name": "updated", "members": ["c", None, None, "a"]}
@@ -141,6 +228,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertEqual([row["id"] for row in actual["draft"]["party"]], document["members"])
         self.assertEqual(actual["state"]["current_party"], ["a", "b"])
 
+    # {
+    #   責務: [test_corruption_after_catalog_refuses_load_and_retains_draft: 検証: corruption after catalog refuses load and retains draft]
+    #   処理: [1: 検証: corruption after catalog refuses load and retains draft]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_corruption_after_catalog_refuses_load_and_retains_draft(self):
         self.seed()
         actions = self.add_c_keyboard() + [
@@ -152,6 +245,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertIn("読込失敗", actual["preset_message"])
         self.assertEqual([row["id"] for row in actual["draft"]["party"]], ["a", "b", "c", None])
 
+    # {
+    #   責務: [test_large_catalog_navigation_scroll_and_no_slot_limit: 検証: large catalog navigation scroll and no slot limit]
+    #   処理: [1: 検証: large catalog navigation scroll and no slot limit]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_large_catalog_navigation_scroll_and_no_slot_limit(self):
         self.seed()
         for index in range(120):
@@ -165,6 +264,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertGreater(actual[7]["preset_selection"][0], 0)
         self.assertEqual([row["id"] for row in actual[-1]["draft"]["party"]], ["c", None, None, None])
 
+    # {
+    #   責務: [test_browser_back_by_escape_f6_and_button_keeps_dirty_draft: 検証: browser back by escape f6 and button keeps dirty draft]
+    #   処理: [1: 検証: browser back by escape f6 and button keeps dirty draft]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_browser_back_by_escape_f6_and_button_keeps_dirty_draft(self):
         self.seed()
         before = self.files()
@@ -177,6 +282,12 @@ class GDScriptPresetTests(unittest.TestCase):
                 self.assertEqual([row["id"] for row in actual["draft"]["party"]], ["a", "b", "c", None])
                 self.assertEqual(self.files(), before)
 
+    # {
+    #   責務: [test_name_field_home_end_and_delete_do_not_mutate_party: 検証: name field home end and delete do not mutate party]
+    #   処理: [1: 検証: name field home end and delete do not mutate party]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_name_field_home_end_and_delete_do_not_mutate_party(self):
         self.seed()
         actions = OPEN + [key("TAB"), {"kind": "text", "text": "abc"}, key("HOME"),
@@ -185,6 +296,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertEqual(actual["preset_name"], "bcd")
         self.assertFalse(actual["draft"]["dirty"])
 
+    # {
+    #   責務: [test_tab_focus_is_contained_and_name_submission_works_keyboard_only: 検証: tab focus is contained and name submission works keyboard only]
+    #   処理: [1: 検証: tab focus is contained and name submission works keyboard only]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_tab_focus_is_contained_and_name_submission_works_keyboard_only(self):
         self.seed()
         actual = self.probe(OPEN + [key("TAB")] * 6 + [key("TAB", shift=True)])["observations"]
@@ -192,6 +309,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertNotEqual(actual[-1]["focus"], actual[3]["focus"])
         self.assertEqual(len({item["focus"] for item in actual[3:-1]}), 6)
 
+    # {
+    #   責務: [test_f5_refresh_and_field_keys_are_modal_without_writing_state: 検証: f5 refresh and field keys are modal without writing state]
+    #   処理: [1: 検証: f5 refresh and field keys are modal without writing state]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_f5_refresh_and_field_keys_are_modal_without_writing_state(self):
         self.seed()
         before = self.files()
@@ -199,6 +322,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertEqual((actual[-1]["x"], actual[-1]["y"]), (actual[0]["x"], actual[0]["y"]))
         self.assertEqual(self.files(), before)
 
+    # {
+    #   責務: [test_empty_name_and_lost_selected_individual_refuse_creation: 検証: empty name and lost selected individual refuse creation]
+    #   処理: [1: 検証: empty name and lost selected individual refuse creation]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_empty_name_and_lost_selected_individual_refuse_creation(self):
         self.seed()
         before = self.files()
@@ -212,6 +341,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertIn("読込できない", actual["preset_message"])
         self.assertFalse((self.profile / "parties/test.json").exists())
 
+    # {
+    #   責務: [test_filename_traversal_and_reserved_names_refused_without_changes: 検証: filename traversal and reserved names refused without changes]
+    #   処理: [1: 検証: filename traversal and reserved names refused without changes]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_filename_traversal_and_reserved_names_refused_without_changes(self):
         self.seed()
         before = self.files()
@@ -222,11 +357,23 @@ class GDScriptPresetTests(unittest.TestCase):
                 self.assertIn("不正な", actual["preset_message"])
                 self.assertEqual(self.files(), before)
 
+    # {
+    #   責務: [test_new_profile_cannot_create_presets_before_initial_field_save: 検証: new profile cannot create presets before initial field save]
+    #   処理: [1: 検証: new profile cannot create presets before initial field save]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_new_profile_cannot_create_presets_before_initial_field_save(self):
         actual = self.probe(OPEN)["observations"][-1]
         self.assertFalse(actual["preset_visible"])
         self.assertFalse(self.profile.exists())
 
+    # {
+    #   責務: [test_parties_path_is_file_save_fails_without_removing_it: 検証: parties path is file save fails without removing it]
+    #   処理: [1: 検証: parties path is file save fails without removing it]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_parties_path_is_file_save_fails_without_removing_it(self):
         self.seed()
         # Replace only the private fixture's folder, never a user save.
@@ -239,6 +386,12 @@ class GDScriptPresetTests(unittest.TestCase):
         self.assertIn("追加保存失敗", actual["preset_message"])
         self.assertEqual(self.files(), before)
 
+    # {
+    #   責務: [test_pure_documents_missing_members_and_portable_stems: 検証: pure documents missing members and portable stems]
+    #   処理: [1: 検証: pure documents missing members and portable stems]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_pure_documents_missing_members_and_portable_stems(self):
         names = ["対ボス", "Boss Fight", "___Boss___", "___", "CON", "nul.txt", "a" * 100, "../escape"]
         cases = [{"name": name, "document": {"name": name, "members": ["a", "missing"]}, "records": {"a": {}}}
@@ -253,6 +406,12 @@ class GDScriptPresetTests(unittest.TestCase):
                 self.assertEqual(value["project"]["members"], ["a", None, None, None])
                 self.assertEqual(len(value["project"]["warnings"]), 1)
 
+    # {
+    #   責務: [test_pure_invalid_schema_types_and_duplicate_members_are_refused: 検証: pure invalid schema types and duplicate members are refused]
+    #   処理: [1: 検証: pure invalid schema types and duplicate members are refused]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_pure_invalid_schema_types_and_duplicate_members_are_refused(self):
         documents = [
             {"schema_version": True, "name": "bad", "members": []},
@@ -270,6 +429,12 @@ class GDScriptPresetTests(unittest.TestCase):
                 self.assertEqual(value["valid"]["ok"], index >= 9)
                 self.assertEqual(value["project"]["ok"], index == 10)
 
+    # {
+    #   責務: [test_unreadable_preset_does_not_reset_draft_or_change_files: 検証: unreadable preset does not reset draft or change files]
+    #   処理: [1: 検証: unreadable preset does not reset draft or change files]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @unittest.skipUnless(os.name == "nt", "Windows read-lock probe")
     def test_unreadable_preset_does_not_reset_draft_or_change_files(self):
         self.seed()

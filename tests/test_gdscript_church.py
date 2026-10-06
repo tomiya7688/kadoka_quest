@@ -1,4 +1,8 @@
 """Private real-Scene checkpoint saves, Python compatibility, refusal and readback safety."""
+# {
+#   責務: [test_gdscript_church: Private real-Scene checkpoint saves, Python compatibility, refusal and readback safety.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -23,8 +27,22 @@ OPEN = {"kind": "open"}
 KEY = {"kind": "key", "key": "E"}
 
 
+# {
+#   責務: [GDScriptChurchTests: gdscript・教会・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     content: content
+#     name: 名前
+#   ]
+# }
 @unittest.skipUnless(GODOT, "Set KADOKA_GODOT_EXECUTABLE for real church probes")
 class GDScriptChurchTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="kadoka-church-")
         self.addCleanup(self.temporary.cleanup)
@@ -33,15 +51,40 @@ class GDScriptChurchTests(unittest.TestCase):
         shutil.copytree(ROOT / "assets", self.content / "assets")
         self.name = "default"
 
+    # {
+    #   責務: [profile: gdscript・教会・testsのプロファイルを求める]
+    #   処理: [1: gdscript・教会・testsのプロファイルを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: gdscript・教会・testsのプロファイルを求めるための結果（Path）]
+    # }
     @property
     def profile(self) -> Path:
         return self.content / "saves" / self.name
 
+    # {
+    #   責務: [write: gdscript・教会・testsを書き込む]
+    #   処理: [1: gdscript・教会・testsを書き込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     relative: relative（str）
+    #     value: 値（dict）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def write(self, relative: str, value: dict) -> None:
         path = self.profile / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
 
+    # {
+    #   責務: [seed: gdscript・教会・testsのseedを求める]
+    #   処理: [1: gdscript・教会・testsのseedを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     changes: changes
+    #   ]
+    #   戻り値: [result: gdscript・教会・testsのseedを求めるための結果（dict）]
+    # }
     def seed(self, **changes) -> dict:
         state = {"schema_version": 1, "map_id": "starting_town",
                  "player": {"x": 18, "y": 14, "direction": "left", "custom": "keep"},
@@ -59,13 +102,35 @@ class GDScriptChurchTests(unittest.TestCase):
         self.write("meta.json", {"schema_version": 1, "name": self.name, "mod_meta": "keep"})
         return copy.deepcopy(state)
 
+    # {
+    #   責務: [files: gdscript・教会・testsのfilesを求める]
+    #   処理: [1: gdscript・教会・testsのfilesを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: gdscript・教会・testsのfilesを求めるための結果（dict）]
+    # }
     def files(self) -> dict:
         return {str(path.relative_to(self.content)): path.read_bytes() for path in self.content.rglob("*")
                 if path.is_file() and path.parts[len(self.content.parts)] in {"data", "assets", "saves"}}
 
+    # {
+    #   責務: [state: gdscript・教会・testsの状態を求める]
+    #   処理: [1: gdscript・教会・testsの状態を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: gdscript・教会・testsの状態を求めるための結果（dict）]
+    # }
     def state(self) -> dict:
         return json.loads((self.profile / "state.json").read_text(encoding="utf-8"))
 
+    # {
+    #   責務: [probe: gdscript・教会・testsのprobeを求める]
+    #   処理: [1: gdscript・教会・testsのprobeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actions: actions（list | None）
+    #     cases: cases（list | None）
+    #   ]
+    #   戻り値: [result: gdscript・教会・testsのprobeを求めるための結果（list）]
+    # }
     def probe(self, actions: list | None = None, cases: list | None = None) -> list:
         fixture = self.content / "request.json"
         fixture.write_text(json.dumps({"cases": cases} if cases is not None else {"actions": actions or []},
@@ -84,6 +149,16 @@ class GDScriptChurchTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]))
         self.fail(result.stderr + result.stdout[-1500:])
 
+    # {
+    #   責務: [assert_files_kept: gdscript・教会・testsのassert・files・keptを求める]
+    #   処理: [1: gdscript・教会・testsのassert・files・keptを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     before: before（dict）
+    #     state_change: 状態・change（bool）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def assert_files_kept(self, before: dict, *, state_change: bool = False) -> None:
         after = self.files()
         state_name = str((self.profile / "state.json").relative_to(self.content))
@@ -93,6 +168,12 @@ class GDScriptChurchTests(unittest.TestCase):
         self.assertEqual(before, after)
         self.assertFalse((self.content / "python-never").exists())
 
+    # {
+    #   責務: [test_pure_point_types_one_key_plan_and_input_preservation: 検証: pure point types one key plan and input preservation]
+    #   処理: [1: 検証: pure point types one key plan and input preservation]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_pure_point_types_one_key_plan_and_input_preservation(self) -> None:
         cases = [{"point": TOWN, "state": {"unknown": [1], "revive_point": TOWN}},
                  {"point": dict(VILLAGE, x=14.0, extra={"keep": True}), "state": {"player": {"x": 2}}}]
@@ -113,6 +194,12 @@ class GDScriptChurchTests(unittest.TestCase):
                     self.assertEqual(observation["result"]["plan"]["state"], expected)
                     self.assertEqual(observation["result"]["plan"]["changed"], index == 1)
 
+    # {
+    #   責務: [test_real_church_keys_save_restart_and_python_read_preserve_other_data: 検証: real church keys save restart and python read preserve other data]
+    #   処理: [1: 検証: real church keys save restart and python read preserve other data]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_real_church_keys_save_restart_and_python_read_preserve_other_data(self) -> None:
         for key in ("E", "Enter", "Space"):
             with self.subTest(key=key):
@@ -132,6 +219,12 @@ class GDScriptChurchTests(unittest.TestCase):
                 self.assertEqual(python_state["inventory"], {"orange": 9})
                 self.assert_files_kept(before, state_change=True)
 
+    # {
+    #   責務: [test_two_canonical_churches_same_noop_and_no_teleport: 検証: two canonical churches same noop and no teleport]
+    #   処理: [1: 検証: two canonical churches same noop and no teleport]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_two_canonical_churches_same_noop_and_no_teleport(self) -> None:
         baseline = self.seed()
         result = self.probe([OPEN, KEY,
@@ -147,6 +240,12 @@ class GDScriptChurchTests(unittest.TestCase):
         self.probe([{"kind": "register", "revive": VILLAGE}])
         self.assert_files_kept(before)
 
+    # {
+    #   責務: [test_old_missing_schema_direction_and_revive_only_adds_requested_key: 検証: old missing schema direction and revive only adds requested key]
+    #   処理: [1: 検証: old missing schema direction and revive only adds requested key]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_old_missing_schema_direction_and_revive_only_adds_requested_key(self) -> None:
         baseline = self.seed()
         for key in ("schema_version", "revive_point"):
@@ -163,6 +262,12 @@ class GDScriptChurchTests(unittest.TestCase):
         FieldProgressStore(reference).register_church(expected, point)
         self.assertEqual(reference.load()["revive_point"], self.state()["revive_point"])
 
+    # {
+    #   責務: [test_no_save_refuses_without_bootstrapping: 検証: no save refuses without bootstrapping]
+    #   処理: [1: 検証: no save refuses without bootstrapping]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_no_save_refuses_without_bootstrapping(self) -> None:
         before = self.files()
         result = self.probe([OPEN, KEY])[-1]
@@ -171,6 +276,12 @@ class GDScriptChurchTests(unittest.TestCase):
         self.assertFalse(self.profile.exists())
         self.assert_files_kept(before)
 
+    # {
+    #   責務: [test_missing_malformed_unsafe_out_of_range_or_blocked_revive_refuses: 検証: missing malformed unsafe out of range or blocked revive refuses]
+    #   処理: [1: 検証: missing malformed unsafe out of range or blocked revive refuses]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_missing_malformed_unsafe_out_of_range_or_blocked_revive_refuses(self) -> None:
         self.seed()
         points = [None, {}, dict(TOWN, map_id="../escape"), dict(TOWN, map_id="missing_map"),
@@ -183,6 +294,12 @@ class GDScriptChurchTests(unittest.TestCase):
                 self.assertFalse(observation["outcome"]["ok"])
         self.assert_files_kept(before)
 
+    # {
+    #   責務: [test_invalid_target_map_shape_and_tile_definition_refuse_without_script_error: 検証: invalid target map shape and tile definition refuse without script error]
+    #   処理: [1: 検証: invalid target map shape and tile definition refuse without script error]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_target_map_shape_and_tile_definition_refuse_without_script_error(self) -> None:
         self.seed()
         path = self.content / "data/maps/rokuta_village/map.json"
@@ -200,6 +317,12 @@ class GDScriptChurchTests(unittest.TestCase):
                 self.assertFalse(result["ok"], result)
                 self.assert_files_kept(before)
 
+    # {
+    #   責務: [test_corrupt_or_unsupported_state_is_not_repaired: 検証: corrupt or unsupported state is not repaired]
+    #   処理: [1: 検証: corrupt or unsupported state is not repaired]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_corrupt_or_unsupported_state_is_not_repaired(self) -> None:
         baseline = self.seed()
         path = self.profile / "state.json"
@@ -213,6 +336,12 @@ class GDScriptChurchTests(unittest.TestCase):
                 self.assertFalse(result["ok"], result)
                 self.assert_files_kept(before)
 
+    # {
+    #   責務: [test_external_change_after_begin_is_kept_and_retry_uses_latest: 検証: external change after begin is kept and retry uses latest]
+    #   処理: [1: 検証: external change after begin is kept and retry uses latest]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_external_change_after_begin_is_kept_and_retry_uses_latest(self) -> None:
         baseline = self.seed()
         result = self.probe([{"kind": "begin", "revive": TOWN},
@@ -223,6 +352,12 @@ class GDScriptChurchTests(unittest.TestCase):
         self.assertTrue(result["ok"], result)
         self.assertEqual(self.state(), dict(baseline, external_update="kept", revive_point=TOWN))
 
+    # {
+    #   責務: [test_store_digest_race_and_postwrite_verification_do_not_fake_success: 検証: store digest race and postwrite verification do not fake success]
+    #   処理: [1: 検証: store digest race and postwrite verification do not fake success]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_store_digest_race_and_postwrite_verification_do_not_fake_success(self) -> None:
         for mode in ("before_write", "false_success", "after_write"):
             with self.subTest(mode=mode):
@@ -243,6 +378,12 @@ class GDScriptChurchTests(unittest.TestCase):
                     self.assertEqual(self.state(), expected)
                     self.assert_files_kept(before, state_change=True)
 
+    # {
+    #   責務: [test_modal_and_echo_do_not_register_via_keys_or_direct_scene_call: 検証: modal and echo do not register via keys or direct scene call]
+    #   処理: [1: 検証: modal and echo do not register via keys or direct scene call]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_modal_and_echo_do_not_register_via_keys_or_direct_scene_call(self) -> None:
         self.seed()
         before = self.files()
@@ -260,6 +401,12 @@ class GDScriptChurchTests(unittest.TestCase):
         self.assertEqual(result["result"], {})
         self.assert_files_kept(before)
 
+    # {
+    #   責務: [test_windows_replace_lock_keeps_files_noop_and_retry_after_release: 検証: windows replace lock keeps files noop and retry after release]
+    #   処理: [1: 検証: windows replace lock keeps files noop and retry after release]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @unittest.skipUnless(os.name == "nt", "Windows sharing violation probe")
     def test_windows_replace_lock_keeps_files_noop_and_retry_after_release(self) -> None:
         self.seed()
@@ -294,6 +441,12 @@ class GDScriptChurchTests(unittest.TestCase):
         finally:
             kernel.CloseHandle(handle)
 
+    # {
+    #   責務: [test_linked_profile_refuses_and_never_writes_target: 検証: linked profile refuses and never writes target]
+    #   処理: [1: 検証: linked profile refuses and never writes target]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @unittest.skipUnless(os.name == "nt", "Windows directory junction probe")
     def test_linked_profile_refuses_and_never_writes_target(self) -> None:
         self.seed()

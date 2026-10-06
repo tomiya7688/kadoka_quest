@@ -1,3 +1,7 @@
+# {
+#   責務: [test_ai_inspector: test・AI・inspectorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,7 +14,17 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from kadoka_quest.apps.ai_inspector import AiInspector
 
 
+# {
+#   責務: [AiInspectorTests: AI・inspector・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class AiInspectorTests(unittest.TestCase):
+    # {
+    #   責務: [test_summary_orders_strongest_learned_preferences_without_mutating_ai: 検証: summary orders strongest learned preferences without mutating ai]
+    #   処理: [1: 検証: summary orders strongest learned preferences without mutating ai]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_summary_orders_strongest_learned_preferences_without_mutating_ai(self) -> None:
         ai = {
             "profile": "normal", "tactic": "aggressive", "battles": 4, "actions": 12,
@@ -24,6 +38,12 @@ class AiInspectorTests(unittest.TestCase):
         self.assertEqual(summary["context_preferences"][0]["actions"], 8)
         self.assertEqual(ai["action_preferences"]["attack"], -0.8)
 
+    # {
+    #   責務: [test_empty_or_malformed_learning_data_is_safe: 検証: empty or malformed learning data is safe]
+    #   処理: [1: 検証: empty or malformed learning data is safe]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_empty_or_malformed_learning_data_is_safe(self) -> None:
         summary = AiInspector.summarize({"context_preferences": {"broken": []}})
         self.assertEqual(summary["action_preferences"], [])

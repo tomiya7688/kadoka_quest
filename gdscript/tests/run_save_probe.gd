@@ -1,13 +1,29 @@
+# {
+#   責務: [run_save_probe: Real production-scene save/load probe. All paths are private fixtures from tests.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Real production-scene save/load probe. All paths are private fixtures from tests.
 
 const SaveStore = preload("res://data/field_save_store.gd")
 
 
+# {
+#   責務: [_initialize: run・保存・probeのエントリ処理を実行する]
+#   処理: [1: run・保存・probeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	_run.call_deferred()
 
 
+# {
+#   責務: [_run: run・保存・probeを実行する]
+#   処理: [1: run・保存・probeを実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _run() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	var request: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(arguments[0]))
@@ -49,6 +65,12 @@ func _run() -> void:
 	quit(0)
 
 
+# {
+#   責務: [_snapshot: run・保存・probeを状態を複製する]
+#   処理: [1: run・保存・probeを状態を複製する]
+#   引数: [scene: scene（Control）]
+#   戻り値: [result: run・保存・probeを状態を複製するための結果（Dictionary）]
+# }
 func _snapshot(scene: Control) -> Dictionary:
 	return {
 		"map_id": scene.session.world.get("id", ""), "x": scene.session.x, "y": scene.session.y,

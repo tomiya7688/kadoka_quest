@@ -71,6 +71,8 @@
 
 ## 更新ルール
 
+コメント規約/全コード網羅: `tools/comment-check/script/check_comments.py` → `tests/test_comment_contract.py` → `docs/COMMENT_RULES.md`。AST/宣言の静的検査だけでゲームをimportせず、自然言語の正確性を保証しない。内部コメント、JSON/config、匿名式をJSON-like宣言へ変換しない。
+
 - シンボルを絞るときだけ `docs/generated/REPO_MAP.md` の該当ファイル名を検索する。公開APIと引数の索引であり、詳細は対象コードを読む。
 - `src/` の公開クラス・関数・メソッドを変更したら `python tools/code-docs/script/generate_repo_map.py` で再生成する。CIの `--check` が更新漏れを検出する。生成文書は手修正しない。
 

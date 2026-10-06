@@ -1,3 +1,7 @@
+# {
+#   責務: [run_party_probe: Real production controls/input, plus isolated-fixture changes and pure draft contracts.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Real production controls/input, plus isolated-fixture changes and pure draft contracts.
 
@@ -12,10 +16,22 @@ const KEYS := {"F5": KEY_F5, "F6": KEY_F6, "F9": KEY_F9, "ESC": KEY_ESCAPE,
 	"DELETE": KEY_DELETE, "ENTER": KEY_ENTER, "SPACE": KEY_SPACE}
 
 
+# {
+#   責務: [_initialize: run・パーティ・probeのエントリ処理を実行する]
+#   処理: [1: run・パーティ・probeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	_run.call_deferred()
 
 
+# {
+#   責務: [_run: run・パーティ・probeを実行する]
+#   処理: [1: run・パーティ・probeを実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _run() -> void:
 	var request: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(OS.get_cmdline_user_args()[0]))
 	var scene = load("res://scenes/field.tscn").instantiate()
@@ -82,6 +98,15 @@ func _run() -> void:
 	quit(0)
 
 
+# {
+#   責務: [_press: run・パーティ・probeのpressを求める]
+#   処理: [1: run・パーティ・probeのpressを求める]
+#   引数: [
+#     scene: scene（Control）
+#     action: action（Dictionary）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _press(scene: Control, action: Dictionary) -> void:
 	await _set_key(action, true)
 	scene._process(0.01)
@@ -89,6 +114,15 @@ func _press(scene: Control, action: Dictionary) -> void:
 	scene._process(0.0)  # A real release frame clears held movement without advancing time.
 
 
+# {
+#   責務: [_set_key: キーを設定する]
+#   処理: [1: キーを設定する]
+#   引数: [
+#     action: action（Dictionary）
+#     pressed: pressed（bool）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _set_key(action: Dictionary, pressed: bool) -> void:
 	var event := InputEventKey.new()
 	event.physical_keycode = KEYS[action["key"]]
@@ -101,6 +135,15 @@ func _set_key(action: Dictionary, pressed: bool) -> void:
 	await process_frame
 
 
+# {
+#   責務: [_click: run・パーティ・probeのclickを求める]
+#   処理: [1: run・パーティ・probeのclickを求める]
+#   引数: [
+#     scene: scene（Control）
+#     action: action（Dictionary）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _click(scene: Control, action: Dictionary) -> void:
 	var control: Control
 	var local: Vector2
@@ -141,6 +184,12 @@ func _click(scene: Control, action: Dictionary) -> void:
 
 
 
+# {
+#   責務: [_type_text: run・パーティ・probeのtype・文字列を求める]
+#   処理: [1: run・パーティ・probeのtype・文字列を求める]
+#   引数: [value: 値（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _type_text(value: String) -> void:
 	# Unicode key input enters the real LineEdit; this is not a direct text-property assignment.
 	for index in value.length():
@@ -156,6 +205,12 @@ func _type_text(value: String) -> void:
 	await process_frame
 
 
+# {
+#   責務: [_snapshot: run・パーティ・probeを状態を複製する]
+#   処理: [1: run・パーティ・probeを状態を複製する]
+#   引数: [scene: scene（Control）]
+#   戻り値: [result: run・パーティ・probeを状態を複製するための結果（Dictionary）]
+# }
 func _snapshot(scene: Control) -> Dictionary:
 	var focus := root.gui_get_focus_owner()
 	var state: Dictionary = scene.persistence.store.load_profile(scene.profile_name)

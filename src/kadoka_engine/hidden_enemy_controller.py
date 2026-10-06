@@ -1,3 +1,7 @@
+# {
+#   責務: [hidden_enemy_controller: 非表示・敵・controllerの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import random
@@ -8,12 +12,39 @@ from kadoka_engine.field_engine import FieldEngine
 from kadoka_engine.wild_spawn import draw_wild_spawn, relative_spawn_weights
 
 
+# {
+#   責務: [HiddenEnemyController: Own wild field-enemy population, vision, and timed movement.]
+#   フィールド: [
+#     field: フィールド
+#     rng: 乱数供給元
+#     chase_interval_ms: chase・interval・ミリ秒
+#     wander_interval_ms: wander・interval・ミリ秒
+#     vision_range: vision・range
+#     monsters: モンスター一覧
+#     map_data: マップ・データ
+#     blocks: ブロック定義
+#     traffic: traffic
+#   ]
+# }
 class HiddenEnemyController:
     """Own wild field-enemy population, vision, and timed movement.
 
     The historical class name remains for compatibility; UI owns visibility.
     """
 
+    # {
+    #   責務: [__init__: 非表示・敵・controllerが利用する初期状態と依存を設定する]
+    #   処理: [1: 非表示・敵・controllerが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     field: フィールド（FieldEngine）
+    #     rng: 乱数供給元（random.Random）
+    #     chase_interval_ms: chase・interval・ミリ秒（int）
+    #     wander_interval_ms: wander・interval・ミリ秒（int）
+    #     vision_range: vision・range（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(
         self,
         field: FieldEngine,
@@ -32,6 +63,16 @@ class HiddenEnemyController:
         self.blocks: dict[str, dict] = {}
         self.traffic = ChaseTraffic(field)
 
+    # {
+    #   責務: [set_world: マップ状態を設定する]
+    #   処理: [1: マップ状態を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     map_data: マップ・データ（dict）
+    #     blocks: ブロック定義（dict[str, dict]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def set_world(self, map_data: dict, blocks: dict[str, dict]) -> None:
         if map_data is not self.map_data:
             self.traffic.clear()
@@ -39,6 +80,15 @@ class HiddenEnemyController:
         self.blocks = blocks
         self.field.set_world(map_data, blocks)
 
+    # {
+    #   責務: [spawn_options: 非表示・敵・controllerの出現・optionsを求める]
+    #   処理: [1: 非表示・敵・controllerの出現・optionsを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     flags: flags（dict）
+    #   ]
+    #   戻り値: [result: 非表示・敵・controllerの出現・optionsを求めるための結果（list[dict]）]
+    # }
     def spawn_options(self, flags: dict) -> list[dict]:
         return [
             entry
@@ -47,6 +97,18 @@ class HiddenEnemyController:
             and (not entry.get("requires_flag") or flags.get(entry["requires_flag"], False))
         ]
 
+    # {
+    #   責務: [reset: 非表示・敵・controllerの初期状態へ戻す]
+    #   処理: [1: 非表示・敵・controllerの初期状態へ戻す]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #     flags: flags（dict）
+    #     now: 現在時刻（int）
+    #     species_ai_weights: 種族・AI・重み一覧（dict | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def reset(
         self, player_position: tuple[int, int], flags: dict, now: int,
         species_ai_weights: dict | None = None,
@@ -91,6 +153,15 @@ class HiddenEnemyController:
                 }
             )
 
+    # {
+    #   責務: [find_at: atを探す]
+    #   処理: [1: atを探す]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: atを探すための結果（dict | None）]
+    # }
     def find_at(self, position: tuple[int, int]) -> dict | None:
         return next(
             (
@@ -102,6 +173,15 @@ class HiddenEnemyController:
             None,
         )
 
+    # {
+    #   責務: [remove: 非表示・敵・controllerを取り除く]
+    #   処理: [1: 非表示・敵・controllerを取り除く]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     monster: モンスター（dict）
+    #   ]
+    #   戻り値: [result: 非表示・敵・controllerを取り除くための結果（bool）]
+    # }
     def remove(self, monster: dict) -> bool:
         if monster not in self.monsters:
             return False
@@ -109,6 +189,16 @@ class HiddenEnemyController:
         self.traffic.release(id(monster))
         return True
 
+    # {
+    #   責務: [sees_player: 非表示・敵・controllerのsees・主人公を求める]
+    #   処理: [1: 非表示・敵・controllerのsees・主人公を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     monster: モンスター（dict）
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: 非表示・敵・controllerのsees・主人公を求めるための結果（bool）]
+    # }
     def sees_player(self, monster: dict, player_position: tuple[int, int]) -> bool:
         monster_x, monster_y = int(monster["x"]), int(monster["y"])
         player_x, player_y = (int(value) for value in player_position)
@@ -123,6 +213,18 @@ class HiddenEnemyController:
             "enemy_walkable",
         )
 
+    # {
+    #   責務: [move: 非表示・敵・controllerを移動する]
+    #   処理: [1: 非表示・敵・controllerを移動する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     monster: モンスター（dict）
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #     visible_positions: visible・positions（set[tuple[int, int]]）
+    #     traffic: traffic（ChaseTraffic | None）
+    #   ]
+    #   戻り値: [result: 非表示・敵・controllerを移動するための結果（bool）]
+    # }
     def move(
         self,
         monster: dict,
@@ -182,6 +284,16 @@ class HiddenEnemyController:
                 return bool(dx or dy)
         return False
 
+    # {
+    #   責務: [move_all: allを移動する]
+    #   処理: [1: allを移動する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #     visible_positions: visible・positions（set[tuple[int, int]]）
+    #   ]
+    #   戻り値: [result: moved（bool）]
+    # }
     def move_all(
         self,
         player_position: tuple[int, int],
@@ -193,6 +305,15 @@ class HiddenEnemyController:
             moved = self.move(monster, player_position, visible_positions, traffic) or moved
         return moved
 
+    # {
+    #   責務: [_begin_traffic: trafficを開始する]
+    #   処理: [1: trafficを開始する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     now: 現在時刻（int）
+    #   ]
+    #   戻り値: [result: trafficを開始するための結果（ChaseTraffic | None）]
+    # }
     def _begin_traffic(self, now: int) -> ChaseTraffic | None:
         if now < self.traffic.now:
             for monster in self.monsters:
@@ -202,6 +323,17 @@ class HiddenEnemyController:
         self.traffic.begin(now, {id(monster) for monster in chasers})
         return self.traffic if len(chasers) > 1 or any("chase_target" in m for m in chasers) else None
 
+    # {
+    #   責務: [update: 非表示・敵・controllerを更新する]
+    #   処理: [1: 非表示・敵・controllerを更新する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #     visible_positions: visible・positions（set[tuple[int, int]]）
+    #     now: 現在時刻（int）
+    #   ]
+    #   戻り値: [result: moved（bool）]
+    # }
     def update(
         self,
         player_position: tuple[int, int],

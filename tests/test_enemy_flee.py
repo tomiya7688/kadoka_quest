@@ -1,3 +1,7 @@
+# {
+#   責務: [test_enemy_flee: test・敵・fleeの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import copy
@@ -18,6 +22,15 @@ from kadoka_quest.core.monster import MonsterRecord
 from kadoka_quest.data.repository import GameRepository
 
 
+# {
+#   責務: [record: test・敵・fleeの個体レコードを求める]
+#   処理: [1: test・敵・fleeの個体レコードを求める]
+#   引数: [
+#     species: 種族
+#     name: 名前
+#   ]
+#   戻り値: [result: test・敵・fleeの個体レコードを求めるための結果（型注釈なし）]
+# }
 def record(species, name):
     return MonsterRecord({
         "id": name, "name": name, "species_id": species, "level": 10,
@@ -25,6 +38,16 @@ def record(species, name):
     }, default_ai())
 
 
+# {
+#   責務: [battle: test・敵・fleeの戦闘を求める]
+#   処理: [1: test・敵・fleeの戦闘を求める]
+#   引数: [
+#     context: 判断用コンテキスト
+#     learning: 学習
+#     species: 種族
+#   ]
+#   戻り値: [result: ルール処理（型注釈なし）]
+# }
 def battle(context="normal", *, learning=True, species="metal_slime"):
     repository = GameRepository(Path(__file__).resolve().parents[1] / "data")
     engine = BattleEngine(
@@ -36,6 +59,16 @@ def battle(context="normal", *, learning=True, species="metal_slime"):
     return engine
 
 
+# {
+#   責務: [test_escape_boundary_runs_once_in_enemy_action_slot: 検証: escape boundary runs once in enemy action slot]
+#   処理: [1: 検証: escape boundary runs once in enemy action slot]
+#   引数: [
+#     context: 判断用コンテキスト
+#     chance: chance
+#     below: below
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("context,chance", [("normal", 0.15), ("metal_area", 0.60)])
 @pytest.mark.parametrize("below", [True, False])
 def test_escape_boundary_runs_once_in_enemy_action_slot(context, chance, below):
@@ -61,6 +94,16 @@ def test_escape_boundary_runs_once_in_enemy_action_slot(context, chance, below):
         assert action.call_count == 2
 
 
+# {
+#   責務: [test_no_escape_or_extra_rng_for_nonparticipating_battles: 検証: no escape or extra rng for nonparticipating battles]
+#   処理: [1: 検証: no escape or extra rng for nonparticipating battles]
+#   引数: [
+#     context: 判断用コンテキスト
+#     learning: 学習
+#     species: 種族
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("context,learning,species", [
     (None, True, "metal_slime"), ("normal", False, "metal_slime"),
     ("metal_area", False, "metal_slime"), ("normal", True, "slime"),
@@ -76,6 +119,12 @@ def test_no_escape_or_extra_rng_for_nonparticipating_battles(context, learning, 
     assert not engine.enemies[0].fled and not engine.allies[0].fled
 
 
+# {
+#   責務: [test_escape_retries_each_round_but_never_after_departure: 検証: escape retries each round but never after departure]
+#   処理: [1: 検証: escape retries each round but never after departure]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_escape_retries_each_round_but_never_after_departure():
     engine = battle()
     with mock.patch.object(engine.rng, "random", side_effect=[0.9, 0.1]) as roll, \
@@ -88,6 +137,12 @@ def test_escape_retries_each_round_but_never_after_departure():
     assert engine.outcome == "enemies_fled"
 
 
+# {
+#   責務: [test_fled_enemy_is_not_targeted_or_ticked_and_mixed_defeat_is_victory: 検証: fled enemy is not targeted or ticked and mixed defeat is victory]
+#   処理: [1: 検証: fled enemy is not targeted or ticked and mixed defeat is victory]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_fled_enemy_is_not_targeted_or_ticked_and_mixed_defeat_is_victory():
     engine = battle()
     other = engine.data_loader.build_combatant(record("slime", "残る敵"))
@@ -109,9 +164,25 @@ def test_fled_enemy_is_not_targeted_or_ticked_and_mixed_defeat_is_victory():
     assert engine.outcome == "victory"
 
 
+# {
+#   責務: [test_enemy_killed_before_its_action_does_not_roll_to_flee: 検証: enemy killed before its action does not roll to flee]
+#   処理: [1: 検証: enemy killed before its action does not roll to flee]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_enemy_killed_before_its_action_does_not_roll_to_flee():
     engine = battle()
     engine.allies[0].stats["speed"] = 2000
+    # {
+    #   責務: [kill: test・敵・fleeのkillを求める]
+    #   処理: [1: test・敵・fleeのkillを求める]
+    #   引数: [
+    #     actor: 行動個体
+    #     foes: foes
+    #     friends: friends
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def kill(actor, foes, friends):
         foes[0].hp = 0
     with mock.patch.object(engine.rng, "random") as roll, \
@@ -121,6 +192,15 @@ def test_enemy_killed_before_its_action_does_not_roll_to_flee():
     assert engine.outcome == "victory"
 
 
+# {
+#   責務: [test_rewards_exclude_fled_enemies_in_both_entrypoints: 検証: rewards exclude fled enemies in both entrypoints]
+#   処理: [1: 検証: rewards exclude fled enemies in both entrypoints]
+#   引数: [
+#     legacy: legacy
+#     all_fled: all・逃走済み
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("legacy", [False, True])
 @pytest.mark.parametrize("all_fled", [False, True])
 def test_rewards_exclude_fled_enemies_in_both_entrypoints(legacy, all_fled):
@@ -147,6 +227,12 @@ def test_rewards_exclude_fled_enemies_in_both_entrypoints(legacy, all_fled):
     assert monsters.save.call_count == (0 if all_fled else 1)
 
 
+# {
+#   責務: [test_wild_battle_receives_current_map_context: 検証: wild battle receives current map context]
+#   処理: [1: 検証: wild battle receives current map context]
+#   引数: [context: 判断用コンテキスト]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("context", [None, "normal", "metal_area"])
 def test_wild_battle_receives_current_map_context(context):
     engine = battle()
@@ -163,6 +249,12 @@ def test_wild_battle_receives_current_map_context(context):
     assert "encounter_context" not in engine.enemies[0].record.monster
 
 
+# {
+#   責務: [test_invalid_rate_never_consumes_randomness: 検証: invalid rate never consumes randomness]
+#   処理: [1: 検証: invalid rate never consumes randomness]
+#   引数: [value: 値]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("value", [-1, 2, "bad", None, float("nan"), float("inf")])
 def test_invalid_rate_never_consumes_randomness(value):
     engine = battle()
@@ -172,6 +264,12 @@ def test_invalid_rate_never_consumes_randomness(value):
     roll.assert_not_called()
 
 
+# {
+#   責務: [test_fled_card_displays_departure_instead_of_portrait: 検証: fled card displays departure instead of portrait]
+#   処理: [1: 検証: fled card displays departure instead of portrait]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_fled_card_displays_departure_instead_of_portrait():
     import pygame
     from kadoka_quest.ui.battle_renderer import BattleRenderer

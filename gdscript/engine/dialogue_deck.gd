@@ -1,7 +1,17 @@
+# {
+#   責務: [dialogue_deck: Pure per-actor dialogue cards. Inject shuffle; never save or render this state.]
+#   フィールド: []
+# }
 extends RefCounted
 ## Pure per-actor dialogue cards. Inject shuffle; never save or render this state.
 
 
+# {
+#   責務: [create: 会話・deckを作成する]
+#   処理: [1: 会話・deckを作成する]
+#   引数: [source: 元データ（Dictionary）]
+#   戻り値: [result: 会話・deckを作成するための結果（Dictionary）]
+# }
 static func create(source: Dictionary) -> Dictionary:
 	if not source.has("dialogue"):
 		return _failure("missing_deck", "会話デッキが設定されていません。")
@@ -20,6 +30,15 @@ static func create(source: Dictionary) -> Dictionary:
 	return {"ok": true, "cards": cards, "remaining": [], "last": null}
 
 
+# {
+#   責務: [next_line: lineを次の値を求める]
+#   処理: [1: lineを次の値を求める]
+#   引数: [
+#     state: 状態（Dictionary）
+#     rng: 乱数供給元（RefCounted）
+#   ]
+#   戻り値: [result: lineを次の値を求めるための結果（Dictionary）]
+# }
 static func next_line(state: Dictionary, rng: RefCounted) -> Dictionary:
 	if not state["ok"]:
 		return state.duplicate(true)
@@ -36,10 +55,25 @@ static func next_line(state: Dictionary, rng: RefCounted) -> Dictionary:
 	return {"ok": true, "line": line}
 
 
+# {
+#   責務: [_failure: 会話・deckのfailureを求める]
+#   処理: [1: 会話・deckのfailureを求める]
+#   引数: [
+#     reason: 理由（String）
+#     message: message（String）
+#   ]
+#   戻り値: [result: 会話・deckのfailureを求めるための結果（Dictionary）]
+# }
 static func _failure(reason: String, message: String) -> Dictionary:
 	return {"ok": false, "error": reason, "message": message}
 
 
+# {
+#   責務: [_trim: 会話・deckのtrimを求める]
+#   処理: [1: 会話・deckのtrimを求める]
+#   引数: [value: 値（String）]
+#   戻り値: [result: 会話・deckのtrimを求めるための結果（String）]
+# }
 static func _trim(value: String) -> String:
 	# Match Python str.strip(), including full-width/Unicode whitespace in MODs.
 	var first := 0
@@ -51,6 +85,12 @@ static func _trim(value: String) -> String:
 	return value.substr(first, last - first)
 
 
+# {
+#   責務: [_space: 会話・deckのspaceを求める]
+#   処理: [1: 会話・deckのspaceを求める]
+#   引数: [point: 地点（int）]
+#   戻り値: [result: 会話・deckのspaceを求めるための結果（bool）]
+# }
 static func _space(point: int) -> bool:
 	return (9 <= point and point <= 13) or (28 <= point and point <= 32) \
 		or (8192 <= point and point <= 8202) or point in [133, 160, 5760, 8232, 8233, 8239, 8287, 12288]

@@ -1,3 +1,7 @@
+# {
+#   責務: [run_attack_probe: Test-only deterministic numbers and reconstruction; fixture reads, never save writes.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Test-only deterministic numbers and reconstruction; fixture reads, never save writes.
 
@@ -6,6 +10,12 @@ const Repository = preload("res://data/content_repository.gd")
 const Reconstruction = preload("res://application/monster_reconstruction.gd")
 
 
+# {
+#   責務: [_initialize: run・攻撃・probeのエントリ処理を実行する]
+#   処理: [1: run・攻撃・probeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() != 1:
@@ -42,6 +52,15 @@ func _initialize() -> void:
 	quit(0)
 
 
+# {
+#   責務: [_join: run・攻撃・probeのjoinを求める]
+#   処理: [1: run・攻撃・probeのjoinを求める]
+#   引数: [
+#     case: case（Dictionary）
+#     reconstruction: reconstruction（RefCounted）
+#   ]
+#   戻り値: [result: run・攻撃・probeのjoinを求めるための結果（Dictionary）]
+# }
 func _join(case: Dictionary, reconstruction: RefCounted) -> Dictionary:
 	var actor: Dictionary = reconstruction.rebuild(case["actor"])
 	var target: Dictionary = reconstruction.rebuild(case["target"])

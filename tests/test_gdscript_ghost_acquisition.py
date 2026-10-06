@@ -1,4 +1,8 @@
 """Actual spring Scene acquisition, Python output compatibility and safe partial retry."""
+# {
+#   責務: [test_gdscript_ghost_acquisition: Actual spring Scene acquisition, Python output compatibility and safe partial retry.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -27,8 +31,22 @@ OPEN = [{"kind": "open"}, {"kind": "key", "key": "E"}]
 MATCH = [{"kind": "type", "value": PASSWORD}, {"kind": "key", "key": "Enter"}]
 
 
+# {
+#   責務: [GDScriptGhostAcquisitionTests: gdscript・おばけ・acquisition・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     content: content
+#     name: 名前
+#   ]
+# }
 @unittest.skipUnless(GODOT, "Set KADOKA_GODOT_EXECUTABLE for real acquisition probes")
 class GDScriptGhostAcquisitionTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="kadoka-ghost-acquisition-")
         self.addCleanup(self.temporary.cleanup)
@@ -37,15 +55,40 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         shutil.copytree(ROOT / "assets", self.content / "assets")
         self.name = "default"
 
+    # {
+    #   責務: [profile: gdscript・おばけ・acquisition・testsのプロファイルを求める]
+    #   処理: [1: gdscript・おばけ・acquisition・testsのプロファイルを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: gdscript・おばけ・acquisition・testsのプロファイルを求めるための結果（Path）]
+    # }
     @property
     def profile(self) -> Path:
         return self.content / "saves" / self.name
 
+    # {
+    #   責務: [write: gdscript・おばけ・acquisition・testsを書き込む]
+    #   処理: [1: gdscript・おばけ・acquisition・testsを書き込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     relative: relative（str）
+    #     value: 値（dict）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def write(self, relative: str, value: dict) -> None:
         path = self.profile / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
 
+    # {
+    #   責務: [seed: gdscript・おばけ・acquisition・testsのseedを求める]
+    #   処理: [1: gdscript・おばけ・acquisition・testsのseedを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     changes: changes
+    #   ]
+    #   戻り値: [result: gdscript・おばけ・acquisition・testsのseedを求めるための結果（dict）]
+    # }
     def seed(self, **changes) -> dict:
         state = {"schema_version": 1, "map_id": "ghost_home", "player": {"x": 17, "y": 8, "direction": "back"},
                  "flags": {"story_complete": False, "ghost_entrance_open": False, "mod_flag": "keep"},
@@ -60,6 +103,17 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.record("hero_01", "hero")
         return copy.deepcopy(state)
 
+    # {
+    #   責務: [record: gdscript・おばけ・acquisition・testsの個体レコードを求める]
+    #   処理: [1: gdscript・おばけ・acquisition・testsの個体レコードを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     id: 識別子（str）
+    #     species: 種族（str）
+    #     changes: changes
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def record(self, id: str, species: str, **changes) -> None:
         repository = GameRepository(self.content / "data")
         store = MonsterStore(self.profile / "monsters", repository)
@@ -69,14 +123,38 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
                          action_preferences={"attack": 0.72})
         store.save(record)
 
+    # {
+    #   責務: [files: gdscript・おばけ・acquisition・testsのfilesを求める]
+    #   処理: [1: gdscript・おばけ・acquisition・testsのfilesを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     parent: parent（Path | None）
+    #   ]
+    #   戻り値: [result: gdscript・おばけ・acquisition・testsのfilesを求めるための結果（dict）]
+    # }
     def files(self, parent: Path | None = None) -> dict:
         root = parent or self.content
         return {str(path.relative_to(root)): path.read_bytes() for path in root.rglob("*") if path.is_file()
                 and (root != self.content or path.parts[len(root.parts)] in {"data", "assets", "saves"})}
 
+    # {
+    #   責務: [state: gdscript・おばけ・acquisition・testsの状態を求める]
+    #   処理: [1: gdscript・おばけ・acquisition・testsの状態を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: gdscript・おばけ・acquisition・testsの状態を求めるための結果（dict）]
+    # }
     def state(self) -> dict:
         return json.loads((self.profile / "state.json").read_text(encoding="utf-8"))
 
+    # {
+    #   責務: [probe: gdscript・おばけ・acquisition・testsのprobeを求める]
+    #   処理: [1: gdscript・おばけ・acquisition・testsのprobeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actions: actions（list）
+    #   ]
+    #   戻り値: [result: gdscript・おばけ・acquisition・testsのprobeを求めるための結果（list）]
+    # }
     def probe(self, actions: list) -> list:
         fixture = self.content / "request.json"
         fixture.write_text(json.dumps({"scene": True, "actions": actions}, ensure_ascii=False), encoding="utf-8")
@@ -94,6 +172,16 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]))
         self.fail(result.stderr + result.stdout[-1000:])
 
+    # {
+    #   責務: [assert_old_files_kept: gdscript・おばけ・acquisition・testsのassert・old・files・keptを求める]
+    #   処理: [1: gdscript・おばけ・acquisition・testsのassert・old・files・keptを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     before: before（dict）
+    #     state_change: 状態・change（bool）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def assert_old_files_kept(self, before: dict, *, state_change: bool = True) -> None:
         after = self.files()
         state_path = str((self.profile / "state.json").relative_to(self.content))
@@ -101,6 +189,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
             if name != state_path or not state_change:
                 self.assertEqual(after.get(name), value, name)
 
+    # {
+    #   責務: [test_missing_two_one_or_none_match_python_reacquire_preserve_ai_party_and_restart: 検証: missing two one or none match python reacquire preserve ai party and restart]
+    #   処理: [1: 検証: missing two one or none match python reacquire preserve ai party and restart]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_missing_two_one_or_none_match_python_reacquire_preserve_ai_party_and_restart(self) -> None:
         for index, existing in enumerate(((), ("maru",), ("kadoka",), ("maru", "kadoka"))):
             with self.subTest(existing=existing):
@@ -156,6 +250,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
                 self.assertEqual(set(restarted["owned"]["records"]), set(owned))
                 self.assertEqual(restarted["player"], [18, 14])
 
+    # {
+    #   責務: [test_cancel_mismatch_and_missing_save_do_not_write_or_fake_acquisition: 検証: cancel mismatch and missing save do not write or fake acquisition]
+    #   処理: [1: 検証: cancel mismatch and missing save do not write or fake acquisition]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_cancel_mismatch_and_missing_save_do_not_write_or_fake_acquisition(self) -> None:
         missing = self.probe(OPEN + MATCH)[-1]
         self.assertFalse(missing["acquisition"]["ok"])
@@ -169,6 +269,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.assertEqual(self.files(), before)
         self.assertFalse((self.content / "python-never").exists())
 
+    # {
+    #   責務: [test_external_state_update_during_input_is_rejected_before_creation: 検証: external state update during input is rejected before creation]
+    #   処理: [1: 検証: external state update during input is rejected before creation]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_external_state_update_during_input_is_rejected_before_creation(self) -> None:
         self.seed()
         before = self.files()
@@ -180,6 +286,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.assertEqual(self.state()["external_update"], {"keep": 91})
         self.assert_old_files_kept(before)
 
+    # {
+    #   責務: [test_second_publication_failure_is_partial_then_retry_creates_only_missing: 検証: second publication failure is partial then retry creates only missing]
+    #   処理: [1: 検証: second publication failure is partial then retry creates only missing]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_second_publication_failure_is_partial_then_retry_creates_only_missing(self) -> None:
         self.seed()
         before = self.files()
@@ -201,6 +313,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.assertEqual(self.files(self.profile / "monsters" / first_id), first_bytes)
         self.assertTrue(self.state()["flags"]["ghost_entrance_open"])
 
+    # {
+    #   責務: [test_external_update_after_first_publication_keeps_partial_and_retries_against_latest: 検証: external update after first publication keeps partial and retries against latest]
+    #   処理: [1: 検証: external update after first publication keeps partial and retries against latest]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_external_update_after_first_publication_keeps_partial_and_retries_against_latest(self) -> None:
         self.seed()
         result = self.probe([{"kind": "fault", "mode": "external_state"}] + OPEN + MATCH)[-1]
@@ -215,6 +333,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.assertEqual(len(retry["created"]), 1)
         self.assertEqual(self.state()["external_update"], "kept")
 
+    # {
+    #   責務: [test_real_windows_lock_keeps_state_and_published_ghosts_then_retry_reuses_ids: 検証: real windows lock keeps state and published ghosts then retry reuses ids]
+    #   処理: [1: 検証: real windows lock keeps state and published ghosts then retry reuses ids]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @unittest.skipUnless(os.name == "nt", "Actual Windows replacement lock")
     def test_real_windows_lock_keeps_state_and_published_ghosts_then_retry_reuses_ids(self) -> None:
         self.seed()
@@ -248,6 +372,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.assertEqual(self.files(self.profile / "monsters"), published)
         self.assertTrue(self.state()["flags"]["ghost_entrance_open"])
 
+    # {
+    #   責務: [test_invalid_flags_or_existing_individuals_refuse_without_repair_or_duplicates: 検証: invalid flags or existing individuals refuse without repair or duplicates]
+    #   処理: [1: 検証: invalid flags or existing individuals refuse without repair or duplicates]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_flags_or_existing_individuals_refuse_without_repair_or_duplicates(self) -> None:
         for index, flags in enumerate((None, [], "bad", True)):
             with self.subTest(flags=flags):
@@ -268,6 +398,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.assertEqual(result["error"], "invalid_owned")
         self.assertEqual(self.files(), before)
 
+    # {
+    #   責務: [test_broken_new_species_stats_skills_or_plus_validate_all_before_any_publication: 検証: broken new species stats skills or plus validate all before any publication]
+    #   処理: [1: 検証: broken new species stats skills or plus validate all before any publication]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_broken_new_species_stats_skills_or_plus_validate_all_before_any_publication(self) -> None:
         cases = [("species", {"id": "wrong"}), ("species", {"display_name": ""}),
                  ("species", {"ai_profile": 3}), ("species", {"schema_version": 99}),
@@ -289,6 +425,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
                 self.assertEqual(self.files(), before)
                 path.write_bytes(original)  # Restore this test's own private content, not canonical data.
 
+    # {
+    #   責務: [test_many_owned_and_named_slots_have_no_new_limit_and_only_selected_profile_changes: 検証: many owned and named slots have no new limit and only selected profile changes]
+    #   処理: [1: 検証: many owned and named slots have no new limit and only selected profile changes]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_many_owned_and_named_slots_have_no_new_limit_and_only_selected_profile_changes(self) -> None:
         self.name = "選択中"
         self.seed()
@@ -305,6 +447,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.assert_old_files_kept(before)
         self.assertEqual(len(list((self.content / "saves").iterdir())), 126)
 
+    # {
+    #   責務: [test_already_open_flag_without_owned_ghosts_reacquires_without_rewriting_state: 検証: already open flag without owned ghosts reacquires without rewriting state]
+    #   処理: [1: 検証: already open flag without owned ghosts reacquires without rewriting state]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_already_open_flag_without_owned_ghosts_reacquires_without_rewriting_state(self) -> None:
         self.seed(flags={"ghost_entrance_open": True, "story_complete": True, "unknown": []})
         before = self.files()
@@ -315,6 +463,12 @@ class GDScriptGhostAcquisitionTests(unittest.TestCase):
         self.assertEqual([n["species_id"] for n in result["npcs"]], ["maru", "kadoka"])
         self.assert_old_files_kept(before, state_change=False)
 
+    # {
+    #   責務: [test_corrupt_or_future_state_and_non_directory_monsters_are_not_repaired: 検証: corrupt or future state and non directory monsters are not repaired]
+    #   処理: [1: 検証: corrupt or future state and non directory monsters are not repaired]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_corrupt_or_future_state_and_non_directory_monsters_are_not_repaired(self) -> None:
         for index, value in enumerate(("{broken", '{"schema_version":99}')):
             with self.subTest(value=value):

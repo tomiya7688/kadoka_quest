@@ -1,3 +1,7 @@
+# {
+#   責務: [test_map_spawn_controls: test・マップ・出現・controlsの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from copy import deepcopy
 from pathlib import Path
 import shutil
@@ -11,6 +15,12 @@ from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.ui.spawn_table_dialog import SpawnTableDialog
 
 
+# {
+#   責務: [editor: test・マップ・出現・controlsのeditorを求める]
+#   処理: [1: test・マップ・出現・controlsのeditorを求める]
+#   引数: [tmp_path: tmp・パス]
+#   戻り値: [result: 処理結果（型注釈なし）]
+# }
 @pytest.fixture
 def editor(tmp_path):
     pygame.init()
@@ -23,10 +33,29 @@ def editor(tmp_path):
     pygame.quit()
 
 
+# {
+#   責務: [click: test・マップ・出現・controlsのclickを求める]
+#   処理: [1: test・マップ・出現・controlsのclickを求める]
+#   引数: [
+#     dialog: dialog
+#     position: 座標
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def click(dialog, position):
     dialog.handle(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=position))
 
 
+# {
+#   責務: [type_value: test・マップ・出現・controlsのtype・値を求める]
+#   処理: [1: test・マップ・出現・controlsのtype・値を求める]
+#   引数: [
+#     dialog: dialog
+#     field: フィールド
+#     value: 値
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def type_value(dialog, field, value):
     click(dialog, field.rect.center)
     for _ in field.value:
@@ -35,6 +64,12 @@ def type_value(dialog, field, value):
         dialog.handle(pygame.event.Event(pygame.KEYDOWN, key=ord(character), unicode=character, mod=0))
 
 
+# {
+#   責務: [test_ui_tabs_edit_save_and_reload: 検証: ui tabs edit save and reload]
+#   処理: [1: 検証: ui tabs edit save and reload]
+#   引数: [editor: editor]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_ui_tabs_edit_save_and_reload(editor):
     dialog = SpawnTableDialog(editor)
     form = editor.map_spawn_form
@@ -61,6 +96,15 @@ def test_ui_tabs_edit_save_and_reload(editor):
     assert not reloaded.map_spawn_form.changed
 
 
+# {
+#   責務: [test_pop_rate_boundaries_round_trip: 検証: pop rate boundaries round trip]
+#   処理: [1: 検証: pop rate boundaries round trip]
+#   引数: [
+#     editor: editor
+#     rate: rate
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("rate", ["0", "100"])
 def test_pop_rate_boundaries_round_trip(editor, rate):
     editor.map_data["pop_rate"] = 50
@@ -70,6 +114,16 @@ def test_pop_rate_boundaries_round_trip(editor, rate):
     assert editor.repository.get_map(editor.map_id)["pop_rate"] == float(rate)
 
 
+# {
+#   責務: [test_invalid_map_draft_does_not_save_or_apply_pending_row: 検証: invalid map draft does not save or apply pending row]
+#   処理: [1: 検証: invalid map draft does not save or apply pending row]
+#   引数: [
+#     editor: editor
+#     rate: rate
+#     weights: 重み一覧
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("rate,weights", [
     ("-1", None), ("101", None), ("nan", None), ("inf", None), ("", None),
     ("10", {"random": "-1"}), ("10", {"chase": "nan"}),
@@ -93,6 +147,12 @@ def test_invalid_map_draft_does_not_save_or_apply_pending_row(editor, rate, weig
     assert "保存できません" in editor.status
 
 
+# {
+#   責務: [test_invalid_row_does_not_apply_valid_map_draft: 検証: invalid row does not apply valid map draft]
+#   処理: [1: 検証: invalid row does not apply valid map draft]
+#   引数: [editor: editor]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_invalid_row_does_not_apply_valid_map_draft(editor):
     before = deepcopy(editor.map_data)
     editor.spawn_weight.value = "-1"
@@ -102,6 +162,12 @@ def test_invalid_row_does_not_apply_valid_map_draft(editor):
     assert editor.map_spawn_form.changed
 
 
+# {
+#   責務: [test_inherit_toggle_preserves_entry_override_and_mod_keys: 検証: inherit toggle preserves entry override and mod keys]
+#   処理: [1: 検証: inherit toggle preserves entry override and mod keys]
+#   引数: [editor: editor]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_inherit_toggle_preserves_entry_override_and_mod_keys(editor):
     editor.map_data["field_ai_weights"] = {"idle": 2}
     editor.map_data["custom"] = {"notes": ["keep"]}
@@ -123,6 +189,12 @@ def test_inherit_toggle_preserves_entry_override_and_mod_keys(editor):
     assert stored["custom"] == {"notes": ["keep"]}
 
 
+# {
+#   責務: [test_missing_legacy_controls_stay_missing_without_changes: 検証: missing legacy controls stay missing without changes]
+#   処理: [1: 検証: missing legacy controls stay missing without changes]
+#   引数: [editor: editor]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_missing_legacy_controls_stay_missing_without_changes(editor):
     editor.map_data.pop("pop_rate", None)
     editor.map_data.pop("field_ai_weights", None)
@@ -135,6 +207,12 @@ def test_missing_legacy_controls_stay_missing_without_changes(editor):
     assert "field_ai_weights" not in stored
 
 
+# {
+#   責務: [test_tab_switch_preserves_both_drafts_ctrl_s_saves_both: 検証: tab switch preserves both drafts ctrl s saves both]
+#   処理: [1: 検証: tab switch preserves both drafts ctrl s saves both]
+#   引数: [editor: editor]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_tab_switch_preserves_both_drafts_ctrl_s_saves_both(editor):
     dialog = SpawnTableDialog(editor)
     editor.spawn_weight.value = "72"
@@ -154,6 +232,12 @@ def test_tab_switch_preserves_both_drafts_ctrl_s_saves_both(editor):
     assert not editor.spawn_draft_changed()
 
 
+# {
+#   責務: [test_close_guards_hidden_draft_and_revert_is_tab_local: 検証: close guards hidden draft and revert is tab local]
+#   処理: [1: 検証: close guards hidden draft and revert is tab local]
+#   引数: [editor: editor]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_close_guards_hidden_draft_and_revert_is_tab_local(editor):
     dialog = SpawnTableDialog(editor)
     editor.map_spawn_form.rate.value = "55"
@@ -172,6 +256,12 @@ def test_close_guards_hidden_draft_and_revert_is_tab_local(editor):
     assert not editor.spawn_dialog_open
 
 
+# {
+#   責務: [test_ratios_and_preparation_preserve_documents: 検証: ratios and preparation preserve documents]
+#   処理: [1: 検証: ratios and preparation preserve documents]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_ratios_and_preparation_preserve_documents():
     assert map_ai_ratios({"idle": 3}) == [0, 0, 1]
     assert map_ai_ratios({"random": 1e308, "chase": 1e308}) == [0.5, 0.5, 0]

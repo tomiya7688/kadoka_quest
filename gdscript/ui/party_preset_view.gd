@@ -1,3 +1,13 @@
+# {
+#   責務: [party_preset_view: Preset list/name input and semantic signals only; no files or party mutation.]
+#   フィールド: [
+#     listing: listing（ItemList）
+#     name_input: 名前・入力（LineEdit）
+#     heading: heading（Label）
+#     message: message（Label）
+#     buttons: buttons（Dictionary）
+#   ]
+# }
 extends PanelContainer
 ## Preset list/name input and semantic signals only; no files or party mutation.
 
@@ -12,6 +22,12 @@ var message: Label
 var buttons: Dictionary = {}
 
 
+# {
+#   責務: [_ready: パーティ・プリセット・表示のエントリ処理を実行する]
+#   処理: [1: パーティ・プリセット・表示のエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _ready() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("#091329")
@@ -55,6 +71,17 @@ func _ready() -> void:
 		order[index].focus_previous = order[index].get_path_to(order[(index - 1 + order.size()) % order.size()])
 
 
+# {
+#   責務: [_button: パーティ・プリセット・表示のbuttonを求める]
+#   処理: [1: パーティ・プリセット・表示のbuttonを求める]
+#   引数: [
+#     parent: parent（Control）
+#     id: 識別子（String）
+#     text: 文字列（String）
+#     callback: コールバック（Callable）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _button(parent: Control, id: String, text: String, callback: Callable) -> void:
 	var button := Button.new()
 	button.text = text
@@ -64,6 +91,16 @@ func _button(parent: Control, id: String, text: String, callback: Callable) -> v
 	buttons[id] = button
 
 
+# {
+#   責務: [show_catalog: パーティ・プリセット・表示のshow・catalogを求める]
+#   処理: [1: パーティ・プリセット・表示のshow・catalogを求める]
+#   引数: [
+#     catalog: catalog（Dictionary）
+#     focus_list: focus・list（bool）
+#     prefer: prefer（String）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func show_catalog(catalog: Dictionary, focus_list: bool = false, prefer: String = "") -> void:
 	var selected := listing.get_selected_items()
 	var previous: String = prefer
@@ -97,6 +134,12 @@ func show_catalog(catalog: Dictionary, focus_list: bool = false, prefer: String 
 		listing.grab_focus.call_deferred()
 
 
+# {
+#   責務: [request_load: パーティ・プリセット・表示の要求・loadを求める]
+#   処理: [1: パーティ・プリセット・表示の要求・loadを求める]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func request_load() -> void:
 	var selected := listing.get_selected_items()
 	if selected.is_empty():
@@ -105,6 +148,12 @@ func request_load() -> void:
 	load_requested.emit(str(listing.get_item_metadata(selected[0])))
 
 
+# {
+#   責務: [handle_navigation: navigationを入力を処理する]
+#   処理: [1: navigationを入力を処理する]
+#   引数: [key: キー（int）]
+#   戻り値: [result: navigationを入力を処理するための結果（bool）]
+# }
 func handle_navigation(key: int) -> bool:
 	if not listing.has_focus():
 		return false  # Home/End and Page keys must not steal the name field's caret.

@@ -1,4 +1,8 @@
 """Read-only summaries of learned preferences, not action probabilities."""
+# {
+#   責務: [ai_tendencies: Read-only summaries of learned preferences, not action probabilities.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -19,10 +23,22 @@ _SPECS = (
 _STAGES = ("very_low", "low", "neutral", "high", "very_high")
 
 
+# {
+#   責務: [_mapping: AI・tendenciesのmappingを求める]
+#   処理: [1: AI・tendenciesのmappingを求める]
+#   引数: [value: 値（Any）]
+#   戻り値: [result: AI・tendenciesのmappingを求めるための結果（Mapping）]
+# }
 def _mapping(value: Any) -> Mapping:
     return value if isinstance(value, Mapping) else {}
 
 
+# {
+#   責務: [_number: AI・tendenciesの数値を求める]
+#   処理: [1: AI・tendenciesの数値を求める]
+#   引数: [value: 値（Any）]
+#   戻り値: [result: AI・tendenciesの数値を求めるための結果（float | None）]
+# }
 def _number(value: Any) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
@@ -33,11 +49,26 @@ def _number(value: Any) -> float | None:
     return result if isfinite(result) else None
 
 
+# {
+#   責務: [_observations: AI・tendenciesのobservationsを求める]
+#   処理: [1: AI・tendenciesのobservationsを求める]
+#   引数: [value: 値（Any）]
+#   戻り値: [result: AI・tendenciesのobservationsを求めるための結果（int）]
+# }
 def _observations(value: Any) -> int:
     number = _number(value)
     return int(number) if number is not None and number >= 0 and number.is_integer() else 0
 
 
+# {
+#   責務: [_skill_groups: AI・tendenciesのスキル・groupsを求める]
+#   処理: [1: AI・tendenciesのスキル・groupsを求める]
+#   引数: [
+#     skills: スキル一覧（Mapping）
+#     kinds: kinds（frozenset | None）
+#   ]
+#   戻り値: [result: AI・tendenciesのスキル・groupsを求めるための結果（tuple[set[str], set[str]]）]
+# }
 def _skill_groups(skills: Mapping, kinds: frozenset | None) -> tuple[set[str], set[str]]:
     positive, negative = set(), set()
     for skill_id, definition in skills.items():
@@ -58,6 +89,16 @@ def _skill_groups(skills: Mapping, kinds: frozenset | None) -> tuple[set[str], s
     return positive, negative
 
 
+# {
+#   責務: [_scores: AI・tendenciesのscoresを求める]
+#   処理: [1: AI・tendenciesのscoresを求める]
+#   引数: [
+#     preferences: preferences（Mapping）
+#     skills: スキル一覧（set[str]）
+#     bound: bound（float）
+#   ]
+#   戻り値: [result: 値一覧（list[float]）]
+# }
 def _scores(preferences: Mapping, skills: set[str], bound: float) -> list[float]:
     values = []
     for skill_id in sorted(skills):
@@ -67,6 +108,16 @@ def _scores(preferences: Mapping, skills: set[str], bound: float) -> list[float]
     return values
 
 
+# {
+#   責務: [_summarize_one: oneを要約する]
+#   処理: [1: oneを要約する]
+#   引数: [
+#     ai: AI（Mapping）
+#     skills: スキル一覧（Mapping）
+#     spec: spec（tuple）
+#   ]
+#   戻り値: [result: row（dict[str, Any]）]
+# }
 def _summarize_one(ai: Mapping, skills: Mapping, spec: tuple) -> dict[str, Any]:
     tendency_id, tag, kinds = spec
     if tag is None:
@@ -103,6 +154,15 @@ def _summarize_one(ai: Mapping, skills: Mapping, spec: tuple) -> dict[str, Any]:
     return row
 
 
+# {
+#   責務: [summarize_tendencies: Return five stable rows from AI and a skill-id -> definition catalog.]
+#   処理: [1: Return five stable rows from AI and a skill-id -> definition catalog.]
+#   引数: [
+#     ai: AI（Mapping）
+#     skills: スキル一覧（Mapping）
+#   ]
+#   戻り値: [result: Return five stable rows from AI and a skill-id -> definition catalog.ための結果（list[dict[str, Any]]）]
+# }
 def summarize_tendencies(ai: Mapping, skills: Mapping) -> list[dict[str, Any]]:
     """Return five stable rows from AI and a skill-id -> definition catalog.
 

@@ -1,3 +1,7 @@
+# {
+#   責務: [test_ai_tendency_ui: test・AI・tendency・uiの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from copy import deepcopy
@@ -16,6 +20,16 @@ from kadoka_quest.ui import ai_tendency_panel as panel
 from kadoka_quest.ui.common import ACCENT, BG, PANEL_ALT, font
 
 
+# {
+#   責務: [manager_app: test・AI・tendency・uiのmanager・appを求める]
+#   処理: [1: test・AI・tendency・uiのmanager・appを求める]
+#   引数: [
+#     request: 要求
+#     monkeypatch: monkeypatch
+#     tmp_path: tmp・パス
+#   ]
+#   戻り値: [result: test・AI・tendency・uiのmanager・appを求めるための結果（型注釈なし）]
+# }
 @pytest.fixture(params=[ranch_manager, manage], ids=["ranch", "developer"])
 def manager_app(request, monkeypatch, tmp_path):
     app = request.param
@@ -29,11 +43,26 @@ def manager_app(request, monkeypatch, tmp_path):
     return app, cls(), store
 
 
+# {
+#   責務: [teach: test・AI・tendency・uiのteachを求める]
+#   処理: [1: test・AI・tendency・uiのteachを求める]
+#   引数: [
+#     record: 個体レコード
+#     skill_id: スキル・識別子
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def teach(record, skill_id):
     for _ in range(70):
         learn_from_action(record.ai, skill_id, 1, ("mp:low", "self:critical", "threat:stronger"))
 
 
+# {
+#   責務: [test_selected_individual_live_learning_and_reset: 検証: selected individual live learning and reset]
+#   処理: [1: 検証: selected individual live learning and reset]
+#   引数: [manager_app: manager・app]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_selected_individual_live_learning_and_reset(manager_app):
     _, manager, store = manager_app
     original = deepcopy(manager.selected_record.ai)
@@ -56,6 +85,16 @@ def test_selected_individual_live_learning_and_reset(manager_app):
     assert manager.selected_tendencies == []
 
 
+# {
+#   責務: [test_panel_shows_unknown_states_and_confines_drawing: 検証: panel shows unknown states and confines drawing]
+#   処理: [1: 検証: panel shows unknown states and confines drawing]
+#   引数: [
+#     monkeypatch: monkeypatch
+#     columns: columns
+#     size: 大きさ
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("columns,size", [(2, (650, 240)), (3, (705, 180))])
 def test_panel_shows_unknown_states_and_confines_drawing(monkeypatch, columns, size):
     pygame.font.init()
@@ -87,6 +126,16 @@ def test_panel_shows_unknown_states_and_confines_drawing(monkeypatch, columns, s
     assert surface.get_clip() == original_clip
 
 
+# {
+#   責務: [test_actual_management_screen_updates_on_f5_focus_selection_and_reset: 検証: actual management screen updates on f5 focus selection and reset]
+#   処理: [1: 検証: actual management screen updates on f5 focus selection and reset]
+#   引数: [
+#     manager_app: manager・app
+#     monkeypatch: monkeypatch
+#     tmp_path: tmp・パス
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_actual_management_screen_updates_on_f5_focus_selection_and_reset(manager_app, monkeypatch, tmp_path):
     app, manager, store = manager_app
     cls_name = "RanchManager" if app is ranch_manager else "Manager"
@@ -96,6 +145,12 @@ def test_actual_management_screen_updates_on_f5_focus_selection_and_reset(manage
     real_draw = panel.draw_ai_tendencies
     frame = 0
 
+    # {
+    #   責務: [events: test・AI・tendency・uiのイベント一覧を求める]
+    #   処理: [1: test・AI・tendency・uiのイベント一覧を求める]
+    #   引数: []
+    #   戻り値: [result: test・AI・tendency・uiのイベント一覧を求めるための結果（型注釈なし）]
+    # }
     def events():
         nonlocal frame
         frame += 1
@@ -115,12 +170,29 @@ def test_actual_management_screen_updates_on_f5_focus_selection_and_reset(manage
             return [pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=position)]
         return []
 
+    # {
+    #   責務: [draw: test・AI・tendency・uiを描画する]
+    #   処理: [1: test・AI・tendency・uiを描画する]
+    #   引数: [
+    #     surface: 描画面
+    #     rows: rows
+    #     rect: 表示矩形
+    #     kwargs: kwargs
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def draw(surface, rows, rect, **kwargs):
         captured.append(deepcopy(rows))
         real_draw(surface, rows, rect, **kwargs)
 
     real_flip = pygame.display.flip
 
+    # {
+    #   責務: [flip: test・AI・tendency・uiのflipを求める]
+    #   処理: [1: test・AI・tendency・uiのflipを求める]
+    #   引数: []
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def flip():
         if len(captured) in (1, 2):
             name = "initial_screen.png" if len(captured) == 1 else "learned_screen.png"

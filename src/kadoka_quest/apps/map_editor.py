@@ -1,3 +1,7 @@
+# {
+#   責務: [map_editor: マップ・editorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import re
@@ -21,6 +25,12 @@ BLOCK_ROWS = 6
 SPECIES_ROWS = 8
 
 
+# {
+#   責務: [hex_color: マップ・editorのhex・色を求める]
+#   処理: [1: マップ・editorのhex・色を求める]
+#   引数: [value: 値（str）]
+#   戻り値: [result: マップ・editorのhex・色を求めるための結果（tuple[int, int, int]）]
+# }
 def hex_color(value: str) -> tuple[int, int, int]:
     try:
         value = value.lstrip("#")
@@ -29,7 +39,100 @@ def hex_color(value: str) -> tuple[int, int, int]:
         return (120, 120, 120)
 
 
+# {
+#   責務: [MapEditor: マップ・editorの状態と振る舞いを担当する]
+#   フィールド: [
+#     repository: データ取得先
+#     preset_store: プリセット・保存先
+#     map_ids: マップ・識別子一覧
+#     map_names: マップ・名前一覧
+#     preset_ids: プリセット・識別子一覧
+#     preset_names: プリセット・名前一覧
+#     map_index: マップ・位置番号
+#     map_id: マップ・識別子
+#     map_data: マップ・データ
+#     blocks: ブロック定義
+#     block_by_id: ブロック・by・識別子
+#     species_ids: 種族・識別子一覧
+#     selected_block: 選択中・ブロック
+#     selected_species: 選択中・種族
+#     block_offset: ブロック・表示位置
+#     species_offset: 種族・表示位置
+#     map_offset: マップ・表示位置
+#     preset_offset: プリセット・表示位置
+#     selected_preset: 選択中・プリセット
+#     transition_offset: 移動ポイント・表示位置
+#     target_map_offset: 対象・マップ・表示位置
+#     camera_x: カメラ・X座標
+#     camera_y: カメラ・Y座標
+#     map_picker_open: マップ・picker・open
+#     new_map_dialog_open: new・マップ・dialog・open
+#     preset_dialog_open: プリセット・dialog・open
+#     transition_dialog_open: 移動ポイント・dialog・open
+#     use_event_dialog_open: use・イベント・dialog・open
+#     fixed_mob_dialog_open: fixed・モブ・dialog・open
+#     spawn_dialog_open: 出現・dialog・open
+#     placement_layer: placement・layer
+#     transition_brush_activation: 移動ポイント・brush・activation
+#     selected_transition: 選択中・移動ポイント
+#     selected_use_event: 選択中・use・イベント
+#     use_requirement_kind: use・requirement・種別
+#     use_effect_kind: use・効果・種別
+#     transition_id: 移動ポイント・識別子
+#     transition_x: 移動ポイント・X座標
+#     transition_y: 移動ポイント・Y座標
+#     target_x: 対象・X座標
+#     target_y: 対象・Y座標
+#     transition_text: 移動ポイント・文字列
+#     use_event_id: use・イベント・識別子
+#     use_event_x: use・イベント・X座標
+#     use_event_y: use・イベント・Y座標
+#     use_event_radius: use・イベント・radius
+#     use_required_id: use・required・識別子
+#     use_effect_text: use・効果・文字列
+#     use_effect_item: use・効果・アイテム
+#     selected_fixed_mob: 選択中・fixed・モブ
+#     fixed_mob_offset: fixed・モブ・表示位置
+#     fixed_mob_id: fixed・モブ・識別子
+#     fixed_mob_name: fixed・モブ・名前
+#     fixed_mob_level: fixed・モブ・レベル
+#     fixed_mob_x: fixed・モブ・X座標
+#     fixed_mob_y: fixed・モブ・Y座標
+#     fixed_mob_interval: fixed・モブ・interval
+#     fixed_mob_chance: fixed・モブ・chance
+#     fixed_mob_dialogue: fixed・モブ・会話
+#     spawn_weight: 出現・重み
+#     spawn_min_level: 出現・min・レベル
+#     spawn_max_level: 出現・max・レベル
+#     selected_spawn: 選択中・出現
+#     spawn_table_offset: 出現・表・表示位置
+#     spawn_species_offset: 出現・種族・表示位置
+#     map_spawn_form: マップ・出現・form
+#     new_map_id: new・マップ・識別子
+#     new_map_name: new・マップ・名前
+#     new_map_width: new・マップ・幅
+#     new_map_height: new・マップ・高さ
+#     new_map_fill_block: new・マップ・fill・ブロック
+#     preset_id: プリセット・識別子
+#     preset_name: プリセット・名前
+#     preset_map_id: プリセット・マップ・識別子
+#     preset_map_name: プリセット・マップ・名前
+#     dirty: dirty
+#     status: 状態異常
+#     spawn_draft: 出現・下書き
+#   ]
+# }
 class MapEditor:
+    # {
+    #   責務: [__init__: マップ・editorが利用する初期状態と依存を設定する]
+    #   処理: [1: マップ・editorが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     repository: データ取得先（GameRepository | None）
+    #     preset_store: プリセット・保存先（MapPresetStore | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, repository: GameRepository | None = None, preset_store: MapPresetStore | None = None) -> None:
         self.repository = repository or GameRepository()
         self.preset_store = preset_store or MapPresetStore(self.repository.root)
@@ -109,6 +212,12 @@ class MapEditor:
         self.dirty = False
         self.status = "ドラッグで連続配置。右クリックでマップ上のブロックを選択できます。"
 
+    # {
+    #   責務: [save: マップ・editorを保存する]
+    #   処理: [1: マップ・editorを保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save(self) -> None:
         entry_draft = None
         controls_draft = None
@@ -142,10 +251,22 @@ class MapEditor:
         if issues:
             self.status += f" 全体検証: {len(issues)}件の問題があります。"
 
+    # {
+    #   責務: [preset_fields: マップ・editorのプリセット・入力項目を求める]
+    #   処理: [1: マップ・editorのプリセット・入力項目を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・editorのプリセット・入力項目を求めるための結果（list[TextField]）]
+    # }
     @property
     def preset_fields(self) -> list[TextField]:
         return [self.preset_id, self.preset_name, self.preset_map_id, self.preset_map_name]
 
+    # {
+    #   責務: [refresh_preset_catalog: プリセット・catalogを更新内容を読み直す]
+    #   処理: [1: プリセット・catalogを更新内容を読み直す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def refresh_preset_catalog(self) -> None:
         self.preset_ids = self.preset_store.list_ids()
         self.preset_names = {
@@ -153,6 +274,12 @@ class MapEditor:
             for preset_id in self.preset_ids
         }
 
+    # {
+    #   責務: [open_preset_dialog: プリセット・dialogを開く]
+    #   処理: [1: プリセット・dialogを開く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def open_preset_dialog(self) -> None:
         self.map_picker_open = False
         self.preset_dialog_open = True
@@ -162,6 +289,15 @@ class MapEditor:
             self.preset_id.value = f"{self.map_id}_preset"
             self.preset_name.value = f"{self.map_data['display_name']}プリセット"
 
+    # {
+    #   責務: [select_preset: プリセットを選択する]
+    #   処理: [1: プリセットを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_preset(self, index: int) -> None:
         if not 0 <= index < len(self.preset_ids):
             return
@@ -173,6 +309,12 @@ class MapEditor:
         self.preset_map_id.value = f"{preset_id}_map"
         self.preset_map_name.value = str(preset.get("display_name", preset_id))
 
+    # {
+    #   責務: [save_current_as_preset: current・as・プリセットを保存する]
+    #   処理: [1: current・as・プリセットを保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: current・as・プリセットを保存するための結果（bool）]
+    # }
     def save_current_as_preset(self) -> bool:
         preset_id = self.preset_id.value.strip()
         overwrite = 0 <= self.selected_preset < len(self.preset_ids) and self.preset_ids[self.selected_preset] == preset_id
@@ -191,6 +333,12 @@ class MapEditor:
         self.status = f"data/map_presets/{preset_id}.json に現在のマップを保存しました。"
         return True
 
+    # {
+    #   責務: [apply_selected_preset: 選択中・プリセットを適用する]
+    #   処理: [1: 選択中・プリセットを適用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 選択中・プリセットを適用するための結果（bool）]
+    # }
     def apply_selected_preset(self) -> bool:
         if self.dirty:
             self.status = "未保存の変更があります。現在のマップを保存してからプリセットを適用してください。"
@@ -212,6 +360,12 @@ class MapEditor:
         self.status = f"{preset_id} を現在のマップへ適用しました。保存すると確定します。"
         return True
 
+    # {
+    #   責務: [create_map_from_selected_preset: マップ・from・選択中・プリセットを作成する]
+    #   処理: [1: マップ・from・選択中・プリセットを作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・from・選択中・プリセットを作成するための結果（bool）]
+    # }
     def create_map_from_selected_preset(self) -> bool:
         if self.dirty:
             self.status = "現在のマップを保存してからプリセットから新規作成してください。"
@@ -243,22 +397,55 @@ class MapEditor:
         self.status = f"{preset_id} から {self.map_id} を新規作成しました。"
         return True
 
+    # {
+    #   責務: [fixed_mobs: マップ・editorのfixed・モブ一覧を求める]
+    #   処理: [1: マップ・editorのfixed・モブ一覧を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・editorのfixed・モブ一覧を求めるための結果（list[dict]）]
+    # }
     @property
     def fixed_mobs(self) -> list[dict]:
         return self.map_data.setdefault("fixed_mobs", [])
 
+    # {
+    #   責務: [current_fixed_mob: fixed・モブを現在の値を参照する]
+    #   処理: [1: fixed・モブを現在の値を参照する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: fixed・モブを現在の値を参照するための結果（dict | None）]
+    # }
     @property
     def current_fixed_mob(self) -> dict | None:
         return self.fixed_mobs[self.selected_fixed_mob] if 0 <= self.selected_fixed_mob < len(self.fixed_mobs) else None
 
+    # {
+    #   責務: [fixed_mob_fields: マップ・editorのfixed・モブ・入力項目を求める]
+    #   処理: [1: マップ・editorのfixed・モブ・入力項目を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・editorのfixed・モブ・入力項目を求めるための結果（list[TextField]）]
+    # }
     def fixed_mob_fields(self) -> list[TextField]:
         return [self.fixed_mob_id, self.fixed_mob_name, self.fixed_mob_level, self.fixed_mob_x, self.fixed_mob_y, self.fixed_mob_interval, self.fixed_mob_chance, self.fixed_mob_dialogue]
 
+    # {
+    #   責務: [open_fixed_mob_dialog: fixed・モブ・dialogを開く]
+    #   処理: [1: fixed・モブ・dialogを開く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def open_fixed_mob_dialog(self) -> None:
         self.fixed_mob_dialog_open = True
         if self.fixed_mobs and self.selected_fixed_mob < 0:
             self.select_fixed_mob(0)
 
+    # {
+    #   責務: [select_fixed_mob: fixed・モブを選択する]
+    #   処理: [1: fixed・モブを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_fixed_mob(self, index: int) -> None:
         if not 0 <= index < len(self.fixed_mobs):
             return
@@ -273,14 +460,37 @@ class MapEditor:
         self.fixed_mob_chance.value = str(item.get("move_chance", 100))
         self.fixed_mob_dialogue.value = " | ".join(str(line) for line in item.get("dialogue", []))
 
+    # {
+    #   責務: [select_fixed_mob_brush: fixed・モブ・brushを選択する]
+    #   処理: [1: fixed・モブ・brushを選択する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_fixed_mob_brush(self) -> None:
         self.placement_layer = "fixed_mob"
         self.status = f"固定モブ配置: {self.species_ids[self.selected_species]}。マップをクリックしてください。"
 
+    # {
+    #   責務: [begin_fixed_mob_placement: fixed・モブ・placementを開始する]
+    #   処理: [1: fixed・モブ・placementを開始する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def begin_fixed_mob_placement(self) -> None:
         self.fixed_mob_dialog_open = False
         self.select_fixed_mob_brush()
 
+    # {
+    #   責務: [add_fixed_mob_at: fixed・モブ・atを追加する]
+    #   処理: [1: fixed・モブ・atを追加する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     x: X座標（int）
+    #     y: Y座標（int）
+    #     open_editor: open・editor（bool）
+    #   ]
+    #   戻り値: [result: fixed・モブ・atを追加するための結果（bool）]
+    # }
     def add_fixed_mob_at(self, x: int, y: int, *, open_editor: bool = False) -> bool:
         if any(int(item.get("x", -1)) == x and int(item.get("y", -1)) == y for item in self.fixed_mobs):
             self.status = "そのマスには既に固定モブがいます。"
@@ -306,6 +516,12 @@ class MapEditor:
         self.status = f"固定モブ {display_name} を ({x}, {y}) に配置しました。"
         return True
 
+    # {
+    #   責務: [cycle_fixed_mob_ai: fixed・モブ・AIを順に切り替える]
+    #   処理: [1: fixed・モブ・AIを順に切り替える]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def cycle_fixed_mob_ai(self) -> None:
         item = self.current_fixed_mob
         if not item:
@@ -315,17 +531,38 @@ class MapEditor:
         item["ai"] = choices[(choices.index(current) + 1) % len(choices)] if current in choices else "idle"
         self.dirty = True
 
+    # {
+    #   責務: [cycle_fixed_mob_interaction: fixed・モブ・interactionを順に切り替える]
+    #   処理: [1: fixed・モブ・interactionを順に切り替える]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def cycle_fixed_mob_interaction(self) -> None:
         item = self.current_fixed_mob
         if item:
             item["interaction"] = "battle" if item.get("interaction", "talk") == "talk" else "talk"
             self.dirty = True
 
+    # {
+    #   責務: [toggle_fixed_mob_option: fixed・モブ・optionを切り替える]
+    #   処理: [1: fixed・モブ・optionを切り替える]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     key: キー（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def toggle_fixed_mob_option(self, key: str) -> None:
         if self.current_fixed_mob:
             self.current_fixed_mob[key] = not bool(self.current_fixed_mob.get(key, False))
             self.dirty = True
 
+    # {
+    #   責務: [apply_fixed_mob: fixed・モブを適用する]
+    #   処理: [1: fixed・モブを適用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: fixed・モブを適用するための結果（bool）]
+    # }
     def apply_fixed_mob(self) -> bool:
         item = self.current_fixed_mob
         if not item:
@@ -362,6 +599,12 @@ class MapEditor:
         self.status = f"固定モブ {mob_id} の設定を反映しました。"
         return True
 
+    # {
+    #   責務: [delete_fixed_mob: fixed・モブを削除する]
+    #   処理: [1: fixed・モブを削除する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def delete_fixed_mob(self) -> None:
         item = self.current_fixed_mob
         if not item:
@@ -373,10 +616,22 @@ class MapEditor:
         self.dirty = True
         self.status = "固定モブを削除しました。"
 
+    # {
+    #   責務: [selected_species_id: マップ・editorの選択中・種族・識別子を求める]
+    #   処理: [1: マップ・editorの選択中・種族・識別子を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・editorの選択中・種族・識別子を求めるための結果（str）]
+    # }
     @property
     def selected_species_id(self) -> str:
         return self.species_ids[self.selected_species] if 0 <= self.selected_species < len(self.species_ids) else ""
 
+    # {
+    #   責務: [current_spawn: 出現を現在の値を参照する]
+    #   処理: [1: 出現を現在の値を参照する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 出現を現在の値を参照するための結果（dict | None）]
+    # }
     @property
     def current_spawn(self) -> dict | None:
         if self.spawn_dialog_open:
@@ -387,10 +642,25 @@ class MapEditor:
             None,
         )
 
+    # {
+    #   責務: [spawn_fields: マップ・editorの出現・入力項目を求める]
+    #   処理: [1: マップ・editorの出現・入力項目を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・editorの出現・入力項目を求めるための結果（list[TextField]）]
+    # }
     @property
     def spawn_fields(self) -> list[TextField]:
         return [self.spawn_weight, self.spawn_min_level, self.spawn_max_level]
 
+    # {
+    #   責務: [select_species: 種族を選択する]
+    #   処理: [1: 種族を選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_species(self, index: int) -> None:
         if not 0 <= index < len(self.species_ids):
             return
@@ -403,6 +673,15 @@ class MapEditor:
             )
             self.load_spawn_fields()
 
+    # {
+    #   責務: [select_spawn: 出現を選択する]
+    #   処理: [1: 出現を選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_spawn(self, index: int) -> None:
         spawns = self.map_data.get("spawns", [])
         if not 0 <= index < len(spawns):
@@ -413,11 +692,23 @@ class MapEditor:
         self.spawn_species_offset = max(0, self.selected_species - 4)
         self.load_spawn_fields()
 
+    # {
+    #   責務: [new_spawn: 出現を新規作成する]
+    #   処理: [1: 出現を新規作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def new_spawn(self) -> None:
         self.selected_spawn = -1
         self.load_spawn_fields()
         self.status = "種族・重み・Lvを入力し「候補を追加」を押してください。"
 
+    # {
+    #   責務: [load_spawn_fields: 出現・入力項目を読み込む]
+    #   処理: [1: 出現・入力項目を読み込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_spawn_fields(self) -> None:
         spawn = self.current_spawn or {}
         self.spawn_weight.value = str(spawn.get("weight", 1 if spawn else 10))
@@ -427,9 +718,21 @@ class MapEditor:
             field.active = False
         self.spawn_draft = (self.selected_species_id, *(field.value for field in self.spawn_fields))
 
+    # {
+    #   責務: [spawn_draft_changed: マップ・editorの出現・下書き・changedを求める]
+    #   処理: [1: マップ・editorの出現・下書き・changedを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・editorの出現・下書き・changedを求めるための結果（bool）]
+    # }
     def spawn_draft_changed(self) -> bool:
         return self.spawn_draft != (self.selected_species_id, *(field.value for field in self.spawn_fields))
 
+    # {
+    #   責務: [open_spawn_dialog: 出現・dialogを開く]
+    #   処理: [1: 出現・dialogを開く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def open_spawn_dialog(self) -> None:
         self.spawn_dialog_open = True
         self.select_species(self.selected_species)
@@ -437,6 +740,12 @@ class MapEditor:
         self.map_spawn_form.load(self.map_data)
         self.status = "編集を反映してから「マップ保存」でJSONへ保存します。"
 
+    # {
+    #   責務: [apply_map_spawn_settings: マップ・出現・設定を適用する]
+    #   処理: [1: マップ・出現・設定を適用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・出現・設定を適用するための結果（bool）]
+    # }
     def apply_map_spawn_settings(self) -> bool:
         try:
             controls = parse_map_spawn_controls(**self.map_spawn_form.draft)
@@ -449,10 +758,22 @@ class MapEditor:
         self.status = "マップ全体の出現設定を反映しました。マップ保存で確定します。"
         return True
 
+    # {
+    #   責務: [add_spawn: 出現を追加する]
+    #   処理: [1: 出現を追加する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 出現を追加するための結果（bool）]
+    # }
     def add_spawn(self) -> bool:
         self.new_spawn()
         return self.apply_spawn_range()
 
+    # {
+    #   責務: [apply_spawn_range: 出現・rangeを適用する]
+    #   処理: [1: 出現・rangeを適用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 出現・rangeを適用するための結果（bool）]
+    # }
     def apply_spawn_range(self) -> bool:
         try:
             entry = prepare_spawn_entry(
@@ -475,6 +796,12 @@ class MapEditor:
         self.status = "出現候補を反映しました。マップ保存でJSONへ保存してください。"
         return True
 
+    # {
+    #   責務: [remove_spawn: 出現を取り除く]
+    #   処理: [1: 出現を取り除く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def remove_spawn(self) -> None:
         if self.current_spawn is None:
             self.status = "削除する出現候補を一覧で選択してください。"
@@ -484,12 +811,31 @@ class MapEditor:
         self.dirty = True
         self.status = "選択した1件を削除しました。マップ保存で確定します。"
 
+    # {
+    #   責務: [move_camera: カメラを移動する]
+    #   処理: [1: カメラを移動する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     dx: 横方向の移動量（int）
+    #     dy: 縦方向の移動量（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def move_camera(self, dx: int, dy: int) -> None:
         visible_x = GRID_RECT.width // TILE
         visible_y = GRID_RECT.height // TILE
         self.camera_x = max(0, min(int(self.map_data["width"]) - visible_x, self.camera_x + dx))
         self.camera_y = max(0, min(int(self.map_data["height"]) - visible_y, self.camera_y + dy))
 
+    # {
+    #   責務: [select_map: マップを選択する]
+    #   処理: [1: マップを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: マップを選択するための結果（bool）]
+    # }
     def select_map(self, index: int) -> bool:
         if self.dirty:
             self.status = "未保存の変更があります。保存してから一覧で別のマップを選んでください。"
@@ -509,10 +855,22 @@ class MapEditor:
         self.status = f"{self.map_data['display_name']}を一覧から開きました。"
         return True
 
+    # {
+    #   責務: [new_map_fields: マップ・入力項目を新規作成する]
+    #   処理: [1: マップ・入力項目を新規作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・入力項目を新規作成するための結果（list[TextField]）]
+    # }
     @property
     def new_map_fields(self) -> list[TextField]:
         return [self.new_map_id, self.new_map_name, self.new_map_width, self.new_map_height]
 
+    # {
+    #   責務: [open_new_map_dialog: new・マップ・dialogを開く]
+    #   処理: [1: new・マップ・dialogを開く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def open_new_map_dialog(self) -> None:
         if self.dirty:
             self.status = "現在のマップを保存してから新しいマップを作成してください。"
@@ -522,6 +880,12 @@ class MapEditor:
         self.new_map_dialog_open = True
         self.new_map_fill_block = self.selected_block
 
+    # {
+    #   責務: [create_new_map: new・マップを作成する]
+    #   処理: [1: new・マップを作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: new・マップを作成するための結果（bool）]
+    # }
     def create_new_map(self) -> bool:
         try:
             payload = self.repository.create_map(
@@ -550,6 +914,15 @@ class MapEditor:
         self.status = f"{payload['display_name']}を新規作成し、data/maps/{self.map_id}/map.json に保存しました。"
         return True
 
+    # {
+    #   責務: [grid_position: マップ・editorのマス・座標を求める]
+    #   処理: [1: マップ・editorのマス・座標を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: マップ・editorのマス・座標を求めるための結果（tuple[int, int] | None）]
+    # }
     def grid_position(self, position: tuple[int, int]) -> tuple[int, int] | None:
         if not GRID_RECT.collidepoint(position):
             return None
@@ -559,6 +932,15 @@ class MapEditor:
             return grid_x, grid_y
         return None
 
+    # {
+    #   責務: [paint: マップ・editorのpaintを求める]
+    #   処理: [1: マップ・editorのpaintを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: マップ・editorのpaintを求めるための結果（bool）]
+    # }
     def paint(self, position: tuple[int, int]) -> bool:
         grid = self.grid_position(position)
         if grid is None:
@@ -570,6 +952,15 @@ class MapEditor:
             self.status = f"({grid_x}, {grid_y}) に {self.selected_block} を配置。"
         return True
 
+    # {
+    #   責務: [pick_block: マップ・editorのpick・ブロックを求める]
+    #   処理: [1: マップ・editorのpick・ブロックを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     position: 座標（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: マップ・editorのpick・ブロックを求めるための結果（bool）]
+    # }
     def pick_block(self, position: tuple[int, int]) -> bool:
         grid = self.grid_position(position)
         if grid is None:
@@ -579,27 +970,66 @@ class MapEditor:
         self.status = f"({grid_x}, {grid_y}) から {self.selected_block} を選択。"
         return True
 
+    # {
+    #   責務: [transitions: マップ・editorのtransitionsを求める]
+    #   処理: [1: マップ・editorのtransitionsを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・editorのtransitionsを求めるための結果（list[dict]）]
+    # }
     @property
     def transitions(self) -> list[dict]:
         return [event for event in self.map_data.get("events", []) if event.get("type") == "transition"]
 
+    # {
+    #   責務: [use_events: イベント一覧を使用する]
+    #   処理: [1: イベント一覧を使用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: イベント一覧を使用するための結果（list[dict]）]
+    # }
     @property
     def use_events(self) -> list[dict]:
         return [event for event in self.map_data.get("events", []) if event.get("type") == "use_requirement"]
 
+    # {
+    #   責務: [current_use_event: use・イベントを現在の値を参照する]
+    #   処理: [1: use・イベントを現在の値を参照する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: use・イベントを現在の値を参照するための結果（dict | None）]
+    # }
     @property
     def current_use_event(self) -> dict | None:
         return self.use_events[self.selected_use_event] if 0 <= self.selected_use_event < len(self.use_events) else None
 
+    # {
+    #   責務: [use_event_fields: イベント・入力項目を使用する]
+    #   処理: [1: イベント・入力項目を使用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: イベント・入力項目を使用するための結果（list[TextField]）]
+    # }
     @property
     def use_event_fields(self) -> list[TextField]:
         return [self.use_event_id, self.use_event_x, self.use_event_y, self.use_event_radius, self.use_required_id, self.use_effect_text, self.use_effect_item]
 
+    # {
+    #   責務: [open_use_event_dialog: use・イベント・dialogを開く]
+    #   処理: [1: use・イベント・dialogを開く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def open_use_event_dialog(self) -> None:
         self.use_event_dialog_open = True
         if self.use_events and self.selected_use_event < 0:
             self.select_use_event(0)
 
+    # {
+    #   責務: [select_use_event: use・イベントを選択する]
+    #   処理: [1: use・イベントを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_use_event(self, index: int) -> None:
         if not 0 <= index < len(self.use_events):
             return
@@ -616,10 +1046,27 @@ class MapEditor:
         self.use_effect_text.value = str(effect.get("status", item.get("text", "何かが起きた。")))
         self.use_effect_item.value = str(effect.get("item", ""))
 
+    # {
+    #   責務: [select_use_event_brush: use・イベント・brushを選択する]
+    #   処理: [1: use・イベント・brushを選択する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_use_event_brush(self) -> None:
         self.placement_layer = "use_event"
         self.status = "使用イベント: マップをクリックして配置します。"
 
+    # {
+    #   責務: [add_use_event_at: use・イベント・atを追加する]
+    #   処理: [1: use・イベント・atを追加する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     x: X座標（int）
+    #     y: Y座標（int）
+    #     open_editor: open・editor（bool）
+    #   ]
+    #   戻り値: [result: use・イベント・atを追加するための結果（bool）]
+    # }
     def add_use_event_at(self, x: int, y: int, *, open_editor: bool = False) -> bool:
         if any(int(item.get("x", -1)) == x and int(item.get("y", -1)) == y for item in self.use_events):
             self.status = "そのマスには既に使用イベントがあります。"
@@ -637,6 +1084,12 @@ class MapEditor:
         self.dirty = True
         return True
 
+    # {
+    #   責務: [apply_use_event: use・イベントを適用する]
+    #   処理: [1: use・イベントを適用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: use・イベントを適用するための結果（bool）]
+    # }
     def apply_use_event(self) -> bool:
         item = self.current_use_event
         event_id = self.use_event_id.value.strip()
@@ -665,6 +1118,12 @@ class MapEditor:
         self.status = f"使用イベント {event_id} を更新しました。"
         return True
 
+    # {
+    #   責務: [delete_use_event: use・イベントを削除する]
+    #   処理: [1: use・イベントを削除する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def delete_use_event(self) -> None:
         item = self.current_use_event
         if item is None:
@@ -675,19 +1134,46 @@ class MapEditor:
             self.select_use_event(self.selected_use_event)
         self.dirty = True
 
+    # {
+    #   責務: [current_transition: 移動ポイントを現在の値を参照する]
+    #   処理: [1: 移動ポイントを現在の値を参照する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 移動ポイントを現在の値を参照するための結果（dict | None）]
+    # }
     @property
     def current_transition(self) -> dict | None:
         return self.transitions[self.selected_transition] if 0 <= self.selected_transition < len(self.transitions) else None
 
+    # {
+    #   責務: [transition_fields: マップ・editorの移動ポイント・入力項目を求める]
+    #   処理: [1: マップ・editorの移動ポイント・入力項目を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ・editorの移動ポイント・入力項目を求めるための結果（list[TextField]）]
+    # }
     @property
     def transition_fields(self) -> list[TextField]:
         return [self.transition_id, self.transition_x, self.transition_y, self.target_x, self.target_y, self.transition_text]
 
+    # {
+    #   責務: [open_transition_dialog: 移動ポイント・dialogを開く]
+    #   処理: [1: 移動ポイント・dialogを開く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def open_transition_dialog(self) -> None:
         self.transition_dialog_open = True
         if self.transitions and self.selected_transition < 0:
             self.select_transition(0)
 
+    # {
+    #   責務: [select_transition: 移動ポイントを選択する]
+    #   処理: [1: 移動ポイントを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_transition(self, index: int) -> None:
         if not 0 <= index < len(self.transitions):
             return
@@ -708,21 +1194,57 @@ class MapEditor:
         self.target_y.value = str(target.get("y", 0))
         self.transition_text.value = str(item.get("text", "移動しました。"))
 
+    # {
+    #   責務: [begin_transition_placement: 移動ポイント・placementを開始する]
+    #   処理: [1: 移動ポイント・placementを開始する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def begin_transition_placement(self) -> None:
         self.transition_dialog_open = False
         self.select_transition_brush("step")
 
+    # {
+    #   責務: [select_block_brush: ブロック・brushを選択する]
+    #   処理: [1: ブロック・brushを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     block_id: ブロック・識別子（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_block_brush(self, block_id: str) -> None:
         self.selected_block = block_id
         self.placement_layer = "block"
         self.status = f"地形ブロック {block_id} を選択しました。"
 
+    # {
+    #   責務: [select_transition_brush: 移動ポイント・brushを選択する]
+    #   処理: [1: 移動ポイント・brushを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     activation: activation（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_transition_brush(self, activation: str) -> None:
         self.placement_layer = "transition"
         self.transition_brush_activation = activation
         label = "触れたら" if activation == "step" else "調べたら"
         self.status = f"移動ポイント［{label}］を選択しました。地形に重ねて配置できます。"
 
+    # {
+    #   責務: [add_transition_at: 移動ポイント・atを追加する]
+    #   処理: [1: 移動ポイント・atを追加する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     x: X座標（int）
+    #     y: Y座標（int）
+    #     activation: activation（str | None）
+    #     open_editor: open・editor（bool）
+    #   ]
+    #   戻り値: [result: 移動ポイント・atを追加するための結果（bool）]
+    # }
     def add_transition_at(self, x: int, y: int, activation: str | None = None, *, open_editor: bool = False) -> bool:
         activation = activation or self.transition_brush_activation
         if any(int(item.get("x", -1)) == int(x) and int(item.get("y", -1)) == int(y) and item.get("activation", "step") == activation for item in self.transitions):
@@ -745,6 +1267,15 @@ class MapEditor:
         self.status = f"({x}, {y}) に移動ポイント［{label}］を地形へ重ねて配置しました。"
         return True
 
+    # {
+    #   責務: [set_transition_activation: 移動ポイント・activationを設定する]
+    #   処理: [1: 移動ポイント・activationを設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     activation: activation（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def set_transition_activation(self, activation: str) -> None:
         if not self.current_transition:
             self.status = "先に移動ポイントを選択してください。"
@@ -752,6 +1283,15 @@ class MapEditor:
         self.current_transition["activation"] = activation
         self.dirty = True
 
+    # {
+    #   責務: [set_transition_target: 移動ポイント・対象を設定する]
+    #   処理: [1: 移動ポイント・対象を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     map_id: マップ・識別子（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def set_transition_target(self, map_id: str) -> None:
         if not self.current_transition:
             self.status = "先に移動ポイントを選択してください。"
@@ -759,6 +1299,12 @@ class MapEditor:
         self.current_transition.setdefault("target", {})["map_id"] = map_id
         self.dirty = True
 
+    # {
+    #   責務: [apply_transition: 移動ポイントを適用する]
+    #   処理: [1: 移動ポイントを適用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 移動ポイントを適用するための結果（bool）]
+    # }
     def apply_transition(self) -> bool:
         item = self.current_transition
         if not item:
@@ -792,6 +1338,12 @@ class MapEditor:
         self.status = f"移動ポイント {event_id} の編集を反映しました。"
         return True
 
+    # {
+    #   責務: [delete_transition: 移動ポイントを削除する]
+    #   処理: [1: 移動ポイントを削除する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def delete_transition(self) -> None:
         item = self.current_transition
         if not item:
@@ -806,6 +1358,12 @@ class MapEditor:
         self.status = f"移動ポイント {event_id} を削除しました。"
 
 
+# {
+#   責務: [main: マップ・editorのエントリ処理を実行する]
+#   処理: [1: マップ・editorのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     screen = init_pygame("kadoka quest - マップエディタ", (1200, 760))
     clock = pygame.time.Clock()

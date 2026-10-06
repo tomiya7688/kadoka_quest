@@ -1,3 +1,7 @@
+# {
+#   責務: [battle: 戦闘の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import random
@@ -30,7 +34,43 @@ NORMAL_ATTACK_CRITICAL_CHANCE = 1 / 16
 MULTI_TARGET_MARKERS = {"all", "all_enemies", "all_foes", "enemies", "foes"}
 
 
+# {
+#   責務: [BattleEngine: 個体AIの戦闘行動・資源変化・終了状態とログを管理する]
+#   フィールド: [
+#     repository: データ取得先
+#     rng: 乱数供給元
+#     learning_enabled: AI学習と対応する野生行動を有効にする設定
+#     encounter_context: 野生遭遇などの行動文脈。模擬戦ではNone
+#     data_loader: 戦闘用個体と種族定義を組み立てる読込依存
+#     skill_catalog: 共有スキル定義
+#     equipment_catalog: 共有装備定義
+#     inference: AIのスキル選択依存
+#     learning: 行動結果を学習へ反映する依存
+#     allies: 味方
+#     enemies: 敵
+#     log: ログ（list[str]）
+#     round_number: 実行済みラウンド数
+#     outcome: 勝敗/逃走/スカウト等の終了状態
+#   ]
+# }
 class BattleEngine:
+    # {
+    #   責務: [__init__: 戦闘・ルール処理が利用する初期状態と依存を設定する]
+    #   処理: [1: 戦闘・ルール処理が利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     repository: データ取得先（GameRepository）
+    #     allies: 味方（list[MonsterRecord]）
+    #     enemies: 敵（list[MonsterRecord]）
+    #     rng: 乱数供給元（random.Random | None）
+    #     learning_enabled: 学習・enabled（bool）
+    #     data_loader: データ・loader（BattleDataLoader | None）
+    #     inference: inference（BattleInference | None）
+    #     learning: 学習（BattleLearning | None）
+    #     encounter_context: encounter・判断用コンテキスト（str | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(
         self,
         repository: GameRepository,
@@ -58,22 +98,50 @@ class BattleEngine:
         self.round_number = 0
         self.outcome: str | None = None
 
+    # {
+    #   責務: [_living: 戦闘・ルール処理のlivingを求める]
+    #   処理: [1: 戦闘・ルール処理のlivingを求める]
+    #   引数: [team: チーム（list[Combatant]）]
+    #   戻り値: [result: 戦闘・ルール処理のlivingを求めるための結果（list[Combatant]）]
+    # }
     @staticmethod
     def _living(team: list[Combatant]) -> list[Combatant]:
         return [member for member in team if member.alive]
 
+    # {
+    #   責務: [_status_is_removable: 戦闘・ルール処理の状態異常・is・removableを求める]
+    #   処理: [1: 戦闘・ルール処理の状態異常・is・removableを求める]
+    #   引数: [effect: 効果（dict[str, Any] | str）]
+    #   戻り値: [result: 戦闘・ルール処理の状態異常・is・removableを求めるための結果（bool）]
+    # }
     @staticmethod
     def _status_is_removable(effect: dict[str, Any] | str) -> bool:
         if isinstance(effect, dict):
             return bool(effect.get("removable", True))
         return True
 
+    # {
+    #   責務: [_status_display_name: 戦闘・ルール処理の状態異常・display・名前を求める]
+    #   処理: [1: 戦闘・ルール処理の状態異常・display・名前を求める]
+    #   引数: [effect: 効果（dict[str, Any] | str）]
+    #   戻り値: [result: 戦闘・ルール処理の状態異常・display・名前を求めるための結果（str）]
+    # }
     @staticmethod
     def _status_display_name(effect: dict[str, Any] | str) -> str:
         if isinstance(effect, dict):
             return str(effect.get("display_name") or effect.get("id") or "状態異常")
         return str(effect)
 
+    # {
+    #   責務: [_try_cure_status: cure・状態異常を実行可能な場合に処理する]
+    #   処理: [1: cure・状態異常を実行可能な場合に処理する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     target: 対象（Combatant）
+    #     chance: chance（float）
+    #   ]
+    #   戻り値: [result: cure・状態異常を実行可能な場合に処理するための結果（str | None）]
+    # }
     def _try_cure_status(self, target: Combatant, chance: float) -> str | None:
         candidate = next(
             (
@@ -91,6 +159,16 @@ class BattleEngine:
         del target.status_effects[index]
         return self._status_display_name(effect)
 
+    # {
+    #   責務: [_try_apply_status: apply・状態異常を実行可能な場合に処理する]
+    #   処理: [1: apply・状態異常を実行可能な場合に処理する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     target: 対象（Combatant）
+    #     effect: 効果（dict[str, Any]）
+    #   ]
+    #   戻り値: [result: apply・状態異常を実行可能な場合に処理するための結果（bool）]
+    # }
     def _try_apply_status(self, target: Combatant, effect: dict[str, Any]) -> bool:
         status_id = str(effect.get("id", "")).strip()
         if not status_id or has_status(target.status_effects, status_id):
@@ -117,6 +195,15 @@ class BattleEngine:
         self.log.append(f"{target.name}は{display_name}状態になった。")
         return True
 
+    # {
+    #   責務: [_tick_end_turn_status: end・ターン・状態異常を時間経過を反映する]
+    #   処理: [1: end・ターン・状態異常を時間経過を反映する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     target: 対象（Combatant）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _tick_end_turn_status(self, target: Combatant) -> None:
         if not target.alive:
             return
@@ -132,6 +219,15 @@ class BattleEngine:
             if not target.alive:
                 break
 
+    # {
+    #   責務: [_buff_duration: 戦闘・ルール処理のbuff・継続時間を求める]
+    #   処理: [1: 戦闘・ルール処理のbuff・継続時間を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     skill: スキル（dict[str, Any]）
+    #   ]
+    #   戻り値: [result: 戦闘・ルール処理のbuff・継続時間を求めるための結果（int | None）]
+    # }
     def _buff_duration(self, skill: dict[str, Any]) -> int | None:
         raw = skill.get("duration")
         if raw is None:
@@ -145,6 +241,17 @@ class BattleEngine:
         except (TypeError, ValueError):
             return None
 
+    # {
+    #   責務: [_apply_multiplier: multiplierを適用する]
+    #   処理: [1: multiplierを適用する]
+    #   引数: [
+    #     target: 対象（Combatant）
+    #     attribute: attribute（str）
+    #     multiplier: multiplier（float）
+    #     duration: 継続時間（int | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @staticmethod
     def _apply_multiplier(
         target: Combatant,
@@ -170,6 +277,12 @@ class BattleEngine:
         )
         setattr(target, attribute, max(current, multiplier))
 
+    # {
+    #   責務: [_tick_timed_buffs: timed・buffsを時間経過を反映する]
+    #   処理: [1: timed・buffsを時間経過を反映する]
+    #   引数: [target: 対象（Combatant）]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @staticmethod
     def _tick_timed_buffs(target: Combatant) -> None:
         for attribute in list(target.timed_buff_turns):
@@ -181,12 +294,29 @@ class BattleEngine:
             setattr(target, attribute, baseline)
             del target.timed_buff_turns[attribute]
 
+    # {
+    #   責務: [_is_single_target_attack: single・対象・攻撃を該当するか判定する]
+    #   処理: [1: single・対象・攻撃を該当するか判定する]
+    #   引数: [skill: スキル（dict[str, Any]）]
+    #   戻り値: [result: single・対象・攻撃を該当するか判定するための結果（bool）]
+    # }
     @staticmethod
     def _is_single_target_attack(skill: dict[str, Any]) -> bool:
         if bool(skill.get("aoe")) or bool(skill.get("target_all")) or bool(skill.get("all_targets")):
             return False
         return str(skill.get("target", "single")) not in MULTI_TARGET_MARKERS
 
+    # {
+    #   責務: [_resolve_attack_target: 攻撃・対象を解決する]
+    #   処理: [1: 攻撃・対象を解決する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     intended: intended（Combatant）
+    #     defenders: defenders（list[Combatant]）
+    #     skill: スキル（dict[str, Any]）
+    #   ]
+    #   戻り値: [result: 攻撃・対象を解決するための結果（Combatant）]
+    # }
     def _resolve_attack_target(
         self,
         intended: Combatant,
@@ -208,10 +338,28 @@ class BattleEngine:
         self.log.append(f"{protector.name}が{intended.name}をかばった。")
         return protector
 
+    # {
+    #   責務: [_counter_skill: 戦闘・ルール処理のcounter・スキルを求める]
+    #   処理: [1: 戦闘・ルール処理のcounter・スキルを求める]
+    #   引数: [actor: 行動個体（Combatant）]
+    #   戻り値: [result: 戦闘・ルール処理のcounter・スキルを求めるための結果（dict[str, Any] | None）]
+    # }
     @staticmethod
     def _counter_skill(actor: Combatant) -> dict[str, Any] | None:
         return next((skill for skill in actor.skills if str(skill.get("id")) == "attack"), None)
 
+    # {
+    #   責務: [_resolve_counter: counterを解決する]
+    #   処理: [1: counterを解決する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     defender: defender（Combatant）
+    #     attacker: attacker（Combatant）
+    #     incoming_skill: incoming・スキル（dict[str, Any]）
+    #     dealt: dealt（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _resolve_counter(
         self,
         defender: Combatant,
@@ -229,6 +377,12 @@ class BattleEngine:
         self.log.append(f"{defender.name}が反撃！")
         self._attack(defender, attacker, counter_skill, allow_counter=False)
 
+    # {
+    #   責務: [_check_end: endを検査する]
+    #   処理: [1: endを検査する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _check_end(self) -> None:
         if not self._living(self.enemies):
             if self.enemies and all(member.fled for member in self.enemies):
@@ -241,6 +395,16 @@ class BattleEngine:
             self.outcome = "defeat"
             self.log.append("パーティは戦闘不能になった。")
 
+    # {
+    #   責務: [run_round: 生存個体の速度順に戦闘行動を実行しラウンド末の一時効果を解除する]
+    #   処理: [
+    #     1: 生存参加者をshuffleして速度順に並べる
+    #     2: 行動直前に最新生存と敵の有無を確認し行動・終了判定を進める
+    #     3: 全参加者の防御・回避・反撃等のラウンド限定状態を解除する
+    #   ]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 今回追加された戦闘ログ。戦闘状態も更新する]
+    # }
     def run_round(self) -> list[str]:
         if self.outcome:
             return []
@@ -278,6 +442,15 @@ class BattleEngine:
             self._tick_timed_buffs(member)
         return self.log[start_index:]
 
+    # {
+    #   責務: [_try_enemy_flee: 敵・fleeを実行可能な場合に処理する]
+    #   処理: [1: 敵・fleeを実行可能な場合に処理する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actor: 行動個体（Combatant）
+    #   ]
+    #   戻り値: [result: 敵・fleeを実行可能な場合に処理するための結果（bool）]
+    # }
     def _try_enemy_flee(self, actor: Combatant) -> bool:
         # Only explicitly contextualized wild battles opt in; simulations do not.
         if not actor.alive or not self.learning_enabled or self.encounter_context is None:
@@ -292,6 +465,17 @@ class BattleEngine:
         self.log.append(f"{actor.name}は逃げ出した！")
         return True
 
+    # {
+    #   責務: [_take_action: actionを反映する]
+    #   処理: [1: actionを反映する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actor: 行動個体（Combatant）
+    #     foes: foes（list[Combatant]）
+    #     friends: friends（list[Combatant]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _take_action(self, actor: Combatant, foes: list[Combatant], friends: list[Combatant]) -> None:
         usable = [skill for skill in actor.skills if int(skill.get("mp_cost", 0)) <= actor.mp]
         if actor.physical_locked:
@@ -392,6 +576,26 @@ class BattleEngine:
         if self.learning_enabled:
             self.learning.learn(actor.record.ai, str(chosen["id"]), reward, context_tags)
 
+    # {
+    #   責務: [
+    #     _attack: 攻撃種別に応じて回避・会心・耐性・HP/MP・追加効果を解決する
+    #   ]
+    #   処理: [
+    #     1: 乱数攻撃と回避を解決し、魔法耐性または物理の防御/会心で基礎ダメージを求める
+    #     2: 装備追加、物理限定guard、無効/吸収/最低ダメージを適用してHPを更新する
+    #     3: 代償HP、MP吸収、状態異常、許可された反撃と撃破ログを反映する
+    #   ]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actor: 行動個体（Combatant）
+    #     target: 対象（Combatant）
+    #     skill: スキル（dict[str, Any]）
+    #     allow_counter: allow・counter（bool）
+    #   ]
+    #   戻り値: [
+    #     result: 実HP減少を対象最大HPで割った比率。吸収回復時は負の値
+    #   ]
+    # }
     def _attack(
         self,
         actor: Combatant,
@@ -494,6 +698,16 @@ class BattleEngine:
             self.log.append(str(message or f"{target.name}はたおれた！"))
         return dealt / max(1, target.stats["hp"])
 
+    # {
+    #   責務: [try_scout: scoutを実行可能な場合に処理する]
+    #   処理: [1: scoutを実行可能な場合に処理する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     multiplier: multiplier（float）
+    #     fixed_bonus: fixed・bonus（float）
+    #   ]
+    #   戻り値: [result: scoutを実行可能な場合に処理するための結果（tuple[bool, MonsterRecord | None, float]）]
+    # }
     def try_scout(self, multiplier: float = 1.0, fixed_bonus: float = 0.0) -> tuple[bool, MonsterRecord | None, float]:
         if self.outcome:
             return False, None, 0.0
@@ -514,12 +728,24 @@ class BattleEngine:
             self.outcome = "scouted"
         return success, target.record if success else None, chance
 
+    # {
+    #   責務: [use_party_item: パーティ・アイテムを使用する]
+    #   処理: [1: パーティ・アイテムを使用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def use_party_item(self) -> None:
         for member in self._living(self.allies):
             amount = max(1, int(member.stats["hp"] * 0.2))
             member.hp = min(member.stats["hp"], member.hp + amount)
         self.log.append("みかんを分けた。パーティのHPが回復した。")
 
+    # {
+    #   責務: [try_run: runを実行可能な場合に処理する]
+    #   処理: [1: runを実行可能な場合に処理する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: success（bool）]
+    # }
     def try_run(self) -> bool:
         success = self.rng.random() < 0.7
         self.log.append("逃げ切った。" if success else "逃げられなかった。")
@@ -527,6 +753,12 @@ class BattleEngine:
             self.outcome = "escaped"
         return success
 
+    # {
+    #   責務: [mark_battle_complete: 戦闘・completeを状態を記録する]
+    #   処理: [1: 戦闘・completeを状態を記録する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def mark_battle_complete(self) -> None:
         if not self.learning_enabled:
             return

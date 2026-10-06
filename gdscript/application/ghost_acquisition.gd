@@ -1,3 +1,7 @@
+# {
+#   責務: [ghost_acquisition: Coordinate validated missing-only acquisition and a guarded flag save, never render.]
+#   フィールド: [persistence: persistence（RefCounted）]
+# }
 extends RefCounted
 ## Coordinate validated missing-only acquisition and a guarded flag save, never render.
 const Policy = preload("res://engine/ghost_acquisition.gd")
@@ -7,10 +11,22 @@ const Reconstruction = preload("res://application/monster_reconstruction.gd")
 var persistence: RefCounted
 
 
+# {
+#   責務: [_init: おばけ・acquisitionが利用する初期状態と依存を設定する]
+#   処理: [1: おばけ・acquisitionが利用する初期状態と依存を設定する]
+#   引数: [field_persistence: フィールド・persistence（RefCounted）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(field_persistence: RefCounted) -> void:
 	persistence = field_persistence
 
 
+# {
+#   責務: [begin: おばけ・acquisitionを開始する]
+#   処理: [1: おばけ・acquisitionを開始する]
+#   引数: []
+#   戻り値: [result: おばけ・acquisitionを開始するための結果（Dictionary）]
+# }
 func begin() -> Dictionary:
 	var loaded: Dictionary = persistence.load_position()
 	if not loaded["ok"] and loaded.get("error") == "not_found":
@@ -18,6 +34,12 @@ func begin() -> Dictionary:
 	return loaded
 
 
+# {
+#   責務: [acquire: おばけ・acquisitionのacquireを求める]
+#   処理: [1: おばけ・acquisitionのacquireを求める]
+#   引数: [request: 要求（Dictionary）]
+#   戻り値: [result: おばけ・acquisitionのacquireを求めるための結果（Dictionary）]
+# }
 func acquire(request: Dictionary) -> Dictionary:
 	var created: Array = []
 	if not request.get("ok", false):
@@ -54,6 +76,12 @@ func acquire(request: Dictionary) -> Dictionary:
 	return _commit_flag(request, plan["state"], created)
 
 
+# {
+#   責務: [_prepare_records: 個体レコード一覧を準備する]
+#   処理: [1: 個体レコード一覧を準備する]
+#   引数: [missing: missing（Array）]
+#   戻り値: [result: 個体レコード一覧を準備するための結果（Dictionary）]
+# }
 func _prepare_records(missing: Array) -> Dictionary:
 	var records: Array = []
 	var reconstruction = Reconstruction.new(persistence.repository)
@@ -73,6 +101,16 @@ func _prepare_records(missing: Array) -> Dictionary:
 	return {"ok": true, "records": records}
 
 
+# {
+#   責務: [_commit_flag: おばけ・acquisitionのcommit・フラグを求める]
+#   処理: [1: おばけ・acquisitionのcommit・フラグを求める]
+#   引数: [
+#     request: 要求（Dictionary）
+#     state: 状態（Dictionary）
+#     created: created（Array）
+#   ]
+#   戻り値: [result: おばけ・acquisitionのcommit・フラグを求めるための結果（Dictionary）]
+# }
 func _commit_flag(request: Dictionary, state: Dictionary, created: Array) -> Dictionary:
 	var current := _unchanged(request)
 	if not current["ok"]:
@@ -101,6 +139,12 @@ func _commit_flag(request: Dictionary, state: Dictionary, created: Array) -> Dic
 		"message": "へいわなすみか。" + (" 牧場に " + "・".join(names) + " が増えました。" if not names.is_empty() else " 2匹とも既にいます。")}
 
 
+# {
+#   責務: [_unchanged: おばけ・acquisitionのunchangedを求める]
+#   処理: [1: おばけ・acquisitionのunchangedを求める]
+#   引数: [request: 要求（Dictionary）]
+#   戻り値: [result: おばけ・acquisitionのunchangedを求めるための結果（Dictionary）]
+# }
 func _unchanged(request: Dictionary) -> Dictionary:
 	var current: Dictionary = persistence.load_position()
 	if current["ok"] and current["digest"] != request["digest"]:
@@ -108,6 +152,12 @@ func _unchanged(request: Dictionary) -> Dictionary:
 	return current
 
 
+# {
+#   責務: [_read_owned: ownedを読み取る]
+#   処理: [1: ownedを読み取る]
+#   引数: [state: 状態（Dictionary）]
+#   戻り値: [result: ownedを読み取るための結果（Dictionary）]
+# }
 func _read_owned(state: Dictionary) -> Dictionary:
 	var result: Dictionary = persistence.roster.read_snapshot(state)
 	if result["ok"] and not result["warnings"].is_empty():
@@ -115,6 +165,12 @@ func _read_owned(state: Dictionary) -> Dictionary:
 	return result
 
 
+# {
+#   責務: [_verify_owned: おばけ・acquisitionのverify・ownedを求める]
+#   処理: [1: おばけ・acquisitionのverify・ownedを求める]
+#   引数: [state: 状態（Dictionary）]
+#   戻り値: [result: おばけ・acquisitionのverify・ownedを求めるための結果（Dictionary）]
+# }
 func _verify_owned(state: Dictionary) -> Dictionary:
 	var result := _read_owned(state)
 	if result["ok"] and not Policy.missing_species(result["records"]).is_empty():
@@ -122,10 +178,27 @@ func _verify_owned(state: Dictionary) -> Dictionary:
 	return result
 
 
+# {
+#   責務: [_monster_store: おばけ・acquisitionのモンスター・保存先を求める]
+#   処理: [1: おばけ・acquisitionのモンスター・保存先を求める]
+#   引数: [path: パス（String）]
+#   戻り値: [result: おばけ・acquisitionのモンスター・保存先を求めるための結果（RefCounted）]
+# }
 func _monster_store(path: String) -> RefCounted:
 	return MonsterStore.new(path)
 
 
+# {
+#   責務: [_failure: おばけ・acquisitionのfailureを求める]
+#   処理: [1: おばけ・acquisitionのfailureを求める]
+#   引数: [
+#     reason: 理由（Dictionary）
+#     created: created（Array）
+#     saved: saved（bool）
+#     stage: stage（String）
+#   ]
+#   戻り値: [result: おばけ・acquisitionのfailureを求めるための結果（Dictionary）]
+# }
 static func _failure(reason: Dictionary, created: Array, saved: bool, stage: String) -> Dictionary:
 	var partial := not created.is_empty() or saved
 	var message := "取得を完了できません: " + str(reason.get("message", "理由不明"))

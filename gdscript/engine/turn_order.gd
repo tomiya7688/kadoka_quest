@@ -1,3 +1,7 @@
+# {
+#   責務: [turn_order: Pure base-speed ordering and latest-resource eligibility. No turns executed here.]
+#   フィールド: []
+# }
 extends RefCounted
 ## Pure base-speed ordering and latest-resource eligibility. No turns executed here.
 
@@ -9,6 +13,15 @@ const IDENTITY_KEYS := ["id", "species_id", "name"]
 const ACTIVE_TEAM_LIMIT := 4
 
 
+# {
+#   責務: [participants: ターン・順序のparticipantsを求める]
+#   処理: [1: ターン・順序のparticipantsを求める]
+#   引数: [
+#     allies: 味方（Variant）
+#     enemies: 敵（Variant）
+#   ]
+#   戻り値: [result: ターン・順序のparticipantsを求めるための結果（Dictionary）]
+# }
 static func participants(allies: Variant, enemies: Variant) -> Dictionary:
 	var prepared := _prepare(allies, enemies)
 	if not prepared["ok"]:
@@ -16,10 +29,26 @@ static func participants(allies: Variant, enemies: Variant) -> Dictionary:
 	return {"ok": true, "members": _keys(prepared)}
 
 
+# {
+#   責務: [valid_key: ターン・順序のvalid・キーを求める]
+#   処理: [1: ターン・順序のvalid・キーを求める]
+#   引数: [key: キー（Variant）]
+#   戻り値: [result: ターン・順序のvalid・キーを求めるための結果（bool）]
+# }
 static func valid_key(key: Variant) -> bool:
 	return _valid_key(key)
 
 
+# {
+#   責務: [plan: ターン・順序を計画する]
+#   処理: [1: ターン・順序を計画する]
+#   引数: [
+#     allies: 味方（Variant）
+#     enemies: 敵（Variant）
+#     shuffle_order: 並べ替え・順序（Variant）
+#   ]
+#   戻り値: [result: ターン・順序を計画するための結果（Dictionary）]
+# }
 static func plan(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Dictionary:
 	var prepared := _prepare(allies, enemies)
 	if not prepared["ok"]:
@@ -49,6 +78,16 @@ static func plan(allies: Variant, enemies: Variant, shuffle_order: Variant) -> D
 	return {"ok": true, "initial": initial, "order": order, "scope": "base_turn_order"}
 
 
+# {
+#   責務: [check_actor: 行動個体を検査する]
+#   処理: [1: 行動個体を検査する]
+#   引数: [
+#     key: キー（Variant）
+#     allies: 味方（Variant）
+#     enemies: 敵（Variant）
+#   ]
+#   戻り値: [result: 行動個体を検査するための結果（Dictionary）]
+# }
 static func check_actor(key: Variant, allies: Variant, enemies: Variant) -> Dictionary:
 	if not _valid_key(key):
 		return {"ok": false, "reason": "invalid_actor_key"}
@@ -66,6 +105,15 @@ static func check_actor(key: Variant, allies: Variant, enemies: Variant) -> Dict
 		"actor": key.duplicate(true), "friends": friends["living"].duplicate(true), "foes": foes.duplicate(true)}
 
 
+# {
+#   責務: [_prepare: ターン・順序を準備する]
+#   処理: [1: ターン・順序を準備する]
+#   引数: [
+#     allies: 味方（Variant）
+#     enemies: 敵（Variant）
+#   ]
+#   戻り値: [result: ターン・順序を準備するための結果（Dictionary）]
+# }
 static func _prepare(allies: Variant, enemies: Variant) -> Dictionary:
 	var teams: Dictionary = {}
 	for side in SIDES:
@@ -88,6 +136,12 @@ static func _prepare(allies: Variant, enemies: Variant) -> Dictionary:
 	return {"ok": true, "teams": teams}
 
 
+# {
+#   責務: [_keys: ターン・順序のキー一覧を求める]
+#   処理: [1: ターン・順序のキー一覧を求める]
+#   引数: [prepared: prepared（Dictionary）]
+#   戻り値: [result: ターン・順序のキー一覧を求めるための結果（Array）]
+# }
 static func _keys(prepared: Dictionary) -> Array:
 	var keys: Array = []
 	for side in SIDES:
@@ -96,12 +150,27 @@ static func _keys(prepared: Dictionary) -> Array:
 	return keys
 
 
+# {
+#   責務: [_valid_key: ターン・順序のvalid・キーを求める]
+#   処理: [1: ターン・順序のvalid・キーを求める]
+#   引数: [key: キー（Variant）]
+#   戻り値: [result: ターン・順序のvalid・キーを求めるための結果（bool）]
+# }
 static func _valid_key(key: Variant) -> bool:
 	return key is Dictionary and _exact_keys(key, ["side", "id"]) \
 		and key.get("side") is String and key["side"] in SIDES \
 		and key.get("id") is String and Records.safe_id(key["id"])
 
 
+# {
+#   責務: [_exact_keys: ターン・順序のexact・キー一覧を求める]
+#   処理: [1: ターン・順序のexact・キー一覧を求める]
+#   引数: [
+#     value: 値（Dictionary）
+#     expected: expected（Array）
+#   ]
+#   戻り値: [result: ターン・順序のexact・キー一覧を求めるための結果（bool）]
+# }
 static func _exact_keys(value: Dictionary, expected: Array) -> bool:
 	if value.size() != expected.size():
 		return false

@@ -1,3 +1,7 @@
+# {
+#   責務: [monster_store: Read individual folders; publish only entirely new two-document folders.]
+#   フィールド: [root: 基準ディレクトリ（String）]
+# }
 extends RefCounted
 ## Read individual folders; publish only entirely new two-document folders.
 
@@ -6,10 +10,22 @@ const Contract = preload("res://engine/monster_record_contract.gd")
 var root: String
 
 
+# {
+#   責務: [_init: モンスター・保存先が利用する初期状態と依存を設定する]
+#   処理: [1: モンスター・保存先が利用する初期状態と依存を設定する]
+#   引数: [profile_path: プロファイル・パス（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(profile_path: String) -> void:
 	root = profile_path.path_join("monsters")
 
 
+# {
+#   責務: [scan_documents: 文書一覧を再走査する]
+#   処理: [1: 文書一覧を再走査する]
+#   引数: []
+#   戻り値: [result: 文書一覧を再走査するための結果（Dictionary）]
+# }
 func scan_documents() -> Dictionary:
 	var entries: Array = []
 	var warnings: Array = []
@@ -42,6 +58,12 @@ func scan_documents() -> Dictionary:
 	return {"ok": true, "entries": entries, "warnings": warnings}
 
 
+# {
+#   責務: [create_new: newを作成する]
+#   処理: [1: newを作成する]
+#   引数: [record: 個体レコード（Dictionary）]
+#   戻り値: [result: newを作成するための結果（Dictionary）]
+# }
 func create_new(record: Dictionary) -> Dictionary:
 	var id: String = record["monster"]["id"]
 	if not Contract.safe_id(id):
@@ -66,6 +88,12 @@ func create_new(record: Dictionary) -> Dictionary:
 	return {"ok": true, "id": id}
 
 
+# {
+#   責務: [_discard_staging: モンスター・保存先のdiscard・stagingを求める]
+#   処理: [1: モンスター・保存先のdiscard・stagingを求める]
+#   引数: [path: パス（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 static func _discard_staging(path: String) -> void:
 	# Only the two files in this invocation's newly created staging folder, never recursive.
 	for filename in ["monster.json", "ai.json"]:

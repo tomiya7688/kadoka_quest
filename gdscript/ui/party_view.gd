@@ -1,3 +1,14 @@
+# {
+#   責務: [party_view: Selection/focus and draft projection only. All changes/save requests are signals.]
+#   フィールド: [
+#     presets_button: プリセット一覧・button（Button）
+#     slots: 編成枠一覧（ItemList）
+#     owned: owned（ItemList）
+#     heading: heading（Label）
+#     message: message（Label）
+#     buttons: buttons（Dictionary）
+#   ]
+# }
 extends PanelContainer
 ## Selection/focus and draft projection only. All changes/save requests are signals.
 
@@ -13,6 +24,12 @@ var message: Label
 var buttons: Dictionary = {}
 
 
+# {
+#   責務: [_ready: パーティ・表示のエントリ処理を実行する]
+#   処理: [1: パーティ・表示のエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _ready() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("#091329")
@@ -59,6 +76,15 @@ func _ready() -> void:
 		focus_order[index].focus_previous = focus_order[index].get_path_to(focus_order[(index - 1 + focus_order.size()) % focus_order.size()])
 
 
+# {
+#   責務: [_list: パーティ・表示を列挙する]
+#   処理: [1: パーティ・表示を列挙する]
+#   引数: [
+#     parent: parent（Control）
+#     width: 幅（float）
+#   ]
+#   戻り値: [result: パーティ・表示を列挙するための結果（ItemList）]
+# }
 func _list(parent: Control, width: float) -> ItemList:
 	var list := ItemList.new()
 	list.custom_minimum_size = Vector2(width, 120)
@@ -71,6 +97,17 @@ func _list(parent: Control, width: float) -> ItemList:
 	return list
 
 
+# {
+#   責務: [_button: パーティ・表示のbuttonを求める]
+#   処理: [1: パーティ・表示のbuttonを求める]
+#   引数: [
+#     parent: parent（Control）
+#     id: 識別子（String）
+#     text: 文字列（String）
+#     callback: コールバック（Callable）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _button(parent: Control, id: String, text: String, callback: Callable) -> void:
 	var button := Button.new()
 	button.text = text
@@ -80,6 +117,15 @@ func _button(parent: Control, id: String, text: String, callback: Callable) -> v
 	buttons[id] = button
 
 
+# {
+#   責務: [show_snapshot: パーティ・表示のshow・独立した状態の写しを求める]
+#   処理: [1: パーティ・表示のshow・独立した状態の写しを求める]
+#   引数: [
+#     snapshot: 独立した状態の写し（Dictionary）
+#     rebuild_owned: rebuild・owned（bool）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func show_snapshot(snapshot: Dictionary, rebuild_owned: bool = false) -> void:
 	heading.text = "現在パーティの編成" + ("（未保存）" if snapshot["dirty"] else "")
 	var selected := slots.get_selected_items()
@@ -109,10 +155,22 @@ func show_snapshot(snapshot: Dictionary, rebuild_owned: bool = false) -> void:
 		slots.grab_focus.call_deferred()
 
 
+# {
+#   責務: [_summary: パーティ・表示のsummaryを求める]
+#   処理: [1: パーティ・表示のsummaryを求める]
+#   引数: [record: 個体レコード（Dictionary）]
+#   戻り値: [result: パーティ・表示のsummaryを求めるための結果（String）]
+# }
 static func _summary(record: Dictionary) -> String:
 	return "%s（%s） Lv.%d" % [record["monster"]["name"], record["species"].get("display_name", ""), int(record["monster"].get("level", 1))]
 
 
+# {
+#   責務: [assign_selected: パーティ・表示のassign・選択中を求める]
+#   処理: [1: パーティ・表示のassign・選択中を求める]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func assign_selected() -> void:
 	var selected := owned.get_selected_items()
 	if selected.is_empty():
@@ -121,10 +179,22 @@ func assign_selected() -> void:
 	assigned.emit(_selected_slot(), owned.get_item_metadata(selected[0]))
 
 
+# {
+#   責務: [clear_selected: 選択中を消去する]
+#   処理: [1: 選択中を消去する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func clear_selected() -> void:
 	assigned.emit(_selected_slot(), null)
 
 
+# {
+#   責務: [handle_navigation: navigationを入力を処理する]
+#   処理: [1: navigationを入力を処理する]
+#   引数: [key: キー（int）]
+#   戻り値: [result: navigationを入力を処理するための結果（bool）]
+# }
 func handle_navigation(key: int) -> bool:
 	var focused := get_viewport().gui_get_focus_owner()
 	if focused != slots and focused != owned:
@@ -146,6 +216,12 @@ func handle_navigation(key: int) -> bool:
 	return true
 
 
+# {
+#   責務: [_selected_slot: パーティ・表示の選択中・編成枠を求める]
+#   処理: [1: パーティ・表示の選択中・編成枠を求める]
+#   引数: []
+#   戻り値: [result: パーティ・表示の選択中・編成枠を求めるための結果（int）]
+# }
 func _selected_slot() -> int:
 	var selected := slots.get_selected_items()
 	return selected[0] if not selected.is_empty() else -1

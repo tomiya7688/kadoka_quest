@@ -1,4 +1,8 @@
 """Issue #202: Given/When/Then journeys through Player input and real stores."""
+# {
+#   責務: [test_field_journeys: Issue #202: Given/When/Then journeys through Player input and real stores.]
+#   フィールド: []
+# }
 
 import json
 
@@ -7,23 +11,53 @@ import pytest
 from .harness import PROJECT_ROOT
 
 
+# {
+#   責務: [tap: test・フィールド・journeysのtapを求める]
+#   処理: [1: test・フィールド・journeysのtapを求める]
+#   引数: [key: キー]
+#   戻り値: [result: test・フィールド・journeysのtapを求めるための結果（型注釈なし）]
+# }
 def tap(key):
     return [{"kind": "key_down", "key": key}, {"kind": "key_up", "key": key},
             {"kind": "advance", "ms": 120}]
 
 
+# {
+#   責務: [name_input: test・フィールド・journeysの名前・入力を求める]
+#   処理: [1: test・フィールド・journeysの名前・入力を求める]
+#   引数: [name: 名前]
+#   戻り値: [result: test・フィールド・journeysの名前・入力を求めるための結果（型注釈なし）]
+# }
 def name_input(name):
     return [{"kind": "click", "pos": [100, 205]}] + [
         {"kind": "key", "key": "backspace"} for _ in range(40)
     ] + [{"kind": "text", "text": name}]
 
 
+# {
+#   責務: [new_game: ゲームを新規作成する]
+#   処理: [1: ゲームを新規作成する]
+#   引数: [
+#     name: 名前
+#     label: 表示名
+#   ]
+#   戻り値: [result: ゲームを新規作成するための結果（型注釈なし）]
+# }
 def new_game(name, label):
     return {"kind": "launcher", "label": label, "frames": [name_input(name) + [
         {"kind": "click", "pos": [100, 265]}, {"kind": "click", "pos": [500, 175]},
     ]]}
 
 
+# {
+#   責務: [load_game: ゲームを読み込む]
+#   処理: [1: ゲームを読み込む]
+#   引数: [
+#     index: 位置番号
+#     label: 表示名
+#   ]
+#   戻り値: [result: ゲームを読み込むための結果（型注釈なし）]
+# }
 def load_game(index, label):
     return {"kind": "launcher", "label": label, "frames": [[
         {"kind": "click", "pos": [100, 405 + index * 40]},
@@ -31,18 +65,42 @@ def load_game(index, label):
     ]]}
 
 
+# {
+#   責務: [snapshot: test・フィールド・journeysを状態を複製する]
+#   処理: [1: test・フィールド・journeysを状態を複製する]
+#   引数: [label: 表示名]
+#   戻り値: [result: test・フィールド・journeysを状態を複製するための結果（型注釈なし）]
+# }
 def snapshot(label):
     return {"kind": "snapshot", "label": label}
 
 
+# {
+#   責務: [xy: test・フィールド・journeysのxyを求める]
+#   処理: [1: test・フィールド・journeysのxyを求める]
+#   引数: [point: 地点]
+#   戻り値: [result: test・フィールド・journeysのxyを求めるための結果（型注釈なし）]
+# }
 def xy(point):
     return {key: point["player"][key] for key in ("x", "y")}
 
 
+# {
+#   責務: [species: test・フィールド・journeysの種族を求める]
+#   処理: [1: test・フィールド・journeysの種族を求める]
+#   引数: [point: 地点]
+#   戻り値: [result: test・フィールド・journeysの種族を求めるための結果（型注釈なし）]
+# }
 def species(point):
     return {record["monster"]["species_id"] for record in point["monsters"]}
 
 
+# {
+#   責務: [test_player_new_game_and_reload: KQ-P01/P02: Given empty names; When Player creates/starts/reloads; Then town/starters/UI persist.]
+#   処理: [1: KQ-P01/P02: Given empty names; When Player creates/starts/reloads; Then town/starters/UI persist.]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_player_new_game_and_reload(scenario_runner):
     """KQ-P01/P02: Given empty names; When Player creates/starts/reloads; Then town/starters/UI persist."""
     steps = [new_game("journey_01", "started"), {"kind": "render", "label": "displayed"},
@@ -69,6 +127,12 @@ def test_player_new_game_and_reload(scenario_runner):
     assert points["displayed"]["render"]["player_visual"] == [18.0, 14.0]
 
 
+# {
+#   責務: [test_named_load_restores_selected_profile_without_changing_other: KQ-P03: Given distinct A/B; When launcher selects A and reloads; Then all A state and untouched B.]
+#   処理: [1: KQ-P03: Given distinct A/B; When launcher selects A and reloads; Then all A state and untouched B.]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_named_load_restores_selected_profile_without_changing_other(scenario_runner):
     """KQ-P03: Given distinct A/B; When launcher selects A and reloads; Then all A state and untouched B."""
     change_map = {"kind": "command", "target": "field", "action": "map.change",
@@ -91,6 +155,12 @@ def test_named_load_restores_selected_profile_without_changing_other(scenario_ru
     assert after["launcher_runs"][-1]["launched_name"] == "slot_a"
 
 
+# {
+#   責務: [test_save_as_copies_owned_data_and_keeps_source_independent: KQ-P04: Given saved A with AI/items/preset; When UI copies to B; Then IDs persist and later B edits spare A.]
+#   処理: [1: KQ-P04: Given saved A with AI/items/preset; When UI copies to B; Then IDs persist and later B edits spare A.]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_save_as_copies_owned_data_and_keeps_source_independent(scenario_runner):
     """KQ-P04: Given saved A with AI/items/preset; When UI copies to B; Then IDs persist and later B edits spare A."""
     copy = {"kind": "launcher", "label": "copied", "frames": [name_input("copy_b") + [
@@ -116,6 +186,12 @@ def test_save_as_copies_owned_data_and_keeps_source_independent(scenario_runner)
     assert edited["party_ids"] == source["party_ids"]
 
 
+# {
+#   責務: [test_walk_and_visual_position_survive_reload: KQ-P05: Given clear town path; When right input/time/reload; Then grid, visual and saved integer coords agree.]
+#   処理: [1: KQ-P05: Given clear town path; When right input/time/reload; Then grid, visual and saved integer coords agree.]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_walk_and_visual_position_survive_reload(scenario_runner):
     """KQ-P05: Given clear town path; When right input/time/reload; Then grid, visual and saved integer coords agree."""
     points = scenario_runner.run([
@@ -130,6 +206,17 @@ def test_walk_and_visual_position_survive_reload(scenario_runner):
     assert points["walked"]["saved_files"]["state.json"]["player"] == {"x": 19, "y": 14}
 
 
+# {
+#   責務: [test_collision_does_not_overlap: KQ-P06: Given each obstacle ahead; When right input; Then no overlapping tile (wild contact starts battle).]
+#   処理: [1: KQ-P06: Given each obstacle ahead; When right input; Then no overlapping tile (wild contact starts battle).]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     saved_start: saved・start
+#     field_data_fixture: フィールド・データ・fixture
+#     obstacle: obstacle
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("obstacle", ["wall", "rock", "sign", "fixed_mob", "wild_mob"])
 def test_collision_does_not_overlap(scenario_runner, saved_start, field_data_fixture, obstacle):
     """KQ-P06: Given each obstacle ahead; When right input; Then no overlapping tile (wild contact starts battle)."""
@@ -147,6 +234,12 @@ def test_collision_does_not_overlap(scenario_runner, saved_start, field_data_fix
         assert "移動できません" in blocked["status"] or "通れません" in blocked["status"]
 
 
+# {
+#   責務: [test_hold_repeat_stops_when_released: KQ-P07: Given path/fixed time; When hold past repeat delays then release; Then repeats cease.]
+#   処理: [1: KQ-P07: Given path/fixed time; When hold past repeat delays then release; Then repeats cease.]
+#   引数: [scenario_runner: scenario・runner]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_hold_repeat_stops_when_released(scenario_runner):
     """KQ-P07: Given path/fixed time; When hold past repeat delays then release; Then repeats cease."""
     points = scenario_runner.run([
@@ -162,6 +255,15 @@ def test_hold_repeat_stops_when_released(scenario_runner):
     ]
 
 
+# {
+#   責務: [test_canonical_step_transition_and_reload: KQ-P08: Given real town edge; When walk onto overlapping transition; Then enter exact target once and reload.]
+#   処理: [1: KQ-P08: Given real town edge; When walk onto overlapping transition; Then enter exact target once and reload.]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     saved_start: saved・start
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_canonical_step_transition_and_reload(scenario_runner, saved_start):
     """KQ-P08: Given real town edge; When walk onto overlapping transition; Then enter exact target once and reload."""
     points = scenario_runner.run([
@@ -174,6 +276,16 @@ def test_canonical_step_transition_and_reload(scenario_runner, saved_start):
         assert points[label]["saved_files"]["state.json"]["player"] == {"x": 1, "y": 6}
 
 
+# {
+#   責務: [test_interact_transition_is_not_a_step_transition: KQ-P09: Given passable interact point; When walk across/back then Space; Then only interaction transitions.]
+#   処理: [1: KQ-P09: Given passable interact point; When walk across/back then Space; Then only interaction transitions.]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     saved_start: saved・start
+#     field_data_fixture: フィールド・データ・fixture
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_interact_transition_is_not_a_step_transition(scenario_runner, saved_start, field_data_fixture):
     """KQ-P09: Given passable interact point; When walk across/back then Space; Then only interaction transitions."""
     points = scenario_runner.run([
@@ -186,6 +298,15 @@ def test_interact_transition_is_not_a_step_transition(scenario_runner, saved_sta
     assert points["loaded"]["saved_files"]["state.json"]["map_id"] == "starting_town"
 
 
+# {
+#   責務: [test_fresh_forest_rock_blocks_and_enters_ghost_home: KQ-P09: Given actual fresh-forest entrance; When pass beside, attempt rock, then investigate; Then home/reload.]
+#   処理: [1: KQ-P09: Given actual fresh-forest entrance; When pass beside, attempt rock, then investigate; Then home/reload.]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     saved_start: saved・start
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_fresh_forest_rock_blocks_and_enters_ghost_home(scenario_runner, saved_start):
     """KQ-P09: Given actual fresh-forest entrance; When pass beside, attempt rock, then investigate; Then home/reload."""
     points = scenario_runner.run([
@@ -199,6 +320,15 @@ def test_fresh_forest_rock_blocks_and_enters_ghost_home(scenario_runner, saved_s
         assert points[label]["saved_files"]["state.json"]["map_id"] == "ghost_home"
 
 
+# {
+#   責務: [test_maru_dialogue_deck_and_facing_pause: KQ-P10: Given Maru in front; When talk across movement periods; Then deck cycles and talking NPC stays.]
+#   処理: [1: KQ-P10: Given Maru in front; When talk across movement periods; Then deck cycles and talking NPC stays.]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     saved_start: saved・start
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_maru_dialogue_deck_and_facing_pause(scenario_runner, saved_start):
     """KQ-P10: Given Maru in front; When talk across movement periods; Then deck cycles and talking NPC stays."""
     steps = tap("up")  # blocked by Maru: face the real NPC without moving into it
@@ -219,6 +349,15 @@ def test_maru_dialogue_deck_and_facing_pause(scenario_runner, saved_start):
     assert lines[5] in deck and lines[5] != lines[4]
 
 
+# {
+#   責務: [test_spring_virtual_keyboard_acquisition_persists: KQ-P11: Given no ghosts at the actual spring; When investigate/type/submit/reload; Then ownership/flag/NPCs.]
+#   処理: [1: KQ-P11: Given no ghosts at the actual spring; When investigate/type/submit/reload; Then ownership/flag/NPCs.]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     saved_start: saved・start
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_spring_virtual_keyboard_acquisition_persists(scenario_runner, saved_start):
     """KQ-P11: Given no ghosts at the actual spring; When investigate/type/submit/reload; Then ownership/flag/NPCs."""
     steps = [*tap("space"), {"kind": "render", "label": "opened"}]
@@ -244,6 +383,15 @@ def test_spring_virtual_keyboard_acquisition_persists(scenario_runner, saved_sta
         assert points["loaded"]["saved_files"][folder + "/ai.json"] == record["ai"]
 
 
+# {
+#   責務: [test_wrong_password_length_erase_and_cancel: KQ-P12: Given spring input; When eight keys/wrong submit/erase/cancel; Then bounded input, no acquisition.]
+#   処理: [1: KQ-P12: Given spring input; When eight keys/wrong submit/erase/cancel; Then bounded input, no acquisition.]
+#   引数: [
+#     scenario_runner: scenario・runner
+#     saved_start: saved・start
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_wrong_password_length_erase_and_cancel(scenario_runner, saved_start):
     """KQ-P12: Given spring input; When eight keys/wrong submit/erase/cancel; Then bounded input, no acquisition."""
     points = scenario_runner.run([

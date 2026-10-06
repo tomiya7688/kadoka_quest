@@ -1,3 +1,7 @@
+# {
+#   責務: [conftest: conftestの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 import json
 import shutil
 
@@ -6,14 +10,36 @@ import pytest
 from .harness import PROJECT_ROOT, ScenarioRunner
 
 
+# {
+#   責務: [scenario_runner: conftestのscenario・runnerを求める]
+#   処理: [1: conftestのscenario・runnerを求める]
+#   引数: [tmp_path: tmp・パス]
+#   戻り値: [result: conftestのscenario・runnerを求めるための結果（型注釈なし）]
+# }
 @pytest.fixture
 def scenario_runner(tmp_path):
     return ScenarioRunner(tmp_path / "e2e")
 
 
+# {
+#   責務: [saved_start: Given an openly editable saved position, not a runtime state mutation.]
+#   処理: [1: Given an openly editable saved position, not a runtime state mutation.]
+#   引数: [tmp_path: tmp・パス]
+#   戻り値: [result: create（型注釈なし）]
+# }
 @pytest.fixture
 def saved_start(tmp_path):
     """Given an openly editable saved position, not a runtime state mutation."""
+    # {
+    #   責務: [create: conftestを作成する]
+    #   処理: [1: conftestを作成する]
+    #   引数: [
+    #     map_id: マップ・識別子
+    #     x: X座標
+    #     y: Y座標
+    #   ]
+    #   戻り値: [result: 基準ディレクトリ（型注釈なし）]
+    # }
     def create(map_id, x, y):
         root = tmp_path / f"given-{map_id}-{x}-{y}"
         root.mkdir(exist_ok=True)
@@ -25,12 +51,27 @@ def saved_start(tmp_path):
     return create
 
 
+# {
+#   責務: [field_data_fixture: Canonical species/blocks plus a small, explicit JSON scenario map.]
+#   処理: [1: Canonical species/blocks plus a small, explicit JSON scenario map.]
+#   引数: [tmp_path: tmp・パス]
+#   戻り値: [result: create（型注釈なし）]
+# }
 @pytest.fixture
 def field_data_fixture(tmp_path):
     """Canonical species/blocks plus a small, explicit JSON scenario map."""
     root = tmp_path / "data"
     shutil.copytree(PROJECT_ROOT / "data", root)
 
+    # {
+    #   責務: [create: conftestを作成する]
+    #   処理: [1: conftestを作成する]
+    #   引数: [
+    #     obstacle: obstacle
+    #     door: door
+    #   ]
+    #   戻り値: [result: 基準ディレクトリ（型注釈なし）]
+    # }
     def create(obstacle=None, door=None):
         tiles = [["wall" if x in {0, 9} or y in {0, 7} else "path" for x in range(10)] for y in range(8)]
         world = {"schema_version": 1, "id": "e2e_field", "display_name": "E2E検証の草原",

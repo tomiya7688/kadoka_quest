@@ -1,4 +1,8 @@
 """Real Godot explicit normal attacks vs real Python _attack/run_round, with private fixtures."""
+# {
+#   責務: [test_gdscript_normal_attack_action: Real Godot explicit normal attacks vs real Python _attack/run_round, with private fixtures.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -21,12 +25,34 @@ ROOT = fixture.ROOT
 key = turn.key
 
 
+# {
+#   責務: [member: test・gdscript・normal・攻撃・actionの個体を求める]
+#   処理: [1: test・gdscript・normal・攻撃・actionの個体を求める]
+#   引数: [
+#     identifier: identifier
+#     speed: 素早さ
+#     hp: HP
+#   ]
+#   戻り値: [result: 独立した状態の写し（型注釈なし）]
+# }
 def member(identifier, speed=10, *, hp=30):
     snapshot = turn.member(identifier, speed, hp=hp)
     snapshot["stats"]["hp"] = hp
     return snapshot
 
 
+# {
+#   責務: [parameters: test・gdscript・normal・攻撃・actionのparametersを求める]
+#   処理: [1: test・gdscript・normal・攻撃・actionのparametersを求める]
+#   引数: [
+#     attack: 攻撃
+#     defense: 防御力
+#     hp: HP
+#     equipment: 装備
+#     changes: changes
+#   ]
+#   戻り値: [result: test・gdscript・normal・攻撃・actionのparametersを求めるための結果（型注釈なし）]
+# }
 def parameters(*, attack=100, defense=10, hp=1000, equipment=None, **changes):
     ally, enemy = member("ally", speed=20), member("enemy", hp=hp)
     ally["stats"]["attack"], enemy["stats"]["defense"] = attack, defense
@@ -34,16 +60,45 @@ def parameters(*, attack=100, defense=10, hp=1000, equipment=None, **changes):
             "equipment": {"allies": {"ally": equipment or {}}}, **changes}
 
 
+# {
+#   責務: [hit: test・gdscript・normal・攻撃・actionのhitを求める]
+#   処理: [1: test・gdscript・normal・攻撃・actionのhitを求める]
+#   引数: [
+#     target: 対象
+#     changes: changes
+#   ]
+#   戻り値: [result: test・gdscript・normal・攻撃・actionのhitを求めるための結果（型注釈なし）]
+# }
 def hit(target=None, **changes):
     return {"kind": "attack", "target": key("enemies", "enemy") if target is None else target, **changes}
 
 
+# {
+#   責務: [case: test・gdscript・normal・攻撃・actionのcaseを求める]
+#   処理: [1: test・gdscript・normal・攻撃・actionのcaseを求める]
+#   引数: [
+#     input: 入力
+#     actions: actions
+#     changes: changes
+#   ]
+#   戻り値: [result: test・gdscript・normal・攻撃・actionのcaseを求めるための結果（型注釈なし）]
+# }
 def case(input=None, actions=None, **changes):
     return {"input": parameters() if input is None else input,
             "actions": [{"kind": "next"}, hit()] if actions is None else actions, **changes}
 
 
+# {
+#   責務: [NormalActionBoundaryTests: normal・action・boundary・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class NormalActionBoundaryTests(unittest.TestCase):
+    # {
+    #   責務: [test_pure_resolution_is_separate_from_routing_and_has_no_io_ai_or_random: 検証: pure resolution is separate from routing and has no io ai or random]
+    #   処理: [1: 検証: pure resolution is separate from routing and has no io ai or random]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_pure_resolution_is_separate_from_routing_and_has_no_io_ai_or_random(self):
         for name in ("normal_attack_action", "normal_attack_contract"):
             source = (ROOT / f"gdscript/engine/{name}.gd").read_text(encoding="utf-8")
@@ -57,6 +112,12 @@ class NormalActionBoundaryTests(unittest.TestCase):
         source = (ROOT / "gdscript/application/field_application.gd").read_text(encoding="utf-8")
         self.assertNotIn("normal_attack_action", source)
 
+    # {
+    #   責務: [test_action_benchmark_stays_outside_player_runtime: 検証: action benchmark stays outside player runtime]
+    #   処理: [1: 検証: action benchmark stays outside player runtime]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_action_benchmark_stays_outside_player_runtime(self):
         source = (ROOT / "tools/performance-check/script/check_gdscript_normal_attack.py").read_text(encoding="utf-8")
         self.assertIn('result["microseconds"] <= 3000', source)
@@ -66,6 +127,17 @@ class NormalActionBoundaryTests(unittest.TestCase):
                     self.assertNotIn("check_gdscript_normal_attack", path.read_text(encoding="utf-8"))
 
 
+# {
+#   責務: [GDScriptNormalActionTests: gdscript・normal・action・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     setUp: set・up
+#     reference: reference
+#     byte_snapshot: byte・独立した状態の写し
+#     seed_state: seed・状態
+#     seed_record: seed・個体レコード
+#     write: write
+#   ]
+# }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real normal-action probes")
 class GDScriptNormalActionTests(unittest.TestCase):
     setUp = numbers.GDScriptAttackTests.setUp
@@ -75,6 +147,16 @@ class GDScriptNormalActionTests(unittest.TestCase):
     seed_record = fixture.GDScriptRosterTests.seed_record
     write = fixture.GDScriptRosterTests.write
 
+    # {
+    #   責務: [invoke: gdscript・normal・action・testsのinvokeを求める]
+    #   処理: [1: gdscript・normal・action・testsのinvokeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     cases: cases
+    #     joined: joined
+    #   ]
+    #   戻り値: [result: gdscript・normal・action・testsのinvokeを求めるための結果（型注釈なし）]
+    # }
     def invoke(self, cases=(), joined=()):
         path = self.content / "normal-action-probe.json"
         path.write_text(json.dumps({"cases": list(cases), "joined": list(joined)}), encoding="utf-8")
@@ -92,6 +174,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]))
         self.fail(result.stderr + result.stdout[-1600:])
 
+    # {
+    #   責務: [test_normal_critical_equipment_rounding_minimum_and_overkill_match_python_attack: 検証: normal critical equipment rounding minimum and overkill match python attack]
+    #   処理: [1: 検証: normal critical equipment rounding minimum and overkill match python attack]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_normal_critical_equipment_rounding_minimum_and_overkill_match_python_attack(self):
         cases = []
         for atk, defense, roll, variance, hp, gear in itertools.product(
@@ -118,6 +206,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
                 self.assertEqual(actual["session"]["teams"]["allies"][0]["mp"], 7)
                 self.assertTrue(actual["input_preserved"])
 
+    # {
+    #   責務: [test_context_requires_fresh_matching_session_and_cannot_be_replaced: 検証: context requires fresh matching session and cannot be replaced]
+    #   処理: [1: 検証: context requires fresh matching session and cannot be replaced]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_context_requires_fresh_matching_session_and_cannot_be_replaced(self):
         cases = [case(start_session=False), case(context={"allies": [], "enemies": []}),
                  case(actions=[{"kind": "configure"}, {"kind": "next"}, hit()])]
@@ -130,6 +224,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
         self.assertEqual(reused["observations"][0]["value"]["reason"], "already_initialized")
         self.assertEqual(reused["observations"][2]["value"]["numbers"]["dealt"], 95)
 
+    # {
+    #   責務: [test_repeated_stale_claimed_and_invalid_tickets_cannot_apply_twice: 検証: repeated stale claimed and invalid tickets cannot apply twice]
+    #   処理: [1: 検証: repeated stale claimed and invalid tickets cannot apply twice]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_repeated_stale_claimed_and_invalid_tickets_cannot_apply_twice(self):
         invalid = [None, {}, {"round": 1, "slot": 0},
                    {"round": 2, "slot": 0, "actor": key("allies", "ally")},
@@ -153,6 +253,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
         self.assertEqual(actuals[-2]["session"]["cursor"], 0)
         self.assertEqual(actuals[-2]["session"]["teams"]["enemies"][0]["hp"], 1000)
 
+    # {
+    #   責務: [test_bad_targets_and_unsupported_inputs_refuse_before_consuming_candidate: 検証: bad targets and unsupported inputs refuse before consuming candidate]
+    #   処理: [1: 検証: bad targets and unsupported inputs refuse before consuming candidate]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_bad_targets_and_unsupported_inputs_refuse_before_consuming_candidate(self):
         overrides = [{"target": value} for value in (None, {}, key("allies", "ally"), key("enemies", "missing"),
                      {"side": "enemies", "id": "enemy", "extra": True})]
@@ -171,6 +277,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
                 self.assertEqual(actual["observations"][0]["session"], actual["observations"][1]["session"])
                 self.assertTrue(actual["observations"][2]["value"]["executed"])
 
+    # {
+    #   責務: [test_old_ticket_in_next_round_and_bad_random_on_dead_actor_do_not_consume_new_candidate: 検証: old ticket in next round and bad random on dead actor do not consume new candidate]
+    #   処理: [1: 検証: old ticket in next round and bad random on dead actor do not consume new candidate]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_old_ticket_in_next_round_and_bad_random_on_dead_actor_do_not_consume_new_candidate(self):
         old = {"round": 1, "slot": 0, "actor": key("allies", "ally")}
         steps = [{"kind": "next"}, hit(), {"kind": "next"}, hit(key("allies", "ally")),
@@ -188,6 +300,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
         self.assertFalse(dead["observations"][3]["value"]["executed"])
         self.assertEqual(dead["session"]["teams"]["enemies"][0]["hp"], 1000)
 
+    # {
+    #   責務: [test_dead_and_fled_targets_refuse_but_dead_actor_or_no_foes_cancel_without_damage: 検証: dead and fled targets refuse but dead actor or no foes cancel without damage]
+    #   処理: [1: 検証: dead and fled targets refuse but dead actor or no foes cancel without damage]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_dead_and_fled_targets_refuse_but_dead_actor_or_no_foes_cancel_without_damage(self):
         input = parameters()
         input["enemies"].append(member("other"))
@@ -209,6 +327,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
             self.assertEqual(actual["session"]["phase"], "stopped")
             self.assertIsNone(actual["session"]["pending"])
 
+    # {
+    #   責務: [test_damage_overflow_and_unknown_definition_effects_fail_closed: 検証: damage overflow and unknown definition effects fail closed]
+    #   処理: [1: 検証: damage overflow and unknown definition effects fail closed]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_damage_overflow_and_unknown_definition_effects_fail_closed(self):
         bad_skills = [{"id": "attack", "kind": kind} for kind in ("magic", "random", None, True, 1)]
         bad_skills += [{"id": "attack", "kind": "physical", field: value} for field, value in (
@@ -228,6 +352,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
         self.assertFalse(actual["observations"][1]["value"]["ok"])
         self.assertEqual(actual["session"], actual["observations"][0]["session"])
 
+    # {
+    #   責務: [test_copied_context_input_output_and_same_id_on_both_sides_remain_independent: 検証: copied context input output and same id on both sides remain independent]
+    #   処理: [1: 検証: copied context input output and same id on both sides remain independent]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_copied_context_input_output_and_same_id_on_both_sides_remain_independent(self):
         input = parameters(equipment={"fixed_bonus_damage": 3})
         for side in ("allies", "enemies"):
@@ -243,6 +373,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
         self.assertEqual(actual["session"]["phase"], "round_finished")
         self.assertEqual(actual["session"]["teams"]["allies"][0]["stats"]["attack"], 100)
 
+    # {
+    #   責務: [test_eight_actors_ties_death_skips_and_three_rounds_match_real_python_resolution: 検証: eight actors ties death skips and three rounds match real python resolution]
+    #   処理: [1: 検証: eight actors ties death skips and three rounds match real python resolution]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_eight_actors_ties_death_skips_and_three_rounds_match_real_python_resolution(self):
         cases, expected = [], []
         for seed in range(12):
@@ -258,6 +394,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
             steps, events = [], []
             rounds = [0]
 
+            # {
+            #   責務: [shuffled: gdscript・normal・action・testsのshuffledを求める]
+            #   処理: [1: gdscript・normal・action・testsのshuffledを求める]
+            #   引数: [actors: actors]
+            #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+            # }
             def shuffled(actors):
                 generator.shuffle(actors)
                 order = [key("allies" if any(entry is actor for entry in engine.allies) else "enemies",
@@ -268,6 +410,16 @@ class GDScriptNormalActionTests(unittest.TestCase):
                     steps.append({"kind": "begin", "order": order})
                 rounds[0] += 1
 
+            # {
+            #   責務: [perform: gdscript・normal・action・testsのperformを求める]
+            #   処理: [1: gdscript・normal・action・testsのperformを求める]
+            #   引数: [
+            #     actor: 行動個体
+            #     foes: foes
+            #     friends: friends
+            #   ]
+            #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+            # }
             def perform(actor, foes, friends):
                 side = "allies" if any(entry is actor for entry in engine.allies) else "enemies"
                 target = foes[0]
@@ -295,6 +447,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
                               for side in ("allies", "enemies")], hp)
             self.assertTrue(all(entry["value"]["ok"] for entry in actual["observations"]))
 
+    # {
+    #   責務: [test_readonly_application_uses_canonical_equipment_and_preserves_all_private_files: 検証: readonly application uses canonical equipment and preserves all private files]
+    #   処理: [1: 検証: readonly application uses canonical equipment and preserves all private files]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_readonly_application_uses_canonical_equipment_and_preserves_all_private_files(self):
         self.seed_state(current_party=["owned", None, None, None], private={"keep": True})
         owned = self.seed_record("owned", level=50, plus_choices=[], equipment_id="ken")
@@ -336,6 +494,12 @@ class GDScriptNormalActionTests(unittest.TestCase):
             self.assertNotIn("ai", actual["session"]["teams"]["allies"][0])
         self.assertEqual(self.byte_snapshot(), before)
 
+    # {
+    #   責務: [test_modded_skill_power_is_readonly_and_invalid_global_definitions_do_not_start: 検証: modded skill power is readonly and invalid global definitions do not start]
+    #   処理: [1: 検証: modded skill power is readonly and invalid global definitions do not start]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_modded_skill_power_is_readonly_and_invalid_global_definitions_do_not_start(self):
         path = self.content / "data/skills/skills.json"
         valid = {"schema_version": 1, "skills": [{"id": "attack", "display_name": "こうげき", "kind": "physical", "power": 1.7,

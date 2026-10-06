@@ -1,3 +1,7 @@
+# {
+#   責務: [game_evaluator: ゲーム・evaluatorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -11,6 +15,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 
+# {
+#   責務: [main: ゲーム・evaluatorのエントリ処理を実行する]
+#   処理: [1: ゲーム・evaluatorのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a headless, non-interactive Kadoka Quest exploration evaluation.")
     parser.add_argument("--steps", type=int, default=2_000)

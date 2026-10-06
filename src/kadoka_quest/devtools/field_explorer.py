@@ -1,14 +1,35 @@
+# {
+#   責務: [field_explorer: フィールド・explorerの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from collections import deque
 from typing import Any
 
 
+# {
+#   責務: [FieldExplorer: Choose reachable unexplored field events using plain map data only.]
+#   フィールド: [DIRECTIONS: directions]
+# }
 class FieldExplorer:
     """Choose reachable unexplored field events using plain map data only."""
 
     DIRECTIONS = (("left", -1, 0), ("right", 1, 0), ("back", 0, -1), ("front", 0, 1))
 
+    # {
+    #   責務: [next_plan: planを次の値を求める]
+    #   処理: [1: planを次の値を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     map_data: マップ・データ（dict[str, Any]）
+    #     blocks: ブロック定義（dict[str, dict[str, Any]]）
+    #     player: 主人公（tuple[int, int]）
+    #     visited_maps: visited・マップ一覧（set[str]）
+    #     attempted_events: attempted・イベント一覧（set[str]）
+    #   ]
+    #   戻り値: [result: planを次の値を求めるための結果（dict[str, Any] | None）]
+    # }
     def next_plan(
         self,
         map_data: dict[str, Any],
@@ -32,6 +53,18 @@ class FieldExplorer:
                 return {"event_key": event_key, "event": dict(event), "directions": path}
         return None
 
+    # {
+    #   責務: [_path_to_event: フィールド・explorerのパス・to・イベントを求める]
+    #   処理: [1: フィールド・explorerのパス・to・イベントを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     map_data: マップ・データ（dict[str, Any]）
+    #     blocks: ブロック定義（dict[str, dict[str, Any]]）
+    #     player: 主人公（tuple[int, int]）
+    #     event: イベント（dict[str, Any]）
+    #   ]
+    #   戻り値: [result: フィールド・explorerのパス・to・イベントを求めるための結果（list[str] | None）]
+    # }
     def _path_to_event(
         self,
         map_data: dict[str, Any],
@@ -52,6 +85,18 @@ class FieldExplorer:
                 goals.add(event_position)
         return self._find_path(map_data, blocks, player, goals)
 
+    # {
+    #   責務: [_find_path: パスを探す]
+    #   処理: [1: パスを探す]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     map_data: マップ・データ（dict[str, Any]）
+    #     blocks: ブロック定義（dict[str, dict[str, Any]]）
+    #     start: start（tuple[int, int]）
+    #     goals: goals（set[tuple[int, int]]）
+    #   ]
+    #   戻り値: [result: パスを探すための結果（list[str] | None）]
+    # }
     def _find_path(
         self,
         map_data: dict[str, Any],
@@ -76,6 +121,17 @@ class FieldExplorer:
                 queue.append(point)
         return None
 
+    # {
+    #   責務: [_walkable: フィールド・explorerのwalkableを求める]
+    #   処理: [1: フィールド・explorerのwalkableを求める]
+    #   引数: [
+    #     map_data: マップ・データ（dict[str, Any]）
+    #     blocks: ブロック定義（dict[str, dict[str, Any]]）
+    #     x: X座標（int）
+    #     y: Y座標（int）
+    #   ]
+    #   戻り値: [result: フィールド・explorerのwalkableを求めるための結果（bool）]
+    # }
     @staticmethod
     def _walkable(map_data: dict[str, Any], blocks: dict[str, dict[str, Any]], x: int, y: int) -> bool:
         if not 0 <= x < int(map_data["width"]) or not 0 <= y < int(map_data["height"]):

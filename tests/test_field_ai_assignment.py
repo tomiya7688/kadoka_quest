@@ -1,3 +1,7 @@
+# {
+#   責務: [test_field_ai_assignment: test・フィールド・AI・assignmentの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import copy
@@ -15,12 +19,24 @@ from kadoka_quest.data.field_data import FieldDataLoader
 from kadoka_quest.data.repository import GameRepository
 
 
+# {
+#   責務: [test_single_positive_weight_selects_only_that_ai: 検証: single positive weight selects only that ai]
+#   処理: [1: 検証: single positive weight selects only that ai]
+#   引数: [kind: 種別]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("kind", FIELD_AI_TYPES)
 def test_single_positive_weight_selects_only_that_ai(kind):
     rng = random.Random(146)
     assert {choose_field_ai(rng, {kind: 0.25}) for _ in range(100)} == {kind}
 
 
+# {
+#   責務: [test_invalid_table_falls_back_as_a_whole: 検証: invalid table falls back as a whole]
+#   処理: [1: 検証: invalid table falls back as a whole]
+#   引数: [invalid: invalid]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("invalid", [
     None, {}, [], "idle", {"unknown": 1}, {"random": -1, "chase": 2},
     {"random": 0, "idle": 0}, {"random": True}, {"random": "5"},
@@ -30,11 +46,29 @@ def test_invalid_table_falls_back_as_a_whole(invalid):
     assert choose_field_ai(random.Random(1), invalid, {"idle": 1}) == "idle"
 
 
+# {
+#   責務: [test_first_valid_table_wins_without_merging_missing_keys: 検証: first valid table wins without merging missing keys]
+#   処理: [1: 検証: first valid table wins without merging missing keys]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_first_valid_table_wins_without_merging_missing_keys():
     assert choose_field_ai(random.Random(1), {"chase": 1}, {"idle": 99}) == "chase"
 
 
+# {
+#   責務: [test_relative_weights_and_default_are_reproducible: 検証: relative weights and default are reproducible]
+#   処理: [1: 検証: relative weights and default are reproducible]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_relative_weights_and_default_are_reproducible():
+    # {
+    #   責務: [draws: test・フィールド・AI・assignmentのdrawsを求める]
+    #   処理: [1: test・フィールド・AI・assignmentのdrawsを求める]
+    #   引数: [weights: 重み一覧]
+    #   戻り値: [result: test・フィールド・AI・assignmentのdrawsを求めるための結果（型注釈なし）]
+    # }
     def draws(weights):
         rng = random.Random(146)
         return [choose_field_ai(rng, weights) for _ in range(1000)]
@@ -44,6 +78,17 @@ def test_relative_weights_and_default_are_reproducible():
     assert set(draws(None)) == set(FIELD_AI_TYPES)
 
 
+# {
+#   責務: [population: test・フィールド・AI・assignmentのpopulationを求める]
+#   処理: [1: test・フィールド・AI・assignmentのpopulationを求める]
+#   引数: [
+#     seed: seed
+#     entry_weights: 項目・重み一覧
+#     map_weights: マップ・重み一覧
+#     species_weights: 種族・重み一覧
+#   ]
+#   戻り値: [result: controller（型注釈なし）]
+# }
 def population(seed=146, entry_weights=None, map_weights=None, species_weights=None):
     world = {
         "width": 12, "height": 12, "tiles": [["floor"] * 12 for _ in range(12)],
@@ -59,6 +104,17 @@ def population(seed=146, entry_weights=None, map_weights=None, species_weights=N
     return controller
 
 
+# {
+#   責務: [test_population_uses_entry_then_map_then_species: 検証: population uses entry then map then species]
+#   処理: [1: 検証: population uses entry then map then species]
+#   引数: [
+#     entry: 項目
+#     world: マップ状態
+#     species: 種族
+#     expected: expected
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("entry,world,species,expected", [
     ({"idle": 1}, {"chase": 1}, {"random": 1}, "idle"),
     (None, {"chase": 1}, {"random": 1}, "chase"),
@@ -71,6 +127,12 @@ def test_population_uses_entry_then_map_then_species(entry, world, species, expe
     assert {enemy["ai"] for enemy in controller.monsters} == {expected}
 
 
+# {
+#   責務: [test_same_species_can_have_different_ai_and_seed_replays_population: 検証: same species can have different ai and seed replays population]
+#   処理: [1: 検証: same species can have different ai and seed replays population]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_same_species_can_have_different_ai_and_seed_replays_population():
     controller = population()
     assert controller.monsters == population().monsters
@@ -83,6 +145,12 @@ def test_same_species_can_have_different_ai_and_seed_replays_population():
     assert all("ai" not in enemy["spawn"] for enemy in controller.monsters)
 
 
+# {
+#   責務: [test_loader_reads_only_unique_referenced_species_and_preserves_battle_ai: 検証: loader reads only unique referenced species and preserves battle ai]
+#   処理: [1: 検証: loader reads only unique referenced species and preserves battle ai]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_loader_reads_only_unique_referenced_species_and_preserves_battle_ai():
     definitions = {
         "slime": {"field_ai_weights": {"random": 7}, "ai_profile": "normal"},
@@ -101,6 +169,12 @@ def test_loader_reads_only_unique_referenced_species_and_preserves_battle_ai():
     assert definitions == before
 
 
+# {
+#   責務: [test_canonical_species_weights_and_runtime_wiring: 検証: canonical species weights and runtime wiring]
+#   処理: [1: 検証: canonical species weights and runtime wiring]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_canonical_species_weights_and_runtime_wiring():
     from kadoka_quest.apps.game import KadokaQuest
 

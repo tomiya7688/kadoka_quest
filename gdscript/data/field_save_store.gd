@@ -1,3 +1,7 @@
+# {
+#   責務: [field_save_store: Named folders/state JSON. Never writes existing monsters, AI, items or presets.]
+#   フィールド: [root: 基準ディレクトリ（String）]
+# }
 extends RefCounted
 ## Named folders/state JSON. Never writes existing monsters, AI, items or presets.
 
@@ -5,10 +9,22 @@ const Documents = preload("res://data/json_documents.gd")
 var root: String
 
 
+# {
+#   責務: [_init: フィールド・保存・保存先が利用する初期状態と依存を設定する]
+#   処理: [1: フィールド・保存・保存先が利用する初期状態と依存を設定する]
+#   引数: [save_root: 保存・基準ディレクトリ（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(save_root: String) -> void:
 	root = ProjectSettings.globalize_path(save_root).replace("\\", "/").simplify_path()
 
 
+# {
+#   責務: [validate_name: 名前を妥当性を検査する]
+#   処理: [1: 名前を妥当性を検査する]
+#   引数: [name: 名前（String）]
+#   戻り値: [result: 名前を妥当性を検査するための結果（Dictionary）]
+# }
 static func validate_name(name: String) -> Dictionary:
 	if name.is_empty() or name != name.strip_edges() or name in [".", ".."] or name.ends_with("."):
 		return {"ok": false, "error": "invalid_name", "message": "セーブ名の空白・ドットを確認してください。"}
@@ -24,6 +40,12 @@ static func validate_name(name: String) -> Dictionary:
 	return {"ok": true, "name": name.left(40)}
 
 
+# {
+#   責務: [resolve_profile: プロファイルを解決する]
+#   処理: [1: プロファイルを解決する]
+#   引数: [name: 名前（String）]
+#   戻り値: [result: プロファイルを解決するための結果（Dictionary）]
+# }
 func resolve_profile(name: String) -> Dictionary:
 	var result := validate_name(name)
 	if not result["ok"]:
@@ -42,6 +64,12 @@ func resolve_profile(name: String) -> Dictionary:
 	return {"ok": true, "path": path, "name": result["name"]}
 
 
+# {
+#   責務: [load_profile: プロファイルを読み込む]
+#   処理: [1: プロファイルを読み込む]
+#   引数: [name: 名前（String）]
+#   戻り値: [result: プロファイルを読み込むための結果（Dictionary）]
+# }
 func load_profile(name: String) -> Dictionary:
 	var profile := resolve_profile(name)
 	if not profile["ok"]:
@@ -49,6 +77,17 @@ func load_profile(name: String) -> Dictionary:
 	return Documents.read_object(profile["path"].path_join("state.json"))
 
 
+# {
+#   責務: [save_profile: プロファイルを保存する]
+#   処理: [1: プロファイルを保存する]
+#   引数: [
+#     name: 名前（String）
+#     value: 値（Dictionary）
+#     expected_digest: expected・digest（String）
+#     inventory: inventory（Dictionary）
+#   ]
+#   戻り値: [result: プロファイルを保存するための結果（Dictionary）]
+# }
 func save_profile(name: String, value: Dictionary, expected_digest: String, inventory: Dictionary) -> Dictionary:
 	var profile := resolve_profile(name)
 	if not profile["ok"]:
@@ -67,6 +106,16 @@ func save_profile(name: String, value: Dictionary, expected_digest: String, inve
 	return Documents.write_atomic(path.path_join("state.json"), value)
 
 
+# {
+#   責務: [_prepare_profile: プロファイルを準備する]
+#   処理: [1: プロファイルを準備する]
+#   引数: [
+#     path: パス（String）
+#     name: 名前（String）
+#     inventory: inventory（Dictionary）
+#   ]
+#   戻り値: [result: プロファイルを準備するための結果（Dictionary）]
+# }
 func _prepare_profile(path: String, name: String, inventory: Dictionary) -> Dictionary:
 	for folder in ["", "monsters", "items", "parties"]:
 		var error := DirAccess.make_dir_recursive_absolute(path.path_join(folder))

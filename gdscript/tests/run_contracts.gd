@@ -1,3 +1,7 @@
+# {
+#   責務: [run_contracts: One real-engine invocation for plain-data parity with the Python reference.]
+#   フィールド: []
+# }
 extends SceneTree
 ## One real-engine invocation for plain-data parity with the Python reference.
 
@@ -7,6 +11,12 @@ const Session = preload("res://application/field_session.gd")
 const Keyboard = preload("res://ui/field_input.gd")
 
 
+# {
+#   責務: [_initialize: run・contractsのエントリ処理を実行する]
+#   処理: [1: run・contractsのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() != 1:
@@ -56,6 +66,12 @@ func _initialize() -> void:
 	quit(0)
 
 
+# {
+#   責務: [_evaluate: run・contractsのevaluateを求める]
+#   処理: [1: run・contractsのevaluateを求める]
+#   引数: [case: case（Dictionary）]
+#   戻り値: [result: run・contractsのevaluateを求めるための結果（Dictionary）]
+# }
 func _evaluate(case: Dictionary) -> Dictionary:
 	var world: Dictionary = case["map"]
 	var blocks: Dictionary = case["blocks"]

@@ -1,3 +1,7 @@
+# {
+#   責務: [test_battle_zero_mp: test・戦闘・zero・MPの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -38,15 +42,46 @@ PAID_MAGIC = {
 }
 
 
+# {
+#   責務: [FirstUsableInference: first・usable・inferenceの状態と振る舞いを担当する]
+#   フィールド: [last_candidates: last・candidates]
+# }
 class FirstUsableInference:
+    # {
+    #   責務: [__init__: first・usable・inferenceが利用する初期状態と依存を設定する]
+    #   処理: [1: first・usable・inferenceが利用する初期状態と依存を設定する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self) -> None:
         self.last_candidates: list[dict] = []
 
+    # {
+    #   責務: [choose: first・usable・inferenceを選択する]
+    #   処理: [1: first・usable・inferenceを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     _ai: AI
+    #     skills: スキル一覧
+    #     _args: args
+    #   ]
+    #   戻り値: [result: first・usable・inferenceを選択するための結果（型注釈なし）]
+    # }
     def choose(self, _ai, skills, *_args):
         self.last_candidates = list(skills)
         return self.last_candidates[0] if self.last_candidates else None
 
 
+# {
+#   責務: [make_combatant: 戦闘個体を構築する]
+#   処理: [1: 戦闘個体を構築する]
+#   引数: [
+#     name: 名前（str）
+#     skills: スキル一覧（list[dict]）
+#     mp: MP（int）
+#   ]
+#   戻り値: [result: 戦闘個体（Combatant）]
+# }
 def make_combatant(name: str, skills: list[dict], mp: int = 0) -> Combatant:
     record = MonsterRecord(
         {"id": name, "species_id": "test", "name": name, "level": 1},
@@ -63,6 +98,12 @@ def make_combatant(name: str, skills: list[dict], mp: int = 0) -> Combatant:
     return combatant
 
 
+# {
+#   責務: [make_engine: ルール処理を構築する]
+#   処理: [1: ルール処理を構築する]
+#   引数: []
+#   戻り値: [result: ルール処理（BattleEngine）]
+# }
 def make_engine() -> BattleEngine:
     engine = BattleEngine.__new__(BattleEngine)
     engine.rng = random.Random(1)
@@ -75,7 +116,17 @@ def make_engine() -> BattleEngine:
     return engine
 
 
+# {
+#   責務: [ZeroMpActionTests: zero・MP・action・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class ZeroMpActionTests(unittest.TestCase):
+    # {
+    #   責務: [test_zero_mp_actor_can_attack_with_zero_cost_skill: 検証: zero mp actor can attack with zero cost skill]
+    #   処理: [1: 検証: zero mp actor can attack with zero cost skill]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_zero_mp_actor_can_attack_with_zero_cost_skill(self) -> None:
         engine = make_engine()
         actor = make_combatant("actor", [ATTACK], mp=0)
@@ -88,6 +139,12 @@ class ZeroMpActionTests(unittest.TestCase):
         self.assertLess(foe.hp, foe.stats["hp"])
         self.assertNotIn("MPが尽きて動けない", "\n".join(engine.log))
 
+    # {
+    #   責務: [test_zero_mp_actor_can_defend_with_zero_cost_skill: 検証: zero mp actor can defend with zero cost skill]
+    #   処理: [1: 検証: zero mp actor can defend with zero cost skill]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_zero_mp_actor_can_defend_with_zero_cost_skill(self) -> None:
         engine = make_engine()
         actor = make_combatant("actor", [DEFEND], mp=0)
@@ -99,6 +156,12 @@ class ZeroMpActionTests(unittest.TestCase):
         self.assertEqual(actor.action_history, ["defend"])
         self.assertEqual(actor.guard, 0.5)
 
+    # {
+    #   責務: [test_skills_above_current_mp_are_not_candidates: 検証: skills above current mp are not candidates]
+    #   処理: [1: 検証: skills above current mp are not candidates]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_skills_above_current_mp_are_not_candidates(self) -> None:
         engine = make_engine()
         actor = make_combatant("actor", [PAID_MAGIC, ATTACK], mp=0)
@@ -109,6 +172,12 @@ class ZeroMpActionTests(unittest.TestCase):
         self.assertEqual([skill["id"] for skill in engine.inference.last_candidates], ["attack"])
         self.assertEqual(actor.action_history, ["attack"])
 
+    # {
+    #   責務: [test_actor_waits_only_when_no_affordable_skill_exists: 検証: actor waits only when no affordable skill exists]
+    #   処理: [1: 検証: actor waits only when no affordable skill exists]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_actor_waits_only_when_no_affordable_skill_exists(self) -> None:
         engine = make_engine()
         actor = make_combatant("actor", [PAID_MAGIC], mp=0)
@@ -120,6 +189,12 @@ class ZeroMpActionTests(unittest.TestCase):
         self.assertEqual(actor.action_history, [])
         self.assertIn("actorは様子を見ている。", engine.log)
 
+    # {
+    #   責務: [test_zero_mp_combatants_keep_battle_progressing: 検証: zero mp combatants keep battle progressing]
+    #   処理: [1: 検証: zero mp combatants keep battle progressing]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_zero_mp_combatants_keep_battle_progressing(self) -> None:
         engine = make_engine()
         ally = make_combatant("ally", [ATTACK], mp=0)

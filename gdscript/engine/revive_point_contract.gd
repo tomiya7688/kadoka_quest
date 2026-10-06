@@ -1,8 +1,18 @@
+# {
+#   責務: [revive_point_contract: Pure checkpoint validation and a one-key state plan; never heal or teleport.]
+#   フィールド: []
+# }
 extends RefCounted
 ## Pure checkpoint validation and a one-key state plan; never heal or teleport.
 const Rules = preload("res://engine/field_engine.gd")
 
 
+# {
+#   責務: [validate_point: 地点を妥当性を検査する]
+#   処理: [1: 地点を妥当性を検査する]
+#   引数: [value: 値（Variant）]
+#   戻り値: [result: 地点を妥当性を検査するための結果（Dictionary）]
+# }
 static func validate_point(value: Variant) -> Dictionary:
 	if not value is Dictionary or not value.get("map_id") is String or str(value["map_id"]).is_empty() \
 		or not value.get("name") is String or str(value["name"]).strip_edges().is_empty():
@@ -12,6 +22,16 @@ static func validate_point(value: Variant) -> Dictionary:
 	return {"ok": true, "point": value.duplicate(true)}
 
 
+# {
+#   責務: [validate_location: locationを妥当性を検査する]
+#   処理: [1: locationを妥当性を検査する]
+#   引数: [
+#     point: 地点（Dictionary）
+#     world: マップ状態（Dictionary）
+#     blocks: ブロック定義（Dictionary）
+#   ]
+#   戻り値: [result: locationを妥当性を検査するための結果（Dictionary）]
+# }
 static func validate_location(point: Dictionary, world: Dictionary, blocks: Dictionary) -> Dictionary:
 	if world.get("id") != point["map_id"]:
 		return _invalid("復活先マップのidが一致しません。")
@@ -32,15 +52,36 @@ static func validate_location(point: Dictionary, world: Dictionary, blocks: Dict
 	return {"ok": true}
 
 
+# {
+#   責務: [plan: 復活・地点・契約を計画する]
+#   処理: [1: 復活・地点・契約を計画する]
+#   引数: [
+#     state: 状態（Dictionary）
+#     point: 地点（Dictionary）
+#   ]
+#   戻り値: [result: 復活・地点・契約を計画するための結果（Dictionary）]
+# }
 static func plan(state: Dictionary, point: Dictionary) -> Dictionary:
 	var updated := state.duplicate(true)
 	updated["revive_point"] = point.duplicate(true)
 	return {"ok": true, "state": updated, "changed": updated != state}
 
 
+# {
+#   責務: [_integer: 復活・地点・契約のintegerを求める]
+#   処理: [1: 復活・地点・契約のintegerを求める]
+#   引数: [value: 値（Variant）]
+#   戻り値: [result: 復活・地点・契約のintegerを求めるための結果（bool）]
+# }
 static func _integer(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value) == floorf(float(value))
 
 
+# {
+#   責務: [_invalid: 復活・地点・契約のinvalidを求める]
+#   処理: [1: 復活・地点・契約のinvalidを求める]
+#   引数: [message: message（String）]
+#   戻り値: [result: 復活・地点・契約のinvalidを求めるための結果（Dictionary）]
+# }
 static func _invalid(message: String) -> Dictionary:
 	return {"ok": false, "error": "invalid_revive", "message": message}

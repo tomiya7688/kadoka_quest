@@ -1,3 +1,7 @@
+# {
+#   責務: [data_creator: データ・creatorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from pathlib import Path
 import sys
 

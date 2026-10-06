@@ -1,3 +1,7 @@
+# {
+#   責務: [test_wild_spawn_runtime: test・wild・出現・実行時の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from collections import Counter
 from copy import deepcopy
 from pathlib import Path
@@ -19,6 +23,16 @@ from kadoka_quest.data.state import StateStore
 from kadoka_quest.apps.map_editor import MapEditor
 
 
+# {
+#   責務: [controller: test・wild・出現・実行時のcontrollerを求める]
+#   処理: [1: test・wild・出現・実行時のcontrollerを求める]
+#   引数: [
+#     rate: rate
+#     seed: seed
+#     entries: 項目一覧
+#   ]
+#   戻り値: [result: 処理結果（型注釈なし）]
+# }
 def controller(rate=100, seed=153, entries=None):
     world = {"width": 12, "height": 12, "tiles": [["floor"] * 12 for _ in range(12)],
              "pop_rate": rate, "spawns": entries if entries is not None else [
@@ -29,6 +43,12 @@ def controller(rate=100, seed=153, entries=None):
     return result
 
 
+# {
+#   責務: [test_zero_or_invalid_pop_rate_never_spawns: 検証: zero or invalid pop rate never spawns]
+#   処理: [1: 検証: zero or invalid pop rate never spawns]
+#   引数: [rate: rate]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("rate", [0, -1, 101, True, "50", None, float("nan"), float("inf")])
 def test_zero_or_invalid_pop_rate_never_spawns(rate):
     result = controller(rate)
@@ -37,6 +57,12 @@ def test_zero_or_invalid_pop_rate_never_spawns(rate):
         assert result.monsters == []
 
 
+# {
+#   責務: [test_full_population_levels_unique_positions_and_unmodified_map: 検証: full population levels unique positions and unmodified map]
+#   処理: [1: 検証: full population levels unique positions and unmodified map]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_full_population_levels_unique_positions_and_unmodified_map():
     result = controller()
     before = deepcopy(result.map_data)
@@ -48,6 +74,12 @@ def test_full_population_levels_unique_positions_and_unmodified_map():
     assert result.map_data == before
 
 
+# {
+#   責務: [test_missing_rate_defaults_to_full_population: 検証: missing rate defaults to full population]
+#   処理: [1: 検証: missing rate defaults to full population]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_missing_rate_defaults_to_full_population():
     result = controller()
     result.map_data.pop("pop_rate")
@@ -55,6 +87,12 @@ def test_missing_rate_defaults_to_full_population():
     assert len(result.monsters) == 12
 
 
+# {
+#   責務: [test_failed_slots_are_not_retried_until_population_is_full: 検証: failed slots are not retried until population is full]
+#   処理: [1: 検証: failed slots are not retried until population is full]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_failed_slots_are_not_retried_until_population_is_full():
     result = controller(50)
     with mock.patch("kadoka_engine.wild_spawn.pop_allowed", side_effect=[True, False] * 6) as roll:
@@ -63,11 +101,26 @@ def test_failed_slots_are_not_retried_until_population_is_full():
     assert len(result.monsters) == 6
 
 
+# {
+#   責務: [test_pop_species_level_ai_order: 検証: pop species level ai order]
+#   処理: [1: 検証: pop species level ai order]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_pop_species_level_ai_order():
     result = controller(50)
     events = []
     result.rng.shuffle = lambda values: None
     result.rng.random = lambda: events.append("pop") or 0.1
+    # {
+    #   責務: [choose: test・wild・出現・実行時を選択する]
+    #   処理: [1: test・wild・出現・実行時を選択する]
+    #   引数: [
+    #     options: options
+    #     kwargs: kwargs
+    #   ]
+    #   戻り値: [result: test・wild・出現・実行時を選択するための結果（型注釈なし）]
+    # }
     def choose(options, **kwargs):
         events.append("species" if isinstance(options[0], dict) else "ai")
         return [options[0]]
@@ -78,6 +131,12 @@ def test_pop_species_level_ai_order():
     assert {mob["spawn"]["rolled_level"] for mob in result.monsters} == {9}
 
 
+# {
+#   責務: [test_relative_fractional_and_huge_weights_and_zero_candidates: 検証: relative fractional and huge weights and zero candidates]
+#   処理: [1: 検証: relative fractional and huge weights and zero candidates]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_relative_fractional_and_huge_weights_and_zero_candidates():
     for values in ((60, 30, 1), (0.6, 0.3, 0.01)):
         options = [{"species_id": str(i), "weight": value} for i, value in enumerate(values)]
@@ -92,6 +151,12 @@ def test_relative_fractional_and_huge_weights_and_zero_candidates():
     assert {mob["spawn"]["species_id"] for mob in result.monsters} == {"slime"}
 
 
+# {
+#   責務: [test_bad_or_all_zero_species_weights_are_safe: 検証: bad or all zero species weights are safe]
+#   処理: [1: 検証: bad or all zero species weights are safe]
+#   引数: [weight: 重み]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("weight", [0, -1, True, "1", float("nan"), float("inf"), 10**1000])
 def test_bad_or_all_zero_species_weights_are_safe(weight):
     result = controller(entries=[{"species_id": "slime", "weight": weight}])
@@ -99,6 +164,12 @@ def test_bad_or_all_zero_species_weights_are_safe(weight):
     assert result.monsters == []
 
 
+# {
+#   責務: [test_flags_and_starter_filter_precede_weight_normalization: 検証: flags and starter filter precede weight normalization]
+#   処理: [1: 検証: flags and starter filter precede weight normalization]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_flags_and_starter_filter_precede_weight_normalization():
     result = controller(entries=[
         {"species_id": "ball_slime", "weight": 100},
@@ -109,6 +180,12 @@ def test_flags_and_starter_filter_precede_weight_normalization():
     assert {mob["spawn"]["species_id"] for mob in result.monsters} == {"slime"}
 
 
+# {
+#   責務: [test_empty_or_blocked_map_has_no_population: 検証: empty or blocked map has no population]
+#   処理: [1: 検証: empty or blocked map has no population]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_empty_or_blocked_map_has_no_population():
     for result in (controller(entries=[]), controller()):
         result.blocks["floor"]["enemy_spawnable"] = False
@@ -116,6 +193,12 @@ def test_empty_or_blocked_map_has_no_population():
         assert result.monsters == []
 
 
+# {
+#   責務: [test_probability_boundary_and_zero_do_not_draw_species: 検証: probability boundary and zero do not draw species]
+#   処理: [1: 検証: probability boundary and zero do not draw species]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_probability_boundary_and_zero_do_not_draw_species():
     rng = mock.Mock()
     rng.random.return_value = 0.25
@@ -126,6 +209,12 @@ def test_probability_boundary_and_zero_do_not_draw_species():
     rng.choices.assert_not_called()
 
 
+# {
+#   責務: [test_normal_encounter_reuses_level_without_reroll_but_legacy_still_rolls: 検証: normal encounter reuses level without reroll but legacy still rolls]
+#   処理: [1: 検証: normal encounter reuses level without reroll but legacy still rolls]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_normal_encounter_reuses_level_without_reroll_but_legacy_still_rolls():
     rng = mock.Mock()
     spawn = {"min_level": 3, "max_level": 9, "rolled_level": 7}
@@ -137,7 +226,19 @@ def test_normal_encounter_reuses_level_without_reroll_but_legacy_still_rolls():
     rng.randint.assert_called_once_with(3, 9)
 
 
+# {
+#   責務: [test_population_reproducibility_and_ai_fallback: 検証: population reproducibility and ai fallback]
+#   処理: [1: 検証: population reproducibility and ai fallback]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_population_reproducibility_and_ai_fallback():
+    # {
+    #   責務: [run: test・wild・出現・実行時を実行する]
+    #   処理: [1: test・wild・出現・実行時を実行する]
+    #   引数: []
+    #   戻り値: [result: result.monsters（型注釈なし）]
+    # }
     def run():
         result = controller(75)
         result.reset((0, 0), {}, 0, {"slime": {"idle": 2}})
@@ -146,6 +247,12 @@ def test_population_reproducibility_and_ai_fallback():
     assert run() and {mob["ai"] for mob in run()} == {"idle"}
 
 
+# {
+#   責務: [game: test・wild・出現・実行時のゲームを求める]
+#   処理: [1: test・wild・出現・実行時のゲームを求める]
+#   引数: [tmp_path: tmp・パス]
+#   戻り値: [result: 処理結果（型注釈なし）]
+# }
 @pytest.fixture
 def game(tmp_path):
     repository = GameRepository(Path(__file__).resolve().parents[1] / "data")
@@ -156,6 +263,12 @@ def game(tmp_path):
     return result
 
 
+# {
+#   責務: [test_runtime_population_to_battle_preserves_rolled_level: 検証: runtime population to battle preserves rolled level]
+#   処理: [1: 検証: runtime population to battle preserves rolled level]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_runtime_population_to_battle_preserves_rolled_level(game):
     game.map_data["pop_rate"] = 100
     game.map_data["spawns"] = [{"species_id": "slime", "weight": 0.5, "min_level": 3, "max_level": 9}]
@@ -167,6 +280,12 @@ def test_runtime_population_to_battle_preserves_rolled_level(game):
     assert "rolled_level" not in game.battle.enemies[0].record.monster
 
 
+# {
+#   責務: [test_zero_rate_blocks_population_and_implicit_encounter: 検証: zero rate blocks population and implicit encounter]
+#   処理: [1: 検証: zero rate blocks population and implicit encounter]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_zero_rate_blocks_population_and_implicit_encounter(game):
     game.map_data["pop_rate"] = 0
     game.reset_hidden_monsters(now=100)
@@ -175,6 +294,12 @@ def test_zero_rate_blocks_population_and_implicit_encounter(game):
     assert game.mode == "field"
 
 
+# {
+#   責務: [test_metal_context_ignores_population_level: 検証: metal context ignores population level]
+#   処理: [1: 検証: metal context ignores population level]
+#   引数: [game: ゲーム]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_metal_context_ignores_population_level(game):
     game.map_data["encounter_context"] = "metal_area"
     spawn = {"species_id": "metal_slime", "min_level": 1, "max_level": 100, "rolled_level": 99}
@@ -184,6 +309,15 @@ def test_metal_context_ignores_population_level(game):
     roll.assert_called_once()
 
 
+# {
+#   責務: [test_editor_saved_settings_reach_runtime_after_reload: 検証: editor saved settings reach runtime after reload]
+#   処理: [1: 検証: editor saved settings reach runtime after reload]
+#   引数: [
+#     tmp_path: tmp・パス
+#     rate: rate
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("rate", [0, 100])
 def test_editor_saved_settings_reach_runtime_after_reload(tmp_path, rate):
     root = tmp_path / "data"

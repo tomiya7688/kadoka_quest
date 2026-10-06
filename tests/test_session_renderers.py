@@ -1,3 +1,7 @@
+# {
+#   責務: [test_session_renderers: test・セッション・renderersの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import random
@@ -21,6 +25,12 @@ from kadoka_quest.ui.common import Button
 from kadoka_quest.ui.field_renderer import FIELD_RECT, draw_field
 
 
+# {
+#   責務: [screen: test・セッション・renderersの描画先を求める]
+#   処理: [1: test・セッション・renderersの描画先を求める]
+#   引数: [monkeypatch: monkeypatch]
+#   戻り値: [result: 描画面（型注釈なし）]
+# }
 @pytest.fixture
 def screen(monkeypatch):
     monkeypatch.setenv("SDL_VIDEODRIVER", "dummy")
@@ -31,6 +41,15 @@ def screen(monkeypatch):
     pygame.display.quit()
 
 
+# {
+#   責務: [test_battle_renderer_uses_session_and_visual_provider_only: 検証: battle renderer uses session and visual provider only]
+#   処理: [1: 検証: battle renderer uses session and visual provider only]
+#   引数: [
+#     screen: 描画先
+#     with_image: with・画像
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("with_image", [False, True])
 def test_battle_renderer_uses_session_and_visual_provider_only(screen, with_image):
     images = mock.Mock(spec=CharacterImageProvider)
@@ -69,6 +88,12 @@ def test_battle_renderer_uses_session_and_visual_provider_only(screen, with_imag
     renderer.draw(screen, session, buttons)
 
 
+# {
+#   責務: [test_field_renderer_reads_live_session_and_supplied_party: 検証: field renderer reads live session and supplied party]
+#   処理: [1: 検証: field renderer reads live session and supplied party]
+#   引数: [screen: 描画先]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_field_renderer_reads_live_session_and_supplied_party(screen):
     field = FieldEngine(
         {"id": "small", "display_name": "テスト", "width": 3, "height": 3, "tiles": [["floor"] * 3 for _ in range(3)]},
@@ -97,6 +122,12 @@ def test_field_renderer_reads_live_session_and_supplied_party(screen):
     images.get.assert_any_call("hero", "field_right", (48, 48))
 
 
+# {
+#   責務: [test_password_renderer_needs_only_password_session: 検証: password renderer needs only password session]
+#   処理: [1: 検証: password renderer needs only password session]
+#   引数: [screen: 描画先]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_password_renderer_needs_only_password_session(screen):
     session = PasswordSession(PASSWORD, KANA_KEYS)
     session.open()

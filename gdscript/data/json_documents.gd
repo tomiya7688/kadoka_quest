@@ -1,7 +1,17 @@
+# {
+#   責務: [json_documents: JSON object I/O. Replacement failure never deletes the previous destination.]
+#   フィールド: []
+# }
 extends RefCounted
 ## JSON object I/O. Replacement failure never deletes the previous destination.
 
 
+# {
+#   責務: [read_object: objectを読み取る]
+#   処理: [1: objectを読み取る]
+#   引数: [path: パス（String）]
+#   戻り値: [result: objectを読み取るための結果（Dictionary）]
+# }
 static func read_object(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {"ok": false, "error": "not_found", "message": "セーブがありません。"}
@@ -16,6 +26,15 @@ static func read_object(path: String) -> Dictionary:
 	return {"ok": true, "value": json.data, "digest": text.sha256_text()}
 
 
+# {
+#   責務: [write_atomic: atomicを書き込む]
+#   処理: [1: atomicを書き込む]
+#   引数: [
+#     path: パス（String）
+#     value: 値（Dictionary）
+#   ]
+#   戻り値: [result: atomicを書き込むための結果（Dictionary）]
+# }
 static func write_atomic(path: String, value: Dictionary) -> Dictionary:
 	var token := Crypto.new().generate_random_bytes(12).hex_encode()
 	var temporary := path.get_base_dir().path_join("." + path.get_file() + "." + token + ".tmp")

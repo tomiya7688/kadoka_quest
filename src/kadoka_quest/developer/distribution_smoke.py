@@ -1,3 +1,7 @@
+# {
+#   責務: [distribution_smoke: distribution・smokeの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import os
@@ -23,17 +27,41 @@ KADOKA_ENV_KEYS = (
 )
 
 
+# {
+#   責務: [selected_targets: distribution・smokeの選択中・対象一覧を求める]
+#   処理: [1: distribution・smokeの選択中・対象一覧を求める]
+#   引数: [value: 値（str）]
+#   戻り値: [result: distribution・smokeの選択中・対象一覧を求めるための結果（list[str]）]
+# }
 def selected_targets(value: str) -> list[str]:
     if value == "all":
         return ["player", "developer"]
     return [value]
 
 
+# {
+#   責務: [executable_path: distribution・smokeのexecutable・パスを求める]
+#   処理: [1: distribution・smokeのexecutable・パスを求める]
+#   引数: [
+#     distribution: distribution（Path）
+#     name: 名前（str）
+#   ]
+#   戻り値: [result: distribution・smokeのexecutable・パスを求めるための結果（Path）]
+# }
 def executable_path(distribution: Path, name: str) -> Path:
     suffix = ".exe" if os.name == "nt" else ""
     return Path(distribution) / f"{name}{suffix}"
 
 
+# {
+#   責務: [verify_static_layout: distribution・smokeのverify・static・layoutを求める]
+#   処理: [1: distribution・smokeのverify・static・layoutを求める]
+#   引数: [
+#     distribution: distribution（Path）
+#     name: 名前（str）
+#   ]
+#   戻り値: [result: executable（Path）]
+# }
 def verify_static_layout(distribution: Path, name: str) -> Path:
     distribution = Path(distribution)
     executable = executable_path(distribution, name)
@@ -44,6 +72,12 @@ def verify_static_layout(distribution: Path, name: str) -> Path:
     return executable
 
 
+# {
+#   責務: [smoke_environment: distribution・smokeのsmoke・environmentを求める]
+#   処理: [1: distribution・smokeのsmoke・environmentを求める]
+#   引数: []
+#   戻り値: [result: environment（dict[str, str]）]
+# }
 def smoke_environment() -> dict[str, str]:
     environment = os.environ.copy()
     for key in KADOKA_ENV_KEYS:
@@ -54,6 +88,12 @@ def smoke_environment() -> dict[str, str]:
     return environment
 
 
+# {
+#   責務: [diagnostic_text: distribution・smokeのdiagnostic・文字列を求める]
+#   処理: [1: distribution・smokeのdiagnostic・文字列を求める]
+#   引数: [distribution: distribution（Path）]
+#   戻り値: [result: distribution・smokeのdiagnostic・文字列を求めるための結果（str）]
+# }
 def diagnostic_text(distribution: Path) -> str:
     error_path = Path(distribution) / "smoke-error.txt"
     if not error_path.is_file():
@@ -64,6 +104,17 @@ def diagnostic_text(distribution: Path) -> str:
         return "\nsmoke-error.txt exists but could not be read."
 
 
+# {
+#   責務: [run_process: processを実行する]
+#   処理: [1: processを実行する]
+#   引数: [
+#     distribution: distribution（Path）
+#     executable: executable（Path）
+#     arguments: arguments（list[str]）
+#     environment: environment（dict[str, str]）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def run_process(distribution: Path, executable: Path, arguments: list[str], environment: dict[str, str]) -> None:
     distribution = Path(distribution)
     error_path = distribution / "smoke-error.txt"
@@ -90,6 +141,16 @@ def run_process(distribution: Path, executable: Path, arguments: list[str], envi
         )
 
 
+# {
+#   責務: [run_smoke: smokeを実行する]
+#   処理: [1: smokeを実行する]
+#   引数: [
+#     key: キー（str）
+#     distribution: distribution（Path）
+#     executable: executable（Path）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def run_smoke(key: str, distribution: Path, executable: Path) -> None:
     distribution = Path(distribution)
     user_data = distribution / "UserData"
@@ -125,6 +186,15 @@ def run_smoke(key: str, distribution: Path, executable: Path) -> None:
     reset_user_data(distribution)
 
 
+# {
+#   責務: [smoke_distributions: distribution・smokeのsmoke・distributionsを求める]
+#   処理: [1: distribution・smokeのsmoke・distributionsを求める]
+#   引数: [
+#     dist_root: dist・基準ディレクトリ（Path）
+#     targets: 対象一覧（str）
+#   ]
+#   戻り値: [result: checked（list[Path]）]
+# }
 def smoke_distributions(dist_root: Path, *, targets: str = "all") -> list[Path]:
     checked: list[Path] = []
     for key in selected_targets(targets):

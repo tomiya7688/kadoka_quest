@@ -1,3 +1,7 @@
+# {
+#   責務: [test_app_smoke: test・app・smokeの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import importlib.util
@@ -12,8 +16,18 @@ import unittest
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+# {
+#   責務: [AppSmokeTests: app・smoke・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 @unittest.skipUnless(importlib.util.find_spec("pygame"), "pygame-ce is not installed")
 class AppSmokeTests(unittest.TestCase):
+    # {
+    #   責務: [test_all_apps_open_and_close_headlessly: 検証: all apps open and close headlessly]
+    #   処理: [1: 検証: all apps open and close headlessly]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_all_apps_open_and_close_headlessly(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             environment = os.environ.copy()

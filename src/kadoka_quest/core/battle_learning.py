@@ -1,11 +1,31 @@
+# {
+#   責務: [battle_learning: 戦闘・学習の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from typing import Any, Iterable
 
 
+# {
+#   責務: [BattleLearning: Updates sparse individual AI preferences from one action reward.]
+#   フィールド: []
+# }
 class BattleLearning:
     """Updates sparse individual AI preferences from one action reward."""
 
+    # {
+    #   責務: [learn: 戦闘・学習を学習を反映する]
+    #   処理: [1: 戦闘・学習を学習を反映する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     ai: AI（dict[str, Any]）
+    #     skill_id: スキル・識別子（str）
+    #     reward: 報酬（float）
+    #     context_tags: 判断用コンテキスト・tags（Iterable[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def learn(
         self,
         ai: dict[str, Any],

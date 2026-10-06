@@ -1,3 +1,7 @@
+# {
+#   責務: [test_wild_enemy_rendering: test・wild・敵・renderingの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import copy
@@ -18,6 +22,12 @@ from kadoka_quest.ui.character_image_provider import CharacterImageProvider
 from kadoka_quest.ui.field_renderer import FIELD_RECT, TILE, draw_field
 
 
+# {
+#   責務: [screen: test・wild・敵・renderingの描画先を求める]
+#   処理: [1: test・wild・敵・renderingの描画先を求める]
+#   引数: [monkeypatch: monkeypatch]
+#   戻り値: [result: 描画面（型注釈なし）]
+# }
 @pytest.fixture
 def screen(monkeypatch):
     monkeypatch.setenv("SDL_VIDEODRIVER", "dummy")
@@ -28,6 +38,15 @@ def screen(monkeypatch):
     pygame.display.quit()
 
 
+# {
+#   責務: [session: test・wild・敵・renderingのセッションを求める]
+#   処理: [1: test・wild・敵・renderingのセッションを求める]
+#   引数: [
+#     width: 幅
+#     height: 高さ
+#   ]
+#   戻り値: [result: test・wild・敵・renderingのセッションを求めるための結果（型注釈なし）]
+# }
 def session(width=12, height=12):
     world = {
         "id": "test", "display_name": "表示テスト", "width": width, "height": height,
@@ -44,10 +63,27 @@ def session(width=12, height=12):
                         HiddenEnemyController(field, random.Random(2)))
 
 
+# {
+#   責務: [wild: test・wild・敵・renderingのwildを求める]
+#   処理: [1: test・wild・敵・renderingのwildを求める]
+#   引数: [
+#     species: 種族
+#     x: X座標
+#     y: Y座標
+#     direction: direction
+#   ]
+#   戻り値: [result: test・wild・敵・renderingのwildを求めるための結果（型注釈なし）]
+# }
 def wild(species="slime", x=3, y=3, direction="front"):
     return {"x": x, "y": y, "spawn": {"species_id": species}, "direction": direction}
 
 
+# {
+#   責務: [provider: test・wild・敵・renderingのproviderを求める]
+#   処理: [1: test・wild・敵・renderingのproviderを求める]
+#   引数: []
+#   戻り値: [result: 画像一覧（型注釈なし）]
+# }
 def provider():
     images = mock.Mock(spec=CharacterImageProvider)
     images.get.return_value = None
@@ -55,11 +91,27 @@ def provider():
     return images
 
 
+# {
+#   責務: [test_multiple_species_and_directions_draw_without_changing_state: 検証: multiple species and directions draw without changing state]
+#   処理: [1: 検証: multiple species and directions draw without changing state]
+#   引数: [screen: 描画先]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_multiple_species_and_directions_draw_without_changing_state(screen):
     state = session()
     state.hidden_enemies.monsters = [wild("slime", 3, 3, "right"), wild("ghost", 5, 3, "left"), wild("metal_slime", 7, 3, "back")]
     colors = {"slime": (250, 30, 30), "ghost": (30, 250, 30), "metal_slime": (30, 30, 250)}
     images = provider()
+    # {
+    #   責務: [sprite: test・wild・敵・renderingのspriteを求める]
+    #   処理: [1: test・wild・敵・renderingのspriteを求める]
+    #   引数: [
+    #     species: 種族
+    #     kind: 種別
+    #     size: 大きさ
+    #   ]
+    #   戻り値: [result: test・wild・敵・renderingのspriteを求めるための結果（型注釈なし）]
+    # }
     def sprite(species, kind, size):
         if species not in colors:
             return None
@@ -81,6 +133,12 @@ def test_multiple_species_and_directions_draw_without_changing_state(screen):
     assert screen.get_clip() == clip
 
 
+# {
+#   責務: [test_missing_artwork_stays_visible_and_removed_enemy_disappears: 検証: missing artwork stays visible and removed enemy disappears]
+#   処理: [1: 検証: missing artwork stays visible and removed enemy disappears]
+#   引数: [screen: 描画先]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_missing_artwork_stays_visible_and_removed_enemy_disappears(screen):
     state = session()
     enemy = wild()
@@ -96,6 +154,12 @@ def test_missing_artwork_stays_visible_and_removed_enemy_disappears(screen):
     assert screen.get_at(center)[:3] == (18, 52, 86)
 
 
+# {
+#   責務: [test_camera_clip_includes_partial_sprites_and_culls_distant_ones: 検証: camera clip includes partial sprites and culls distant ones]
+#   処理: [1: 検証: camera clip includes partial sprites and culls distant ones]
+#   引数: [screen: 描画先]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_camera_clip_includes_partial_sprites_and_culls_distant_ones(screen):
     state = session(50, 30)
     state.player.snap(25, 15)  # camera origin = (12.5, 6)
@@ -111,6 +175,16 @@ def test_camera_clip_includes_partial_sprites_and_culls_distant_ones(screen):
     assert not any(call.args[0] == "ghost" for call in images.get.call_args_list)
 
 
+# {
+#   責務: [test_successful_move_updates_facing_without_changing_chase_rules: 検証: successful move updates facing without changing chase rules]
+#   処理: [1: 検証: successful move updates facing without changing chase rules]
+#   引数: [
+#     player: 主人公
+#     direction: direction
+#     target: 対象
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("player,direction,target", [
     ((5, 3), "right", (4, 3)), ((1, 3), "left", (2, 3)),
     ((3, 1), "back", (3, 2)), ((3, 5), "front", (3, 4)),
@@ -124,6 +198,12 @@ def test_successful_move_updates_facing_without_changing_chase_rules(player, dir
     assert enemy["direction"] == direction
 
 
+# {
+#   責務: [test_blocked_or_stationary_enemy_keeps_facing: 検証: blocked or stationary enemy keeps facing]
+#   処理: [1: 検証: blocked or stationary enemy keeps facing]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_blocked_or_stationary_enemy_keeps_facing():
     state = session()
     enemy = wild(direction="back")
@@ -132,6 +212,12 @@ def test_blocked_or_stationary_enemy_keeps_facing():
     assert enemy["direction"] == "back"
 
 
+# {
+#   責務: [test_population_starts_facing_front_and_keeps_spawn_data: 検証: population starts facing front and keeps spawn data]
+#   処理: [1: 検証: population starts facing front and keeps spawn data]
+#   引数: [seed: seed]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("seed", [1, 2, 3])
 def test_population_starts_facing_front_and_keeps_spawn_data(seed):
     state = session()
@@ -142,6 +228,16 @@ def test_population_starts_facing_front_and_keeps_spawn_data(seed):
     assert {enemy["spawn"]["species_id"] for enemy in state.hidden_enemies.monsters} == {"slime", "ghost", "metal_slime"}
 
 
+# {
+#   責務: [test_shipped_field_sprites_are_loadable: 検証: shipped field sprites are loadable]
+#   処理: [1: 検証: shipped field sprites are loadable]
+#   引数: [
+#     screen: 描画先
+#     species: 種族
+#     direction: direction
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 @pytest.mark.parametrize("species", ["slime", "ghost", "metal_slime"])
 @pytest.mark.parametrize("direction", ["front", "back", "left", "right"])
 def test_shipped_field_sprites_are_loadable(screen, species, direction):

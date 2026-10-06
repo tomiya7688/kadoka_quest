@@ -1,3 +1,7 @@
+# {
+#   責務: [test_battle_flow_service: test・戦闘・進行・serviceの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,7 +20,21 @@ from kadoka_quest.apps.battle_flow_service import BattleFlowService
 from kadoka_quest.apps.battle_session import BattleSession
 
 
+# {
+#   責務: [BattleFlowServiceTests: 戦闘・進行・service・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class BattleFlowServiceTests(unittest.TestCase):
+    # {
+    #   責務: [make_service: serviceを構築する]
+    #   処理: [1: serviceを構築する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     simulation: simulation（bool）
+    #     state: 状態（dict | None）
+    #   ]
+    #   戻り値: [result: serviceを構築するための結果（型注釈なし）]
+    # }
     def make_service(self, *, simulation: bool = False, state: dict | None = None):
         session = BattleSession(initial_log_delay_ms=10)
         battle = SimpleNamespace(
@@ -45,6 +63,12 @@ class BattleFlowServiceTests(unittest.TestCase):
         )
         return service, session, battle, monsters, states, current_state
 
+    # {
+    #   責務: [test_fight_runs_round_and_starts_playback_at_supplied_tick: 検証: fight runs round and starts playback at supplied tick]
+    #   処理: [1: 検証: fight runs round and starts playback at supplied tick]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_fight_runs_round_and_starts_playback_at_supplied_tick(self) -> None:
         service, session, battle, _, _, _ = self.make_service()
         battle.run_round.side_effect = lambda: battle.log.append("攻撃した。")
@@ -55,6 +79,12 @@ class BattleFlowServiceTests(unittest.TestCase):
         self.assertTrue(session.playback)
         self.assertEqual(session.next_log_tick, 130)
 
+    # {
+    #   責務: [test_simulation_blocks_scout_before_persistence: 検証: simulation blocks scout before persistence]
+    #   処理: [1: 検証: simulation blocks scout before persistence]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_simulation_blocks_scout_before_persistence(self) -> None:
         service, _, battle, monsters, states, _ = self.make_service(simulation=True)
 
@@ -65,6 +95,12 @@ class BattleFlowServiceTests(unittest.TestCase):
         monsters.create.assert_not_called()
         states.save.assert_not_called()
 
+    # {
+    #   責務: [test_simulation_blocks_consumable_item_before_inventory_mutation: 検証: simulation blocks consumable item before inventory mutation]
+    #   処理: [1: 検証: simulation blocks consumable item before inventory mutation]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_simulation_blocks_consumable_item_before_inventory_mutation(self) -> None:
         state = {"inventory": {"orange": 2}, "current_party": []}
         service, _, battle, _, states, current_state = self.make_service(simulation=True, state=state)
@@ -76,6 +112,12 @@ class BattleFlowServiceTests(unittest.TestCase):
         battle.use_party_item.assert_not_called()
         states.save.assert_not_called()
 
+    # {
+    #   責務: [test_normal_item_consumes_inventory_and_runs_round: 検証: normal item consumes inventory and runs round]
+    #   処理: [1: 検証: normal item consumes inventory and runs round]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_normal_item_consumes_inventory_and_runs_round(self) -> None:
         state = {"inventory": {"orange": 1}, "current_party": []}
         service, _, battle, _, states, current_state = self.make_service(state=state)
@@ -87,6 +129,12 @@ class BattleFlowServiceTests(unittest.TestCase):
         battle.use_party_item.assert_called_once_with()
         battle.run_round.assert_called_once_with()
 
+    # {
+    #   責務: [test_non_learning_battle_finalization_never_persists_ai_or_experience: 検証: non learning battle finalization never persists ai or experience]
+    #   処理: [1: 検証: non learning battle finalization never persists ai or experience]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_non_learning_battle_finalization_never_persists_ai_or_experience(self) -> None:
         service, session, battle, monsters, _, _ = self.make_service()
         battle.outcome = "victory"
@@ -98,6 +146,12 @@ class BattleFlowServiceTests(unittest.TestCase):
         monsters.save_all_ai.assert_not_called()
         monsters.get.assert_not_called()
 
+    # {
+    #   責務: [test_command_application_uses_flow_service_instead_of_legacy_game_handler: 検証: command application uses flow service instead of legacy game handler]
+    #   処理: [1: 検証: command application uses flow service instead of legacy game handler]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_command_application_uses_flow_service_instead_of_legacy_game_handler(self) -> None:
         _, session, battle, monsters, states, state = self.make_service()
         battle.run_round.side_effect = lambda: battle.log.append("攻撃した。")

@@ -1,3 +1,7 @@
+# {
+#   責務: [developer_launcher: developer・launcherの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import os
@@ -14,6 +18,12 @@ from kadoka_quest.paths import PROJECT_ROOT, ensure_runtime_directories, is_froz
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, WARN, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
+# {
+#   責務: [main: developer・launcherのエントリ処理を実行する]
+#   処理: [1: developer・launcherのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     ensure_runtime_directories()
     saves = SaveDataManager()
@@ -30,11 +40,23 @@ def main() -> None:
     status = f"Developer environment ready. Active save: {active_save}"
     status_ok = True
 
+    # {
+    #   責務: [set_result: 処理結果を設定する]
+    #   処理: [1: 処理結果を設定する]
+    #   引数: [result: 処理結果（WorkflowResult）]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def set_result(result: WorkflowResult) -> None:
         nonlocal status, status_ok
         status = result.message
         status_ok = result.ok
 
+    # {
+    #   責務: [launch: developer・launcherを起動する]
+    #   処理: [1: developer・launcherを起動する]
+    #   引数: [script: script（str）]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def launch(script: str) -> None:
         environment = os.environ.copy()
         environment["KADOKA_DEVELOPER_TOOLS"] = "1"
@@ -52,10 +74,22 @@ def main() -> None:
             return
         set_result(WorkflowResult(True, f"Started {script}."))
 
+    # {
+    #   責務: [stop: developer・launcherを停止する]
+    #   処理: [1: developer・launcherを停止する]
+    #   引数: []
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def stop() -> None:
         nonlocal running
         running = False
 
+    # {
+    #   責務: [launch_callback: コールバックを起動する]
+    #   処理: [1: コールバックを起動する]
+    #   引数: [script: script（str）]
+    #   戻り値: [result: コールバックを起動するための結果（型注釈なし）]
+    # }
     def launch_callback(script: str):
         return lambda: launch(script)
 

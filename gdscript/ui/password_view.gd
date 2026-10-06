@@ -1,3 +1,13 @@
+# {
+#   責務: [password_view: Native/virtual input -> semantic signals; render snapshots, never judge a password.]
+#   フィールド: [
+#     slots: 編成枠一覧（Array）
+#     buttons: buttons（Dictionary）
+#     text_input: 文字列・入力（LineEdit）
+#     message: message（Label）
+#     keyboard_grid: keyboard・マス（GridContainer）
+#   ]
+# }
 extends PanelContainer
 ## Native/virtual input -> semantic signals; render snapshots, never judge a password.
 
@@ -12,6 +22,12 @@ var message: Label
 var keyboard_grid: GridContainer
 
 
+# {
+#   責務: [_ready: 暗号・表示のエントリ処理を実行する]
+#   処理: [1: 暗号・表示のエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _ready() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("#091329")
@@ -61,6 +77,12 @@ func _ready() -> void:
 	column.add_child(message)
 
 
+# {
+#   責務: [configure_keys: キー一覧を設定する]
+#   処理: [1: キー一覧を設定する]
+#   引数: [keys: キー一覧（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func configure_keys(keys: String) -> void:
 	for index in keys.length():
 		var character := keys[index]
@@ -74,6 +96,17 @@ func configure_keys(keys: String) -> void:
 		order[index].focus_previous = order[index].get_path_to(order[(index - 1 + order.size()) % order.size()])
 
 
+# {
+#   責務: [_button: 暗号・表示のbuttonを求める]
+#   処理: [1: 暗号・表示のbuttonを求める]
+#   引数: [
+#     parent: parent（Control）
+#     id: 識別子（String）
+#     text: 文字列（String）
+#     callback: コールバック（Callable）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _button(parent: Control, id: String, text: String, callback: Callable) -> void:
 	var button := Button.new()
 	button.text = text
@@ -85,6 +118,15 @@ func _button(parent: Control, id: String, text: String, callback: Callable) -> v
 	buttons[id] = button
 
 
+# {
+#   責務: [show_snapshot: 暗号・表示のshow・独立した状態の写しを求める]
+#   処理: [1: 暗号・表示のshow・独立した状態の写しを求める]
+#   引数: [
+#     state: 状態（Dictionary）
+#     opening: opening（bool）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func show_snapshot(state: Dictionary, opening: bool = false) -> void:
 	var value: String = state["input_text"]
 	for index in slots.size():
@@ -96,6 +138,12 @@ func show_snapshot(state: Dictionary, opening: bool = false) -> void:
 		text_input.grab_focus.call_deferred()
 
 
+# {
+#   責務: [_committed_text: 暗号・表示のcommitted・文字列を求める]
+#   処理: [1: 暗号・表示のcommitted・文字列を求める]
+#   引数: [value: 値（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _committed_text(value: String) -> void:
 	# LineEdit owns IME composition; only committed text becomes plain character signals.
 	for index in value.length():
@@ -103,6 +151,12 @@ func _committed_text(value: String) -> void:
 	text_input.clear()  # clear() does not emit text_changed, so there is no recursive append.
 
 
+# {
+#   責務: [handle_key: キーを入力を処理する]
+#   処理: [1: キーを入力を処理する]
+#   引数: [event: イベント（InputEventKey）]
+#   戻り値: [result: キーを入力を処理するための結果（bool）]
+# }
 func handle_key(event: InputEventKey) -> bool:
 	if text_input.has_focus() and text_input.has_ime_text() and event.physical_keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE, KEY_BACKSPACE]:
 		return false  # Native IME composition consumes these before password commands.

@@ -1,3 +1,7 @@
+# {
+#   責務: [field_renderer: フィールド・描画処理の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -14,6 +18,12 @@ FIELD_RECT = pygame.Rect(20, 70, 800, 576)
 TILE = 32
 
 
+# {
+#   責務: [_hex_color: フィールド・描画処理のhex・色を求める]
+#   処理: [1: フィールド・描画処理のhex・色を求める]
+#   引数: [value: 値（str）]
+#   戻り値: [result: フィールド・描画処理のhex・色を求めるための結果（tuple[int, int, int]）]
+# }
 def _hex_color(value: str) -> tuple[int, int, int]:
     try:
         clean = value.lstrip("#")
@@ -22,6 +32,19 @@ def _hex_color(value: str) -> tuple[int, int, int]:
         return (130, 130, 130)
 
 
+# {
+#   責務: [draw_field: Render a field snapshot; gameplay decisions stay in the core layer.]
+#   処理: [1: Render a field snapshot; gameplay decisions stay in the core layer.]
+#   引数: [
+#     screen: 描画先（pygame.Surface）
+#     session: セッション（FieldSession）
+#     images: 画像一覧（CharacterImageProvider）
+#     party: パーティ（Sequence[MonsterRecord]）
+#     selected_index: 選択中・位置番号（int）
+#     now: 現在時刻（int | None）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def draw_field(
     screen: pygame.Surface,
     session: FieldSession,

@@ -1,3 +1,7 @@
+# {
+#   責務: [sync_remote_context: sync・remote・判断用コンテキストの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -11,6 +15,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
+# {
+#   責務: [git_executable: sync・remote・判断用コンテキストのgit・executableを求める]
+#   処理: [1: sync・remote・判断用コンテキストのgit・executableを求める]
+#   引数: []
+#   戻り値: [result: sync・remote・判断用コンテキストのgit・executableを求めるための結果（str）]
+# }
 def git_executable() -> str:
     configured = os.environ.get("KADOKA_GIT_EXECUTABLE", "")
     if configured:
@@ -21,6 +31,15 @@ def git_executable() -> str:
     raise RuntimeError("Git was not found. Set KADOKA_GIT_EXECUTABLE to git.exe.")
 
 
+# {
+#   責務: [run_git: gitを実行する]
+#   処理: [1: gitを実行する]
+#   引数: [
+#     check: check（bool）
+#     args: args（str）
+#   ]
+#   戻り値: [result: gitを実行するための結果（str）]
+# }
 def run_git(*args: str, check: bool = True) -> str:
     result = subprocess.run(
         [git_executable(), *args],
@@ -36,6 +55,16 @@ def run_git(*args: str, check: bool = True) -> str:
     return result.stdout.strip()
 
 
+# {
+#   責務: [compact_diff: sync・remote・判断用コンテキストのcompact・diffを求める]
+#   処理: [1: sync・remote・判断用コンテキストのcompact・diffを求める]
+#   引数: [
+#     base: base（str）
+#     head: head（str）
+#     max_lines: max・lines（int）
+#   ]
+#   戻り値: [result: sync・remote・判断用コンテキストのcompact・diffを求めるための結果（str）]
+# }
 def compact_diff(base: str, head: str, max_lines: int) -> str:
     diff = run_git(
         "diff",
@@ -51,6 +80,12 @@ def compact_diff(base: str, head: str, max_lines: int) -> str:
     return "\n".join(lines[:max_lines] + [f"... ({omitted} diff lines omitted)"])
 
 
+# {
+#   責務: [main: sync・remote・判断用コンテキストのエントリ処理を実行する]
+#   処理: [1: sync・remote・判断用コンテキストのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: sync・remote・判断用コンテキストのエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")

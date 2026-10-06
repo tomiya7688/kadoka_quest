@@ -1,17 +1,39 @@
+# {
+#   責務: [church_registration: Register only a checkpoint using validated content and guarded existing state I/O.]
+#   フィールド: [persistence: persistence（RefCounted）]
+# }
 extends RefCounted
 ## Register only a checkpoint using validated content and guarded existing state I/O.
 const Contract = preload("res://engine/revive_point_contract.gd")
 var persistence: RefCounted
 
 
+# {
+#   責務: [_init: 教会・registrationが利用する初期状態と依存を設定する]
+#   処理: [1: 教会・registrationが利用する初期状態と依存を設定する]
+#   引数: [field_persistence: フィールド・persistence（RefCounted）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(field_persistence: RefCounted) -> void:
 	persistence = field_persistence
 
 
+# {
+#   責務: [register: 教会・registrationを登録する]
+#   処理: [1: 教会・registrationを登録する]
+#   引数: [revive: 復活（Variant）]
+#   戻り値: [result: 教会・registrationを登録するための結果（Dictionary）]
+# }
 func register(revive: Variant) -> Dictionary:
 	return commit(begin(revive))
 
 
+# {
+#   責務: [begin: 教会・registrationを開始する]
+#   処理: [1: 教会・registrationを開始する]
+#   引数: [revive: 復活（Variant）]
+#   戻り値: [result: 教会・registrationを開始するための結果（Dictionary）]
+# }
 func begin(revive: Variant) -> Dictionary:
 	var valid := Contract.validate_point(revive)
 	if not valid["ok"]:
@@ -25,6 +47,12 @@ func begin(revive: Variant) -> Dictionary:
 	return loaded
 
 
+# {
+#   責務: [commit: 教会・registrationのcommitを求める]
+#   処理: [1: 教会・registrationのcommitを求める]
+#   引数: [request: 要求（Dictionary）]
+#   戻り値: [result: 教会・registrationのcommitを求めるための結果（Dictionary）]
+# }
 func commit(request: Dictionary) -> Dictionary:
 	if not request.get("ok", false):
 		return _failure(request, false)
@@ -55,6 +83,15 @@ func commit(request: Dictionary) -> Dictionary:
 			+ " [未移植: HP回復・敗北復活]"}
 
 
+# {
+#   責務: [_failure: 教会・registrationのfailureを求める]
+#   処理: [1: 教会・registrationのfailureを求める]
+#   引数: [
+#     reason: 理由（Dictionary）
+#     saved: saved（bool）
+#   ]
+#   戻り値: [result: 教会・registrationのfailureを求めるための結果（Dictionary）]
+# }
 static func _failure(reason: Dictionary, saved: bool) -> Dictionary:
 	return {"ok": false, "saved": saved, "error": reason.get("error", "registration_failed"),
 		"message": "復活地点の登録失敗: " + str(reason.get("message", "理由不明"))

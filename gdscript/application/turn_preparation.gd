@@ -1,3 +1,7 @@
+# {
+#   責務: [turn_preparation: Read-only record reconstruction -> pure base round plan. No action, inference or writes.]
+#   フィールド: [builder: 構築処理（RefCounted）]
+# }
 extends RefCounted
 ## Read-only record reconstruction -> pure base round plan. No action, inference or writes.
 
@@ -6,10 +10,26 @@ const Order = preload("res://engine/turn_order.gd")
 var builder: RefCounted
 
 
+# {
+#   責務: [_init: ターン・preparationが利用する初期状態と依存を設定する]
+#   処理: [1: ターン・preparationが利用する初期状態と依存を設定する]
+#   引数: [repository: データ取得先（RefCounted）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(repository: RefCounted) -> void:
 	builder = Builder.new(repository)
 
 
+# {
+#   責務: [prepare: ターン・preparationを準備する]
+#   処理: [1: ターン・preparationを準備する]
+#   引数: [
+#     allies: 味方（Variant）
+#     enemies: 敵（Variant）
+#     shuffle_order: 並べ替え・順序（Variant）
+#   ]
+#   戻り値: [result: ターン・preparationを準備するための結果（Dictionary）]
+# }
 func prepare(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Dictionary:
 	var teams: Dictionary = {}
 	var snapshots: Dictionary = {}
@@ -25,6 +45,12 @@ func prepare(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Dicti
 	return {"ok": true, "teams": teams, "plan": planned, "scope": "base_turn_preparation"}
 
 
+# {
+#   責務: [_snapshots: ターン・preparationのsnapshotsを求める]
+#   処理: [1: ターン・preparationのsnapshotsを求める]
+#   引数: [members: 個体一覧（Array）]
+#   戻り値: [result: ターン・preparationのsnapshotsを求めるための結果（Array）]
+# }
 func _snapshots(members: Array) -> Array:
 	var snapshots: Array = []
 	for member: Dictionary in members:

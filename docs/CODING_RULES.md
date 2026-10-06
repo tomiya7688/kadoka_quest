@@ -6,6 +6,8 @@ Kadoka Quest の実装では、責務を小さく保ち、呼び出し経路を�
 
 ## 基本原則
 
+全コードの宣言コメントは [JSON-like Comment Outsの日本語正本](https://github.com/tomiya7688/Json-like-comment-outs/blob/main/docs/jp/SPECIFICATION.md) に従う。対象範囲、簡潔な記述例、保持すべき既存説明、検査の限界は [COMMENT_RULES.md](COMMENT_RULES.md) を参照する。公開APIだけでなく非公開/ネストした宣言、GDScript、テスト、開発ツール、起動バッチ/CIも対象とする。
+
 - 1ファイル1責務を基本とする。
 - 1関数1処理を基本とする。
 - 1クラスは1つの明確な責務を持つ。

@@ -1,4 +1,8 @@
 """Regenerate the bundled sample JSON. This intentionally overwrites sample data."""
+# {
+#   責務: [_generate_sample_data_impl: Regenerate the bundled sample JSON. This intentionally overwrites sample data.]
+#   フィールド: []
+# }
 
 from __future__ import annotations
 
@@ -11,6 +15,15 @@ DATA = ROOT / "data"
 STATS = ("attack", "defense", "speed", "magic", "hp", "mp")
 
 
+# {
+#   責務: [write: generate・sample・データ・implを書き込む]
+#   処理: [1: generate・sample・データ・implを書き込む]
+#   引数: [
+#     path: パス（Path）
+#     value: 値（dict）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def write(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
@@ -18,6 +31,15 @@ def write(path: Path, value: dict) -> None:
         handle.write("\n")
 
 
+# {
+#   責務: [level_table: generate・sample・データ・implのレベル・表を求める]
+#   処理: [1: generate・sample・データ・implのレベル・表を求める]
+#   引数: [
+#     base: base（list[int]）
+#     final: final（list[int]）
+#   ]
+#   戻り値: [result: 処理結果（dict[str, dict[str, int]]）]
+# }
 def level_table(base: list[int], final: list[int]) -> dict[str, dict[str, int]]:
     result: dict[str, dict[str, int]] = {}
     for level in range(1, 101):
@@ -29,6 +51,16 @@ def level_table(base: list[int], final: list[int]) -> dict[str, dict[str, int]]:
     return result
 
 
+# {
+#   責務: [plus_stages: generate・sample・データ・implの＋選択・stagesを求める]
+#   処理: [1: generate・sample・データ・implの＋選択・stagesを求める]
+#   引数: [
+#     species_id: 種族・識別子（str）
+#     focus: focus（tuple[str, str]）
+#     skill_id: スキル・識別子（str）
+#   ]
+#   戻り値: [result: stages（list[dict]）]
+# }
 def plus_stages(species_id: str, focus: tuple[str, str], skill_id: str) -> list[dict]:
     first, second = focus
     stages = []
@@ -269,6 +301,16 @@ BLOCKS = [
 ]
 
 
+# {
+#   責務: [bordered_tiles: generate・sample・データ・implのbordered・tilesを求める]
+#   処理: [1: generate・sample・データ・implのbordered・tilesを求める]
+#   引数: [
+#     width: 幅（int）
+#     height: 高さ（int）
+#     fill: fill（str）
+#   ]
+#   戻り値: [result: tiles（list[list[str]]）]
+# }
 def bordered_tiles(width: int, height: int, fill: str = "grass") -> list[list[str]]:
     tiles = [[fill for _ in range(width)] for _ in range(height)]
     for x in range(width):
@@ -278,6 +320,12 @@ def bordered_tiles(width: int, height: int, fill: str = "grass") -> list[list[st
     return tiles
 
 
+# {
+#   責務: [make_starting_town: starting・townを構築する]
+#   処理: [1: starting・townを構築する]
+#   引数: []
+#   戻り値: [result: starting・townを構築するための結果（dict）]
+# }
 def make_starting_town() -> dict:
     width, height = 36, 24
     tiles = bordered_tiles(width, height, "town")
@@ -315,6 +363,12 @@ def make_starting_town() -> dict:
     }
 
 
+# {
+#   責務: [make_starting_ranch: starting・ranchを構築する]
+#   処理: [1: starting・ranchを構築する]
+#   引数: []
+#   戻り値: [result: starting・ranchを構築するための結果（dict）]
+# }
 def make_starting_ranch() -> dict:
     width, height = 28, 20
     tiles = bordered_tiles(width, height, "ranch_floor")
@@ -344,6 +398,12 @@ def make_starting_ranch() -> dict:
     }
 
 
+# {
+#   責務: [make_starting_forest: starting・forestを構築する]
+#   処理: [1: starting・forestを構築する]
+#   引数: []
+#   戻り値: [result: starting・forestを構築するための結果（dict）]
+# }
 def make_starting_forest() -> dict:
     width, height = 48, 32
     tiles = bordered_tiles(width, height)
@@ -387,6 +447,12 @@ def make_starting_forest() -> dict:
     }
 
 
+# {
+#   責務: [make_fresh_forest: fresh・forestを構築する]
+#   処理: [1: fresh・forestを構築する]
+#   引数: []
+#   戻り値: [result: fresh・forestを構築するための結果（dict）]
+# }
 def make_fresh_forest() -> dict:
     width, height = 48, 32
     tiles = bordered_tiles(width, height)
@@ -432,6 +498,12 @@ def make_fresh_forest() -> dict:
     }
 
 
+# {
+#   責務: [make_rokuta_village: rokuta・villageを構築する]
+#   処理: [1: rokuta・villageを構築する]
+#   引数: []
+#   戻り値: [result: rokuta・villageを構築するための結果（dict）]
+# }
 def make_rokuta_village() -> dict:
     width, height = 36, 24
     tiles = bordered_tiles(width, height, "safe")
@@ -466,6 +538,12 @@ def make_rokuta_village() -> dict:
     }
 
 
+# {
+#   責務: [make_ghost_home: おばけ・homeを構築する]
+#   処理: [1: おばけ・homeを構築する]
+#   引数: []
+#   戻り値: [result: おばけ・homeを構築するための結果（dict）]
+# }
 def make_ghost_home() -> dict:
     width, height = 24, 18
     tiles = bordered_tiles(width, height, "safe")
@@ -490,6 +568,12 @@ def make_ghost_home() -> dict:
     }
 
 
+# {
+#   責務: [main: generate・sample・データ・implのエントリ処理を実行する]
+#   処理: [1: generate・sample・データ・implのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     write(DATA / "skills" / "skills.json", {"schema_version": 1, "skills": SKILLS})
     write(DATA / "equipment" / "equipment.json", {"schema_version": 1, "equipment": EQUIPMENT})

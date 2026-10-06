@@ -1,3 +1,7 @@
+# {
+#   責務: [spawn_table_dialog: 出現・表・dialogの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -20,6 +24,17 @@ TABLE_ROWS = 9
 SPECIES_ROWS = 5
 
 
+# {
+#   責務: [_cell: 出現・表・dialogのcellを求める]
+#   処理: [1: 出現・表・dialogのcellを求める]
+#   引数: [
+#     surface: 描画面（pygame.Surface）
+#     value: 値（object）
+#     rect: 表示矩形（pygame.Rect）
+#     color: 色（tuple[int, int, int]）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def _cell(surface: pygame.Surface, value: object, rect: pygame.Rect, color: tuple[int, int, int] = TEXT) -> None:
     previous = surface.get_clip()
     surface.set_clip(rect.clip(previous))
@@ -27,15 +42,39 @@ def _cell(surface: pygame.Surface, value: object, rect: pygame.Rect, color: tupl
     surface.set_clip(previous)
 
 
+# {
+#   責務: [SpawnTableDialog: Input/rendering only; map changes are delegated to the editor.]
+#   フィールド: [
+#     editor: editor
+#     tab: tab
+#     table_scroll: 表・scroll
+#     species_scroll: 種族・scroll
+#   ]
+# }
 class SpawnTableDialog:
     """Input/rendering only; map changes are delegated to the editor."""
 
+    # {
+    #   責務: [__init__: 出現・表・dialogが利用する初期状態と依存を設定する]
+    #   処理: [1: 出現・表・dialogが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     editor: editor（MapEditor）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, editor: MapEditor) -> None:
         self.editor = editor
         self.tab = "table"
         self.table_scroll = ScrollBar(pygame.Rect(TABLE.right + 2, TABLE.y, 10, TABLE.height))
         self.species_scroll = ScrollBar(pygame.Rect(SPECIES.right + 2, SPECIES.y, 10, SPECIES.height))
 
+    # {
+    #   責務: [_configure: 出現・表・dialogを設定する]
+    #   処理: [1: 出現・表・dialogを設定する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _configure(self) -> None:
         self.table_scroll.value = self.editor.spawn_table_offset
         self.table_scroll.configure(len(self.editor.map_data.get("spawns", [])), TABLE_ROWS)
@@ -43,16 +82,34 @@ class SpawnTableDialog:
         self.species_scroll.configure(len(self.editor.species_ids), SPECIES_ROWS)
         self._store_offsets()
 
+    # {
+    #   責務: [_store_offsets: offsetsを保持する]
+    #   処理: [1: offsetsを保持する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _store_offsets(self) -> None:
         self.editor.spawn_table_offset = self.table_scroll.value
         self.editor.spawn_species_offset = self.species_scroll.value
 
+    # {
+    #   責務: [_discard_guard: 出現・表・dialogのdiscard・防御倍率を求める]
+    #   処理: [1: 出現・表・dialogのdiscard・防御倍率を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 出現・表・dialogのdiscard・防御倍率を求めるための結果（bool）]
+    # }
     def _discard_guard(self) -> bool:
         if self.editor.spawn_draft_changed():
             self.editor.status = "未反映の入力があります。「編集を反映」か「マップ保存」、または「入力を戻す」を選んでください。"
             return False
         return True
 
+    # {
+    #   責務: [close: 出現・表・dialogを閉じる]
+    #   処理: [1: 出現・表・dialogを閉じる]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def close(self) -> None:
         if self.editor.map_spawn_form.changed:
             self.editor.status = "マップ全体タブに未反映の入力があります。反映/保存するか、そのタブで入力を戻してください。"
@@ -60,10 +117,22 @@ class SpawnTableDialog:
         if self._discard_guard():
             self.editor.spawn_dialog_open = False
 
+    # {
+    #   責務: [new: 出現・表・dialogを新規作成する]
+    #   処理: [1: 出現・表・dialogを新規作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def new(self) -> None:
         if self._discard_guard():
             self.editor.new_spawn()
 
+    # {
+    #   責務: [revert: 出現・表・dialogのrevertを求める]
+    #   処理: [1: 出現・表・dialogのrevertを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def revert(self) -> None:
         if self.editor.current_spawn is not None:
             self.editor.select_spawn(self.editor.selected_spawn)
@@ -71,6 +140,12 @@ class SpawnTableDialog:
             self.editor.load_spawn_fields()
         self.editor.status = "未反映の入力を戻しました。反映済みのマップ編集は維持しています。"
 
+    # {
+    #   責務: [_buttons: 出現・表・dialogのbuttonsを求める]
+    #   処理: [1: 出現・表・dialogのbuttonsを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 出現・表・dialogのbuttonsを求めるための結果（list[Button]）]
+    # }
     def _buttons(self) -> list[Button]:
         editor = self.editor
         if self.tab == "map":
@@ -90,16 +165,37 @@ class SpawnTableDialog:
             Button(pygame.Rect(850, 555, 180, 42), "マップ保存", editor.save),
         ]
 
+    # {
+    #   責務: [revert_map: 出現・表・dialogのrevert・マップを求める]
+    #   処理: [1: 出現・表・dialogのrevert・マップを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def revert_map(self) -> None:
         self.editor.map_spawn_form.load(self.editor.map_data)
         self.editor.status = "マップ全体の未反映入力を戻しました。候補タブの入力は維持しています。"
 
+    # {
+    #   責務: [select_tab: tabを選択する]
+    #   処理: [1: tabを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     tab: tab（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_tab(self, tab: str) -> None:
         self.tab = tab
         for field in self.editor.spawn_fields:
             field.active = False
         self.editor.map_spawn_form.deactivate()
 
+    # {
+    #   責務: [_tabs: 出現・表・dialogのtabsを求める]
+    #   処理: [1: 出現・表・dialogのtabsを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 出現・表・dialogのtabsを求めるための結果（list[Button]）]
+    # }
     def _tabs(self) -> list[Button]:
         return [
             Button(pygame.Rect(140, 137, 255, 35), "● 出現候補" if self.tab == "table" else "出現候補",
@@ -108,6 +204,16 @@ class SpawnTableDialog:
                    lambda: self.select_tab("map")),
         ]
 
+    # {
+    #   責務: [handle: 出現・表・dialogを入力を処理する]
+    #   処理: [1: 出現・表・dialogを入力を処理する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     event: イベント（pygame.event.Event）
+    #     mouse: mouse（tuple[int, int] | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def handle(self, event: pygame.event.Event, mouse: tuple[int, int] | None = None) -> None:
         editor = self.editor
         self._configure()
@@ -152,6 +258,16 @@ class SpawnTableDialog:
                     # Change the draft species, not the selected table row.
                     editor.selected_species = index
 
+    # {
+    #   責務: [draw: 出現・表・dialogを描画する]
+    #   処理: [1: 出現・表・dialogを描画する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     surface: 描画面（pygame.Surface）
+    #     mouse: mouse（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def draw(self, surface: pygame.Surface, mouse: tuple[int, int]) -> None:
         editor = self.editor
         self._configure()

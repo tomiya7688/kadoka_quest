@@ -1,4 +1,8 @@
 """Isolated real-Godot field persistence, old Python format compatibility and failure safety."""
+# {
+#   責務: [test_gdscript_save: Isolated real-Godot field persistence, old Python format compatibility and failure safety.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import base64
@@ -18,8 +22,23 @@ ROOT = Path(__file__).resolve().parents[1]
 GODOT = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
 
 
+# {
+#   責務: [GDScriptSaveTests: gdscript・保存・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     content: content
+#     save_root: 保存・基準ディレクトリ
+#     legacy_root: legacy・基準ディレクトリ
+#   ]
+# }
 @unittest.skipUnless(GODOT, "Set KADOKA_GODOT_EXECUTABLE to run real save/load probes")
 class GDScriptSaveTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix="kadoka-gdscript-save-")
         self.addCleanup(self.temporary.cleanup)
@@ -32,21 +51,60 @@ class GDScriptSaveTests(unittest.TestCase):
         self.legacy_root.mkdir()
         (self.legacy_root / "sentinel.json").write_text('{"do_not_touch": true}', encoding="utf-8")
 
+    # {
+    #   責務: [profile: gdscript・保存・testsのプロファイルを求める]
+    #   処理: [1: gdscript・保存・testsのプロファイルを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     name: 名前（str）
+    #   ]
+    #   戻り値: [result: gdscript・保存・testsのプロファイルを求めるための結果（Path）]
+    # }
     def profile(self, name: str = "default") -> Path:
         return self.save_root / name
 
+    # {
+    #   責務: [state: gdscript・保存・testsの状態を求める]
+    #   処理: [1: gdscript・保存・testsの状態を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     changes: changes
+    #   ]
+    #   戻り値: [result: 状態（dict）]
+    # }
     def state(self, **changes) -> dict:
         state = json.loads(json.dumps(DEFAULT_STATE, ensure_ascii=False))
         state.pop("inventory")
         state.update(changes)
         return state
 
+    # {
+    #   責務: [seed: gdscript・保存・testsのseedを求める]
+    #   処理: [1: gdscript・保存・testsのseedを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     state: 状態（dict）
+    #     name: 名前（str）
+    #   ]
+    #   戻り値: [result: パス（Path）]
+    # }
     def seed(self, state: dict, name: str = "default") -> Path:
         path = self.profile(name)
         path.mkdir(exist_ok=True)
         (path / "state.json").write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
         return path
 
+    # {
+    #   責務: [probe: gdscript・保存・testsのprobeを求める]
+    #   処理: [1: gdscript・保存・testsのprobeを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     actions: actions（list | None）
+    #     name: 名前（str）
+    #     names: 名前一覧（list | None）
+    #   ]
+    #   戻り値: [result: gdscript・保存・testsのprobeを求めるための結果（dict）]
+    # }
     def probe(self, actions: list | None = None, name: str = "default", names: list | None = None) -> dict:
         fixture = self.content / "probe.json"
         fixture.write_text(json.dumps({"actions": actions or [], "names": names or []}), encoding="utf-8")
@@ -67,10 +125,22 @@ class GDScriptSaveTests(unittest.TestCase):
                 return json.loads(base64.b64decode(line.split("=", 1)[1]).decode("utf-8"))
         self.fail(result.stdout[-1000:] + result.stderr)
 
+    # {
+    #   責務: [pose: gdscript・保存・testsのposeを求める]
+    #   処理: [1: gdscript・保存・testsのposeを求める]
+    #   引数: [observation: observation（dict）]
+    #   戻り値: [result: gdscript・保存・testsのposeを求めるための結果（tuple）]
+    # }
     @staticmethod
     def pose(observation: dict) -> tuple:
         return tuple(observation[key] for key in ("map_id", "x", "y", "direction"))
 
+    # {
+    #   責務: [test_f5_save_f9_reload_and_new_process_restore_position_and_direction: 検証: f5 save f9 reload and new process restore position and direction]
+    #   処理: [1: 検証: f5 save f9 reload and new process restore position and direction]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_f5_save_f9_reload_and_new_process_restore_position_and_direction(self) -> None:
         observations = self.probe([
             {"kind": "open", "map_id": "fresh_forest", "entry": {"x": 22, "y": 26, "direction": "left"}},
@@ -89,6 +159,12 @@ class GDScriptSaveTests(unittest.TestCase):
         for folder in ("monsters", "items", "parties"):
             self.assertTrue((self.profile() / folder).is_dir())
 
+    # {
+    #   責務: [test_existing_python_profile_unknown_fields_and_owned_files_are_preserved: 検証: existing python profile unknown fields and owned files are preserved]
+    #   処理: [1: 検証: existing python profile unknown fields and owned files are preserved]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_existing_python_profile_unknown_fields_and_owned_files_are_preserved(self) -> None:
         state = self.state(
             current_party=["hero_01", "ball_01"],
@@ -121,6 +197,12 @@ class GDScriptSaveTests(unittest.TestCase):
         self.assertEqual(stored["player"]["mod_player"], "保持")
         self.assertEqual(before, {relative: (profile / relative).read_bytes() for relative in files})
 
+    # {
+    #   責務: [test_corrupt_json_is_not_overwritten_and_runtime_is_unchanged: 検証: corrupt json is not overwritten and runtime is unchanged]
+    #   処理: [1: 検証: corrupt json is not overwritten and runtime is unchanged]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_corrupt_json_is_not_overwritten_and_runtime_is_unchanged(self) -> None:
         path = self.seed(self.state()) / "state.json"
         broken = b'{"map_id": '
@@ -132,6 +214,12 @@ class GDScriptSaveTests(unittest.TestCase):
         self.assertEqual(path.read_bytes(), broken)
         self.assertEqual(list(path.parent.glob("*.tmp")), [])
 
+    # {
+    #   責務: [test_invalid_schema_map_and_coordinates_fail_without_overwrite: 検証: invalid schema map and coordinates fail without overwrite]
+    #   処理: [1: 検証: invalid schema map and coordinates fail without overwrite]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_invalid_schema_map_and_coordinates_fail_without_overwrite(self) -> None:
         cases = [
             self.state(schema_version=99), self.state(map_id="missing_map"),
@@ -151,11 +239,23 @@ class GDScriptSaveTests(unittest.TestCase):
                 self.assertFalse(result[2]["outcome"])
                 self.assertEqual(path.read_bytes(), before)
 
+    # {
+    #   責務: [test_missing_profile_read_is_readonly_and_reports_missing_on_f9: 検証: missing profile read is readonly and reports missing on f9]
+    #   処理: [1: 検証: missing profile read is readonly and reports missing on f9]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_missing_profile_read_is_readonly_and_reports_missing_on_f9(self) -> None:
         result = self.probe([{"kind": "key", "key": "F9"}])["observations"]
         self.assertFalse(self.profile().exists())
         self.assertIn("セーブがありません", result[-1]["status"])
 
+    # {
+    #   責務: [test_named_profiles_remain_independent_and_python_save_root_is_untouched: 検証: named profiles remain independent and python save root is untouched]
+    #   処理: [1: 検証: named profiles remain independent and python save root is untouched]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_named_profiles_remain_independent_and_python_save_root_is_untouched(self) -> None:
         before = (self.legacy_root / "sentinel.json").read_bytes()
         self.probe([{"kind": "save"}], "一つ目")
@@ -169,6 +269,12 @@ class GDScriptSaveTests(unittest.TestCase):
         self.assertEqual(sorted(path.name for path in self.legacy_root.iterdir()), ["sentinel.json"])
         self.assertEqual(SaveDataManager(self.save_root).list_names(), ["一つ目", "二つ目"])
 
+    # {
+    #   責務: [test_name_validation_matches_python_and_invalid_names_do_not_create_files: 検証: name validation matches python and invalid names do not create files]
+    #   処理: [1: 検証: name validation matches python and invalid names do not create files]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_name_validation_matches_python_and_invalid_names_do_not_create_files(self) -> None:
         names = ["default", "日本語セーブ", "a" * 45, "", " ", "../other", "a/b", "a\\b", "CON", "nul.txt",
                  "COM1", "lpt9", " name", "name ", "name.", "a:b", "a?b", "a\n", ".."]
@@ -187,6 +293,12 @@ class GDScriptSaveTests(unittest.TestCase):
         self.assertEqual(list(self.save_root.iterdir()), [])
         self.assertFalse((self.content / "escape").exists())
 
+    # {
+    #   責務: [test_stale_digest_does_not_overwrite_external_changes: 検証: stale digest does not overwrite external changes]
+    #   処理: [1: 検証: stale digest does not overwrite external changes]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_stale_digest_does_not_overwrite_external_changes(self) -> None:
         path = self.seed(self.state()) / "state.json"
         before = path.read_bytes()
@@ -195,6 +307,12 @@ class GDScriptSaveTests(unittest.TestCase):
         self.assertEqual(result["error"], "changed")
         self.assertEqual(path.read_bytes(), before)
 
+    # {
+    #   責務: [test_real_windows_lock_preserves_previous_state_and_removes_owned_temporary: 検証: real windows lock preserves previous state and removes owned temporary]
+    #   処理: [1: 検証: real windows lock preserves previous state and removes owned temporary]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @unittest.skipUnless(os.name == "nt", "Windows sharing violation probe")
     def test_real_windows_lock_preserves_previous_state_and_removes_owned_temporary(self) -> None:
         path = self.seed(self.state()) / "state.json"

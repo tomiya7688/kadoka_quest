@@ -1,3 +1,7 @@
+# {
+#   責務: [species_creator: 種族・creatorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,13 +11,36 @@ import zlib
 from kadoka_quest.data.repository import GameRepository, STAT_KEYS
 
 
+# {
+#   責務: [SpeciesCreator: Build and persist a complete, editable monster-species scaffold.]
+#   フィールド: [
+#     repository: データ取得先
+#     asset_root: asset・基準ディレクトリ
+#   ]
+# }
 class SpeciesCreator:
     """Build and persist a complete, editable monster-species scaffold."""
 
+    # {
+    #   責務: [__init__: 種族・creatorが利用する初期状態と依存を設定する]
+    #   処理: [1: 種族・creatorが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     repository: データ取得先（GameRepository）
+    #     asset_root: asset・基準ディレクトリ（Path）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, repository: GameRepository, asset_root: Path) -> None:
         self.repository = repository
         self.asset_root = Path(asset_root)
 
+    # {
+    #   責務: [validate_id: 識別子を妥当性を検査する]
+    #   処理: [1: 識別子を妥当性を検査する]
+    #   引数: [species_id: 種族・識別子（str）]
+    #   戻り値: [result: 値（str）]
+    # }
     @staticmethod
     def validate_id(species_id: str) -> str:
         value = str(species_id).strip()
@@ -22,6 +49,12 @@ class SpeciesCreator:
             raise ValueError("Species id may contain only lowercase letters, digits, _ and -")
         return value
 
+    # {
+    #   責務: [normalize_color: 色を正規化する]
+    #   処理: [1: 色を正規化する]
+    #   引数: [value: 値（str）]
+    #   戻り値: [result: 色を正規化するための結果（str）]
+    # }
     @staticmethod
     def normalize_color(value: str) -> str:
         clean = str(value).strip().lstrip("#")
@@ -33,6 +66,17 @@ class SpeciesCreator:
             raise ValueError("Appearance color must be #RRGGBB") from error
         return f"#{clean.upper()}"
 
+    # {
+    #   責務: [build_draft: 下書きを構築する]
+    #   処理: [1: 下書きを構築する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species_id: 種族・識別子（str）
+    #     display_name: display・名前（str）
+    #     color: 色（str）
+    #   ]
+    #   戻り値: [result: 下書きを構築するための結果（tuple[dict, dict, dict, dict]）]
+    # }
     def build_draft(
         self,
         species_id: str = "new_monster",
@@ -86,6 +130,15 @@ class SpeciesCreator:
         }
         return definition, stats, skills, plus
 
+    # {
+    #   責務: [_plus_stage: 種族・creatorの＋選択・stageを求める]
+    #   処理: [1: 種族・creatorの＋選択・stageを求める]
+    #   引数: [
+    #     species_id: 種族・識別子（str）
+    #     stage: stage（int）
+    #   ]
+    #   戻り値: [result: 種族・creatorの＋選択・stageを求めるための結果（dict）]
+    # }
     @staticmethod
     def _plus_stage(species_id: str, stage: int) -> dict:
         options = []
@@ -102,6 +155,18 @@ class SpeciesCreator:
             options.append(option)
         return {"stage": stage, "options": options}
 
+    # {
+    #   責務: [create: 種族・creatorを作成する]
+    #   処理: [1: 種族・creatorを作成する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     definition: 定義（dict）
+    #     stats: 能力値（dict）
+    #     skills: スキル一覧（dict）
+    #     plus: ＋選択（dict）
+    #   ]
+    #   戻り値: [result: 種族・識別子（str）]
+    # }
     def create(self, definition: dict, stats: dict, skills: dict, plus: dict) -> str:
         species_id = self.validate_id(str(definition.get("id", "")))
         if species_id in self.repository.list_species_ids():
@@ -123,6 +188,15 @@ class SpeciesCreator:
         self._write_placeholder_images(definition, color)
         return species_id
 
+    # {
+    #   責務: [_rewrite_paths: 種族・creatorのrewrite・パス一覧を求める]
+    #   処理: [1: 種族・creatorのrewrite・パス一覧を求める]
+    #   引数: [
+    #     definition: 定義（dict）
+    #     species_id: 種族・識別子（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @staticmethod
     def _rewrite_paths(definition: dict, species_id: str) -> None:
         base_path = f"characters/{species_id}"
@@ -133,6 +207,15 @@ class SpeciesCreator:
             for direction in ("front", "right", "left", "back")
         }
 
+    # {
+    #   責務: [_rewrite_plus_ids: 種族・creatorのrewrite・＋選択・識別子一覧を求める]
+    #   処理: [1: 種族・creatorのrewrite・＋選択・識別子一覧を求める]
+    #   引数: [
+    #     plus: ＋選択（dict）
+    #     species_id: 種族・識別子（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @staticmethod
     def _rewrite_plus_ids(plus: dict, species_id: str) -> None:
         for stage in plus.get("stages", []):
@@ -145,6 +228,16 @@ class SpeciesCreator:
                 else:
                     option.pop("requires_any", None)
 
+    # {
+    #   責務: [_write_placeholder_images: placeholder・画像一覧を書き込む]
+    #   処理: [1: placeholder・画像一覧を書き込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     definition: 定義（dict）
+    #     color: 色（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _write_placeholder_images(self, definition: dict, color: str) -> None:
         rgb = tuple(int(color[index:index + 2], 16) for index in (1, 3, 5))
         paths = {
@@ -155,6 +248,15 @@ class SpeciesCreator:
             pixels = self._placeholder_pixels(rgb, direction)
             self._write_rgba_png(self.asset_root / relative_path, 64, 64, pixels)
 
+    # {
+    #   責務: [_placeholder_pixels: 種族・creatorのplaceholder・ピクセル一覧を求める]
+    #   処理: [1: 種族・creatorのplaceholder・ピクセル一覧を求める]
+    #   引数: [
+    #     rgb: rgb（tuple[int, int, int]）
+    #     direction: direction（str）
+    #   ]
+    #   戻り値: [result: 種族・creatorのplaceholder・ピクセル一覧を求めるための結果（bytes）]
+    # }
     @staticmethod
     def _placeholder_pixels(rgb: tuple[int, int, int], direction: str) -> bytes:
         pixels = bytearray(64 * 64 * 4)
@@ -179,10 +281,30 @@ class SpeciesCreator:
                         pixels[offset:offset + 4] = bytes((20, 24, 30, 255))
         return bytes(pixels)
 
+    # {
+    #   責務: [_write_rgba_png: rgba・pngを書き込む]
+    #   処理: [1: rgba・pngを書き込む]
+    #   引数: [
+    #     path: パス（Path）
+    #     width: 幅（int）
+    #     height: 高さ（int）
+    #     pixels: ピクセル一覧（bytes）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     @staticmethod
     def _write_rgba_png(path: Path, width: int, height: int, pixels: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
 
+        # {
+        #   責務: [chunk: 種族・creatorのchunkを求める]
+        #   処理: [1: 種族・creatorのchunkを求める]
+        #   引数: [
+        #     kind: 種別（bytes）
+        #     payload: 要求データ（bytes）
+        #   ]
+        #   戻り値: [result: 種族・creatorのchunkを求めるための結果（bytes）]
+        # }
         def chunk(kind: bytes, payload: bytes) -> bytes:
             return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
 

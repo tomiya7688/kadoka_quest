@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# {
+#   責務: [affected_tests: affected・testsの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -9,6 +13,15 @@ import sys
 from pathlib import Path
 
 
+# {
+#   責務: [git_changed: affected・testsのgit・changedを求める]
+#   処理: [1: affected・testsのgit・changedを求める]
+#   引数: [
+#     root: 基準ディレクトリ（Path）
+#     base: base（str | None）
+#   ]
+#   戻り値: [result: affected・testsのgit・changedを求めるための結果（list[str]）]
+# }
 def git_changed(root: Path, base: str | None) -> list[str]:
     command = ["git", "-C", str(root), "diff", "--name-only"]
     if base:
@@ -19,12 +32,24 @@ def git_changed(root: Path, base: str | None) -> list[str]:
     return [line.strip().replace("\\", "/") for line in result.stdout.splitlines() if line.strip()]
 
 
+# {
+#   責務: [load_config: configを読み込む]
+#   処理: [1: configを読み込む]
+#   引数: [path: パス（Path | None）]
+#   戻り値: [result: configを読み込むための結果（dict）]
+# }
 def load_config(path: Path | None) -> dict:
     if path is None:
         return {}
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+# {
+#   責務: [default_candidates: affected・testsのdefault・candidatesを求める]
+#   処理: [1: affected・testsのdefault・candidatesを求める]
+#   引数: [path: パス（str）]
+#   戻り値: [result: candidates（list[str]）]
+# }
 def default_candidates(path: str) -> list[str]:
     normalized = path.replace("\\", "/")
     stem = Path(normalized).stem
@@ -38,6 +63,12 @@ def default_candidates(path: str) -> list[str]:
     return candidates
 
 
+# {
+#   責務: [unique: affected・testsのuniqueを求める]
+#   処理: [1: affected・testsのuniqueを求める]
+#   引数: [items: アイテム一覧（list[str]）]
+#   戻り値: [result: 処理結果（list[str]）]
+# }
 def unique(items: list[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
@@ -49,6 +80,16 @@ def unique(items: list[str]) -> list[str]:
     return result
 
 
+# {
+#   責務: [analyze: affected・testsのanalyzeを求める]
+#   処理: [1: affected・testsのanalyzeを求める]
+#   引数: [
+#     root: 基準ディレクトリ（Path）
+#     changed: changed（list[str]）
+#     config: config（dict）
+#   ]
+#   戻り値: [result: affected・testsのanalyzeを求めるための結果（dict）]
+# }
 def analyze(root: Path, changed: list[str], config: dict) -> dict:
     mappings = config.get("mappings", [])
     broader_patterns = config.get(
@@ -99,6 +140,12 @@ def analyze(root: Path, changed: list[str], config: dict) -> dict:
     }
 
 
+# {
+#   責務: [main: affected・testsのエントリ処理を実行する]
+#   処理: [1: affected・testsのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: affected・testsのエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     parser = argparse.ArgumentParser(description="Select likely affected tests from changed files.")
     parser.add_argument("--root", type=Path, default=Path.cwd())

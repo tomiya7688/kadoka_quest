@@ -1,4 +1,8 @@
 """Reusable pygame-independent RPG engine components."""
+# {
+#   責務: [__init__: Reusable pygame-independent RPG engine components.]
+#   フィールド: []
+# }
 
 from kadoka_engine.data_validator import DataValidator
 from kadoka_engine.field_engine import FieldEngine

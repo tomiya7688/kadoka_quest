@@ -1,3 +1,7 @@
+# {
+#   責務: [fixed_mob_controller: fixed・モブ・controllerの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import random
@@ -7,9 +11,29 @@ from kadoka_engine.field_engine import FieldEngine
 from kadoka_engine.grid_movement import GridMovement
 
 
+# {
+#   責務: [FixedMobController: Own the runtime state and movement rules of visible fixed mobs.]
+#   フィールド: [
+#     field: フィールド
+#     rng: 乱数供給元
+#     movement_duration_ms: 移動・継続時間・ミリ秒
+#     npcs: npcs
+#   ]
+# }
 class FixedMobController:
     """Own the runtime state and movement rules of visible fixed mobs."""
 
+    # {
+    #   責務: [__init__: fixed・モブ・controllerが利用する初期状態と依存を設定する]
+    #   処理: [1: fixed・モブ・controllerが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     field: フィールド（FieldEngine）
+    #     rng: 乱数供給元（random.Random）
+    #     movement_duration_ms: 移動・継続時間・ミリ秒（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(
         self,
         field: FieldEngine,
@@ -21,6 +45,20 @@ class FixedMobController:
         self.movement_duration_ms = max(1, int(movement_duration_ms))
         self.npcs: list[dict] = []
 
+    # {
+    #   責務: [reset: fixed・モブ・controllerの初期状態へ戻す]
+    #   処理: [1: fixed・モブ・controllerの初期状態へ戻す]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     map_data: マップ・データ（dict）
+    #     blocks: ブロック定義（dict[str, dict]）
+    #     despawned: despawned（set[str]）
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #     now: 現在時刻（int）
+    #     species_name: 種族・名前（Callable[[str], str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def reset(
         self,
         map_data: dict,
@@ -74,15 +112,43 @@ class FixedMobController:
                 self.movement_duration_ms,
             )
 
+    # {
+    #   責務: [find_at: atを探す]
+    #   処理: [1: atを探す]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     x: X座標（int）
+    #     y: Y座標（int）
+    #   ]
+    #   戻り値: [result: atを探すための結果（dict | None）]
+    # }
     def find_at(self, x: int, y: int) -> dict | None:
         return next(
             (npc for npc in self.npcs if (int(npc["x"]), int(npc["y"])) == (int(x), int(y))),
             None,
         )
 
+    # {
+    #   責務: [nearby: fixed・モブ・controllerを近くの対象を探す]
+    #   処理: [1: fixed・モブ・controllerを近くの対象を探す]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     front_position: front・座標（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: fixed・モブ・controllerを近くの対象を探すための結果（dict | None）]
+    # }
     def nearby(self, front_position: tuple[int, int]) -> dict | None:
         return self.find_at(*front_position)
 
+    # {
+    #   責務: [next_dialogue: 会話を次の値を求める]
+    #   処理: [1: 会話を次の値を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     npc: npc（dict）
+    #   ]
+    #   戻り値: [result: line（str）]
+    # }
     def next_dialogue(self, npc: dict) -> str:
         deck = [str(line).strip() for line in npc.get("dialogue", []) if str(line).strip()] or ["……"]
         remaining = npc.setdefault("dialogue_remaining", [])
@@ -95,21 +161,57 @@ class FixedMobController:
         npc["last_dialogue"] = line
         return line
 
+    # {
+    #   責務: [remove: fixed・モブ・controllerを取り除く]
+    #   処理: [1: fixed・モブ・controllerを取り除く]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     npc: npc（dict）
+    #   ]
+    #   戻り値: [result: fixed・モブ・controllerを取り除くための結果（bool）]
+    # }
     def remove(self, npc: dict) -> bool:
         if npc not in self.npcs:
             return False
         self.npcs.remove(npc)
         return True
 
+    # {
+    #   責務: [front_position: fixed・モブ・controllerのfront・座標を求める]
+    #   処理: [1: fixed・モブ・controllerのfront・座標を求める]
+    #   引数: [npc: npc（dict）]
+    #   戻り値: [result: fixed・モブ・controllerのfront・座標を求めるための結果（tuple[int, int]）]
+    # }
     @staticmethod
     def front_position(npc: dict) -> tuple[int, int]:
         vectors = {"left": (-1, 0), "right": (1, 0), "back": (0, -1), "front": (0, 1)}
         dx, dy = vectors.get(str(npc.get("direction", "front")), (0, 1))
         return int(npc["x"]) + dx, int(npc["y"]) + dy
 
+    # {
+    #   責務: [faces_player: fixed・モブ・controllerのfaces・主人公を求める]
+    #   処理: [1: fixed・モブ・controllerのfaces・主人公を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     npc: npc（dict）
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #   ]
+    #   戻り値: [result: fixed・モブ・controllerのfaces・主人公を求めるための結果（bool）]
+    # }
     def faces_player(self, npc: dict, player_position: tuple[int, int]) -> bool:
         return self.front_position(npc) == (int(player_position[0]), int(player_position[1]))
 
+    # {
+    #   責務: [move: fixed・モブ・controllerを移動する]
+    #   処理: [1: fixed・モブ・controllerを移動する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     npc: npc（dict）
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #     now: 現在時刻（int）
+    #   ]
+    #   戻り値: [result: fixed・モブ・controllerを移動するための結果（bool）]
+    # }
     def move(self, npc: dict, player_position: tuple[int, int], now: int) -> bool:
         ai = str(npc.get("ai", "idle"))
         if ai == "idle" or self.faces_player(npc, player_position):
@@ -146,12 +248,32 @@ class FixedMobController:
                 return True
         return False
 
+    # {
+    #   責務: [move_all: allを移動する]
+    #   処理: [1: allを移動する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #     now: 現在時刻（int）
+    #   ]
+    #   戻り値: [result: moved（bool）]
+    # }
     def move_all(self, player_position: tuple[int, int], now: int) -> bool:
         moved = False
         for npc in self.npcs:
             moved = self.move(npc, player_position, now) or moved
         return moved
 
+    # {
+    #   責務: [update: fixed・モブ・controllerを更新する]
+    #   処理: [1: fixed・モブ・controllerを更新する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     player_position: 主人公・座標（tuple[int, int]）
+    #     now: 現在時刻（int）
+    #   ]
+    #   戻り値: [result: moved（bool）]
+    # }
     def update(self, player_position: tuple[int, int], now: int) -> bool:
         moved = False
         for npc in self.npcs:

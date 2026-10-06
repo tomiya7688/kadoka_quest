@@ -1,3 +1,7 @@
+# {
+#   責務: [test_game_evaluator: test・ゲーム・evaluatorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,15 +17,49 @@ from kadoka_quest.devtools.field_explorer import FieldExplorer
 from kadoka_quest.devtools.game_evaluator import GameEvaluationRunner
 
 
+# {
+#   責務: [_Repository: データ取得先の状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class _Repository:
+    # {
+    #   責務: [list_maps: マップ一覧を列挙する]
+    #   処理: [1: マップ一覧を列挙する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: マップ一覧を列挙するための結果（list[str]）]
+    # }
     def list_maps(self) -> list[str]:
         return ["first", "second"]
 
 
+# {
+#   責務: [_Runtime: 実行時の状態と振る舞いを担当する]
+#   フィールド: [game: ゲーム]
+# }
 class _Runtime:
+    # {
+    #   責務: [__init__: 実行時が利用する初期状態と依存を設定する]
+    #   処理: [1: 実行時が利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     game: ゲーム（'_Game'）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, game: "_Game") -> None:
         self.game = game
 
+    # {
+    #   責務: [dispatch: 実行時を配送する]
+    #   処理: [1: 実行時を配送する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     target: 対象（str）
+    #     action: action（str）
+    #     payload: 要求データ（object）
+    #   ]
+    #   戻り値: [result: 実行時を配送するための結果（object）]
+    # }
     def dispatch(self, target: str, action: str, **payload: object) -> object:
         if target == "field" and action == "move.start":
             field = self.game.field_session
@@ -44,7 +82,25 @@ class _Runtime:
         return True
 
 
+# {
+#   責務: [_Game: ゲームの状態と振る舞いを担当する]
+#   フィールド: [
+#     maps: マップ一覧
+#     field_session: フィールド・セッション
+#     mode: mode
+#     runtime: 実行時
+#     repository: データ取得先
+#     interactions: interactions
+#     battle_session: 戦闘・セッション
+#   ]
+# }
 class _Game:
+    # {
+    #   責務: [__init__: ゲームが利用する初期状態と依存を設定する]
+    #   処理: [1: ゲームが利用する初期状態と依存を設定する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self) -> None:
         self.maps = {
             "first": {
@@ -68,7 +124,17 @@ class _Game:
         self.battle_session = SimpleNamespace(battle=None)
 
 
+# {
+#   責務: [FieldExplorerTests: フィールド・explorer・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class FieldExplorerTests(unittest.TestCase):
+    # {
+    #   責務: [test_unvisited_transition_is_prioritized_over_local_event: 検証: unvisited transition is prioritized over local event]
+    #   処理: [1: 検証: unvisited transition is prioritized over local event]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_unvisited_transition_is_prioritized_over_local_event(self) -> None:
         game = _Game()
         plan = FieldExplorer().next_plan(game.field_session.map_data, game.field_session.blocks, (0, 0), {"first"}, set())
@@ -76,6 +142,12 @@ class FieldExplorerTests(unittest.TestCase):
         self.assertEqual(plan["event_key"], "first:to_second")
         self.assertEqual(plan["directions"], ["right", "right"])
 
+    # {
+    #   責務: [test_planner_routes_around_blocking_event: 検証: planner routes around blocking event]
+    #   処理: [1: 検証: planner routes around blocking event]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_planner_routes_around_blocking_event(self) -> None:
         map_data = {
             "id": "route", "width": 3, "height": 2,
@@ -89,6 +161,12 @@ class FieldExplorerTests(unittest.TestCase):
 
         self.assertEqual(plan["directions"], ["front", "right", "right", "back"])
 
+    # {
+    #   責務: [test_runner_visits_connected_map_and_logs_stall: 検証: runner visits connected map and logs stall]
+    #   処理: [1: 検証: runner visits connected map and logs stall]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runner_visits_connected_map_and_logs_stall(self) -> None:
         game = _Game()
         report = GameEvaluationRunner(game).run(max_steps=10)
@@ -98,10 +176,22 @@ class FieldExplorerTests(unittest.TestCase):
         self.assertTrue(any(entry["kind"] == "map_entered" and entry["map_id"] == "second" for entry in report["entries"]))
         self.assertTrue(any(entry["kind"] == "stalled" for entry in report["entries"]))
 
+    # {
+    #   責務: [test_runner_rejects_zero_steps: 検証: runner rejects zero steps]
+    #   処理: [1: 検証: runner rejects zero steps]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runner_rejects_zero_steps(self) -> None:
         with self.assertRaises(ValueError):
             GameEvaluationRunner(_Game()).run(0)
 
+    # {
+    #   責務: [test_battle_result_is_recorded_before_return_clears_session: 検証: battle result is recorded before return clears session]
+    #   処理: [1: 検証: battle result is recorded before return clears session]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_battle_result_is_recorded_before_return_clears_session(self) -> None:
         game = _Game()
         game.mode = "battle"
@@ -110,10 +200,26 @@ class FieldExplorerTests(unittest.TestCase):
         self.assertIsNone(game.battle_session.battle)
         self.assertTrue(any(entry["kind"] == "battle_finished" and entry["outcome"] == "victory" for entry in report["entries"]))
 
+    # {
+    #   責務: [test_blocked_route_is_logged_once_then_abandoned: 検証: blocked route is logged once then abandoned]
+    #   処理: [1: 検証: blocked route is logged once then abandoned]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_blocked_route_is_logged_once_then_abandoned(self) -> None:
         game = _Game()
         original_dispatch = game.runtime.dispatch
 
+        # {
+        #   責務: [blocked_dispatch: フィールド・explorer・testsのblocked・dispatchを求める]
+        #   処理: [1: フィールド・explorer・testsのblocked・dispatchを求める]
+        #   引数: [
+        #     target: 対象（str）
+        #     action: action（str）
+        #     payload: 要求データ（object）
+        #   ]
+        #   戻り値: [result: フィールド・explorer・testsのblocked・dispatchを求めるための結果（object）]
+        # }
         def blocked_dispatch(target: str, action: str, **payload: object) -> object:
             if target == "field" and action == "move.start":
                 return True

@@ -1,4 +1,10 @@
 @echo off
+rem {
+rem   Responsibility: [run_python: Select a project virtual environment and run the requested Python command]
+rem   Action: [1: Select a project virtual environment and run the requested Python command]
+rem   Param: [argv: Command-line arguments; fixed-target entries may ignore them]
+rem   Return: [status: Exit status set by the entry script or delegated command]
+rem }
 setlocal
 
 set "PROJECT_ROOT=%~dp0.."

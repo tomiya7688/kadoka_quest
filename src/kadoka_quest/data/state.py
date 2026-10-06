@@ -1,3 +1,7 @@
+# {
+#   責務: [state: 状態の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,10 +23,29 @@ DEFAULT_STATE: dict[str, Any] = {
 }
 
 
+# {
+#   責務: [StateStore: 状態・保存先の状態と振る舞いを担当する]
+#   フィールド: [path: パス]
+# }
 class StateStore:
+    # {
+    #   責務: [__init__: 状態・保存先が利用する初期状態と依存を設定する]
+    #   処理: [1: 状態・保存先が利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     path: パス（Path | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, path: Path | None = None) -> None:
         self.path = Path(path or (SAVE_ROOT / "state.json"))
 
+    # {
+    #   責務: [load: 状態・保存先を読み込む]
+    #   処理: [1: 状態・保存先を読み込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: 状態・保存先を読み込むための結果（dict[str, Any]）]
+    # }
     def load(self) -> dict[str, Any]:
         if not self.path.exists():
             return {
@@ -41,12 +64,31 @@ class StateStore:
             state.setdefault(key, default.copy() if isinstance(default, dict) else list(default) if isinstance(default, list) else default)
         return state
 
+    # {
+    #   責務: [save: 状態・保存先を保存する]
+    #   処理: [1: 状態・保存先を保存する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     state: 状態（dict[str, Any]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save(self, state: dict[str, Any]) -> None:
         payload = dict(state)
         inventory = dict(payload.pop("inventory", {}))
         write_json(self.path, payload)
         write_json(self.path.parent / "items" / "items.json", {"schema_version": 1, "items": inventory})
 
+    # {
+    #   責務: [ensure_starters: startersを必要な状態を用意する]
+    #   処理: [1: startersを必要な状態を用意する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     state: 状態（dict[str, Any]）
+    #     monsters: モンスター一覧（MonsterStore）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def ensure_starters(self, state: dict[str, Any], monsters: MonsterStore) -> None:
         hero = monsters.ensure_species("hero", "主人公")
         ball = monsters.ensure_species("ball_slime", "ボールスライム")
@@ -58,6 +100,15 @@ class StateStore:
         state["current_party"] = current[:4]
         self.save(state)
 
+    # {
+    #   責務: [party_records: 状態・保存先のパーティ・個体レコード一覧を求める]
+    #   処理: [1: 状態・保存先のパーティ・個体レコード一覧を求める]
+    #   引数: [
+    #     state: 状態（dict[str, Any]）
+    #     monsters: モンスター一覧（MonsterStore）
+    #   ]
+    #   戻り値: [result: 状態・保存先のパーティ・個体レコード一覧を求めるための結果（list）]
+    # }
     @staticmethod
     def party_records(state: dict[str, Any], monsters: MonsterStore) -> list:
         return [record for monster_id in state.get("current_party", []) if (record := monsters.get(str(monster_id)))]

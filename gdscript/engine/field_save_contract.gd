@@ -1,3 +1,7 @@
+# {
+#   責務: [field_save_contract: Pure field save validation/serialization, preserving unrelated state keys.]
+#   フィールド: []
+# }
 extends RefCounted
 ## Pure field save validation/serialization, preserving unrelated state keys.
 
@@ -10,6 +14,12 @@ const DEFAULT_STATE := {
 }
 
 
+# {
+#   責務: [validate_document: 文書を妥当性を検査する]
+#   処理: [1: 文書を妥当性を検査する]
+#   引数: [state: 状態（Dictionary）]
+#   戻り値: [result: 文書を妥当性を検査するための結果（Dictionary）]
+# }
 static func validate_document(state: Dictionary) -> Dictionary:
 	var version: Variant = state.get("schema_version", 1)
 	if not _integer(version) or int(version) != 1:
@@ -24,10 +34,30 @@ static func validate_document(state: Dictionary) -> Dictionary:
 	return {"ok": true}
 
 
+# {
+#   責務: [_integer: フィールド・保存・契約のintegerを求める]
+#   処理: [1: フィールド・保存・契約のintegerを求める]
+#   引数: [value: 値（Variant）]
+#   戻り値: [result: フィールド・保存・契約のintegerを求めるための結果（bool）]
+# }
 static func _integer(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value) == floorf(float(value))
 
 
+# {
+#   責務: [validate_location: セーブ座標が現在のマップと占有契約で復元可能か検証する]
+#   処理: [
+#     1: セーブ文書の形式を検証する
+#     2: 移動量0で地形・イベント・明示された現在キャラの占有を照合する
+#   ]
+#   引数: [
+#     state: セーブ状態
+#     world: 対象マップの定義
+#     blocks: ブロック定義
+#     characters: 現在占有。初期NPC座標を現在占有とみなさない
+#   ]
+#   戻り値: [result: okまたはblocked_position等の理由付き拒否]
+# }
 static func validate_location(
 	state: Dictionary, world: Dictionary, blocks: Dictionary, characters: Array = [],
 ) -> Dictionary:
@@ -46,6 +76,18 @@ static func validate_location(
 	return {"ok": true}
 
 
+# {
+#   責務: [capture: フィールド・保存・契約のcaptureを求める]
+#   処理: [1: フィールド・保存・契約のcaptureを求める]
+#   引数: [
+#     base: base（Dictionary）
+#     map_id: マップ・識別子（String）
+#     x: X座標（int）
+#     y: Y座標（int）
+#     direction: direction（String）
+#   ]
+#   戻り値: [result: フィールド・保存・契約のcaptureを求めるための結果（Dictionary）]
+# }
 static func capture(base: Dictionary, map_id: String, x: int, y: int, direction: String) -> Dictionary:
 	var state := base.duplicate(true)
 	state["map_id"] = map_id

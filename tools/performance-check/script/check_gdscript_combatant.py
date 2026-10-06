@@ -1,4 +1,8 @@
 """Developer-only real Godot resource states and base turn ordering/eligibility; no Player imports."""
+# {
+#   責務: [check_gdscript_combatant: Developer-only real Godot resource states and base turn ordering/eligibility; no Player imports.]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -13,6 +17,12 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[3]
 
 
+# {
+#   責務: [main: check・gdscript・戦闘個体のエントリ処理を実行する]
+#   処理: [1: check・gdscript・戦闘個体のエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: check・gdscript・戦闘個体のエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--iterations", type=int, default=20_000)

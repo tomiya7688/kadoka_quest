@@ -1,3 +1,7 @@
+# {
+#   責務: [build: buildの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -12,6 +16,12 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from kadoka_quest.developer.build_core import build_distributions, install_player_runtime_template
 
 
+# {
+#   責務: [main: buildのエントリ処理を実行する]
+#   処理: [1: buildのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: buildのエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build Kadoka Quest PyInstaller distributions.")
     parser.add_argument("--targets", choices=("player", "developer", "all"), default="all")

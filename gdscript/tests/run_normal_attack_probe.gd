@@ -1,3 +1,7 @@
+# {
+#   責務: [run_normal_attack_probe: Developer-only pure/joined action probe and eight-actor action microbenchmark.]
+#   フィールド: []
+# }
 extends SceneTree
 ## Developer-only pure/joined action probe and eight-actor action microbenchmark.
 
@@ -8,6 +12,12 @@ const Repository = preload("res://data/content_repository.gd")
 const Order = preload("res://engine/turn_order.gd")
 
 
+# {
+#   責務: [_initialize: run・normal・攻撃・probeのエントリ処理を実行する]
+#   処理: [1: run・normal・攻撃・probeのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _initialize() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() != 1:
@@ -26,6 +36,15 @@ func _initialize() -> void:
 	quit(0)
 
 
+# {
+#   責務: [_case: run・normal・攻撃・probeのcaseを求める]
+#   処理: [1: run・normal・攻撃・probeのcaseを求める]
+#   引数: [
+#     case: case（Dictionary）
+#     joined: joined（bool）
+#   ]
+#   戻り値: [result: run・normal・攻撃・probeのcaseを求めるための結果（Dictionary）]
+# }
 func _case(case: Dictionary, joined: bool) -> Dictionary:
 	var input: Dictionary = case["input"].duplicate(true)
 	var before := input.duplicate(true)
@@ -64,6 +83,19 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 	return {"initialized": initial, "observations": observations, "session": session.snapshot(), "input_preserved": input == before}
 
 
+# {
+#   責務: [_execute: run・normal・攻撃・probeを実行する]
+#   処理: [1: run・normal・攻撃・probeを実行する]
+#   引数: [
+#     session: セッション（RefCounted）
+#     attack: 攻撃（RefCounted）
+#     action: action（Dictionary）
+#     input: 入力（Dictionary）
+#     ticket: 行動権チケット（Variant）
+#     joined: joined（bool）
+#   ]
+#   戻り値: [result: run・normal・攻撃・probeを実行するための結果（Dictionary）]
+# }
 func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input: Dictionary, ticket: Variant, joined: bool) -> Dictionary:
 	match action["kind"]:
 		"next": return session.next_actor()
@@ -87,6 +119,12 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 	return {"ok": false, "reason": "unknown_probe_operation"}
 
 
+# {
+#   責務: [_mutate: run・normal・攻撃・probeのmutateを求める]
+#   処理: [1: run・normal・攻撃・probeのmutateを求める]
+#   引数: [value: 値（Variant）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _mutate(value: Variant) -> void:
 	if value is Array:
 		for entry: Variant in value:
@@ -101,6 +139,12 @@ func _mutate(value: Variant) -> void:
 			value["id"] = "edited output"
 
 
+# {
+#   責務: [_performance: run・normal・攻撃・probeのperformanceを求める]
+#   処理: [1: run・normal・攻撃・probeのperformanceを求める]
+#   引数: [payload: 要求データ（Dictionary）]
+#   戻り値: [result: run・normal・攻撃・probeのperformanceを求めるための結果（Dictionary）]
+# }
 func _performance(payload: Dictionary) -> Dictionary:
 	var teams := {"allies": [], "enemies": []}
 	var prepared := {"allies": [], "enemies": []}
@@ -137,6 +181,16 @@ func _performance(payload: Dictionary) -> Dictionary:
 		"warmup": warmup, "actors": 8, "minimum_hp": minimum_hp}
 
 
+# {
+#   責務: [_stage: run・normal・攻撃・probeのstageを求める]
+#   処理: [1: run・normal・攻撃・probeのstageを求める]
+#   引数: [
+#     session: セッション（RefCounted）
+#     attack: 攻撃（RefCounted）
+#     order: 順序（Array）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _stage(session: RefCounted, attack: RefCounted, order: Array) -> void:
 	if session.snapshot()["phase"] != "round_active":
 		session.begin_round(order)

@@ -1,3 +1,7 @@
+# {
+#   責務: [data_validator: データ・検証処理の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import json
@@ -7,15 +11,44 @@ from typing import Any
 from kadoka_engine.spawn_settings import validate_map_spawns
 
 
+# {
+#   責務: [DataValidator: Collect mod-data problems without stopping application startup.]
+#   フィールド: [
+#     REQUIRED_SPECIES_FILES: required・種族・files
+#     root: 基準ディレクトリ
+#     issues: issues
+#   ]
+# }
 class DataValidator:
     """Collect mod-data problems without stopping application startup."""
 
     REQUIRED_SPECIES_FILES = ("species.json", "stats.json", "skills.json", "plus.json")
 
+    # {
+    #   責務: [__init__: データ・検証処理が利用する初期状態と依存を設定する]
+    #   処理: [1: データ・検証処理が利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     data_root: データ・基準ディレクトリ（Path）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, data_root: Path) -> None:
         self.root = Path(data_root)
         self.issues: list[dict[str, str]] = []
 
+    # {
+    #   責務: [_issue: データ・検証処理のissueを求める]
+    #   処理: [1: データ・検証処理のissueを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     code: code（str）
+    #     path: パス（Path | str）
+    #     message: message（str）
+    #     severity: severity（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _issue(self, code: str, path: Path | str, message: str, severity: str = "error") -> None:
         try:
             relative = Path(path).relative_to(self.root).as_posix()
@@ -23,6 +56,16 @@ class DataValidator:
             relative = str(path).replace("\\", "/")
         self.issues.append({"severity": severity, "code": code, "path": relative, "message": message})
 
+    # {
+    #   責務: [_document: データ・検証処理の文書を求める]
+    #   処理: [1: データ・検証処理の文書を求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     path: パス（Path）
+    #     required: required（bool）
+    #   ]
+    #   戻り値: [result: データ・検証処理の文書を求めるための結果（dict[str, Any] | None）]
+    # }
     def _document(self, path: Path, required: bool = True) -> dict[str, Any] | None:
         if not path.is_file():
             if required:
@@ -38,6 +81,16 @@ class DataValidator:
             return None
         return payload
 
+    # {
+    #   責務: [_values: データ・検証処理の値一覧を求める]
+    #   処理: [1: データ・検証処理の値一覧を求める]
+    #   引数: [
+    #     payload: 要求データ（dict[str, Any] | None）
+    #     section: section（str）
+    #     key: キー（str）
+    #   ]
+    #   戻り値: [result: データ・検証処理の値一覧を求めるための結果（set[str]）]
+    # }
     @staticmethod
     def _values(payload: dict[str, Any] | None, section: str, key: str) -> set[str]:
         if not payload:
@@ -48,6 +101,16 @@ class DataValidator:
         values = source.get(key, [])
         return {str(value) for value in values} if isinstance(values, list) else set()
 
+    # {
+    #   責務: [_catalog: データ・検証処理のcatalogを求める]
+    #   処理: [1: データ・検証処理のcatalogを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     path: パス（Path）
+    #     list_key: list・キー（str）
+    #   ]
+    #   戻り値: [result: データ・検証処理のcatalogを求めるための結果（tuple[dict[str, dict[str, Any]], dict[str, Any] | None]）]
+    # }
     def _catalog(self, path: Path, list_key: str) -> tuple[dict[str, dict[str, Any]], dict[str, Any] | None]:
         payload = self._document(path)
         catalog: dict[str, dict[str, Any]] = {}
@@ -67,6 +130,12 @@ class DataValidator:
             catalog[entry_id] = entry
         return catalog, payload
 
+    # {
+    #   責務: [_validate_blocks: ブロック定義を妥当性を検査する]
+    #   処理: [1: ブロック定義を妥当性を検査する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ブロック・識別子一覧（set[str]）]
+    # }
     def _validate_blocks(self) -> set[str]:
         block_ids: set[str] = set()
         for path in sorted((self.root / "blocks").glob("*.json")):
@@ -89,6 +158,18 @@ class DataValidator:
             self._issue("block.none", self.root / "blocks", "利用可能なブロック定義がありません。")
         return block_ids
 
+    # {
+    #   責務: [_validate_species: 種族を妥当性を検査する]
+    #   処理: [1: 種族を妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     skill_ids: スキル・識別子一覧（set[str]）
+    #     stat_ids: stat・識別子一覧（set[str]）
+    #     element_ids: element・識別子一覧（set[str]）
+    #     resistance_values: resistance・値一覧（set[str]）
+    #   ]
+    #   戻り値: [result: 種族・識別子一覧（set[str]）]
+    # }
     def _validate_species(
         self,
         skill_ids: set[str],
@@ -129,6 +210,17 @@ class DataValidator:
             self._issue("species.none", species_root, "利用可能な種族定義がありません。")
         return species_ids
 
+    # {
+    #   責務: [_validate_stats: 能力値を妥当性を検査する]
+    #   処理: [1: 能力値を妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     path: パス（Path）
+    #     payload: 要求データ（dict[str, Any] | None）
+    #     stat_ids: stat・識別子一覧（set[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_stats(self, path: Path, payload: dict[str, Any] | None, stat_ids: set[str]) -> None:
         if payload is None:
             return
@@ -145,6 +237,17 @@ class DataValidator:
                 if not isinstance(values.get(stat_id), (int, float)):
                     self._issue("stats.value_invalid", path, f"Lv{level} の {stat_id} は数値で指定してください。")
 
+    # {
+    #   責務: [_validate_learnset: learnsetを妥当性を検査する]
+    #   処理: [1: learnsetを妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     path: パス（Path）
+    #     payload: 要求データ（dict[str, Any] | None）
+    #     skill_ids: スキル・識別子一覧（set[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_learnset(self, path: Path, payload: dict[str, Any] | None, skill_ids: set[str]) -> None:
         if payload is None:
             return
@@ -163,6 +266,18 @@ class DataValidator:
             if not isinstance(level, int) or not 1 <= level <= 100:
                 self._issue("learnset.level_invalid", path, f"{skill_id or index} の習得Lvは1〜100にしてください。")
 
+    # {
+    #   責務: [_validate_plus: ＋選択を妥当性を検査する]
+    #   処理: [1: ＋選択を妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     path: パス（Path）
+    #     payload: 要求データ（dict[str, Any] | None）
+    #     skill_ids: スキル・識別子一覧（set[str]）
+    #     stat_ids: stat・識別子一覧（set[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_plus(
         self,
         path: Path,
@@ -202,6 +317,18 @@ class DataValidator:
                     if str(required_id) not in option_ids:
                         self._issue("plus.requirement_unknown", path, f"{option_id} の分岐先 {required_id} が存在しません。")
 
+    # {
+    #   責務: [_validate_skills: スキル一覧を妥当性を検査する]
+    #   処理: [1: スキル一覧を妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     catalog: catalog（dict[str, dict[str, Any]]）
+    #     path: パス（Path）
+    #     kinds: kinds（set[str]）
+    #     elements: elements（set[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_skills(self, catalog: dict[str, dict[str, Any]], path: Path, kinds: set[str], elements: set[str]) -> None:
         for skill_id, skill in catalog.items():
             if str(skill.get("kind", "")) not in kinds:
@@ -212,6 +339,21 @@ class DataValidator:
             if not isinstance(skill.get("mp_cost"), (int, float)) or float(skill.get("mp_cost", -1)) < 0:
                 self._issue("skill.mp_invalid", path, f"{skill_id} のMP消費は0以上の数値にしてください。")
 
+    # {
+    #   責務: [_validate_equipment: 装備を妥当性を検査する]
+    #   処理: [1: 装備を妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     catalog: catalog（dict[str, dict[str, Any]]）
+    #     path: パス（Path）
+    #     species_ids: 種族・識別子一覧（set[str]）
+    #     skill_ids: スキル・識別子一覧（set[str]）
+    #     stat_ids: stat・識別子一覧（set[str]）
+    #     categories: categories（set[str]）
+    #     elements: elements（set[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_equipment(
         self,
         catalog: dict[str, dict[str, Any]],
@@ -246,6 +388,16 @@ class DataValidator:
                     if str(referenced_id) not in known_ids:
                         self._issue(code, path, f"{equipment_id} が存在しない{label} {referenced_id} を参照しています。")
 
+    # {
+    #   責務: [_validate_maps: マップ一覧を妥当性を検査する]
+    #   処理: [1: マップ一覧を妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     block_ids: ブロック・識別子一覧（set[str]）
+    #     species_ids: 種族・識別子一覧（set[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_maps(self, block_ids: set[str], species_ids: set[str]) -> None:
         map_paths = sorted((self.root / "maps").glob("*/map.json"))
         if not map_paths:
@@ -297,6 +449,12 @@ class DataValidator:
                 if not isinstance(effect, dict) or effect.get("kind", "message") not in {"message", "gain_item"}:
                     self._issue("map.use_requirement_effect", path, "使用イベントの effect.kind が未対応です。")
 
+    # {
+    #   責務: [validate: データ・検証処理を妥当性を検査する]
+    #   処理: [1: データ・検証処理を妥当性を検査する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: データ・検証処理を妥当性を検査するための結果（list[dict[str, str]]）]
+    # }
     def validate(self) -> list[dict[str, str]]:
         self.issues = []
         project = self._document(self.root / "project.json")

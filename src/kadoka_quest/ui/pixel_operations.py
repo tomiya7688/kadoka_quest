@@ -1,3 +1,7 @@
+# {
+#   責務: [pixel_operations: ピクセル・operationsの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from collections import Counter, deque
@@ -25,10 +29,26 @@ KADOKA_OPAQUE_PALETTE: tuple[ColorTuple, ...] = (
 KADOKA_PALETTE: tuple[ColorTuple, ...] = (TRANSPARENT, *KADOKA_OPAQUE_PALETTE)
 
 
+# {
+#   責務: [rgba: ピクセル・operationsのrgbaを求める]
+#   処理: [1: ピクセル・operationsのrgbaを求める]
+#   引数: [color: 色（pygame.Color | ColorTuple）]
+#   戻り値: [result: ピクセル・operationsのrgbaを求めるための結果（ColorTuple）]
+# }
 def rgba(color: pygame.Color | ColorTuple) -> ColorTuple:
     return int(color[0]), int(color[1]), int(color[2]), int(color[3])
 
 
+# {
+#   責務: [flood_fill_copy: Replace one four-way-connected exact-color region and return a copy.]
+#   処理: [1: Replace one four-way-connected exact-color region and return a copy.]
+#   引数: [
+#     source: 元データ（pygame.Surface）
+#     start: start（tuple[int, int]）
+#     replacement: replacement（ColorTuple）
+#   ]
+#   戻り値: [result: Replace one four-way-connected exact-color region and return a copy.ための結果（tuple[pygame.Surface, int]）]
+# }
 def flood_fill_copy(
     source: pygame.Surface,
     start: tuple[int, int],
@@ -70,10 +90,28 @@ def flood_fill_copy(
     return result, changed
 
 
+# {
+#   責務: [color_distance_squared: ピクセル・operationsの色・distance・squaredを求める]
+#   処理: [1: ピクセル・operationsの色・distance・squaredを求める]
+#   引数: [
+#     first: first（ColorTuple）
+#     second: second（ColorTuple）
+#   ]
+#   戻り値: [result: ピクセル・operationsの色・distance・squaredを求めるための結果（int）]
+# }
 def color_distance_squared(first: ColorTuple, second: ColorTuple) -> int:
     return sum((first[index] - second[index]) ** 2 for index in range(3))
 
 
+# {
+#   責務: [reduce_similar_colors: Merge scan-order colors within an RGB distance while preserving alpha.]
+#   処理: [1: Merge scan-order colors within an RGB distance while preserving alpha.]
+#   引数: [
+#     source: 元データ（pygame.Surface）
+#     tolerance: tolerance（int）
+#   ]
+#   戻り値: [result: Merge scan-order colors within an RGB distance while preserving alpha.ための結果（tuple[pygame.Surface, int]）]
+# }
 def reduce_similar_colors(
     source: pygame.Surface,
     tolerance: int,
@@ -112,6 +150,15 @@ def reduce_similar_colors(
     return result, changed
 
 
+# {
+#   責務: [nearest_palette_color: ピクセル・operationsのnearest・パレット・色を求める]
+#   処理: [1: ピクセル・operationsのnearest・パレット・色を求める]
+#   引数: [
+#     color: 色（ColorTuple）
+#     palette: パレット（Iterable[ColorTuple]）
+#   ]
+#   戻り値: [result: ピクセル・operationsのnearest・パレット・色を求めるための結果（ColorTuple）]
+# }
 def nearest_palette_color(color: ColorTuple, palette: Iterable[ColorTuple]) -> ColorTuple:
     candidates = tuple(palette)
     if not candidates:
@@ -119,6 +166,12 @@ def nearest_palette_color(color: ColorTuple, palette: Iterable[ColorTuple]) -> C
     return min(candidates, key=lambda candidate: color_distance_squared(color, candidate))
 
 
+# {
+#   責務: [opaque_color_count: ピクセル・operationsのopaque・色・countを求める]
+#   処理: [1: ピクセル・operationsのopaque・色・countを求める]
+#   引数: [source: 元データ（pygame.Surface）]
+#   戻り値: [result: ピクセル・operationsのopaque・色・countを求めるための結果（int）]
+# }
 def opaque_color_count(source: pygame.Surface) -> int:
     return len(
         {
@@ -130,6 +183,12 @@ def opaque_color_count(source: pygame.Surface) -> int:
     )
 
 
+# {
+#   責務: [_palette_usage: ピクセル・operationsのパレット・usageを求める]
+#   処理: [1: ピクセル・operationsのパレット・usageを求める]
+#   引数: [source: 元データ（pygame.Surface）]
+#   戻り値: [result: usage（Counter[ColorTuple]）]
+# }
 def _palette_usage(source: pygame.Surface) -> Counter[ColorTuple]:
     usage: Counter[ColorTuple] = Counter()
     for y in range(source.get_height()):
@@ -141,6 +200,15 @@ def _palette_usage(source: pygame.Surface) -> Counter[ColorTuple]:
     return usage
 
 
+# {
+#   責務: [select_kadoka_palette: Select a compact basic-palette subset while retaining contrasting details.]
+#   処理: [1: Select a compact basic-palette subset while retaining contrasting details.]
+#   引数: [
+#     source: 元データ（pygame.Surface）
+#     max_colors: max・色一覧（int）
+#   ]
+#   戻り値: [result: Select a compact basic-palette subset while retaining contrasting details.ための結果（tuple[ColorTuple, ...]）]
+# }
 def select_kadoka_palette(source: pygame.Surface, max_colors: int) -> tuple[ColorTuple, ...]:
     """Select a compact basic-palette subset while retaining contrasting details."""
     limit = max(1, min(len(KADOKA_OPAQUE_PALETTE), int(max_colors)))
@@ -171,6 +239,15 @@ def select_kadoka_palette(source: pygame.Surface, max_colors: int) -> tuple[Colo
     return tuple(selected)
 
 
+# {
+#   責務: [reduce_to_kadoka_palette: Map opaque pixels to at most ``max_colors`` Kadoka Quest basic colors.]
+#   処理: [1: Map opaque pixels to at most ``max_colors`` Kadoka Quest basic colors.]
+#   引数: [
+#     source: 元データ（pygame.Surface）
+#     max_colors: max・色一覧（int）
+#   ]
+#   戻り値: [result: Map opaque pixels to at most ``max_colors`` Kadoka Quest basic colors.ための結果（tuple[pygame.Surface, int, tuple[ColorTuple, ...]]）]
+# }
 def reduce_to_kadoka_palette(
     source: pygame.Surface,
     max_colors: int = 5,
@@ -198,6 +275,15 @@ def reduce_to_kadoka_palette(
     return result, changed, selected
 
 
+# {
+#   責務: [fit_imported_image: Downscale with nearest neighbour into a transparent square canvas.]
+#   処理: [1: Downscale with nearest neighbour into a transparent square canvas.]
+#   引数: [
+#     source: 元データ（pygame.Surface）
+#     size: 大きさ（int）
+#   ]
+#   戻り値: [result: キャンバス（pygame.Surface）]
+# }
 def fit_imported_image(source: pygame.Surface, size: int = 64) -> pygame.Surface:
     """Downscale with nearest neighbour into a transparent square canvas."""
     if source.get_width() <= 0 or source.get_height() <= 0:

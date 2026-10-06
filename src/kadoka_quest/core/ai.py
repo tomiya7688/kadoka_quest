@@ -1,3 +1,7 @@
+# {
+#   責務: [ai: AIの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import random
@@ -12,6 +16,15 @@ _INFERENCE = BattleInference()
 _LEARNING = BattleLearning()
 
 
+# {
+#   責務: [default_ai: AIのdefault・AIを求める]
+#   処理: [1: AIのdefault・AIを求める]
+#   引数: [
+#     profile: プロファイル（str）
+#     tactic: tactic（str）
+#   ]
+#   戻り値: [result: AIのdefault・AIを求めるための結果（dict[str, Any]）]
+# }
 def default_ai(profile: str = "normal", tactic: str = "balanced") -> dict[str, Any]:
     profile_bias = {
         "normal": {},
@@ -40,6 +53,20 @@ def default_ai(profile: str = "normal", tactic: str = "balanced") -> dict[str, A
     }
 
 
+# {
+#   責務: [choose_skill: スキルを選択する]
+#   処理: [1: スキルを選択する]
+#   引数: [
+#     ai: AI（dict[str, Any]）
+#     skills: スキル一覧（Iterable[dict[str, Any]]）
+#     hp_ratio: HP・ratio（float）
+#     ally_missing_hp_ratio: 味方・missing・HP・ratio（float）
+#     mp_ratio: MP・ratio（float）
+#     rng: 乱数供給元（random.Random）
+#     context_tags: 判断用コンテキスト・tags（Iterable[str]）
+#   ]
+#   戻り値: [result: スキルを選択するための結果（dict[str, Any] | None）]
+# }
 def choose_skill(
     ai: dict[str, Any],
     skills: Iterable[dict[str, Any]],
@@ -52,6 +79,17 @@ def choose_skill(
     return _INFERENCE.choose(ai, skills, hp_ratio, ally_missing_hp_ratio, mp_ratio, rng, context_tags)
 
 
+# {
+#   責務: [learn_from_action: from・actionを学習を反映する]
+#   処理: [1: from・actionを学習を反映する]
+#   引数: [
+#     ai: AI（dict[str, Any]）
+#     skill_id: スキル・識別子（str）
+#     reward: 報酬（float）
+#     context_tags: 判断用コンテキスト・tags（Iterable[str]）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def learn_from_action(
     ai: dict[str, Any],
     skill_id: str,

@@ -1,3 +1,32 @@
+# {
+#   責務: [field_application: Composition/coordinator: data -> session -> renderer. Source-only prototype.]
+#   フィールド: [
+#     repository: データ取得先（RefCounted）
+#     session: セッション
+#     keyboard: keyboard
+#     images: 画像一覧（RefCounted）
+#     blocks: ブロック定義（Dictionary）
+#     view: 表示（Control）
+#     title: title（Label）
+#     status: 状態異常（Label）
+#     persistence: persistence（RefCounted）
+#     profile_name: プロファイル・名前
+#     owned_snapshot: owned・独立した状態の写し（Dictionary）
+#     roster_view: 所有個体台帳・表示（PanelContainer）
+#     party_view: パーティ・表示（PanelContainer）
+#     party_editor: パーティ・editor（RefCounted）
+#     presets: プリセット一覧（RefCounted）
+#     preset_view: プリセット・表示（PanelContainer）
+#     password_session: 暗号・セッション
+#     password_view: 暗号・表示（PanelContainer）
+#     password_outcome: 暗号・結果（Dictionary）
+#     ghost_acquisition: おばけ・acquisition（RefCounted）
+#     ghost_request: おばけ・要求（Dictionary）
+#     acquisition_result: acquisition・処理結果（Dictionary）
+#     church_registration: 教会・registration（RefCounted）
+#     church_result: 教会・処理結果（Dictionary）
+#   ]
+# }
 extends Control
 ## Composition/coordinator: data -> session -> renderer. Source-only prototype.
 
@@ -45,6 +74,12 @@ var church_registration: RefCounted
 var church_result: Dictionary = {}
 
 
+# {
+#   責務: [_ready: フィールド・applicationのエントリ処理を実行する]
+#   処理: [1: フィールド・applicationのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _ready() -> void:
 	var content_root := OS.get_environment("KADOKA_CONTENT_ROOT")
 	if content_root.is_empty():
@@ -62,6 +97,12 @@ func _ready() -> void:
 	_setup_persistence()
 
 
+# {
+#   責務: [_create_ui: uiを作成する]
+#   処理: [1: uiを作成する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _create_ui() -> void:
 	title = Label.new()
 	title.position = Vector2(16, 10)
@@ -114,6 +155,15 @@ func _create_ui() -> void:
 	password_view.cancel_requested.connect(cancel_password)
 
 
+# {
+#   責務: [open_map: マップを開く]
+#   処理: [1: マップを開く]
+#   引数: [
+#     map_id: マップ・識別子（String）
+#     entry: 項目（Dictionary）
+#   ]
+#   戻り値: [result: マップを開くための結果（bool）]
+# }
 func open_map(map_id: String, entry: Dictionary = {}) -> bool:
 	var world: Dictionary = repository.load_map(map_id)
 	if world.is_empty():
@@ -123,6 +173,15 @@ func open_map(map_id: String, entry: Dictionary = {}) -> bool:
 	return true
 
 
+# {
+#   責務: [_enter_world: フィールド・applicationのenter・マップ状態を求める]
+#   処理: [1: フィールド・applicationのenter・マップ状態を求める]
+#   引数: [
+#     world: マップ状態（Dictionary）
+#     entry: 項目（Dictionary）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _enter_world(world: Dictionary, entry: Dictionary) -> void:
 	session.enter_map(world, blocks, entry)
 	session.direction = str(entry.get("direction", session.direction))
@@ -132,6 +191,12 @@ func _enter_world(world: Dictionary, entry: Dictionary) -> void:
 	_refresh_view()
 
 
+# {
+#   責務: [_setup_persistence: フィールド・applicationのsetup・persistenceを求める]
+#   処理: [1: フィールド・applicationのsetup・persistenceを求める]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _setup_persistence() -> void:
 	var save_root := OS.get_environment("KADOKA_GDSCRIPT_SAVE_ROOT")
 	if save_root.is_empty():
@@ -148,6 +213,12 @@ func _setup_persistence() -> void:
 	_refresh_view()
 
 
+# {
+#   責務: [save_current_position: current・座標を保存する]
+#   処理: [1: current・座標を保存する]
+#   引数: []
+#   戻り値: [result: current・座標を保存するための結果（bool）]
+# }
 func save_current_position() -> bool:
 	if password_session.active or persistence == null or session.world.is_empty():
 		return false
@@ -158,6 +229,12 @@ func save_current_position() -> bool:
 	return result["ok"]
 
 
+# {
+#   責務: [load_saved_position: saved・座標を読み込む]
+#   処理: [1: saved・座標を読み込む]
+#   引数: [silent_missing: silent・missing（bool）]
+#   戻り値: [result: saved・座標を読み込むための結果（bool）]
+# }
 func load_saved_position(silent_missing: bool = false) -> bool:
 	if password_session.active:
 		return false
@@ -176,6 +253,12 @@ func load_saved_position(silent_missing: bool = false) -> bool:
 	return true
 
 
+# {
+#   責務: [_process: フィールド・applicationのprocessを求める]
+#   処理: [1: フィールド・applicationのprocessを求める]
+#   引数: [delta: 経過時間（float）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _process(delta: float) -> void:
 	if session.world.is_empty() or password_session.active or roster_view.visible or party_view.visible or preset_view.visible:
 		return
@@ -190,6 +273,12 @@ func _process(delta: float) -> void:
 		_refresh_view()  # Publish interpolated positions; renderer never advances actors.
 
 
+# {
+#   責務: [_unhandled_key_input: フィールド・applicationのunhandled・キー・入力を求める]
+#   処理: [1: フィールド・applicationのunhandled・キー・入力を求める]
+#   引数: [event: イベント（InputEvent）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _unhandled_key_input(event: InputEvent) -> void:
 	if password_session.active or party_view.visible or roster_view.visible or preset_view.visible:
 		return
@@ -207,6 +296,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+# {
+#   責務: [_input: フィールド・applicationの入力を求める]
+#   処理: [1: フィールド・applicationの入力を求める]
+#   引数: [event: イベント（InputEvent）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _input(event: InputEvent) -> void:
 	if password_session.active:
 		if event is InputEventKey and event.pressed and password_view.handle_key(event):
@@ -269,6 +364,12 @@ func _input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+# {
+#   責務: [open_owned_roster: owned・所有個体台帳を開く]
+#   処理: [1: owned・所有個体台帳を開く]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func open_owned_roster() -> void:
 	if password_session.active:
 		return
@@ -277,6 +378,12 @@ func open_owned_roster() -> void:
 	roster_view.show()
 
 
+# {
+#   責務: [begin_party_edit: パーティ・editを開始する]
+#   処理: [1: パーティ・editを開始する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func begin_party_edit() -> void:
 	if password_session.active:
 		return
@@ -291,12 +398,27 @@ func begin_party_edit() -> void:
 	party_view.show_snapshot(party_editor.snapshot(), true)
 
 
+# {
+#   責務: [assign_party_member: フィールド・applicationのassign・パーティ・個体を求める]
+#   処理: [1: フィールド・applicationのassign・パーティ・個体を求める]
+#   引数: [
+#     slot: 編成枠（int）
+#     id: 識別子（Variant）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func assign_party_member(slot: int, id: Variant) -> void:
 	var result: Dictionary = party_editor.assign(slot, id)
 	party_view.show_snapshot(party_editor.snapshot())
 	party_view.message.text = "未保存の編成です。保存またはキャンセルを選んでください。" if result["ok"] else str(result["message"])
 
 
+# {
+#   責務: [save_party_edit: パーティ・editを保存する]
+#   処理: [1: パーティ・editを保存する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func save_party_edit() -> void:
 	var result: Dictionary = party_editor.save()
 	if not result["ok"]:
@@ -306,11 +428,23 @@ func save_party_edit() -> void:
 	_finish_party_edit()
 
 
+# {
+#   責務: [cancel_party_edit: フィールド・applicationのcancel・パーティ・editを求める]
+#   処理: [1: フィールド・applicationのcancel・パーティ・editを求める]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func cancel_party_edit() -> void:
 	status.text = "編成をキャンセルしました。保存データは変更していません。"
 	_finish_party_edit()
 
 
+# {
+#   責務: [_finish_party_edit: パーティ・editを終了処理を行う]
+#   処理: [1: パーティ・editを終了処理を行う]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _finish_party_edit() -> void:
 	party_view.hide()
 	party_editor = null
@@ -319,6 +453,12 @@ func _finish_party_edit() -> void:
 	roster_view.show()
 
 
+# {
+#   責務: [open_party_presets: パーティ・プリセット一覧を開く]
+#   処理: [1: パーティ・プリセット一覧を開く]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func open_party_presets() -> void:
 	party_view.hide()
 	preset_view.show()
@@ -326,10 +466,22 @@ func open_party_presets() -> void:
 	preset_view.show_catalog(presets.read_catalog(), true)
 
 
+# {
+#   責務: [refresh_party_presets: パーティ・プリセット一覧を更新内容を読み直す]
+#   処理: [1: パーティ・プリセット一覧を更新内容を読み直す]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func refresh_party_presets() -> void:
 	preset_view.show_catalog(presets.read_catalog())
 
 
+# {
+#   責務: [save_party_preset: パーティ・プリセットを保存する]
+#   処理: [1: パーティ・プリセットを保存する]
+#   引数: [name: 名前（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func save_party_preset(name: String) -> void:
 	var result: Dictionary = presets.save_new(name, party_editor.member_ids())
 	if not result["ok"]:
@@ -339,6 +491,12 @@ func save_party_preset(name: String) -> void:
 	preset_view.message.text = "追加保存しました: " + result["filename"] + "（現在パーティは未保存）"
 
 
+# {
+#   責務: [load_party_preset: パーティ・プリセットを読み込む]
+#   処理: [1: パーティ・プリセットを読み込む]
+#   引数: [filename: filename（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func load_party_preset(filename: String) -> void:
 	var result: Dictionary = presets.load_draft(filename, party_editor)
 	if not result["ok"]:
@@ -351,12 +509,24 @@ func load_party_preset(filename: String) -> void:
 		party_view.message.text = "注意%d件: %s（下書きのみ変更）" % [result["warnings"].size(), str(result["warnings"][0])]
 
 
+# {
+#   責務: [close_party_presets: パーティ・プリセット一覧を閉じる]
+#   処理: [1: パーティ・プリセット一覧を閉じる]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func close_party_presets() -> void:
 	preset_view.hide()
 	party_view.show()
 	party_view.slots.grab_focus.call_deferred()
 
 
+# {
+#   責務: [_refresh_owned_snapshot: owned・独立した状態の写しを更新内容を読み直す]
+#   処理: [1: owned・独立した状態の写しを更新内容を読み直す]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _refresh_owned_snapshot() -> void:
 	var result: Dictionary = persistence.read_owned_roster()
 	if result["ok"]:
@@ -366,6 +536,12 @@ func _refresh_owned_snapshot() -> void:
 			"new_profile": result.get("error") == "not_found"}
 
 
+# {
+#   責務: [_handle_interaction: interactionを入力を処理する]
+#   処理: [1: interactionを入力を処理する]
+#   引数: [result: 処理結果（Dictionary）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _handle_interaction(result: Dictionary) -> void:
 	match result["kind"]:
 		"event":
@@ -379,6 +555,12 @@ func _handle_interaction(result: Dictionary) -> void:
 	_refresh_view()  # Publish the NPC's turned direction, not a renderer-side effect.
 
 
+# {
+#   責務: [_handle_event: イベントを入力を処理する]
+#   処理: [1: イベントを入力を処理する]
+#   引数: [event: イベント（Dictionary）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _handle_event(event: Dictionary) -> void:
 	if event.is_empty():
 		status.text = "目の前に調べるものはありません。"
@@ -400,6 +582,12 @@ func _handle_event(event: Dictionary) -> void:
 		status.text = "[未移植: %s] %s" % [event.get("type", "event"), event.get("text", "")]
 
 
+# {
+#   責務: [register_church: 教会を登録する]
+#   処理: [1: 教会を登録する]
+#   引数: [revive: 復活（Variant）]
+#   戻り値: [result: 教会を登録するための結果（Dictionary）]
+# }
 func register_church(revive: Variant) -> Dictionary:
 	if password_session.active or roster_view.visible or party_view.visible or preset_view.visible:
 		return {"ok": false, "error": "modal_active", "message": "画面を閉じてから教会を調べてください。"}
@@ -408,6 +596,12 @@ func register_church(revive: Variant) -> Dictionary:
 	return church_result
 
 
+# {
+#   責務: [open_password_input: 暗号・入力を開く]
+#   処理: [1: 暗号・入力を開く]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func open_password_input() -> void:
 	ghost_request = ghost_acquisition.begin()
 	acquisition_result = {}
@@ -417,16 +611,34 @@ func open_password_input() -> void:
 	password_view.show_snapshot(password_session.snapshot(), true)
 
 
+# {
+#   責務: [append_password: 暗号を末尾へ追加する]
+#   処理: [1: 暗号を末尾へ追加する]
+#   引数: [character: キャラクター（String）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func append_password(character: String) -> void:
 	password_session.append(character)
 	password_view.show_snapshot(password_session.snapshot())
 
 
+# {
+#   責務: [backspace_password: フィールド・applicationのbackspace・暗号を求める]
+#   処理: [1: フィールド・applicationのbackspace・暗号を求める]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func backspace_password() -> void:
 	password_session.backspace()
 	password_view.show_snapshot(password_session.snapshot())
 
 
+# {
+#   責務: [submit_password: 暗号を確定する]
+#   処理: [1: 暗号を確定する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func submit_password() -> void:
 	if not password_session.submit():
 		password_view.show_snapshot(password_session.snapshot())
@@ -434,11 +646,26 @@ func submit_password() -> void:
 	_finish_password({"kind": "password_matched"}, "あいことばは一致しました。")
 
 
+# {
+#   責務: [cancel_password: フィールド・applicationのcancel・暗号を求める]
+#   処理: [1: フィールド・applicationのcancel・暗号を求める]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func cancel_password() -> void:
 	password_session.cancel()
 	_finish_password({"kind": "password_cancelled"}, "あいことばの入力をやめました。保存データは変更していません。")
 
 
+# {
+#   責務: [_finish_password: 暗号を終了処理を行う]
+#   処理: [1: 暗号を終了処理を行う]
+#   引数: [
+#     result: 処理結果（Dictionary）
+#     text: 文字列（String）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _finish_password(result: Dictionary, text: String) -> void:
 	password_view.hide()
 	keyboard.reset()
@@ -447,6 +674,12 @@ func _finish_password(result: Dictionary, text: String) -> void:
 	password_finished.emit(result.duplicate())
 
 
+# {
+#   責務: [_on_password_finished: フィールド・applicationのon・暗号・finishedを求める]
+#   処理: [1: フィールド・applicationのon・暗号・finishedを求める]
+#   引数: [result: 処理結果（Dictionary）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _on_password_finished(result: Dictionary) -> void:
 	if result["kind"] != "password_matched":
 		return
@@ -455,6 +688,12 @@ func _on_password_finished(result: Dictionary) -> void:
 	_refresh_owned_snapshot()  # Publish verified additions, including explicit partial success.
 
 
+# {
+#   責務: [_refresh_view: 表示を更新内容を読み直す]
+#   処理: [1: 表示を更新内容を読み直す]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _refresh_view() -> void:
 	title.text = "%s  (%d, %d) — GDScript / %s" % [session.world.get("display_name", ""), session.x, session.y, profile_name]
 	if not session.fixed_mobs.warnings.is_empty():

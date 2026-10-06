@@ -1,3 +1,10 @@
+# {
+#   責務: [normal_attack_action: Validate -> single claim -> explicit normal-attack HP application -> finish. No RNG/I/O/AI.]
+#   フィールド: [
+#     _session: セッション（RefCounted）
+#     _context: 判断用コンテキスト（Dictionary）
+#   ]
+# }
 extends RefCounted
 ## Validate -> single claim -> explicit normal-attack HP application -> finish. No RNG/I/O/AI.
 
@@ -9,10 +16,25 @@ var _session: RefCounted
 var _context: Dictionary = {}
 
 
+# {
+#   責務: [_init: normal・攻撃・actionが利用する初期状態と依存を設定する]
+#   処理: [1: normal・攻撃・actionが利用する初期状態と依存を設定する]
+#   引数: [session: セッション（RefCounted）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
 func _init(session: RefCounted) -> void:
 	_session = session
 
 
+# {
+#   責務: [start: normal・攻撃・actionを開始する]
+#   処理: [1: normal・攻撃・actionを開始する]
+#   引数: [
+#     teams: 両陣営（Variant）
+#     skills: スキル一覧（Variant）
+#   ]
+#   戻り値: [result: normal・攻撃・actionを開始するための結果（Dictionary）]
+# }
 func start(teams: Variant, skills: Variant) -> Dictionary:
 	if not _context.is_empty():
 		return _failure("already_initialized")
@@ -27,6 +49,16 @@ func start(teams: Variant, skills: Variant) -> Dictionary:
 	return {"ok": true, "scope": "explicit_normal_attack_only"}
 
 
+# {
+#   責務: [resolve: 最新の対象と数値を検証して単一の通常攻撃をSessionへ適用する]
+#   処理: [
+#     1: 要求・ticket・最新生存状態・攻撃数値をclaim前に検証する
+#     2: 行動権を一度だけ取得し、実行不能なら攻撃せず取消結果を返す
+#     3: 対象の実HPを減らしてfinishする。適用失敗時は取得済み行動権を再利用しない
+#   ]
+#   引数: [request: 要求（Variant）]
+#   戻り値: [result: ok/executedと数値・Sessionの写し、またはreason付き拒否結果]
+# }
 func resolve(request: Variant) -> Dictionary:
 	var checked := _validate(request)
 	if not checked["ok"]:
@@ -48,6 +80,16 @@ func resolve(request: Variant) -> Dictionary:
 		"numbers": checked["numbers"], "session": finished["session"]}
 
 
+# {
+#   責務: [_validate: 資源や行動権を変更せず通常攻撃要求の可否と数値を決める]
+#   処理: [
+#     1: 要求キーとoffered ticketを検証する
+#     2: 敵対象の存在と最新生死を確認する
+#     3: 信頼済み定義・装備と明示乱数から数値を求める。死亡/逃走/敵なしは取消用の検証だけ行う
+#   ]
+#   引数: [request: 要求（Variant）]
+#   戻り値: [result: 通常攻撃数値または理由付き拒否。実行許可や資源変更ではない]
+# }
 func _validate(request: Variant) -> Dictionary:
 	if _context.is_empty():
 		return _failure("not_initialized")
@@ -87,6 +129,15 @@ func _validate(request: Variant) -> Dictionary:
 	return numbers if not numbers["ok"] else {"ok": true, "numbers": numbers}
 
 
+# {
+#   責務: [_member: normal・攻撃・actionの個体を求める]
+#   処理: [1: normal・攻撃・actionの個体を求める]
+#   引数: [
+#     team: チーム（Array）
+#     id: 識別子（String）
+#   ]
+#   戻り値: [result: normal・攻撃・actionの個体を求めるための結果（Dictionary）]
+# }
 func _member(team: Array, id: String) -> Dictionary:
 	for member: Dictionary in team:
 		if member["identity"]["id"] == id:
@@ -94,5 +145,11 @@ func _member(team: Array, id: String) -> Dictionary:
 	return {}
 
 
+# {
+#   責務: [_failure: normal・攻撃・actionのfailureを求める]
+#   処理: [1: normal・攻撃・actionのfailureを求める]
+#   引数: [reason: 理由（String）]
+#   戻り値: [result: normal・攻撃・actionのfailureを求めるための結果（Dictionary）]
+# }
 func _failure(reason: String) -> Dictionary:
 	return {"ok": false, "reason": reason}

@@ -1,3 +1,7 @@
+# {
+#   責務: [test_legacy_battle_command_adapter: test・legacy・戦闘・コマンド・adapterの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -8,6 +12,12 @@ from kadoka_quest.apps.battle_command_app import BattleCommandApplication
 from kadoka_quest.apps.battle_session import BattleSession
 
 
+# {
+#   責務: [test_full_runtime_shape_uses_flow_without_creating_legacy_adapter: 検証: full runtime shape uses flow without creating legacy adapter]
+#   処理: [1: 検証: full runtime shape uses flow without creating legacy adapter]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_full_runtime_shape_uses_flow_without_creating_legacy_adapter() -> None:
     session = SimpleNamespace(
         battle_session=BattleSession(),
@@ -24,6 +34,12 @@ def test_full_runtime_shape_uses_flow_without_creating_legacy_adapter() -> None:
     assert application._legacy is None
 
 
+# {
+#   責務: [test_minimal_legacy_session_isolated_behind_adapter: 検証: minimal legacy session isolated behind adapter]
+#   処理: [1: 検証: minimal legacy session isolated behind adapter]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def test_minimal_legacy_session_isolated_behind_adapter() -> None:
     session = SimpleNamespace(
         status="",

@@ -1,3 +1,7 @@
+# {
+#   責務: [simulation_manager: simulation・managerの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from pathlib import Path
 import sys
 

@@ -1,3 +1,7 @@
+# {
+#   責務: [windows-distribution: Windows配布物のビルド・検証フローを定義する]
+#   フィールド: [jobs: 配布物生成・smoke検証のジョブ]
+# }
 name: Windows distribution
 
 on:

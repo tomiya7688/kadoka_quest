@@ -1,4 +1,8 @@
 """Feed events/commands and frames to production routing, not game rules."""
+# {
+#   責務: [runtime_driver: Feed events/commands and frames to production routing, not game rules.]
+#   フィールド: []
+# }
 
 from __future__ import annotations
 
@@ -27,9 +31,34 @@ TIMED_COMMANDS = {
 }
 
 
+# {
+#   責務: [RuntimeDriver: Mirror keyboard and frame routing from apps.game.main without rendering.]
+#   フィールド: [
+#     seed: seed
+#     clock: clock
+#     input: 入力
+#     mouse: mouse
+#     save_root: 保存・基準ディレクトリ
+#     launcher_runs: launcher・runs
+#     frames: frames
+#     game: ゲーム
+#     running: running
+#     last_render: last・render
+#   ]
+# }
 class RuntimeDriver:
     """Mirror keyboard and frame routing from apps.game.main without rendering."""
 
+    # {
+    #   責務: [__init__: 実行時・driverが利用する初期状態と依存を設定する]
+    #   処理: [1: 実行時・driverが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     seed: seed（int）
+    #     clock: clock（ScenarioClock）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, seed: int, clock: ScenarioClock) -> None:
         self.seed = seed
         self.clock = clock
@@ -41,6 +70,12 @@ class RuntimeDriver:
         self.frames = 0
         self.reload()
 
+    # {
+    #   責務: [reload: 実行時・driverのreloadを求める]
+    #   処理: [1: 実行時・driverのreloadを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def reload(self) -> None:
         repository = GameRepository()
         self.game = KadokaQuest(
@@ -54,6 +89,15 @@ class RuntimeDriver:
         self.running = True
         self.last_render = None
 
+    # {
+    #   責務: [launcher: 実行時・driverのlauncherを求める]
+    #   処理: [1: 実行時・driverのlauncherを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     step: step（dict）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def launcher(self, step: dict) -> None:
         result = drive_launcher(step["frames"], self.clock, SAVEDATA_ROOT.parent)
         self.launcher_runs.append({key: value for key, value in result.items() if key != "save_root"})
@@ -61,6 +105,15 @@ class RuntimeDriver:
             self.save_root = Path(result["save_root"])
             self.reload()
 
+    # {
+    #   責務: [password_click: 実行時・driverの暗号・clickを求める]
+    #   処理: [1: 実行時・driverの暗号・clickを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     value: 値（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def password_click(self, value: str) -> None:
         if self.game.mode != "password":
             raise ValueError("Password controls are not visible")
@@ -69,6 +122,12 @@ class RuntimeDriver:
             raise ValueError(f"Unknown password control: {value}")
         self.event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=controls[value].center))
 
+    # {
+    #   責務: [frame: 実行時・driverのフレームを求める]
+    #   処理: [1: 実行時・driverのフレームを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def frame(self) -> None:
         if not self.running:
             return
@@ -79,6 +138,15 @@ class RuntimeDriver:
         if self.game.mode in {"field", "battle"}:
             self.game.runtime.dispatch(self.game.mode, "tick", now=self.clock.now)
 
+    # {
+    #   責務: [event: 実行時・driverのイベントを求める]
+    #   処理: [1: 実行時・driverのイベントを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     event: イベント（pygame.event.Event）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def event(self, event: pygame.event.Event) -> None:
         pygame.event.post(event)
         for queued in pygame.event.get():
@@ -101,6 +169,15 @@ class RuntimeDriver:
                 self.game.runtime.dispatch(request["target"], request["action"], **request["payload"])
         self.frame()
 
+    # {
+    #   責務: [command: 実行時・driverのコマンドを求める]
+    #   処理: [1: 実行時・driverのコマンドを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     step: step（dict）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def command(self, step: dict) -> None:
         target, action = step["target"], step["action"]
         payload = dict(step.get("payload", {}))
@@ -112,6 +189,15 @@ class RuntimeDriver:
         self.game.runtime.dispatch(target, action, **payload)
         self.frame()
 
+    # {
+    #   責務: [advance: 実行時・driverのadvanceを求める]
+    #   処理: [1: 実行時・driverのadvanceを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     step: step（dict）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def advance(self, step: dict) -> None:
         remaining = nonnegative_integer(step["ms"], "ms")
         quantum = nonnegative_integer(step.get("frame_ms", 16), "frame_ms")
@@ -125,6 +211,15 @@ class RuntimeDriver:
             self.frame()
             remaining -= delta
 
+    # {
+    #   責務: [execute: 実行時・driverを実行する]
+    #   処理: [1: 実行時・driverを実行する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     step: step（dict）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def execute(self, step: dict) -> None:
         kind = step["kind"]
         if kind == "snapshot":

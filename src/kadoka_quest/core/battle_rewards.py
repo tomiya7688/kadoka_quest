@@ -1,3 +1,7 @@
+# {
+#   責務: [battle_rewards: 戦闘・rewardsの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -10,6 +14,15 @@ NORMAL_VICTORY_BONUS = 8
 NORMAL_EXPERIENCE_PER_LEVEL = 3
 
 
+# {
+#   責務: [custom_defeat_experience: Evaluate editable integer coefficients, never executable expressions.]
+#   処理: [1: Evaluate editable integer coefficients, never executable expressions.]
+#   引数: [
+#     level: レベル（int）
+#     rule: rule（Any）
+#   ]
+#   戻り値: [result: Evaluate editable integer coefficients, never executable expressions.ための結果（int | None）]
+# }
 def custom_defeat_experience(level: int, rule: Any) -> int | None:
     """Evaluate editable integer coefficients, never executable expressions.
 
@@ -26,6 +39,12 @@ def custom_defeat_experience(level: int, rule: Any) -> int | None:
     return base + level * per_level + level * level // divisor
 
 
+# {
+#   責務: [battle_experience: Total defeated-enemy rewards; the ordinary bonus is applied at most once.]
+#   処理: [1: Total defeated-enemy rewards; the ordinary bonus is applied at most once.]
+#   引数: [enemies: 敵（Iterable[Combatant]）]
+#   戻り値: [result: Total defeated-enemy rewards; the ordinary bonus is applied at most once.ための結果（int）]
+# }
 def battle_experience(enemies: Iterable[Combatant]) -> int:
     """Total defeated-enemy rewards; the ordinary bonus is applied at most once."""
     total = 0

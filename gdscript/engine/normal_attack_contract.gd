@@ -1,3 +1,7 @@
+# {
+#   責務: [normal_attack_contract: Project read-only content into the supported normal-attack context. No state/I/O/AI.]
+#   フィールド: []
+# }
 extends RefCounted
 ## Project read-only content into the supported normal-attack context. No state/I/O/AI.
 
@@ -10,6 +14,15 @@ const EQUIPMENT_FIELDS := ["id", "display_name", "description", "category", "all
 	"stat_multipliers", "resistance_steps", "skill_modifiers", "fixed_bonus_damage"]
 
 
+# {
+#   責務: [prepare: normal・攻撃・契約を準備する]
+#   処理: [1: normal・攻撃・契約を準備する]
+#   引数: [
+#     teams: 両陣営（Variant）
+#     skills: スキル一覧（Variant）
+#   ]
+#   戻り値: [result: normal・攻撃・契約を準備するための結果（Dictionary）]
+# }
 static func prepare(teams: Variant, skills: Variant) -> Dictionary:
 	var rule := _skill(skills)
 	if not rule["ok"]:
@@ -47,6 +60,12 @@ static func prepare(teams: Variant, skills: Variant) -> Dictionary:
 	return {"ok": true, "skill": rule["skill"], "equipment": equipment, "snapshots": snapshots.duplicate(true)}
 
 
+# {
+#   責務: [_skill: normal・攻撃・契約のスキルを求める]
+#   処理: [1: normal・攻撃・契約のスキルを求める]
+#   引数: [document: 文書（Variant）]
+#   戻り値: [result: normal・攻撃・契約のスキルを求めるための結果（Dictionary）]
+# }
 static func _skill(document: Variant) -> Dictionary:
 	if not document is Dictionary or not document.get("skills") is Array:
 		return _failure("invalid_skill_document")
@@ -71,6 +90,12 @@ static func _skill(document: Variant) -> Dictionary:
 	return checked if not checked["ok"] else {"ok": true, "skill": skill.duplicate(true)}
 
 
+# {
+#   責務: [_equipment: normal・攻撃・契約の装備を求める]
+#   処理: [1: normal・攻撃・契約の装備を求める]
+#   引数: [definition: 定義（Variant）]
+#   戻り値: [result: normal・攻撃・契約の装備を求めるための結果（Dictionary）]
+# }
 static func _equipment(definition: Variant) -> Dictionary:
 	if not definition is Dictionary:
 		return _failure("invalid_attack_equipment")
@@ -89,11 +114,28 @@ static func _equipment(definition: Variant) -> Dictionary:
 	return checked if not checked["ok"] else {"ok": true, "equipment": equipment}
 
 
+# {
+#   責務: [validate_numbers: numbersを妥当性を検査する]
+#   処理: [1: numbersを妥当性を検査する]
+#   引数: [
+#     skill: スキル（Dictionary）
+#     equipment: 装備（Dictionary）
+#     roll: roll（Variant）
+#     variance: ダメージの揺らぎ（Variant）
+#   ]
+#   戻り値: [result: numbersを妥当性を検査するための結果（Dictionary）]
+# }
 static func validate_numbers(skill: Dictionary, equipment: Dictionary, roll: Variant, variance: Variant) -> Dictionary:
 	return Numbers.normal_attack({"attack": 1, "defense": 0, "target_hp": 1, "equipment": equipment,
 		"power": skill.get("power", 1.0), "critical_multiplier": skill.get("critical_multiplier", 1.0),
 		"critical_roll": roll, "variance": variance})
 
 
+# {
+#   責務: [_failure: normal・攻撃・契約のfailureを求める]
+#   処理: [1: normal・攻撃・契約のfailureを求める]
+#   引数: [reason: 理由（String）]
+#   戻り値: [result: normal・攻撃・契約のfailureを求めるための結果（Dictionary）]
+# }
 static func _failure(reason: String) -> Dictionary:
 	return {"ok": false, "reason": reason}

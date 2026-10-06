@@ -1,3 +1,14 @@
+# {
+#   責務: [combatant_state: Battle-only numeric state. No persistence, turn policy or AI inference.]
+#   フィールド: [
+#     _identity: identity（Dictionary）
+#     _stats: 能力値（Dictionary）
+#     _hp: HP
+#     _mp: MP
+#     _fled: 逃走済み
+#     _initialized: initialized
+#   ]
+# }
 extends RefCounted
 ## Battle-only numeric state. No persistence, turn policy or AI inference.
 
@@ -12,6 +23,15 @@ var _fled := false
 var _initialized := false
 
 
+# {
+#   責務: [start: 戦闘個体・状態を開始する]
+#   処理: [1: 戦闘個体・状態を開始する]
+#   引数: [
+#     identity: identity（Variant）
+#     stats: 能力値（Variant）
+#   ]
+#   戻り値: [result: 戦闘個体・状態を開始するための結果（Dictionary）]
+# }
 func start(identity: Variant, stats: Variant) -> Dictionary:
 	if _initialized:
 		return _failure("already_initialized")
@@ -27,6 +47,12 @@ func start(identity: Variant, stats: Variant) -> Dictionary:
 	return {"ok": true, "snapshot": snapshot()}
 
 
+# {
+#   責務: [snapshot: 戦闘個体・状態を状態を複製する]
+#   処理: [1: 戦闘個体・状態を状態を複製する]
+#   引数: []
+#   戻り値: [result: 戦闘個体・状態を状態を複製するための結果（Dictionary）]
+# }
 func snapshot() -> Dictionary:
 	if not _initialized:
 		return {}
@@ -34,10 +60,22 @@ func snapshot() -> Dictionary:
 		"hp": _hp, "mp": _mp, "fled": _fled, "alive": alive()}
 
 
+# {
+#   責務: [alive: 戦闘個体・状態のaliveを求める]
+#   処理: [1: 戦闘個体・状態のaliveを求める]
+#   引数: []
+#   戻り値: [result: 戦闘個体・状態のaliveを求めるための結果（bool）]
+# }
 func alive() -> bool:
 	return _initialized and _hp > 0 and not _fled
 
 
+# {
+#   責務: [take_damage: ダメージを反映する]
+#   処理: [1: ダメージを反映する]
+#   引数: [amount: 量（Variant）]
+#   戻り値: [result: ダメージを反映するための結果（Dictionary）]
+# }
 func take_damage(amount: Variant) -> Dictionary:
 	if not _initialized:
 		return _failure("not_initialized")
@@ -50,6 +88,12 @@ func take_damage(amount: Variant) -> Dictionary:
 		"dealt": dealt, "hp": _hp, "alive": alive()}
 
 
+# {
+#   責務: [mp_cost: 戦闘個体・状態のMP・消費量を求める]
+#   処理: [1: 戦闘個体・状態のMP・消費量を求める]
+#   引数: [cost: 消費量（Variant）]
+#   戻り値: [result: 戦闘個体・状態のMP・消費量を求めるための結果（Dictionary）]
+# }
 func mp_cost(cost: Variant) -> Dictionary:
 	if not _initialized:
 		return _failure("not_initialized")
@@ -58,6 +102,12 @@ func mp_cost(cost: Variant) -> Dictionary:
 	return {"ok": true, "cost": int(cost), "affordable": int(cost) <= _mp, "mp": _mp}
 
 
+# {
+#   責務: [pay_mp: MPを支払う]
+#   処理: [1: MPを支払う]
+#   引数: [cost: 消費量（Variant）]
+#   戻り値: [result: MPを支払うための結果（Dictionary）]
+# }
 func pay_mp(cost: Variant) -> Dictionary:
 	var checked := mp_cost(cost)
 	if not checked["ok"]:
@@ -69,6 +119,12 @@ func pay_mp(cost: Variant) -> Dictionary:
 	return {"ok": true, "cost": int(cost), "affordable": true, "spent": int(cost), "mp": _mp}
 
 
+# {
+#   責務: [flee: 戦闘個体・状態を逃走状態を設定する]
+#   処理: [1: 戦闘個体・状態を逃走状態を設定する]
+#   引数: []
+#   戻り値: [result: 戦闘個体・状態を逃走状態を設定するための結果（Dictionary）]
+# }
 func flee() -> Dictionary:
 	if not _initialized:
 		return _failure("not_initialized")
@@ -77,6 +133,12 @@ func flee() -> Dictionary:
 	return {"ok": true, "changed": changed, "alive": alive(), "hp": _hp, "mp": _mp}
 
 
+# {
+#   責務: [living: 戦闘個体・状態のlivingを求める]
+#   処理: [1: 戦闘個体・状態のlivingを求める]
+#   引数: [snapshots: snapshots（Variant）]
+#   戻り値: [result: 戦闘個体・状態のlivingを求めるための結果（Dictionary）]
+# }
 static func living(snapshots: Variant) -> Dictionary:
 	if not snapshots is Array:
 		return _failure("invalid_members")
@@ -97,6 +159,12 @@ static func living(snapshots: Variant) -> Dictionary:
 	return {"ok": true, "members": members}
 
 
+# {
+#   責務: [_validate_snapshot: 独立した状態の写しを妥当性を検査する]
+#   処理: [1: 独立した状態の写しを妥当性を検査する]
+#   引数: [value: 値（Variant）]
+#   戻り値: [result: 独立した状態の写しを妥当性を検査するための結果（Dictionary）]
+# }
 static func _validate_snapshot(value: Variant) -> Dictionary:
 	if not value is Dictionary:
 		return _failure("invalid_snapshot")
@@ -114,6 +182,15 @@ static func _validate_snapshot(value: Variant) -> Dictionary:
 	return {"ok": true}
 
 
+# {
+#   責務: [_validate_initial: initialを妥当性を検査する]
+#   処理: [1: initialを妥当性を検査する]
+#   引数: [
+#     identity: identity（Variant）
+#     stats: 能力値（Variant）
+#   ]
+#   戻り値: [result: initialを妥当性を検査するための結果（Dictionary）]
+# }
 static func _validate_initial(identity: Variant, stats: Variant) -> Dictionary:
 	if not identity is Dictionary:
 		return _failure("invalid_identity")
@@ -132,10 +209,22 @@ static func _validate_initial(identity: Variant, stats: Variant) -> Dictionary:
 	return {"ok": true}
 
 
+# {
+#   責務: [_nonnegative_integer: 戦闘個体・状態のnonnegative・integerを求める]
+#   処理: [1: 戦闘個体・状態のnonnegative・integerを求める]
+#   引数: [value: 値（Variant）]
+#   戻り値: [result: 戦闘個体・状態のnonnegative・integerを求めるための結果（bool）]
+# }
 static func _nonnegative_integer(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) \
 		and float(value) >= 0 and float(value) <= MAX_EXACT_INTEGER and float(value) == floorf(float(value))
 
 
+# {
+#   責務: [_failure: 戦闘個体・状態のfailureを求める]
+#   処理: [1: 戦闘個体・状態のfailureを求める]
+#   引数: [reason: 理由（String）]
+#   戻り値: [result: 戦闘個体・状態のfailureを求めるための結果（Dictionary）]
+# }
 static func _failure(reason: String) -> Dictionary:
 	return {"ok": false, "reason": reason}

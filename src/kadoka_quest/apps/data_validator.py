@@ -1,3 +1,7 @@
+# {
+#   責務: [data_validator: データ・検証処理の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import pygame
@@ -10,6 +14,12 @@ from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TE
 ROWS = 8
 
 
+# {
+#   責務: [main: データ・検証処理のエントリ処理を実行する]
+#   処理: [1: データ・検証処理のエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     screen = init_pygame("kadoka quest - data validation", (1100, 720))
     clock = pygame.time.Clock()
@@ -18,12 +28,24 @@ def main() -> None:
     scroll = ScrollBar(pygame.Rect(1055, 145, 12, 450), total=len(issues), page=ROWS)
     running = True
 
+    # {
+    #   責務: [refresh: データ・検証処理を更新内容を読み直す]
+    #   処理: [1: データ・検証処理を更新内容を読み直す]
+    #   引数: []
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def refresh() -> None:
         nonlocal issues
         issues = validator.validate()
         scroll.configure(len(issues), ROWS)
         scroll.value = min(scroll.value, scroll.maximum)
 
+    # {
+    #   責務: [stop: データ・検証処理を停止する]
+    #   処理: [1: データ・検証処理を停止する]
+    #   引数: []
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def stop() -> None:
         nonlocal running
         running = False
