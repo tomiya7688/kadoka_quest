@@ -39,7 +39,7 @@ D = max(1, int(B × guard × variance))         # 会心でもguardは掛かる
 
 標準会心率は1/16。ちょうど1/16の乱数は非会心。会心倍率は上限1のみで、下限を新設しない（負の倍率なら会心しない）。最低ダメージ1の判定は最後。固定追加値も防御倍率と揺らぎの対象になる。一時攻撃倍率を1へ戻す/バフを消費する状態変更は、この数値APIでは行わない。
 
-成功結果は `ok / scope: normal_attack_numbers / effective_attack / effective_power / critical_chance / critical / raw_damage / damage / applied_guard / variance / dealt / remaining_hp`。`raw_damage` は固定追加後・防御倍率/揺らぎ前、`damage` は計算ダメージ、`dealt` は現在HPで制限した実与ダメージ。HP0への計算ならdamageは最低1でもdealtは0。実際の攻撃対象選択/生死の検証は未移植。
+成功結果は `ok / scope: normal_attack_numbers / effective_attack / effective_power / critical_chance / critical / raw_damage / damage / applied_guard / variance / dealt / remaining_hp`。`raw_damage` は固定追加後・防御倍率/揺らぎ前、`damage` は計算ダメージ、`dealt` は現在HPで制限した実与ダメージ。HP0への計算ならdamageは最低1でもdealtは0。#230の[行動契約](GDScript通常攻撃行動契約.md)が最新生存敵と単一ticketを検証し、実HPへ適用する。対象自動選択/AI/Sceneは未接続。
 
 例: 攻100/防10、非会心、guard=0.5、variance=1、現在HP40なら、raw_damage=95、damage=47、dealt=40、remaining_hp=0。各段階を丸め直すとPython正本と異なるため、途中のintを省略しない。
 

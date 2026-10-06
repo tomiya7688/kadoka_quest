@@ -368,13 +368,15 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 保持する装備定義中の `skill_modifiers / fixed_bonus_damage / resistance_steps` 等の戦闘効果と、＋の耐性/特性は今回の能力値/スキルID再構築では適用しません。装備/＋の編集UI、戦闘、AI判断/学習は別の移植単位です。個体/AI/種族/装備のJSONと不明キーは書き換えません。
 
-#221の[通常攻撃数値契約](GDScript通常攻撃数値契約.md)は、#220の補正後能力値と許可装備をplain入力として使用します。通常攻撃の `skill_modifiers.attack.power_multiplier / fixed_bonus_damage` をダメージ計算へ反映しますが、再構築stats自体や保存形式は変更しません。乱数を明示入力し、計算結果も実行時だけで、個体HP/AI/stateの書込はありません。戦闘Scene、耐性/全スキル/ターン/AIへの接続は未移植です。
+#221の[通常攻撃数値契約](GDScript通常攻撃数値契約.md)は、#220の補正後能力値と許可装備をplain入力として使用します。通常攻撃の `skill_modifiers.attack.power_multiplier / fixed_bonus_damage` をダメージ計算へ反映しますが、再構築stats自体や保存形式は変更しません。#230でSessionへ通常攻撃だけ接続し、個体/AI/stateの保存書込は行いません。戦闘Scene、耐性/全スキル/AIは未移植です。
 
 #227の[戦闘個体状態契約](GDScript戦闘個体状態契約.md)のplain snapshotは `identity:{id,species_id,name} / stats:{6能力値} / hp / mp / fled / alive` です。新規戦闘でHP/MPを最大値から始め、HP0を再初期化しません。実行時専用でmonster.json/ai.json/state.json/itemsへキーを追加せず、未知の保有hp/mpを読んで現在値にしません。入力/スナップショットは独立コピー、数値は有限の非負整数値（最大HP>0、MP0可、2^53−1以下）。解決済み戦闘チームは0〜4体で5体以上を拒否し、所有数/プリセット数は無制限のままです。生存対象/ターン・AI・勝敗保存/実敗北復活は別の接続段階です。
 
 #228の[行動順契約](GDScript行動順契約.md)は同snapshotを実行時だけ読み、対象を `side:allies/enemies / id` の2キーで識別します。明示shuffleは開始時生存者全員の順列のみ許可し、stable速度順のplain initial/orderを返します。最新状態のcan_act/stop/reasonは行動直前の条件で、勝敗保存や攻撃成功ではありません。未対応のsnapshot/identity/stats追加キーは拒否しますが、保有JSONの未知キーは削除しません。新しいファイル/保存schema/キーを導入せず、AI/個体/party/items/data/assetsは変更しません。
 
 #229の[戦闘Session](GDScript戦闘Session契約.md)はfresh snapshotからStateを一度だけ所有し、plain `phase / round / cursor / order / pending / teams / scope` を返します。pendingは `{ticket:{round,slot,actor:{side,id}},stage:offered/claimed}`、取得だけではcan_execute=false、claim成功で一度だけtrueです。finishはclaimedのみ消費し、古いticket/二重操作を拒否。HP/MP/fledを次ラウンドまで保持します。実行時だけの契約で保存JSON/schemaは増やさず、stoppedは勝敗/報酬/復活成功ではありません。
+
+#230の[通常攻撃行動](GDScript通常攻撃行動契約.md)は厳密な `{ticket,target,skill_id:attack,critical_roll,variance}` を受けます。正規attack定義と許可装備の独立コピーを使い、検証→単一claim→現在HP適用→finishを同期実行します。不正/未対応/重複はclaim前に拒否、死亡/敵なし取消はexecuted=false、成功はnumbers/sessionを返します。requestからの装備/guard上書き、防御/他スキルを拒否。全て実行時だけで保存形式は変更しません。
 
 #224の[暗号入力契約](GDScript暗号入力契約.md)は既存 `password_spring` を使い、入力/案内/誤答/activeを純粋な実行時Sessionだけに持ちます。7文字/かな許可/完全一致の結果はplain `password_matched / password_cancelled`。入力/誤答/取消は保存せず、一致の取得・保存は#225の[独立applicationサービス](GDScriptおばけ取得契約.md)へ接続します。新しいJSON/schema/フラグは追加しません。
 

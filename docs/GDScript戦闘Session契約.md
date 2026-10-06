@@ -29,7 +29,7 @@ ticketはちょうど `{"round":1,"slot":0,"actor":{"side":"allies","id":"slime_
 
 ## 読み取り専用開始調停
 
-`application/battle_session_application.gd` の `start(allies_records, enemies_records, shuffle_order)` は既存read-only Preparation→新しいSession.start→begin_roundを調停します。全成功後だけ内部Sessionを公開用snapshotへ切り替えます。失敗時はnot_startedのまま、修復/書換なしです。返却はok/preparation/sessionのplain data、公開APIは開始とsnapshotだけ。この単位では行動ルーティングを追加しません。
+`application/battle_session_application.gd` の `start(allies_records, enemies_records, shuffle_order)` は既存read-only Preparation→新しいSession.start→begin_roundを調停します。全成功後だけ内部Sessionを公開用snapshotへ切り替えます。失敗時はnot_startedのまま、修復/書換なしです。返却はok/preparation/sessionのplain data。#230では[通常攻撃行動契約](GDScript通常攻撃行動契約.md)のread-only定義準備と行動ルーティングを追加し、begin_round/next_actor/resolve_normal_attackも公開しました。Session自体へ攻撃計算は追加しません。
 
 準備のwarnings/equipmentは独立plain結果で保持しますが、Sessionの資源snapshotにAI/耐性/状態異常等を混ぜません。snapshot追加キーは未対応として拒否し、保有JSONの未知キーを削除しません。保存schema/ファイルを追加せず、個体/学習済AI/party/items/data/assetsを保持します。
 
@@ -41,4 +41,4 @@ ticketはちょうど `{"round":1,"slot":0,"actor":{"side":"allies","id":"slime_
 
 `tools/performance-check/script/check_gdscript_battle_session.py` は開発者専用。標準20000回/7samples/2000warmup、8体Sessionのnext→claim→0ダメージ/0MP→finishを1段階ずつ計測します。8段階ごとの次round計画を償却し、中央値2ms以内の退行ガード。初期State構築は計測外、既存8体資源/plan性能ガードは維持します。Playerへimportせず、実攻撃/AI/8体全ラウンド/描画/FPS/I/O/exportの計測ではありません。
 
-次はP1 [#230](https://github.com/tomiya7688/kadoka_quest/issues/230)の通常攻撃行動をSessionへ接続する単位です。戦闘Scene/全スキル/AI/勝敗保存/実敗北復活はさらに後続。手動画面/exportはUnverifiedです。
+P1 [#230](https://github.com/tomiya7688/kadoka_quest/issues/230)で通常攻撃を接続しました。読み取り専用inspect_ticketは現在offered/最新生存を確認するだけで行動権を与えません。防御/戦闘Scene/全スキル/AI/勝敗保存/実敗北復活は後続。手動画面/exportはUnverifiedです。

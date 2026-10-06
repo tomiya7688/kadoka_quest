@@ -85,13 +85,21 @@ func next_actor() -> Dictionary:
 	return {"ok": true, "status": _phase, "skipped": skipped, "can_execute": false}
 
 
-func claim(ticket: Variant) -> Dictionary:
+func inspect_ticket(ticket: Variant) -> Dictionary:
+	# Read-only validation, never a permission to execute or consume the cursor.
 	var checked := _check_ticket(ticket)
 	if not checked["ok"]:
 		return checked
 	if _pending["stage"] != "offered":
 		return _failure("already_claimed")
-	var eligibility := _check(ticket["actor"])
+	return {"ok": true, "eligibility": _check(ticket["actor"])}
+
+
+func claim(ticket: Variant) -> Dictionary:
+	var checked := inspect_ticket(ticket)
+	if not checked["ok"]:
+		return checked
+	var eligibility: Dictionary = checked["eligibility"]
 	if not eligibility["can_act"]:
 		_pending.clear()
 		_cursor += 1

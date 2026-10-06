@@ -16,6 +16,26 @@
 
 ```
 
+# 88. GDScript版の通常攻撃行動・単一Session適用
+
+P1移行単位#230を実装した。pure normal_attack_contractが正規グローバルattack定義とBuilderの許可装備から対応数値効果だけを独立コピーし、normal_attack_actionが厳密な明示要求→offered/最新対象・乱数/数値検証→単一claim→実HP適用→finishを同期実行する。Sessionには読み取り専用inspect_ticketを追加し、攻撃計算を蓄積しない。applicationはread-only準備/開始/行動の呼出調停だけ。Action設定は開始直後のfresh Sessionとの一致を必要とし、再設定を拒否する。
+
+会心率1/16・防御力無視、正規attackのpower/critical_multiplier、装備のattack威力倍率/固定追加、Pythonの0方向切捨て・最低1・残HP上限を維持する。リクエストからの数値/装備/guard上書き、不正/古い/重複/既claimed ticket、味方/死者/逃走者/不在対象、非有限/精度超過、MP0以外・未移植定義効果をclaim前に拒否し、資源/cursorを消費しない。最新actor死亡/逃走/敵なしの正しい要求は攻撃せず候補を取消する。HP/MPは次ラウンドまで保持し、stoppedを勝敗/報酬成功と扱わない。防御行動は未接続でguard=1。
+
+追加: 上記engine2ファイル/各uid、gdscript/tests/run_normal_attack_probe.gd/uid、tests/test_gdscript_normal_attack_action.py、tools/performance-check/script/check_gdscript_normal_attack.py、docs/GDScript通常攻撃行動契約.md。更新: Session/application/contentの公開skill読込、README/GDScript README、CODEMAP/FORMATS、数値/Session契約、移植境界説明書、移行単位表、tools README、本履歴。Python runtime・正規data/assets・実セーブは変更なし。既存game.py/開発予定/未追跡ファイルを保持する。
+
+検証（2026-10-06）: テスト用最大HPの指定、JSON floatとState整数のcontext照合、比較用MOD表示名、不正schema型の比較例外を修正した。関連46件・1611サブテスト成功後、古いround ticket・fresh/context再設定・MOD/型境界を追加し、最終新規13件・533サブテスト成功（28.69秒）。最終全体970件・9235サブテスト成功（807.87秒、Python 3.14.7 / pygame-ce 2.5.8 / 実Godot 4.7.2、skipなし）。
+
+486組の通常/会心境界・低攻撃高防御・装備/揺らぎ/過剰ダメージは実Python _attack(allow_counter=False)と比較。8体/同速/両陣営同IDの12組を最大3ラウンド、実run_round内の明示攻撃で順序/HP推移/死亡skip/敵なし停止と比較した。_take_actionは明示攻撃を選ぶstub、_check_endはmockで、AI/勝敗移植の証拠ではない。不正入力/対象/非有限/未対応/精度超過、重複/古い/既claimed、コピー独立性、正規8種族×Lv1/50/100の準備・許可装備、MOD power/会心倍率、学習AI/party/items/原本byte不変は専用コピーで確認。実セーブは使用しない。
+
+新規2ファイルを含むPython226ファイルの致命的lint/構文、新規style、project rules、REPO_MAP/追跡application図、E2E参照、Godot importとUID生成、diffチェック成功。E2Eカタログ12 covered/25 missing/1除外は参照構造検査だけ。最新版UPD（ae4636155b5e773d787cfccd1572808829601524）を再取得しPython対象エラー0・警告13・注意100。GDScript全体をcheckerで検査した結果ではない。
+
+終了前の既存リモート取得・圧縮ツールでもorigin/mainへのbehind=0で取り込む差分なし、P0なし。次のP1 #251（基本ぼうぎょの行動解決/ラウンド終端解除）を起票し、GitHub blocked-by=#230/#221を登録・照合した。防御/全スキル/状態異常/AI推論・学習/戦闘Scene/勝敗・報酬保存/実敗北→教会復活は未接続、手動GUI/exportはUnverified。今回分だけローカルコミットし、push/PR/Issue完了操作は行わない。
+
+標準性能（20000回/7samples/2000warmup）: 新規8体中1通常攻撃next→検証/claim/実HP/finishは1757.01µs（上限3ms）で成功。8行動ごとのround計画を償却し、初期構築/定義I/Oは計測外。HPは保持し、実HP減少も確認する。呼出処理をassertの外へ置き、assert無効でも実処理を計測する。既存Session段階1059.06µs（上限2ms）、8体資源568.68µs（上限1ms）、8体plan＋1check933.22µs（上限2ms）、24体モブupdate+snapshot1105.19µs（上限2ms）、5枚会話6.60µs（上限100µs）も成功。Python13項目成功（24枠生成1689.57µs、24体移動661.04µs）。AI/全8行動/描画/FPS/I/O/exportの性能ではなく、開発者専用でPlayerへimportしない。
+
+性能プローブの最終調整後、1行動/1sample/0warmupの独立smokeで敵HPが実際に8減少し、両陣営からのminimum_hpが999999992になることを確認した（標準性能計測の代替ではない）。最終関連48件・1618サブテスト成功（49.26秒、skipなし）。ステージ後のPython226構文/致命的lint・新規style/構造/生成文書/E2E参照/diffを再確認し、UPD mainのSHA一致と本体リモートbehind=0も再照合した。
+
 # 87. GDScript版の戦闘Session・資源保持と段階カーソル
 
 P1移行単位#229を実装した。pure `engine/battle_session.gd` が#227 Stateを戦闘開始時だけ所有し、#228の明示shuffle/stable速度順をラウンドごとに固定する。HP/MP/fledは次ラウンドまで保持し、途中snapshotを最大値へ戻すstart・成功後の再初期化を拒否する。開始失敗は未初期化のまま原子的に拒否し、再試行可能。

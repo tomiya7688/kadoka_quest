@@ -123,6 +123,10 @@ func load_equipment() -> Dictionary:
 	return _content_result("data/equipment/equipment.json")
 
 
+func load_skills() -> Dictionary:
+	return _content_result("data/skills/skills.json")
+
+
 func _content_result(relative: String) -> Dictionary:
 	var document := _read_dictionary(relative)
 	if not last_error.is_empty():

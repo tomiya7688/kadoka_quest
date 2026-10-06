@@ -83,7 +83,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 
 ## 未移植
 
-#221の[通常攻撃・防御・会心の数値契約](../docs/GDScript通常攻撃数値契約.md)は `engine/attack_numbers.gd` に実装済みです。会心乱数と0.92〜1.08の倍率を明示入力し、会心率1/16・防御無視・物理だけの防御軽減を比較できます。通常攻撃に効く許可装備の威力倍率/固定追加値も数値契約で扱います。共通の最終処理は魔法等にguardを掛けませんが、魔法/耐性/全スキルを実装したわけではありません。戦闘Scene/ターンには未接続で、ゲーム内で戦闘はまだできません。
+#221の[通常攻撃・防御・会心の数値契約](../docs/GDScript通常攻撃数値契約.md)は `engine/attack_numbers.gd` に実装済みです。会心乱数と0.92〜1.08の倍率を明示入力し、会心率1/16・防御無視・物理だけの防御軽減を比較できます。通常攻撃に効く許可装備の威力倍率/固定追加値も扱います。#230で通常攻撃だけSessionへ接続しました。共通の最終処理は魔法等にguardを掛けませんが、魔法/耐性/防御行動/全スキルを実装したわけではありません。AI/戦闘Sceneは未接続で、ゲーム内で戦闘はまだできません。
 
 戦闘、野生敵、戦闘AI判断/学習/リセット、固定モブの消滅イベント、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、HP回復/実敗北復活、配布exportは未実装です。教会は復活地点の登録だけを行い、未接続の回復/復活を成功として表示しません。Python版の置換・完成版ではありません。
 
@@ -106,9 +106,11 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_combatant.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_turn_order.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_battle_session.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_normal_attack_action.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_fixed_mobs.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_combatant.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_battle_session.py
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_normal_attack.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -131,7 +133,9 @@ Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stab
 #226は[教会登録契約](../docs/GDScript教会登録契約.md)。はじまりの街は（18,10）、ロクター村は（14,9）から上を向いてEnter/Space/Eで教会を調べます。先にF5で保存し、既存revive_pointだけを検証済みの地点へ置き換えます。同一地点なら不要な再出力をせず、位置/編成/フラグ/未知キー/個体/AI/itemsを保持します。外部更新・破損・リンク・置換失敗は拒否し、保存後の照合から成功を表示します。登録だけで移動/HP回復せず、敗北復活は未接続です。
 #227は[戦闘個体状態契約](../docs/GDScript戦闘個体状態契約.md)。pure StateがHP/MP/fled/aliveを持ち、read-only Builderが補正済み能力値と個体をplain snapshotへ投影します。初回最大値・HP0保持・MP不足/ちょうど消費・逃走後の生存除外を実GodotとPythonで比較し、保有JSON/学習AI/保存形式を変更しません。4体の戦闘チームと無制限の所有数を区別します。Scene/全スキル/AI/実敗北復活は未接続です。
 #228は[行動順契約](../docs/GDScript行動順契約.md)。side+idで両陣営同IDを区別し、開始時生存者→明示shuffle→stable速度順を計算します。行動直前の最新HP/逃走/敵生存を確認しますが、未移植の状態異常/buffや攻撃/AIを成功扱いにしません。新規準備と行動中の最新snapshotを区別します。
-#229は[戦闘Session契約](../docs/GDScript戦闘Session契約.md)。Stateを戦闘開始時だけ初期化して所有し、固定順カーソルとoffered→claimed→finishを扱います。重複取得は進まず、claimは一度だけ、最新死亡/逃走/敵なしは実行不可。HP/MPはラウンド間で保持します。開始調停はread-only、Scene/実戦闘/AI/勝敗保存は未接続です。次は#230の通常攻撃接続です。
+#229は[戦闘Session契約](../docs/GDScript戦闘Session契約.md)。Stateを戦闘開始時だけ初期化して所有し、固定順カーソルとoffered→claimed→finishを扱います。重複取得は進まず、claimは一度だけ、最新死亡/逃走/敵なしは実行不可。HP/MPはラウンド間で保持します。
+
+#230は[通常攻撃行動契約](../docs/GDScript通常攻撃行動契約.md)。applicationがread-only開始と明示通常攻撃を調停し、pure resolverが検証後だけclaim→実HP適用→finishを行います。不正入力/重複で資源やcursorを消費しません。正規attack定義/許可装備は開始時にコピーし、リクエストからの装備/guard上書きは拒否します。防御/他スキル/AI/Scene/勝敗保存は未接続です。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。
 一覧/編成UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)、[ItemList](https://docs.godotengine.org/en/stable/classes/class_itemlist.html)。
 
