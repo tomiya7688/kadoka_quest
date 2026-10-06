@@ -370,6 +370,8 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 #221の[通常攻撃数値契約](GDScript通常攻撃数値契約.md)は、#220の補正後能力値と許可装備をplain入力として使用します。通常攻撃の `skill_modifiers.attack.power_multiplier / fixed_bonus_damage` をダメージ計算へ反映しますが、再構築stats自体や保存形式は変更しません。乱数を明示入力し、計算結果も実行時だけで、個体HP/AI/stateの書込はありません。戦闘Scene、耐性/全スキル/ターン/AIへの接続は未移植です。
 
+#227の[戦闘個体状態契約](GDScript戦闘個体状態契約.md)のplain snapshotは `identity:{id,species_id,name} / stats:{6能力値} / hp / mp / fled / alive` です。新規戦闘でHP/MPを最大値から始め、HP0を再初期化しません。実行時専用でmonster.json/ai.json/state.json/itemsへキーを追加せず、未知の保有hp/mpを読んで現在値にしません。入力/スナップショットは独立コピー、数値は有限の非負整数値（最大HP>0、MP0可、2^53−1以下）。解決済み戦闘チームは0〜4体で5体以上を拒否し、所有数/プリセット数は無制限のままです。生存対象/ターン・AI・勝敗保存/実敗北復活は別の接続段階です。
+
 #224の[暗号入力契約](GDScript暗号入力契約.md)は既存 `password_spring` を使い、入力/案内/誤答/activeを純粋な実行時Sessionだけに持ちます。7文字/かな許可/完全一致の結果はplain `password_matched / password_cancelled`。入力/誤答/取消は保存せず、一致の取得・保存は#225の[独立applicationサービス](GDScriptおばけ取得契約.md)へ接続します。新しいJSON/schema/フラグは追加しません。
 
 不足するmaru/kadokaの個体だけをLv1/経験0/＋なし/装備null/source:ghost_home_password/種族由来の初期AIで追加し、state.flags.ghost_entrance_openをtrueにします。既存個体/AI/items/parties/metaと、stateの保存済み位置/方向/current_party/復活地点/他フラグ/未知キーは保持します。フラグtrueならstateを不要に再出力せず、不足個体だけを追加します。初回プロフィール作成は従来のF5で行い、未保存/破損なら取得を拒否します。

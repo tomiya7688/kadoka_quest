@@ -16,6 +16,24 @@
 
 ```
 
+# 85. GDScript版の戦闘個体HP/MP・生死状態
+
+P1移行単位#227を実装した。pure `engine/combatant_state.gd` が戦闘専用HP/MP/fled/alive、read-only `application/combatant_builder.gd` が既存個体/schema→#219/#220再構築→独立plain snapshotを担当する。新規生成は最大HP/MP、同じインスタンスの再初期化を拒否し、HP0から勝手に復活しない。非負整数値のダメージ・MP費用と実減少/不足結果、HPが残っている逃走者も除く順序保持の生存一覧を扱う。
+
+入力/返却値は独立、6能力値/型/有限/整数/2^53−1以内・identityを検証し、失敗時は理由付き拒否で補完/修復しない。4体のactiveチームは5体以上を黙って切らず、所有数は無制限のまま。未知＋/不明・装備不可IDは#220のwarningsを保持する。数値操作は死亡/逃走者の行動権限を代用せず、最新生存の確認は後続ターン契約へ分ける。戦闘状態を保有個体/AI/state/itemsへ保存しない。
+
+追加: 上記engine/application、`gdscript/tests/run_combatant_probe.gd`と各uid、`tests/test_gdscript_combatant.py`、`tools/performance-check/script/check_gdscript_combatant.py`、`docs/GDScript戦闘個体状態契約.md`。
+更新: README/GDScript README、CODEMAP、FORMATS、移植境界説明書、移行単位表、tools README、本履歴。Python runtime・正規data/assets・実セーブは変更なし。以前からのgame.py/開発予定・未追跡ファイルは保持する。
+
+検証（2026-10-06）: 初回関連69件成功後に、破損/必要定義欠損・独立living返却・未知ID・数値操作の責務境界を補強した。新規18件・559サブテスト、最終関連72件・3948サブテスト成功（61.12秒、skipなし）。全8種族×Lv1/10/50/100×＋選択×許可装備をPython BattleDataLoaderのstats/初期HP/MP/aliveと比較した。HP0/過剰/0ダメージ、MP0/不足/ちょうど/0費用、逃走・生存順、未初期化/再初期化、不正型/非有限/精度外、独立2個体と入力/返却値、4枠対120体所有を確認した。#221へ各回の現在HPを渡し、24組の連続通常攻撃をPython BattleEngineと比較し、保有個体/学習済AI/party/items/正規data/assetsのbyte不変を専用コピーで確認した。実セーブは使わない。
+
+全体924件・8096サブテスト成功（371.21秒、Python 3.14.7、pygame-ce 2.5.8、実Godot 4.7.2、skipなし）。新規styleの継続行7箇所を修正し、検査再実行時のsandbox multiprocessing pipe拒否は単一workerで再試行して成功した。追跡Python221ファイルの致命的lint、新規style、project rules、REPO_MAP/追跡application図、E2E参照、Godot import/正規コンテンツ6000frame headless起動、diff --check成功。専用起動保存rootは作成されない。E2Eカタログ12 covered/25 missing/1除外は参照構造の検査だけでゲーム全体の移植の証拠ではない。最新版UPD（ae4636155b5e773d787cfccd1572808829601524）を再取得しPython対象エラー0・警告13・注意100。
+
+新しいGodot性能ガード（20000回/7samples/2000warmup）は8体init+damage+MP+flee+snapshot+livingの中央値456.97µs（上限1ms）で成功した。Playerへのbenchmark importなし、I/O/描画/FPS/実ターン戦闘の計測ではない。既存リモート取得・圧縮ツールでも再確認し、origin/mainへのbehindは0で取り込む差分なし。
+標準Python性能13項目も成功（24枠生成922.08µs、24体移動326.03µs）。既存Godot標準ガード（20000回/7samples/2000warmup）は24体update+snapshot731.79µs（上限2ms）、5枚会話デッキ選択4.84µs（上限100µs）で成功。これらの余裕あるホットパス上限内の確認であり、手動画面の体感/FPS・保存I/O性能を保証したものではない。
+
+戦闘Scene/ターン/全スキル/耐性・状態異常/AI推論・学習/勝敗・報酬保存/実敗北→教会復活は未接続。手動画面/exportは未検証。次のP1 #228（ラウンドの行動順・実行可否）を起票し、GitHub blocked-byを#227へ登録・照合した。今回分だけローカルコミットし、push/PR/Issue完了は行わない。
+
 # 84. GDScript版の教会復活地点登録・保存
 
 P1移行単位#226を実装した。正規church/reviveを実Enter/Space/Eから、純粋なrevive_point_contract→application/church_registration→既存Data保存へ接続した。地点の辞書/map_id/name/整数x/y、対象マップid・範囲・通行地形・blockingイベントを検証する。Dataのマップ読込もid/有限正整数の寸法/events配列を確認し、型違いをint変換で黙認しない。UI/rendererは保存を担当しない。
