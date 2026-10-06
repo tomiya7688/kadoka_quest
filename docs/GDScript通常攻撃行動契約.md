@@ -9,7 +9,7 @@
 - `engine/normal_attack_action.gd` は検証→最新claim→HP適用→finishの同期処理を担当します。RNG/I/O/UI/AIに依存しません。
 - `application/battle_session_application.gd` はPreparation→新規Session→content読込→Action設定→begin_roundの呼出調停です。全成功後だけ内部Session/Actionを切り替え、失敗はnot_startedのまま再試行できます。ダメージ計算や直接HP操作を持ちません。
 
-公開application APIは `start / snapshot / begin_round / next_actor / resolve_normal_attack`。層を越える入出力はplain dataで、内部RefCounted/Stateを返しません。各陣営4体までのactive制限と無制限の所有/プリセットは別です。
+公開application APIは `start / snapshot / begin_round / next_actor / resolve_normal_attack / resolve_basic_defend / effects`。層を越える入出力はplain dataで、内部RefCounted/Stateを返しません。各陣営4体までのactive制限と無制限の所有/プリセットは別です。
 
 Action設定は開始直後のbetween_roundsと一致するfresh contextだけを許可し、未初期化Session/途中状態/別個体のcontext/成功後の再設定を拒否します。
 
@@ -44,7 +44,7 @@ ticketは現在offeredの完全一致だけを許可します。round/slotは有
 3. #221が算出したdamageを当該Session Stateへ適用し、actual HP減少を保持します。
 4. 同じticketをfinishしてcursorを一度だけ進めます。敵なしならstopped、順序末尾ならround_finished。stoppedを勝敗/報酬成功と扱いません。
 
-処理の間にawait/外部callbackはありません。数値はPython同様の0方向切捨て、通常会心率1/16、会心は防御力を無視、最低1ダメージ、実減少は残りHPまで。現在HP/MP/fledは次ラウンドまで保持します。現段階のguardと一時攻撃倍率は1です。#221のdefend倍率計算が存在しても、防御行動/解除を移植済みとは扱いません。
+処理の間にawait/外部callbackはありません。数値はPython同様の0方向切捨て、通常会心率1/16、会心は防御力を無視、最低1ダメージ、実減少は残りHPまで。現在HP/MP/fledは次ラウンドまで保持します。#251で対象の現在guardをSessionの信頼済み読取から取得します。一時攻撃倍率は1。基本防御は別の[行動契約](GDScript基本防御行動契約.md)で適用し、ラウンド終端で解除します。
 
 | 結果 | HP/MPとcursor |
 | --- | --- |
@@ -63,6 +63,6 @@ ticketは現在offeredの完全一致だけを許可します。round/slotは有
 
 `tools/performance-check/script/check_gdscript_normal_attack.py` は開発者専用。標準20000回/7samples/2000warmup、8体Sessionの1候補取得→検証/claim/実HP適用/finishを計測します。8行動ごとのround計画は償却、初期構築/定義I/Oは計測外。中央値3ms以内の退行ガードで、既存カーソル段階の2msとは異なり数値検証と実HP適用を含みます。HPを毎回リセットせず保持します。AI/全8行動/描画/FPS/I/O/export性能ではありません。Godot不在はexit2のUnverified、Playerへimportしません。
 
-防御/全スキル/状態異常/耐性/AI推論・学習/野生接触/戦闘Scene/勝敗・報酬保存/実敗北→教会復活は後続単位です。手動GUIとexportはUnverifiedです。全モンスターを通常攻撃だけで動かすruntimeを代用品として追加しません。
+特殊防御/全スキル/状態異常/耐性/AI推論・学習/野生接触/戦闘Scene/勝敗・報酬保存/実敗北→教会復活は後続単位です。手動GUIとexportはUnverifiedです。全モンスターを通常攻撃だけで動かすruntimeを代用品として追加しません。
 
-次はP1 [#251](https://github.com/tomiya7688/kadoka_quest/issues/251)の基本ぼうぎょとラウンド終端解除です。
+#251の[基本ぼうぎょとラウンド終端解除](GDScript基本防御行動契約.md)をローカル実装しました。未pushのIssueは完了操作しません。

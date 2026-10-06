@@ -7,6 +7,8 @@ extends SceneTree
 
 const Session = preload("res://engine/battle_session.gd")
 const Attack = preload("res://engine/normal_attack_action.gd")
+const Defend = preload("res://engine/basic_defend_action.gd")
+const Numbers = preload("res://engine/attack_numbers.gd")
 const Application = preload("res://application/battle_session_application.gd")
 const Repository = preload("res://data/content_repository.gd")
 const Order = preload("res://engine/turn_order.gd")
@@ -37,8 +39,12 @@ func _initialize() -> void:
 
 
 # {
-#   責務: [_case: run・normal・攻撃・probeのcaseを求める]
-#   処理: [1: run・normal・攻撃・probeのcaseを求める]
+#   責務: [_case: private入力から攻撃・任意基本防御を構築し資源と別effectsを観測する]
+#   処理: [
+#     1: pure Sessionまたはread-only applicationを初期化する
+#     2: 明示操作と入力/出力コピー編集試験を進める
+#     3: 実セーブに触れず資源・guard・入力保持の結果を返す
+#   ]
 #   引数: [
 #     case: case（Dictionary）
 #     joined: joined（bool）
@@ -47,9 +53,14 @@ func _initialize() -> void:
 # }
 func _case(case: Dictionary, joined: bool) -> Dictionary:
 	var input: Dictionary = case["input"].duplicate(true)
+	for special: String in case.get("definition_special", {}):
+		for entry: Dictionary in input.get("skills", {}).get("skills", []):
+			if entry.get("id") == "defend":
+				entry[special] = INF if case["definition_special"][special] == "inf" else NAN
 	var before := input.duplicate(true)
 	var session: RefCounted
 	var attack: RefCounted
+	var defend: RefCounted
 	var initialized: Dictionary
 	if joined:
 		session = Application.new(Repository.new(OS.get_environment("KADOKA_CONTENT_ROOT")))
@@ -58,12 +69,16 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 		session = Session.new()
 		initialized = session.start(input.get("allies"), input.get("enemies")) if case.get("start_session", true) else {"ok": true}
 		attack = Attack.new(session)
+		if case.get("basic_defend", false):
+			defend = Defend.new(session)
 		var teams := {"allies": [], "enemies": []}
 		for side in Order.SIDES:
 			for member: Dictionary in input.get(side, []):
 				teams[side].append({"snapshot": member, "equipment": input.get("equipment", {}).get(side, {}).get(member["identity"]["id"], {})})
 		if initialized["ok"]:
 			initialized = attack.start(case.get("context", teams), input.get("skills", {"schema_version": 1, "skills": [{"id": "attack", "kind": "physical"}]}))
+		if initialized["ok"] and case.get("basic_defend", false):
+			initialized = defend.start(input.get("skills", {"schema_version": 1, "skills": [{"id": "defend", "kind": "defend"}]}))
 		if initialized["ok"]:
 			initialized = session.begin_round(input["shuffle_order"])
 	var initial := initialized.duplicate(true)
@@ -75,17 +90,23 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 		var pending: Variant = session.snapshot()["pending"]
 		if pending is Dictionary:
 			last_ticket = pending["ticket"].duplicate(true)
-		var value := _execute(session, attack, action, input, last_ticket, joined)
+		var value := _execute(session, attack, action, input, last_ticket, joined, defend)
 		var copied := value.duplicate(true)
 		if action.get("mutate_result", false):
 			_mutate(value)
-		observations.append({"value": copied, "session": session.snapshot()})
-	return {"initialized": initial, "observations": observations, "session": session.snapshot(), "input_preserved": input == before}
+		if action.get("mutate_effects", false):
+			var edited: Dictionary = session.effects()
+			for side in Order.SIDES:
+				for id: String in edited["teams"][side]:
+					edited["teams"][side][id] = 999.0
+		observations.append({"value": copied, "session": session.snapshot(), "effects": session.effects()})
+	return {"initialized": initial, "observations": observations, "session": session.snapshot(),
+		"effects": session.effects(), "input_preserved": input == before}
 
 
 # {
-#   責務: [_execute: run・normal・攻撃・probeを実行する]
-#   処理: [1: run・normal・攻撃・probeを実行する]
+#   責務: [_execute: headless試験の明示操作を純粋処理またはapplicationへ渡す]
+#   処理: [1: 操作種別で委譲する。final_numbersは魔法行動ではなく数値だけを試験する]
 #   引数: [
 #     session: セッション（RefCounted）
 #     attack: 攻撃（RefCounted）
@@ -93,10 +114,12 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 #     input: 入力（Dictionary）
 #     ticket: 行動権チケット（Variant）
 #     joined: joined（bool）
+#     defend: テスト対象の基本防御Action。旧通常攻撃ケースではnull（RefCounted）
 #   ]
 #   戻り値: [result: run・normal・攻撃・probeを実行するための結果（Dictionary）]
 # }
-func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input: Dictionary, ticket: Variant, joined: bool) -> Dictionary:
+func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input: Dictionary, ticket: Variant,
+	joined: bool, defend: RefCounted) -> Dictionary:
 	match action["kind"]:
 		"next": return session.next_actor()
 		"begin": return session.begin_round(action.get("order", input["shuffle_order"]))
@@ -110,6 +133,25 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 					request[special] = INF if action["special"][special] == "inf" else NAN
 			return session.resolve_normal_attack(request) if joined else attack.resolve(request)
 		"claim": return session.claim(ticket)
+		"finish": return session.finish(action.get("ticket", ticket))
+		"defend":
+			var request: Variant = action.get("request", {"ticket": ticket, "skill_id": "defend"})
+			if request is Dictionary:
+				request = request.duplicate(true)
+				request.merge(action.get("overrides", {}), true)
+			return session.resolve_basic_defend(request) if joined else defend.resolve(request)
+		"configure_defend": return defend.start(null)
+		"apply_defend":
+			var guard: Variant = action.get("guard", 0.5)
+			if action.has("special"):
+				guard = INF if action["special"] == "inf" else NAN
+			return session.apply_defend(action.get("ticket", ticket), guard)
+		"guard": return session.guard(action.get("actor"))
+		"final_numbers":
+			var current: Dictionary = session.guard(action["target"])
+			return Numbers.finish_damage({"kind": action["damage_kind"], "damage": action["damage"],
+				"guard": current["guard"], "variance": 1.0, "target_hp": 1000})
+		"mp": return session.pay_mp(action["actor"], action["cost"])
 		"configure": return attack.start(null, null)
 		"damage": return session.take_damage(action["actor"], action["amount"])
 		"flee": return session.flee(action["actor"])
@@ -132,7 +174,8 @@ func _mutate(value: Variant) -> void:
 	elif value is Dictionary:
 		for entry: Variant in value.values():
 			_mutate(entry)
-		for key in ["hp", "mp", "round", "slot", "cursor", "speed", "attack", "power", "fixed_bonus_damage", "power_multiplier"]:
+		for key in ["hp", "mp", "round", "slot", "cursor", "speed", "attack", "power", "fixed_bonus_damage",
+			"power_multiplier", "damage_multiplier", "applied_guard"]:
 			if value.has(key):
 				value[key] = 999
 		if value.has("id"):

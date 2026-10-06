@@ -503,7 +503,8 @@ class GDScriptNormalActionTests(unittest.TestCase):
     def test_modded_skill_power_is_readonly_and_invalid_global_definitions_do_not_start(self):
         path = self.content / "data/skills/skills.json"
         valid = {"schema_version": 1, "skills": [{"id": "attack", "display_name": "こうげき", "kind": "physical", "power": 1.7,
-                                                 "critical_multiplier": 2, "mp_cost": 0}]}
+                                                 "critical_multiplier": 2, "mp_cost": 0},
+                                                {"id": "defend", "kind": "defend"}]}
         input = {"allies": [combatant.record("ally", level=100)], "enemies": [combatant.record("enemy")],
                  "shuffle_order": [key("allies", "ally"), key("enemies", "enemy")]}
         path.write_text(json.dumps(valid), encoding="utf-8")

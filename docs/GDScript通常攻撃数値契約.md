@@ -41,6 +41,8 @@ D = max(1, int(B × guard × variance))         # 会心でもguardは掛かる
 
 成功結果は `ok / scope: normal_attack_numbers / effective_attack / effective_power / critical_chance / critical / raw_damage / damage / applied_guard / variance / dealt / remaining_hp`。`raw_damage` は固定追加後・防御倍率/揺らぎ前、`damage` は計算ダメージ、`dealt` は現在HPで制限した実与ダメージ。HP0への計算ならdamageは最低1でもdealtは0。#230の[行動契約](GDScript通常攻撃行動契約.md)が最新生存敵と単一ticketを検証し、実HPへ適用する。対象自動選択/AI/Sceneは未接続。
 
+#251の[基本防御行動](GDScript基本防御行動契約.md)がguardをSessionへ保持し、通常攻撃Actionが対象の現在倍率を使います。数値APIの魔法/drain_mp検証を魔法行動実装と扱いません。
+
 例: 攻100/防10、非会心、guard=0.5、variance=1、現在HP40なら、raw_damage=95、damage=47、dealt=40、remaining_hp=0。各段階を丸め直すとPython正本と異なるため、途中のintを省略しない。
 
 失敗は `ok: false / error: invalid_attack_numbers / message` を返し、damageやHPの代替結果を作らない。

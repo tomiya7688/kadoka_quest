@@ -48,6 +48,7 @@ python tools/performance-check/script/check_gdscript_fixed_mobs.py
 python tools/performance-check/script/check_gdscript_combatant.py
 python tools/performance-check/script/check_gdscript_battle_session.py
 python tools/performance-check/script/check_gdscript_normal_attack.py
+python tools/performance-check/script/check_gdscript_basic_defend.py
 ```
 
 The performance thresholds intentionally allow normal CI variance and fail only large runtime regressions. Grow this tool with the project: when field updates, battle resolution, data transformations, or other runtime paths become performance-sensitive, add representative benchmark cases here rather than introducing runtime profiling overhead into the game.
@@ -58,6 +59,8 @@ It also measures base-speed round planning plus one latest-resource eligibility 
 The GDScript battle-session guard measures one next/claim/zero-resource/finish stage in an eight-actor session (same counts, median <= 2ms), amortizing one new round plan every eight stages. State initialization is outside timing. This is not eight resolved actions, a real battle round, AI, rendering, I/O or export.
 
 The GDScript normal-attack guard measures one next/validate/claim/actual-HP/finish action in an eight-actor session (same counts, median <= 3ms), amortizing a round plan every eight actions. HP persists; content preparation and state initialization are outside timing. It does not select AI actions, render a battle, measure eight complete actions together or touch saves. Missing Godot exits 2 as Unverified.
+
+The basic-defend guard cycles four explicit defend actions then four actual guarded attacks in an eight-actor Session. It measures one stage (standard counts; median <= 3ms), amortizing plan and terminal guard clearing every eight stages. It also checks actual HP loss and final guard=1 without resetting resources. This is not AI, a complete skills runtime, rendering, I/O, export or all eight actions timed as one. Nonstandard total counts must end on an eight-stage boundary to verify terminal clearing.
 
 Reusable patterns in `code-docs` and `task-workflow` were adapted from `tomiya7688/AI_game_player`.
 

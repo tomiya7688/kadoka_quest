@@ -5,6 +5,7 @@
 #     _repository: データ取得先（RefCounted）
 #     _session: セッション（RefCounted）
 #     _attack: 攻撃（RefCounted）
+#     _defend: 基本ぼうぎょの純粋行動解決（RefCounted）
 #   ]
 # }
 extends RefCounted
@@ -13,10 +14,12 @@ extends RefCounted
 const Preparation = preload("res://application/turn_preparation.gd")
 const Session = preload("res://engine/battle_session.gd")
 const Attack = preload("res://engine/normal_attack_action.gd")
+const Defend = preload("res://engine/basic_defend_action.gd")
 var _preparation: RefCounted
 var _repository: RefCounted
 var _session: RefCounted = Session.new()
 var _attack: RefCounted
+var _defend: RefCounted
 
 
 # {
@@ -32,7 +35,11 @@ func _init(repository: RefCounted) -> void:
 
 # {
 #   責務: [start: 戦闘・セッション・applicationを開始する]
-#   処理: [1: 戦闘・セッション・applicationを開始する]
+#   処理: [
+#     1: read-only準備から新規Sessionを構築する
+#     2: 正規skillsで攻撃と基本防御を設定しbegin_roundへ委譲する
+#     3: 全成功後だけ内部所有者を切り替える
+#   ]
 #   引数: [
 #     allies: 味方（Variant）
 #     enemies: 敵（Variant）
@@ -57,11 +64,16 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	var configured: Dictionary = attack.start(prepared["teams"], skills["value"])
 	if not configured["ok"]:
 		return configured
+	var defend = Defend.new(candidate)
+	var guarded: Dictionary = defend.start(skills["value"])
+	if not guarded["ok"]:
+		return guarded
 	var planned: Dictionary = candidate.begin_round(shuffle_order)
 	if not planned["ok"]:
 		return planned
 	_session = candidate
 	_attack = attack
+	_defend = defend
 	return {"ok": true, "preparation": prepared, "session": snapshot()}
 
 
@@ -93,6 +105,26 @@ func next_actor() -> Dictionary:
 # }
 func resolve_normal_attack(request: Variant) -> Dictionary:
 	return {"ok": false, "reason": "not_initialized"} if _attack == null else _attack.resolve(request)
+
+
+# {
+#   責務: [resolve_basic_defend: 明示基本ぼうぎょを純粋行動解決へ委譲する]
+#   処理: [1: 初期化済みActionへ要求を渡す]
+#   引数: [request: ticketとskill_id=defendのplain要求（Variant）]
+#   戻り値: [result: Actionの結果または未初期化失敗（Dictionary）]
+# }
+func resolve_basic_defend(request: Variant) -> Dictionary:
+	return {"ok": false, "reason": "not_initialized"} if _defend == null else _defend.resolve(request)
+
+
+# {
+#   責務: [effects: Session所有の倍率を別のplain契約として読む]
+#   処理: [1: guardコピー取得をSessionへ委譲する]
+#   引数: []
+#   戻り値: [result: basic_guard_only効果コピー（Dictionary）]
+# }
+func effects() -> Dictionary:
+	return _session.effects()
 
 
 # {

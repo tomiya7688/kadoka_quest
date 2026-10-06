@@ -83,7 +83,7 @@ JSONはPython版と同じ `schema_version / name / members` です。表示名�
 
 ## 未移植
 
-#221の[通常攻撃・防御・会心の数値契約](../docs/GDScript通常攻撃数値契約.md)は `engine/attack_numbers.gd` に実装済みです。会心乱数と0.92〜1.08の倍率を明示入力し、会心率1/16・防御無視・物理だけの防御軽減を比較できます。通常攻撃に効く許可装備の威力倍率/固定追加値も扱います。#230で通常攻撃だけSessionへ接続しました。共通の最終処理は魔法等にguardを掛けませんが、魔法/耐性/防御行動/全スキルを実装したわけではありません。AI/戦闘Sceneは未接続で、ゲーム内で戦闘はまだできません。
+#221の[通常攻撃・防御・会心の数値契約](../docs/GDScript通常攻撃数値契約.md)は `engine/attack_numbers.gd` に実装済みです。会心乱数と0.92〜1.08の倍率を明示入力し、会心率1/16・防御無視・物理だけの防御軽減を比較できます。通常攻撃に効く許可装備の威力倍率/固定追加値も扱います。#230で通常攻撃、#251で[基本ぼうぎょと終端解除](../docs/GDScript基本防御行動契約.md)をSessionへ接続しました。共通の最終処理は魔法等にguardを掛けませんが、魔法/耐性/特殊防御/全スキルを実装したわけではありません。AI/戦闘Sceneは未接続で、ゲーム内で戦闘はまだできません。
 
 戦闘、野生敵、戦闘AI判断/学習/リセット、固定モブの消滅イベント、個体編集、プリセットの更新/削除、外部個体取得/模擬戦、セーブ選択UI・コピー/インポート、各エディタ、ランチャー、HP回復/実敗北復活、配布exportは未実装です。教会は復活地点の登録だけを行い、未接続の回復/復活を成功として表示しません。Python版の置換・完成版ではありません。
 
@@ -111,6 +111,7 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_combatant.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_battle_session.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_normal_attack.py
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_basic_defend.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -135,7 +136,7 @@ Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stab
 #228は[行動順契約](../docs/GDScript行動順契約.md)。side+idで両陣営同IDを区別し、開始時生存者→明示shuffle→stable速度順を計算します。行動直前の最新HP/逃走/敵生存を確認しますが、未移植の状態異常/buffや攻撃/AIを成功扱いにしません。新規準備と行動中の最新snapshotを区別します。
 #229は[戦闘Session契約](../docs/GDScript戦闘Session契約.md)。Stateを戦闘開始時だけ初期化して所有し、固定順カーソルとoffered→claimed→finishを扱います。重複取得は進まず、claimは一度だけ、最新死亡/逃走/敵なしは実行不可。HP/MPはラウンド間で保持します。
 
-#230は[通常攻撃行動契約](../docs/GDScript通常攻撃行動契約.md)。applicationがread-only開始と明示通常攻撃を調停し、pure resolverが検証後だけclaim→実HP適用→finishを行います。不正入力/重複で資源やcursorを消費しません。正規attack定義/許可装備は開始時にコピーし、リクエストからの装備/guard上書きは拒否します。防御/他スキル/AI/Scene/勝敗保存は未接続です。
+#230は[通常攻撃行動契約](../docs/GDScript通常攻撃行動契約.md)。applicationがread-only開始と明示通常攻撃を調停し、pure resolverが検証後だけclaim→実HP適用→finishを行います。不正入力/重複で資源やcursorを消費しません。正規attack定義/許可装備は開始時にコピーし、リクエストからの装備/guard上書きは拒否します。#251の基本防御は別APIで接続しました。他スキル/AI/Scene/勝敗保存は未接続です。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。
 一覧/編成UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)、[ItemList](https://docs.godotengine.org/en/stable/classes/class_itemlist.html)。
 

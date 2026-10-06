@@ -1,6 +1,6 @@
 # GDScript戦闘Session契約（#229）
 
-#227のHP/MP・生死Stateを所有し、#228の固定行動順を1体ずつ消費します。攻撃/全スキル/AI/演出/勝敗/保存/教会復活は実行しません。Sceneへの接続もありません。個体別の手動コマンドUIを追加する契約ではありません。
+#227のHP/MP・生死Stateと別契約のguardを所有し、#228の固定行動順を1体ずつ消費します。攻撃/全スキル/AI/演出/勝敗/保存/教会復活は実行しません。Sceneへの接続もありません。個体別の手動コマンドUIを追加する契約ではありません。
 
 ## 所有と新規開始
 
@@ -41,4 +41,6 @@ ticketはちょうど `{"round":1,"slot":0,"actor":{"side":"allies","id":"slime_
 
 `tools/performance-check/script/check_gdscript_battle_session.py` は開発者専用。標準20000回/7samples/2000warmup、8体Sessionのnext→claim→0ダメージ/0MP→finishを1段階ずつ計測します。8段階ごとの次round計画を償却し、中央値2ms以内の退行ガード。初期State構築は計測外、既存8体資源/plan性能ガードは維持します。Playerへimportせず、実攻撃/AI/8体全ラウンド/描画/FPS/I/O/exportの計測ではありません。
 
-P1 [#230](https://github.com/tomiya7688/kadoka_quest/issues/230)で通常攻撃を接続しました。読み取り専用inspect_ticketは現在offered/最新生存を確認するだけで行動権を与えません。防御/戦闘Scene/全スキル/AI/勝敗保存/実敗北復活は後続。手動画面/exportはUnverifiedです。
+P1 [#230](https://github.com/tomiya7688/kadoka_quest/issues/230)で通常攻撃を接続しました。読み取り専用inspect_ticketは現在offered/最新生存を確認するだけで行動権を与えません。#251で[基本防御/終端解除](GDScript基本防御行動契約.md)も接続しました。特殊防御/戦闘Scene/全スキル/AI/勝敗保存/実敗北復活は後続。手動画面/exportはUnverifiedです。
+
+Session.effects()はscope:basic_guard_onlyとside+id別teamsの倍率を別のplainコピーで返します。資源snapshotは従来6キーのまま。guard(key)は現在の所有値を読み、apply_defendは現在claimedの本人だけへ有限倍率を適用します。正常末尾/敵なしの終端で全倍率を1へ戻し、HP/MP/fledを保持します。不正/早すぎるbeginや二重操作で効果を解除しません。

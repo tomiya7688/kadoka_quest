@@ -1,5 +1,5 @@
 # {
-#   責務: [battle_session: Own battle resources and a single-use round cursor. No action resolution or outcomes.]
+#   責務: [battle_session: 資源・単一カーソルとラウンド限定guardを所有する。攻撃計算や勝敗は扱わない]
 #   フィールド: [
 #     _teams: 両陣営（Dictionary）
 #     _by_id: by・識別子（Dictionary）
@@ -8,13 +8,15 @@
 #     _cursor: カーソル
 #     _order: 順序（Array）
 #     _pending: 保留中の行動（Dictionary）
+#     _guards: side+id別の物理防御倍率。資源snapshotとは別に保持する（Dictionary）
 #   ]
 # }
 extends RefCounted
-## Own battle resources and a single-use round cursor. No action resolution or outcomes.
+## Own resources, a single-use cursor and round-local guard; no damage calculation or outcomes.
 
 const State = preload("res://engine/combatant_state.gd")
 const Order = preload("res://engine/turn_order.gd")
+const StatNumbers = preload("res://engine/stat_numbers.gd")
 var _teams: Dictionary = {"allies": [], "enemies": []}
 var _by_id: Dictionary = {"allies": {}, "enemies": {}}
 var _phase := "not_started"
@@ -22,11 +24,15 @@ var _round := 0
 var _cursor := 0
 var _order: Array = []
 var _pending: Dictionary = {}
+var _guards: Dictionary = {"allies": {}, "enemies": {}}
 
 
 # {
 #   責務: [start: 戦闘・セッションを開始する]
-#   処理: [1: 戦闘・セッションを開始する]
+#   処理: [
+#     1: 両陣営のfresh snapshotを検証し未公開のStateを構築する
+#     2: 全成功後にStateを所有し各guardを1にする
+#   ]
 #   引数: [
 #     allies: 味方（Variant）
 #     enemies: 敵（Variant）
@@ -55,6 +61,9 @@ func start(allies: Variant, enemies: Variant) -> Dictionary:
 			by_id[side][member["identity"]["id"]] = state
 	_teams = teams
 	_by_id = by_id
+	for side in Order.SIDES:
+		for id: String in by_id[side]:
+			_guards[side][id] = 1.0
 	_phase = "between_rounds"
 	return {"ok": true, "session": snapshot()}
 
@@ -75,7 +84,7 @@ func snapshot() -> Dictionary:
 #   責務: [begin_round: 資源を保持したまま明示shuffleに基づくラウンドの順序を固定する]
 #   処理: [
 #     1: 開始可能なphaseと参加者/順序の契約を検証する
-#     2: 新しいroundとcursorを設定し、生存陣営に応じて進行段階を決める
+#     2: 新しいroundとcursorを設定する。敵なし停止は終端処理へ委譲してguardを解除する
 #   ]
 #   引数: [shuffle_order: 並べ替え・順序（Variant）]
 #   戻り値: [result: plan/session/stopまたは理由付き拒否。勝敗処理ではない]
@@ -92,15 +101,20 @@ func begin_round(shuffle_order: Variant) -> Dictionary:
 	_round += 1
 	_order = planned["order"].duplicate(true)
 	_cursor = 0
-	_phase = "round_active" if _both_sides_alive() else "stopped"
+	_phase = "round_active"
+	if not _both_sides_alive():
+		_end_round("stopped")
 	return {"ok": true, "plan": planned, "session": snapshot(), "stop": _phase == "stopped"}
 
 
 # {
-#   責務: [next_actor: 行動個体を次の値を求める]
-#   処理: [1: 行動個体を次の値を求める]
+#   責務: [next_actor: 死亡/逃走候補を飛ばして未実行のofferedを予約する]
+#   処理: [
+#     1: pendingがあれば同じコピーを返し新しい行動権を与えない
+#     2: 最新生存を確認して候補を予約する。敵なし/末尾なら全guardを解除する
+#   ]
 #   引数: []
-#   戻り値: [result: 行動個体を次の値を求めるための結果（Dictionary）]
+#   戻り値: [result: offered/pending/終端結果。取得だけではcan_execute=false（Dictionary）]
 # }
 func next_actor() -> Dictionary:
 	if _phase == "not_started":
@@ -113,7 +127,7 @@ func next_actor() -> Dictionary:
 	while _cursor < _order.size():
 		var checked := _check(_order[_cursor])
 		if checked["stop"]:
-			_phase = "stopped"
+			_end_round("stopped")
 			return {"ok": true, "status": _phase, "reason": checked["reason"], "skipped": skipped, "can_execute": false}
 		if not checked["can_act"]:
 			skipped.append(_order[_cursor].duplicate(true))
@@ -123,7 +137,7 @@ func next_actor() -> Dictionary:
 			"stage": "offered"}
 		return {"ok": true, "status": "offered", "pending": _pending.duplicate(true),
 			"eligibility": checked, "skipped": skipped, "can_execute": false}
-	_phase = "round_finished" if _both_sides_alive() else "stopped"
+	_end_round("round_finished" if _both_sides_alive() else "stopped")
 	return {"ok": true, "status": _phase, "skipped": skipped, "can_execute": false}
 
 
@@ -171,10 +185,13 @@ func claim(ticket: Variant) -> Dictionary:
 
 
 # {
-#   責務: [finish: 戦闘・セッションを終了処理を行う]
-#   処理: [1: 戦闘・セッションを終了処理を行う]
+#   責務: [finish: 現在claimedの行動を一度だけ完了し必要時にguardを解除する]
+#   処理: [
+#     1: 同じticketがclaimedであることを確認する
+#     2: pendingを消費しcursorを進め終端判定へ委譲する
+#   ]
 #   引数: [ticket: 行動権チケット（Variant）]
-#   戻り値: [result: 戦闘・セッションを終了処理を行うための結果（Dictionary）]
+#   戻り値: [result: 更新後sessionまたは非破壊的拒否。戦闘の勝敗確定ではない（Dictionary）]
 # }
 func finish(ticket: Variant) -> Dictionary:
 	var checked := _check_ticket(ticket)
@@ -200,6 +217,55 @@ func finish(ticket: Variant) -> Dictionary:
 func take_damage(key: Variant, amount: Variant) -> Dictionary:
 	var checked := _resolve(key)
 	return checked if not checked["ok"] else _by_id[key["side"]][key["id"]].take_damage(amount)
+
+
+# {
+#   責務: [effects: 資源の6キー契約を変更せずguardの独立plainコピーを返す]
+#   処理: [1: 両陣営のside+id倍率を複製する]
+#   引数: []
+#   戻り値: [result: teamsとbasic_guard_only scope（Dictionary）]
+# }
+func effects() -> Dictionary:
+	return {"teams": _guards.duplicate(true), "scope": "basic_guard_only"}
+
+
+# {
+#   責務: [guard: 指定個体の現在の信頼済み物理防御倍率を読み取る]
+#   処理: [1: side+idを検証し所有倍率を返す]
+#   引数: [key: 対象のside+id（Variant）]
+#   戻り値: [result: ok/guardまたはreason付き失敗（Dictionary）]
+# }
+func guard(key: Variant) -> Dictionary:
+	var checked := _resolve(key)
+	return checked if not checked["ok"] else {"ok": true, "guard": _guards[key["side"]][key["id"]]}
+
+
+# {
+#   責務: [apply_defend: 現在claimedの生存行動者だけのguardを更新する]
+#   処理: [
+#     1: ticketの一致とclaimedおよび有限倍率を検証する
+#     2: 最新行動可否を確認し本人の倍率だけを変更する
+#   ]
+#   引数: [
+#     ticket: 単一行動権のticket（Variant）
+#     multiplier: 正規defend定義から検証済みの倍率（Variant）
+#   ]
+#   戻り値: [result: ok/guardまたは非破壊的な失敗（Dictionary）]
+# }
+func apply_defend(ticket: Variant, multiplier: Variant) -> Dictionary:
+	var checked := _check_ticket(ticket)
+	if not checked["ok"]:
+		return checked
+	if _pending["stage"] != "claimed":
+		return _failure("pending_not_claimed")
+	var value := StatNumbers.float_value(multiplier)
+	if not value["ok"]:
+		return _failure("invalid_guard")
+	if not _check(ticket["actor"])["can_act"]:
+		return _failure("actor_cannot_defend")
+	var actor: Dictionary = ticket["actor"]
+	_guards[actor["side"]][actor["id"]] = value["value"]
+	return {"ok": true, "guard": value["value"]}
 
 
 # {
@@ -321,15 +387,28 @@ func _both_sides_alive() -> bool:
 
 # {
 #   責務: [_update_phase: 進行段階を更新する]
-#   処理: [1: 進行段階を更新する]
+#   処理: [1: 敵なしまたはカーソル末尾ならguard解除を伴う終端処理へ委譲する]
 #   引数: []
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _update_phase() -> void:
 	if not _both_sides_alive():
-		_phase = "stopped"
+		_end_round("stopped")
 	elif _cursor == _order.size():
-		_phase = "round_finished"
+		_end_round("round_finished")
+
+
+# {
+#   責務: [_end_round: 正常末尾と敵なし停止で全guardだけを解除する]
+#   処理: [1: 終端phaseを設定し死亡・逃走を含む全参加者の倍率を1へ戻す]
+#   引数: [phase: round_finishedまたはstopped（String）]
+#   戻り値: [result: なし（void）。HP/MP/fledは保持する]
+# }
+func _end_round(phase: String) -> void:
+	_phase = phase
+	for side in Order.SIDES:
+		for id: String in _guards[side]:
+			_guards[side][id] = 1.0
 
 
 # {

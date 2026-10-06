@@ -16,6 +16,26 @@
 
 ```
 
+# 90. GDScript基本ぼうぎょ・Session所有guard・ラウンド終端解除
+
+P1 #251を実装した。pure basic_defend_contractが正規skillsの一意defend/kind:defend・有限MP0・既定倍率0.5だけを検証する。未対応counter/protect/status等はfalse/空でも拒否し、MOD原本を修復しない。basic_defend_actionは厳密な2キー要求→offered読み取り検証→最新生死による単一claim→本人guardだけ更新→finishを同期実行する。重複/古い/既claimed/不正要求は資源/効果/cursorを消費せず、死亡/逃走/敵なし取消は効果を適用しない。
+
+Sessionは資源6キーsnapshotと別にside+id別guardを所有し、effects()を独立plainコピーで公開する。通常攻撃は対象の現在値だけを使い、物理会心にも軽減を掛ける。正常round_finished/敵なしstoppedで死亡/逃走者を含む全guardを1へ戻し、HP/MP/fledは保持する。不正/早すぎるbeginや未claim finishで解除しない。applicationはread-only準備と攻撃/防御の設定・行動ルーティングだけを調停し、全成功後だけ所有者を切り替える。
+
+追加: gdscript/engine/basic_defend_contract.gd・basic_defend_action.gd、gdscript/tests/run_basic_defend_performance.gdと各UID、tests/test_gdscript_basic_defend.py、tools/performance-check/script/check_gdscript_basic_defend.py、docs/GDScript基本防御行動契約.md。更新: Session/通常攻撃/application/共有headlessプローブ、正常MODの既存テストfixtureに正規defendを追加、CODEMAP/FORMATS/README/契約/移行表/tools案内/コメント保守案内。本実装に全コードJSON-like宣言コメントを適用する。
+
+検証（2026-10-07）: 最初の関連検証は未初期化ケースのプローブ側null参照1件を修正した。新規13件を含む最終関連61件・1927サブテスト成功（48.84秒、実Godot）。実Python_take_actionの基本防御、_attack(allow_counter=False)、run_roundの終端解除を限定比較する。288組の通常/会心境界・装備・揺らぎ・最低1/HP上限と16組の8体/同速/両陣営同ID/最大3round/死亡を比較。選択と終了保存はmock境界を明示し、AI推論・学習や勝敗の移植証拠とはしない。逃走/敵なし/skip末尾・不正/非有限/精度超過/未知キー/未対応定義・コピー独立性・private個体/AI/party/items/原本byte不変も確認する。
+
+230追跡Pythonの3.10構文契約/致命的lint、新規2ファイルstyle、宣言コメント304ファイル・2570宣言漏れ0、project rules、生成REPO_MAP/application図freshness、diff成功。E2Eカタログ12 covered/25 missing/1除外は構造・参照だけ。最新UPD ae4636155b5e773d787cfccd1572808829601524を再取得しPython対象エラー0・警告17・注意100。GDScript全体をUPDで検査した結果ではなく、警告抑制/private forkは行わない。
+
+全体998件・9550サブテスト成功（472.16秒、Python3.14.7 / pygame-ce2.5.8 / 実Godot4.7.2、skipなし）。全体開始後のテストだけの末尾補強（防御済み本人の死亡/逃走を実Python run_roundと比較、pendingなしの敵なし停止）も、新規13件・309サブテストの再実行で成功した。最終版の防御・コメント回帰28件・315サブテストも成功（76.02秒、skipなし）。runtime変更後の全体検証を行い、テスト補強でruntimeは変更していない。
+
+標準性能（20000回/7samples/2000warmup）: 新規8体中1防御/攻撃と8段階ごとのguard解除は1728.00µs<=3000µs、実HP減少minimum_hp=999929000と全guard1を確認。初期構築/定義I/Oは計測外、HPは保持する。既存通常攻撃1350.11µs<=3000µs、Session段階838.30µs<=2000µs、8体資源429.17µs<=1000µs、plan+1check575.49µs<=2000µs、24モブ800.86µs<=2000µs、5枚会話8.41µs<=100µsも成功。Python13項目成功（24枠生成953.43µs、24体移動386.77µs）。描画/FPS/AI/全8行動まとめ/I/O/export性能ではない。cold8操作/1sample/0warmupの途中smokeは3240.12µsで時間上限を超えたが、実HP4減少とguard解除は成立した。閾値を変更せず標準中央値で成功を確認した。
+
+終了前に既存リモート取得・圧縮ツールを実行しahead=75/behind=0、取り込む変更なし。#251はP1/gdscript/OPENを読み取り確認した。Issue完了や公開メッセージ、pushは行わない。
+
+正規data/assets・Python runtime・実セーブ/個体AI・既存game.py/開発予定/未追跡メモ等は変更しない。全スキル/特殊防御/耐性/状態異常/AI/野生接触/戦闘Scene/勝敗・報酬保存/実敗北→教会復活は後続。手動GUI/export/リモートCIはUnverified。新たな全員attack/defend runtimeや手動個体コマンドUIは追加せず、ローカルコミットだけでpush/PR/Issue完了操作は行わない。次候補はMP消費を伴う単体物理スキルの限定行動契約（未起票のローカル案）。
+
 # 89. 全コードのJSON-like宣言コメントと漏れ検査
 
 ユーザーの全コード適用依頼を優先して#212の段階移行を拡張した。公開日本語正本Draft v0.9 / 5691767a8708407a568a75a242543a4add825253をGitHub CLIで確認し、Python/GDScriptの全クラス・関数・メソッド（非公開/ネスト/property/decorator/テスト/ツールを含む）、module/匿名scriptの入口、Windowsバッチの入口/ラベル、実行CIのヘッダーへ構造化コメントを追加した。内部説明/docstringは保持し、引数なしとvoid/Noneを明示する。1エントリの項目は短い形式へまとめ、全コード注釈による読解量増加を抑える。

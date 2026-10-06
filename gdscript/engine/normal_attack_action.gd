@@ -85,7 +85,7 @@ func resolve(request: Variant) -> Dictionary:
 #   処理: [
 #     1: 要求キーとoffered ticketを検証する
 #     2: 敵対象の存在と最新生死を確認する
-#     3: 信頼済み定義・装備と明示乱数から数値を求める。死亡/逃走/敵なしは取消用の検証だけ行う
+#     3: 信頼済み定義・装備・現在guardと明示乱数から数値を求める。実行不可なら取消用の検証だけ行う
 #   ]
 #   引数: [request: 要求（Variant）]
 #   戻り値: [result: 通常攻撃数値または理由付き拒否。実行許可や資源変更ではない]
@@ -123,8 +123,11 @@ func _validate(request: Variant) -> Dictionary:
 	if not defender["alive"]:
 		return _failure("target_not_alive")
 	var attacker := _member(teams[actor["side"]], actor["id"])
+	var guarded: Dictionary = _session.guard(target)
+	if not guarded["ok"]:
+		return guarded
 	var numbers := Numbers.normal_attack({"attack": attacker["stats"]["attack"], "defense": defender["stats"]["defense"],
-		"target_hp": defender["hp"], "equipment": equipment, "power": skill["power"],
+		"target_hp": defender["hp"], "guard": guarded["guard"], "equipment": equipment, "power": skill["power"],
 		"critical_multiplier": skill["critical_multiplier"], "critical_roll": request["critical_roll"], "variance": request["variance"]})
 	return numbers if not numbers["ok"] else {"ok": true, "numbers": numbers}
 
