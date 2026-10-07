@@ -25,6 +25,27 @@ const QUOTE_FIELDS := ["magic", "target_hp", "target_max_hp", "current_mp", "tar
 #   戻り値: [result: ok=trueと独立したskill辞書、またはok=falseと拒否理由reason（Dictionary）]
 # }
 static func prepare(document: Variant, skill_id: Variant) -> Dictionary:
+	# 一覧からの一意な選択だけを共用し、通常魔法の対応効果は引き続きここで限定する。
+	var selected := select_definition(document, skill_id)
+	if not selected["ok"]:
+		return selected
+	return _validate_definition(selected["skill"])
+
+
+# {
+#   責務: [select_definition: 一覧から指定IDの定義を一意に選び、原本から独立した辞書を返します]
+#   処理: [
+#     1: 一覧形式と選択IDを検証します
+#     2: 指定IDの欠落と重複を拒否します
+#     3: 選択した定義をコピーします
+#   ]
+#   引数: [
+#     document: schema_version=1とskills配列を持つスキル一覧（Variant）
+#     skill_id: 選択する空でない文字列ID（Variant）
+#   ]
+#   戻り値: [result: ok=trueと独立したskill、または理由付き拒否。効果の対応可否は呼出元で検証します（Dictionary）]
+# }
+static func select_definition(document: Variant, skill_id: Variant) -> Dictionary:
 	# 未選択の定義や一覧の原本を修正せず、指定したIDだけを検索する。
 	if not document is Dictionary or not document.get("skills") is Array:
 		return _reject("invalid_skill_document")
@@ -40,7 +61,7 @@ static func prepare(document: Variant, skill_id: Variant) -> Dictionary:
 			selected.append(definition)
 	if selected.size() != 1:
 		return _reject("skill_definition_missing_or_duplicate")
-	return _validate_definition(selected[0])
+	return {"ok": true, "skill": selected[0].duplicate(true)}
 
 
 # {

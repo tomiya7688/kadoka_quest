@@ -673,6 +673,7 @@ class BattleEngine:
             dealt = before - target.hp
 
         if skill.get("self_damage_ratio"):
+            # 対象が無効・吸収でも代償を支払い、術者のHPは最低1残す。ログ量と実減少は異なり得る。
             self_damage = max(1, int(actor.stats["hp"] * float(skill["self_damage_ratio"])))
             actor.hp = max(1, actor.hp - self_damage)
             self.log.append(f"{actor.name}は代償としてHPを{self_damage}消耗。")
@@ -699,16 +700,21 @@ class BattleEngine:
         return dealt / max(1, target.stats["hp"])
 
     # {
-    #   責務: [try_scout: scoutを実行可能な場合に処理する]
-    #   処理: [1: scoutを実行可能な場合に処理する]
-    #   引数: [
-    #     self: 処理対象インスタンス
-    #     multiplier: multiplier（float）
-    #     fixed_bonus: fixed・bonus（float）
+    #   責務: [try_scout: 最初の生存敵にスカウトを試み、成功時に戦闘結果をscoutedへ更新します]
+    #   処理: [
+    #     1: 戦闘終了・生存敵なし・種族のスカウト禁止なら拒否します
+    #     2: 生存味方の攻撃力合計と敵の能力から成功率を計算し、倍率と固定加算を反映します
+    #     3: 乱数で成功を判定し、ログと成功時の戦闘結果を更新します
     #   ]
-    #   戻り値: [result: scoutを実行可能な場合に処理するための結果（tuple[bool, MonsterRecord | None, float]）]
+    #   引数: [
+    #     self: 味方・敵・戦闘結果・ログ・乱数源を所有するBattleEngine
+    #     multiplier: 基礎スカウト率へ掛ける倍率（float）
+    #     fixed_bonus: 倍率適用後に成功率へ足す固定値（float）
+    #   ]
+    #   戻り値: [result: 成功フラグ・成功時の敵レコード（失敗時None）・成功率。事前拒否ならFalse/None/0（tuple）]
     # }
     def try_scout(self, multiplier: float = 1.0, fixed_bonus: float = 0.0) -> tuple[bool, MonsterRecord | None, float]:
+        # 戦闘終了後や対象不在・禁止種族では乱数を引かず、成功率0で拒否する。
         if self.outcome:
             return False, None, 0.0
         target = next((item for item in self.enemies if item.alive), None)
@@ -718,10 +724,12 @@ class BattleEngine:
         if not bool(definition.get("recruit", {}).get("scoutable", True)):
             self.log.append(f"{target.name}はスカウトできない。")
             return False, None, 0.0
+        # 生存味方の攻撃力と対象の攻撃・防御・最大HPから、上限付きの成功率を計算する。
         party_attack = sum(member.stats["attack"] for member in self._living(self.allies))
         target_power = sum(target.stats[key] for key in ("attack", "defense", "hp"))
         base = max(0.02, min(0.75, party_attack / max(1, target_power) * 0.32))
         chance = min(1.0, base * multiplier + fixed_bonus)
+        # 成功時だけ戦闘をscoutedで終了し、取得候補として敵の元レコードを返す。
         success = self.rng.random() < chance
         self.log.append(f"スカウト率 {chance * 100:.1f}%：{'成功！' if success else '失敗。'}")
         if success:
@@ -729,24 +737,32 @@ class BattleEngine:
         return success, target.record if success else None, chance
 
     # {
-    #   責務: [use_party_item: パーティ・アイテムを使用する]
-    #   処理: [1: パーティ・アイテムを使用する]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [use_party_item: みかんで生存味方のHPを最大HPの20%分、最大HPまで回復します]
+    #   処理: [
+    #     1: 生存味方の最大HPの20%を整数化し、最低回復量1を求めて最大HPまで回復します
+    #     2: パーティ回復のログを追加します
+    #   ]
+    #   引数: [self: 味方の戦闘中HPとログを所有するBattleEngine]
+    #   戻り値: [result: なし（None）。所持アイテム数の減算はこのメソッドでは行いません]
     # }
     def use_party_item(self) -> None:
+        # 死亡した味方は対象外とし、回復によって最大HPを超えないようにする。
         for member in self._living(self.allies):
             amount = max(1, int(member.stats["hp"] * 0.2))
             member.hp = min(member.stats["hp"], member.hp + amount)
         self.log.append("みかんを分けた。パーティのHPが回復した。")
 
     # {
-    #   責務: [try_run: runを実行可能な場合に処理する]
-    #   処理: [1: runを実行可能な場合に処理する]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: success（bool）]
+    #   責務: [try_run: 70%の確率で逃走を試み、成功時に戦闘結果をescapedへ更新します]
+    #   処理: [
+    #     1: 乱数で逃走を判定します
+    #     2: ログと成功時の戦闘結果を更新します
+    #   ]
+    #   引数: [self: 乱数源・戦闘結果・ログを所有するBattleEngine]
+    #   戻り値: [result: 逃走に成功した場合True、失敗した場合False（bool）]
     # }
     def try_run(self) -> bool:
+        # 逃走に失敗した場合は既存の戦闘結果を変更せず、成否だけをログへ記録する。
         success = self.rng.random() < 0.7
         self.log.append("逃げ切った。" if success else "逃げられなかった。")
         if success:

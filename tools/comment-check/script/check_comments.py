@@ -65,13 +65,14 @@ def tracked_sources(root: Path) -> list[Path]:
 #     1: 位置専用・通常・keyword専用・可変長引数を名前一覧へまとめる
 #   ]
 #   引数: [
-#     node: node（ast.FunctionDef | ast.AsyncFunctionDef）
+#     node: 全引数名を取得するPythonの同期または非同期関数宣言AST（ast.FunctionDef | ast.AsyncFunctionDef）
 #   ]
 #   戻り値: [
 #     result: self/clsも含む実際の引数名一覧
 #   ]
 # }
 def declaration_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
+    # 宣言コメントと実引数を比較するため、位置・キーワード専用・可変長引数の名前を漏れなく取得する。
     parameters = [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]
     parameters += [item for item in (node.args.vararg, node.args.kwarg) if item]
     return [item.arg for item in parameters]

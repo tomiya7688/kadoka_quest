@@ -53,7 +53,10 @@ python tools/performance-check/script/check_gdscript_physical_skill.py
 python tools/performance-check/script/check_gdscript_physical_action.py
 python tools/performance-check/script/check_gdscript_magic_skill.py
 python tools/performance-check/script/check_gdscript_magic_action.py
+python tools/performance-check/script/check_gdscript_self_damage_magic.py
 ```
+
+自傷付き魔法の純粋予測は、通常魔法と同じ20000回・7サンプル・2000回の事前実行で測ります。開発者はGodotを指定し、check_gdscript_self_damage_magic.pyを実行してください。時間上限3000usに加え、敵HP・術者HP代償・残MPの期待値と元入力の保持を確認します。実資源更新や描画は測りません。Godot未指定は終了コード2の未検証です。入力と失敗時の確認方法は[自傷魔法予測契約](../docs/GDScript自傷魔法予測契約.md)を参照してください。
 
 The performance thresholds intentionally allow normal CI variance and fail only large runtime regressions. Grow this tool with the project: when field updates, battle resolution, data transformations, or other runtime paths become performance-sensitive, add representative benchmark cases here rather than introducing runtime profiling overhead into the game.
 

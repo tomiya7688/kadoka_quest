@@ -160,3 +160,10 @@ MPを消費する単体魔法の[予測契約](../docs/GDScript魔法スキル�
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_magic_action.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_magic_action.py
 ```
+
+[自傷魔法予測契約](../docs/GDScript自傷魔法予測契約.md)はmetal_burstの敵HP・術者のHP代償・残MPを、入力を変更せず予測します。無効・吸収でも代償が発生し、術者HPは最低1残ります。計算上の代償と実HP減少を区別します。Sessionへの実適用・AI・画面は未接続です。開発者は上記と同じGodot/Python環境で、次の専用検証を実行してください。実セーブは使用しません。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_self_damage_magic.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_self_damage_magic.py
+```

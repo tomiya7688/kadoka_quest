@@ -409,3 +409,7 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受けます。最新予約・習得・敵対象・現在MP/HPを検証し、一回分のclaim→実MP支払い→ダメージまたは最大HPで止まる吸収回復→finishを行います。会心値・耐性・威力・MPの要求側上書きは拒否します。無効・満タン吸収でもMPを消費し、基本ぼうぎょは魔法を軽減しません。不正・未対応・不足は予約と資源を保持し、死亡/逃走/敵なし取消は資源を消費しません。AI・戦闘画面・全スキルは未接続です。
 
+### GDScriptの自傷魔法予測（実行時だけ）
+
+[自傷魔法予測契約](GDScript自傷魔法予測契約.md)は、既存スキルのself_damage_ratioと通常魔法の数値要求にactor_hp/actor_max_hpを加えて使います。対象への魔法効果の後に、最大HP基準の代償と術者HP1の下限を予測します。結果はscope:self_damage_magic_quoteとし、self_damage（計算上の代償）・self_dealt（実減少）・remaining_actor_hp等を返します。原本・実HP/MP・Session・保存JSON/schemaは変更しません。実行への接続は後続単位で、通常魔法行動は自傷を拒否します。
+

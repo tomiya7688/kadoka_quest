@@ -1,18 +1,19 @@
 # {
-#   責務: [run_magic_skill_probe: 専用fixtureを読み、魔法スキル契約の結果・入力不変・独立コピー・性能を検証する]
+#   責務: [run_magic_skill_probe: 専用要求JSONで通常魔法または自傷魔法の予測結果・入力不変・独立コピー・性能を検証します]
 #   フィールド: []
 # }
 extends SceneTree
 
 const Contract = preload("res://engine/magic_skill_contract.gd")
+const SelfDamageContract = preload("res://engine/self_damage_magic_contract.gd")
 
 
 # {
-#   責務: [_initialize: プローブ要求を読み、指定した検証へ委譲して結果を出力する]
+#   責務: [_initialize: コマンドラインで指定した専用JSONを読み、魔法予測の検証結果を出力します]
 #   処理: [
-#     1: 専用fixtureを読む
-#     2: ケース検証または性能測定を呼ぶ
-#     3: 結果を出力する
+#     1: 専用要求JSONをコマンドライン引数のパスから読みます
+#     2: 魔法のケース検証または性能測定を呼びます
+#     3: 観測結果をBase64のJSONとして標準出力へ出します
 #   ]
 #   引数: []
 #   戻り値: [result: なし（void）。失敗時は非ゼロで終了する]
@@ -41,14 +42,14 @@ func _initialize() -> void:
 
 
 # {
-#   責務: [_run_case: 一つの定義または予測要求について拒否・入力保持・結果独立性を検証する]
+#   責務: [_run_case: 通常魔法または自傷魔法の一つの要求について、拒否・入力保持・結果独立性を検証します]
 #   処理: [
 #     1: JSONで表せないNaNまたは無限大を専用要求へ注入する
-#     2: 契約を呼ぶ
-#     3: 結果改変後に再実行してコピー独立性を確認する
+#     2: 指定した通常魔法または自傷魔法の純粋APIを呼びます
+#     3: 返却値を改変した後に再実行し、元の定義と予測が変わらないことを確認します
 #   ]
-#   引数: [request: 操作名prepare/quoteと、対応する定義または予測要求（Dictionary）]
-#   戻り値: [result: 契約の結果と不変性の観測（Dictionary）]
+#   引数: [request: prepare/quoteの操作名と対応する定義または数値要求。self_damage=trueなら自傷契約を選びます（Dictionary）]
+#   戻り値: [result: 選択した契約の予測または拒否と、入力保持・結果独立性の観測（Dictionary）]
 # }
 func _run_case(request: Dictionary) -> Dictionary:
 	# JSONで表せないNaN/Infだけをテストプローブ側で注入する。
@@ -61,34 +62,36 @@ func _run_case(request: Dictionary) -> Dictionary:
 	if result.get("skill") is Dictionary:
 		result["skill"]["power"] = -999
 	result["remaining_hp"] = -999
+	result["remaining_actor_hp"] = -999
 	return {"result": original, "input_preserved": before == JSON.stringify(request),
 		"result_independent": original == _invoke_contract(request)}
 
 
 # {
-#   責務: [_invoke_contract: ケースの意味に対応する純粋APIを選んで呼び出す]
-#   処理: [1: prepareとquoteの呼出先を選ぶ]
-#   引数: [request: ケースの入力（Dictionary）]
-#   戻り値: [result: 契約の結果、またはプローブ操作の拒否（Dictionary）]
+#   責務: [_invoke_contract: 要求で指定した通常魔法または自傷魔法の選択・予測APIを呼び出します]
+#   処理: [1: self_damageと操作名から、対応する契約のprepareまたはquote_damageを選びます]
+#   引数: [request: prepare/quoteの操作名と定義または数値要求。self_damage=trueなら自傷付き契約を選びます（Dictionary）]
+#   戻り値: [result: 選択した魔法契約の結果、または未対応のプローブ操作名に対する拒否（Dictionary）]
 # }
 func _invoke_contract(request: Dictionary) -> Dictionary:
 	# 未対応のプローブ操作を、成立した予測の結果へ置き換えない。
+	var contract = SelfDamageContract if request.get("self_damage", false) else Contract
 	match request.get("operation"):
 		"prepare":
-			return Contract.prepare(request.get("document"), request.get("skill_id"))
+			return contract.prepare(request.get("document"), request.get("skill_id"))
 		"quote":
-			return Contract.quote_damage(request.get("definition"), request.get("request"))
+			return contract.quote_damage(request.get("definition"), request.get("request"))
 	return {"ok": false, "reason": "invalid_probe_operation"}
 
 
 # {
-#   責務: [_measure_quote: I/Oと定義選択を除き、固定入力の予測API一回分の中央値を測る]
+#   責務: [_measure_quote: I/Oと定義選択を除き、固定入力で通常魔法または自傷魔法の予測一回の中央値を測ります]
 #   処理: [
-#     1: 固定fixtureを検証する
-#     2: warmup後に予測を反復する
-#     3: 予測結果と中央値を返す
+#     1: 契約の種類に対応する固定定義と数値要求を用意します
+#     2: 事前実行後に同じ予測APIを反復して計測します
+#     3: 実際の数値予測・元資源の保持・一回分の時間中央値を返します
 #   ]
-#   引数: [payload: iterations/samples/warmup（Dictionary）]
+#   引数: [payload: 反復回数iterations・測定数samples・事前実行数warmup。self_damage=trueなら自傷付き魔法を測ります（Dictionary）]
 #   戻り値: [result: 時間・反復条件・入力不変と実際の予測結果（Dictionary）]
 # }
 func _measure_quote(payload: Dictionary) -> Dictionary:
@@ -96,20 +99,27 @@ func _measure_quote(payload: Dictionary) -> Dictionary:
 	var definition := {"id": "weaken", "display_name": "ちからぬき", "kind": "magic", "mp_cost": 5, "power": 0.55, "element": "mental"}
 	var request := {"magic": 100, "current_mp": 10, "target_hp": 1000, "target_max_hp": 1000,
 		"target_resistances": {"mental": "normal"}, "guard": 0.5, "variance": 1.0}
+	# 両方の契約で同じ測定ループを使い、自傷付きだけ術者HPを要求に加える。
+	var contract = SelfDamageContract if payload.get("self_damage", false) else Contract
+	if payload.get("self_damage", false):
+		definition = {"id": "metal_burst", "display_name": "メタルバースト", "kind": "magic",
+			"mp_cost": 18, "power": 2.0, "element": "metal", "self_damage_ratio": 0.1}
+		request.merge({"current_mp": 20, "actor_hp": 100, "actor_max_hp": 200,
+			"target_resistances": {"metal": "normal"}}, true)
 	var before := JSON.stringify([definition, request])
 	var iterations := maxi(1, int(payload.get("iterations", 20000)))
 	var samples := maxi(1, int(payload.get("samples", 7)))
 	var warmup := maxi(0, int(payload.get("warmup", 2000)))
 	for index in warmup:
-		Contract.quote_damage(definition, request)
+		contract.quote_damage(definition, request)
 	# 起動・読み取り・warmupを計測から除外し、各sampleは同じ条件で実行する。
 	var timings: Array = []
 	for sample in samples:
 		var started := Time.get_ticks_usec()
 		for index in iterations:
-			Contract.quote_damage(definition, request)
+			contract.quote_damage(definition, request)
 		timings.append(float(Time.get_ticks_usec() - started) / iterations)
 	timings.sort()
 	return {"microseconds": timings[timings.size() / 2], "iterations": iterations, "samples": samples,
-		"warmup": warmup, "input_preserved": before == JSON.stringify([definition, request]), "quote": Contract.quote_damage(definition, request),
-		"current_mp": request["current_mp"], "target_hp": request["target_hp"]}
+		"warmup": warmup, "input_preserved": before == JSON.stringify([definition, request]), "quote": contract.quote_damage(definition, request),
+		"current_mp": request["current_mp"], "target_hp": request["target_hp"], "actor_hp": request.get("actor_hp")}
