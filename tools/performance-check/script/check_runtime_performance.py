@@ -1,5 +1,5 @@
 # {
-#   責務: [check_runtime_performance: check・実行時・performanceの公開機能・宣言を定義する]
+#   責務: [check_runtime_performance: 専用fixtureによる既存runtimeの性能を測定し、大きな性能退行を検出します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -30,11 +30,11 @@ Operation = Callable[[], object]
 
 
 # {
-#   責務: [BenchmarkCase: benchmark・caseの状態と振る舞いを担当する]
+#   責務: [BenchmarkCase: 測定する処理と時間上限を保持します]
 #   フィールド: [
-#     name: 名前（str）
-#     operation: operation（Operation）
-#     limit_ns: limit・ns（float）
+#     name: 結果に表示する測定項目の名前（str）
+#     operation: 一回分として反復する測定処理（Operation）
+#     limit_ns: 処理一回あたりに許容する時間上限。単位はナノ秒です（float）
 #   ]
 # }
 @dataclass(frozen=True)
@@ -45,11 +45,11 @@ class BenchmarkCase:
 
 
 # {
-#   責務: [BenchmarkResult: benchmark・処理結果の状態と振る舞いを担当する]
+#   責務: [BenchmarkResult: 測定項目の中央値と時間上限を保持し、合否を判定します]
 #   フィールド: [
-#     name: 名前（str）
-#     ns_per_operation: ns・per・operation（float）
-#     limit_ns: limit・ns（float）
+#     name: 測定結果に表示する項目名（str）
+#     ns_per_operation: 一回あたりの測定時間の中央値。単位はナノ秒です（float）
+#     limit_ns: 一回あたりに許容する時間上限。単位はナノ秒です（float）
 #   ]
 # }
 @dataclass(frozen=True)
@@ -59,10 +59,12 @@ class BenchmarkResult:
     limit_ns: float
 
     # {
-    #   責務: [passed: benchmark・処理結果のpassedを求める]
-    #   処理: [1: benchmark・処理結果のpassedを求める]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: benchmark・処理結果のpassedを求めるための結果（bool）]
+    #   責務: [passed: 測定時間が許容上限以下かを判定します]
+    #   処理: [1: 測定時間が許容上限以下かを判定します]
+    #   引数: [
+    #     self: 測定中央値と時間上限を持つBenchmarkResult
+    #   ]
+    #   戻り値: [result: 測定中央値が上限以下ならTrue、それ以外はFalse（bool）]
     # }
     @property
     def passed(self) -> bool:
@@ -70,20 +72,22 @@ class BenchmarkResult:
 
 
 # {
-#   責務: [measure: check・実行時・performanceのmeasureを求める]
-#   処理: [1: check・実行時・performanceのmeasureを求める]
+#   責務: [measure: 事前実行後に処理を反復し、一回あたりの時間の中央値を返します]
+#   処理: [1: 事前実行後に処理を反復し、一回あたりの時間の中央値を返します]
 #   引数: [
-#     operation: operation（Operation）
-#     iterations: iterations（int）
-#     samples: samples（int）
-#     warmup: warmup（int）
+#     operation: 一回分として反復する測定処理（Operation）
+#     iterations: 一つのサンプルで処理を反復する回数（int）
+#     samples: 中央値を得るために測定するサンプル数（int）
+#     warmup: 測定から除外する事前実行回数（int）
 #   ]
-#   戻り値: [result: check・実行時・performanceのmeasureを求めるための結果（float）]
+#   戻り値: [result: 処理一回あたりの時間の中央値。単位はナノ秒です（float）]
 # }
 def measure(operation: Operation, iterations: int, samples: int, warmup: int) -> float:
+    # 初回実行の影響を測定から除くため、指定回数の事前実行を行う。
     for _ in range(warmup):
         operation()
 
+    # 各サンプルの反復時間を一回分へ換算し、同じ条件で比較できるようにする。
     timings: list[float] = []
     for _ in range(samples):
         started = perf_counter_ns()
@@ -91,14 +95,15 @@ def measure(operation: Operation, iterations: int, samples: int, warmup: int) ->
             operation()
         elapsed = perf_counter_ns() - started
         timings.append(elapsed / iterations)
+    # 一時的な負荷の影響を抑えるため、平均ではなくサンプル中央値を使う。
     return float(median(timings))
 
 
 # {
-#   責務: [build_benchmark_cases: Return representative hot-path checks; extend this list as Kadoka Quest grows.]
-#   処理: [1: Return representative hot-path checks; extend this list as Kadoka Quest grows.]
+#   責務: [build_benchmark_cases: 専用fixtureで実行する、代表的なruntime性能測定の項目を組み立てます]
+#   処理: [1: 専用fixtureで実行する、代表的なruntime性能測定の項目を組み立てます]
 #   引数: []
-#   戻り値: [result: Return representative hot-path checks; extend this list as Kadoka Quest grows.ための結果（list[BenchmarkCase]）]
+#   戻り値: [result: 測定処理と許容上限を持つBenchmarkCaseの一覧（list[BenchmarkCase]）]
 # }
 def build_benchmark_cases() -> list[BenchmarkCase]:
     """Return representative hot-path checks; extend this list as Kadoka Quest grows."""

@@ -1,5 +1,5 @@
 # {
-#   責務: [combatant: 戦闘個体の公開機能・宣言を定義する]
+#   責務: [combatant: 元個体から分離した戦闘資源・一時効果と、有効な能力値を持つCombatantを定義します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -15,29 +15,29 @@ from kadoka_quest.core.status_effects import status_stat_multiplier
 #   責務: [Combatant: 元の個体レコードと区別して戦闘中の資源・一時効果を保持する]
 #   フィールド: [
 #     record: 個体レコード（MonsterRecord）
-#     stats: 能力値（dict[str, int]）
+#     stats: 最大HP・最大MPを含む、この戦闘個体の能力値（dict[str, int]）
 #     skills: スキル一覧（list[dict[str, Any]]）
-#     resistances: resistances（dict[str, str]）
+#     resistances: 属性名ごとのダメージ耐性。normal/weak/strong/immune/absorbを使います（dict[str, str]）
 #     equipment: 装備（dict[str, Any] | None）
-#     status_effects: 状態異常・effects（list[dict[str, Any] | str]）
-#     status_resistances: 状態異常・resistances（dict[str, str]）
-#     hp: HP
-#     mp: MP
-#     guard: 防御倍率（float）
-#     evade_physical: evade・physical（bool）
-#     evade_physical_source: evade・physical・元データ（str | None）
-#     evade_element: evade・element（str | None）
-#     speed_multiplier: 素早さ・multiplier（float）
-#     attack_multiplier: 攻撃・multiplier（float）
-#     physical_locked: physical・locked（int）
-#     counter_ready: counter・ready（bool）
-#     protect_ally: protect・味方（bool）
-#     action_history: action・履歴（list[str]）
-#     timed_buff_turns: timed・buff・turns（dict[str, int]）
-#     timed_buff_baselines: timed・buff・baselines（dict[str, float]）
-#     flee_rates: flee・rates（dict[str, float]）
+#     status_effects: この戦闘個体へ適用中の状態異常（list[dict[str, Any] | str]）
+#     status_resistances: 状態異常名ごとの付与に対する耐性（dict[str, str]）
+#     hp: この戦闘個体の現在HP
+#     mp: この戦闘個体の現在MP
+#     guard: この戦闘個体が受ける物理ダメージに掛ける防御倍率。魔法には適用しません（float）
+#     evade_physical: 物理攻撃を回避する状態かどうか（bool）
+#     evade_physical_source: 物理回避を付与したスキルID。回避ログの表現に使います（str | None）
+#     evade_element: 回避する属性名。Noneなら属性回避はありません（str | None）
+#     speed_multiplier: 戦闘中の素早さへ掛ける一時倍率（float）
+#     attack_multiplier: 次の物理攻撃力へ掛ける一時倍率（float）
+#     physical_locked: 物理行動が禁止される残りターン数（int）
+#     counter_ready: 単体攻撃による被弾後に反撃を判定する待機状態の有無（bool）
+#     protect_ally: 味方の身代わり候補になるかどうか（bool）
+#     action_history: この戦闘個体が選択した行動IDの履歴（list[str]）
+#     timed_buff_turns: 一時強化する各能力値の残りターン数（dict[str, int]）
+#     timed_buff_baselines: 一時強化が切れたときに戻す能力倍率（dict[str, float]）
+#     flee_rates: 野生遭遇の文脈名ごとの、行動前に敵が逃走する確率（dict[str, float]）
 #     fled: 逃走済み（bool）
-#     experience_reward: 経験値・報酬（dict[str, int] | None）
+#     experience_reward: base/per_level/squared_divisorを持つ種族固有の撃破経験値係数。Noneなら通常報酬です（dict[str, int] | None）
 #   ]
 # }
 @dataclass

@@ -586,11 +586,11 @@ class BattleEngine:
     #     3: 代償HP、MP吸収、状態異常、許可された反撃と撃破ログを反映する
     #   ]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     actor: 行動個体（Combatant）
-    #     target: 対象（Combatant）
-    #     skill: スキル（dict[str, Any]）
-    #     allow_counter: allow・counter（bool）
+    #     self: 戦闘ログと乱数源を所有するBattleEngine
+    #     actor: 攻撃する戦闘個体（Combatant）
+    #     target: ダメージまたは吸収回復を受ける戦闘個体（Combatant）
+    #     skill: 攻撃種別・威力・属性・追加効果を持つ選択スキル定義（dict[str, Any]）
+    #     allow_counter: Trueなら対象の反撃待機を判定し反撃を実行し、Falseなら反撃しません（bool）
     #   ]
     #   戻り値: [
     #     result: 実HP減少を対象最大HPで割った比率。吸収回復時は負の値

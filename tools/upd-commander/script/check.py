@@ -1,5 +1,5 @@
 # {
-#   責務: [check: checkの公開機能・宣言を定義する]
+#   責務: [check: 外部UPD設計検査ツールを起動し、Kadoka QuestのPython実装の責務と依存を検査します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -16,12 +16,13 @@ TARGET = REPO_ROOT / "src" / "kadoka_quest"
 
 
 # {
-#   責務: [build_parser: parserを構築する]
-#   処理: [1: parserを構築する]
+#   責務: [build_parser: UPD検査のCLI引数を定義します]
+#   処理: [1: UPD検査のCLI引数を定義します]
 #   引数: []
-#   戻り値: [result: parser（argparse.ArgumentParser）]
+#   戻り値: [result: advisory調査モードの引数を解釈するパーサー（argparse.ArgumentParser）]
 # }
 def build_parser() -> argparse.ArgumentParser:
+    # 調査専用モードを明示引数にし、既定では検査失敗を終了コードへ残す。
     parser = argparse.ArgumentParser(description="Run the pinned UPD Commander checker for Kadoka Quest.")
     parser.add_argument(
         "--advisory",
@@ -32,12 +33,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 # {
-#   責務: [main: checkのエントリ処理を実行する]
-#   処理: [1: checkのエントリ処理を実行する]
+#   責務: [main: 外部UPD検査を起動し、診断表示と終了コードを処理します]
+#   処理: [1: 外部UPD検査を起動し、診断表示と終了コードを処理します]
 #   引数: []
-#   戻り値: [result: checkのエントリ処理を実行するための結果（int）]
+#   戻り値: [result: 検査成功0・検査失敗1・設定不備2。advisory指定時だけ検査失敗を報告後0にします（int）]
 # }
 def main() -> int:
+    # 検証中のPythonから外部ツールを起動し、Playerの起動経路へ依存を足さない。
     args = build_parser().parse_args()
     command = [sys.executable, "-m", "upd_commander_checker", str(TARGET)]
     try:
@@ -54,6 +56,7 @@ def main() -> int:
         print(f"CONFIG ERROR: UPD checker could not start: {exc}")
         return 2
 
+    # 外部検査の標準出力と診断出力を、終了コードの判定前にそのまま表示する。
     output = result.stdout.strip()
     error_output = result.stderr.strip()
     if output:
@@ -61,6 +64,7 @@ def main() -> int:
     if error_output:
         print(error_output, file=sys.stderr)
 
+    # 設定不備はadvisory指定でも成功へ変換せず、検査失敗だけを調査時に許容する。
     if result.returncode in {0, 2}:
         return result.returncode
     if args.advisory:

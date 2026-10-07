@@ -51,9 +51,12 @@ python tools/performance-check/script/check_gdscript_normal_attack.py
 python tools/performance-check/script/check_gdscript_basic_defend.py
 python tools/performance-check/script/check_gdscript_physical_skill.py
 python tools/performance-check/script/check_gdscript_physical_action.py
+python tools/performance-check/script/check_gdscript_magic_skill.py
 ```
 
 The performance thresholds intentionally allow normal CI variance and fail only large runtime regressions. Grow this tool with the project: when field updates, battle resolution, data transformations, or other runtime paths become performance-sensitive, add representative benchmark cases here rather than introducing runtime profiling overhead into the game.
+
+単体魔法の性能検査は、実Godotの純粋予測1回を20000回・7サンプル・2000回の事前実行で測定します。中央値3000us以内、期待したHP/MP予測、入力不変のすべてを確認します。実MP消費・描画・ファイル読込は計測しません。開発者は`KADOKA_GODOT_EXECUTABLE`を指定して上記の`check_gdscript_magic_skill.py`を実行してください。Godot未指定時は終了コード2の未検証です。対応範囲と失敗対応は[魔法予測契約](../docs/GDScript魔法スキル予測契約.md)を確認してください。
 The GDScript fixed-mob guard requires `KADOKA_GODOT_EXECUTABLE` and measures real headless Godot update + snapshot for 24 actors (20,000 iterations / 7 samples / 2,000 warmup; median <= 2ms). It uses private fixtures and does not measure drawing, I/O, window FPS, or exported builds. Missing Godot is Unverified with exit 2, never a successful substitute.
 It also measures dialogue selection + plain effect generation for the last of 24 actors with five cards (median <= 100us), including repeated deck refills. This is not timing of keyboard delivery or text rendering.
 The GDScript combatant guard measures eight battle-only resource states (init + damage + MP + flee + snapshot + living) in real headless Godot: 20,000 iterations / 7 samples / 2,000 warmup, median <= 1ms. It does not execute a battle round, AI or scene, and never changes save/content files. Missing Godot exits 2 as Unverified. These tools remain outside Player runtime imports.

@@ -74,12 +74,15 @@ def display_path(path: Path, root: Path | None = None) -> str:
 
 
 # {
-#   責務: [core_boundary_errors: check・project・rulesのcore・boundary・errorsを求める]
-#   処理: [1: check・project・rulesのcore・boundary・errorsを求める]
-#   引数: [root: 基準ディレクトリ（Path）]
-#   戻り値: [result: errors（list[str]）]
+#   責務: [core_boundary_errors: coreのPythonソースを静的解析し、禁止依存とopenによるI/Oを検出します]
+#   処理: [1: coreのPythonソースを静的解析し、禁止依存とopenによるI/Oを検出します]
+#   引数: [
+#     root: core境界検査の対象ディレクトリ（Path）
+#   ]
+#   戻り値: [result: 解析失敗・禁止依存・禁止I/Oの診断一覧（list[str]）]
 # }
 def core_boundary_errors(root: Path = CORE_ROOT) -> list[str]:
+    # coreのコードを実行せず、構文木から禁止依存とファイルI/Oを検出する。
     errors: list[str] = []
     for path in sorted(root.glob("*.py")):
         shown_path = display_path(path, root)
@@ -103,32 +106,37 @@ def core_boundary_errors(root: Path = CORE_ROOT) -> list[str]:
 
 
 # {
-#   責務: [required_path_errors: check・project・rulesのrequired・パス・errorsを求める]
-#   処理: [1: check・project・rulesのrequired・パス・errorsを求める]
-#   引数: [repo_root: repo・基準ディレクトリ（Path）]
-#   戻り値: [result: check・project・rulesのrequired・パス・errorsを求めるための結果（list[str]）]
+#   責務: [required_path_errors: プロジェクトの必須パスが存在するか確認します]
+#   処理: [1: プロジェクトの必須パスが存在するか確認します]
+#   引数: [
+#     repo_root: 必須パスを解決するリポジトリのルート（Path）
+#   ]
+#   戻り値: [result: 欠落した必須パスの診断一覧（list[str]）]
 # }
 def required_path_errors(repo_root: Path = REPO_ROOT) -> list[str]:
+    # 欠落ファイルを自動生成せず、必須パスの不足を診断として返す。
     return [f"missing required project path: {relative}" for relative in REQUIRED_PATHS if not (repo_root / relative).exists()]
 
 
 # {
-#   責務: [check: check・project・rulesを検査する]
-#   処理: [1: check・project・rulesを検査する]
+#   責務: [check: 必須パスとcoreの依存境界の診断をまとめます]
+#   処理: [1: 必須パスとcoreの依存境界の診断をまとめます]
 #   引数: []
-#   戻り値: [result: check・project・rulesを検査するための結果（list[str]）]
+#   戻り値: [result: 必須パス欠落とcore境界違反の診断一覧（list[str]）]
 # }
 def check() -> list[str]:
+    # パス検査と依存検査は別関数に保ち、公開入口では結果だけを統合する。
     return [*required_path_errors(), *core_boundary_errors()]
 
 
 # {
-#   責務: [main: check・project・rulesのエントリ処理を実行する]
-#   処理: [1: check・project・rulesのエントリ処理を実行する]
+#   責務: [main: プロジェクト規約の静的検査を実行し、診断と合否を表示します]
+#   処理: [1: プロジェクト規約の静的検査を実行し、診断と合否を表示します]
 #   引数: []
-#   戻り値: [result: check・project・rulesのエントリ処理を実行するための結果（int）]
+#   戻り値: [result: 違反なしなら0、違反があれば1（int）]
 # }
 def main() -> int:
+    # 静的な診断を表示し、規約違反をCIから判別できる終了コードにする。
     errors = check()
     if errors:
         print(f"[FAIL] project rules: {len(errors)}")

@@ -113,9 +113,11 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_normal_attack.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_basic_defend.py
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_physical_skill.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_magic_skill.py -q
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_physical_action.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_physical_action.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_physical_skill.py
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_magic_skill.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
 & $env:KADOKA_GODOT_EXECUTABLE --headless --path gdscript --editor --import
@@ -148,4 +150,6 @@ Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stab
 
 プリセットの責務: `engine/party_preset_contract.gd` は純粋な形式/名前/欠損枠の契約、`data/party_preset_store.gd` は一覧/読込/新規JSONのI/O、`application/party_presets.gd` は所有個体の検証と下書きへの適用、`ui/party_preset_view.gd` は入力/フォーカス/表示とsignalです。実Sceneのキー/クリック・再起動、Python PartyStoreでの読込、121ファイルの一覧、不正/外部変更/実Windows読込ロック、state/個体/AI/元プリセットの不変性を専用コピーで検証します。日本語テキストのイベント入力は検証しますが、実IME・ウィンドウの視認性・exportの証拠ではありません。
 
-MP付き単体物理スキルの[予測契約](../docs/GDScript物理スキル予測契約.md)は元の定義とHP/MPを変更しません。[行動契約](../docs/GDScript物理スキル行動契約.md)で正規習得・装備・最新資源を確認し、別APIへ単一claim→MP支払い→HP適用→finishを接続しました。不足・不正・未対応効果は行動権を消費しません。AI/ゲーム画面には未接続です。開発者は上記の専用テストと性能検査を実行してください。
+MP付き単体物理スキルの[予測契約](../docs/GDScript物理スキル予測契約.md)は元の定義とHP/MPを変更しません。物理スキルの[行動契約](../docs/GDScript物理スキル行動契約.md)は、正規習得・許可装備・最新資源を検証し、一回分の行動権取得・MP支払い・HP適用・行動終了をSessionへ接続します。不足・不正・未対応効果では行動権を消費しません。AIとゲーム画面には未接続です。開発者は上記の専用テストと性能検査を実行してください。
+
+MPを消費する単体魔法の[予測契約](../docs/GDScript魔法スキル予測契約.md)は、属性耐性による通常ダメージ・無効・吸収回復と残MPを予測します。魔法にはぼうぎょの軽減を適用せず、未対応の自傷・状態異常・全体攻撃等は拒否します。入力HP/MP・定義は変更せず、Sessionの実行・AI・ゲーム画面には未接続です。開発者は上記の魔法専用テストと性能検査を実行してください。

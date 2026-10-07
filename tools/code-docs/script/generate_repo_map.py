@@ -87,12 +87,15 @@ def render_repo_map(source: Path) -> str:
 
 
 # {
-#   責務: [main: generate・repo・マップのエントリ処理を実行する]
-#   処理: [1: generate・repo・マップのエントリ処理を実行する]
-#   引数: [argv: argv（list[str] | None）]
-#   戻り値: [result: generate・repo・マップのエントリ処理を実行するための結果（int）]
+#   責務: [main: Pythonソースの公開宣言から索引を生成するか、保存済み索引の鮮度を検査します]
+#   処理: [1: Pythonソースの公開宣言から索引を生成するか、保存済み索引の鮮度を検査します]
+#   引数: [
+#     argv: source/output/checkを指定するCLI引数。Noneならプロセス引数を使います（list[str] | None）
+#   ]
+#   戻り値: [result: 生成または鮮度検査の成功0、不正入力・読書き失敗・古い索引なら1（int）]
 # }
 def main(argv: list[str] | None = None) -> int:
+    # 検査と生成を明示引数で分け、鮮度検査中の文書書き換えを避ける。
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=REPO_ROOT / "src")
     parser.add_argument("--output", type=Path, default=REPO_ROOT / "docs/generated/REPO_MAP.md")

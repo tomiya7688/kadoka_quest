@@ -1,5 +1,5 @@
 # {
-#   責務: [attack_numbers: 通常攻撃と物理スキルが共用する明示乱数のダメージ計算。状態更新とI/Oは行わない]
+#   責務: [attack_numbers: 通常攻撃と物理スキルの計算、および物理・魔法の通常ダメージ最終化を行います。状態更新とI/Oは行いません]
 #   フィールド: []
 # }
 extends RefCounted
@@ -18,7 +18,7 @@ const DAMAGE_KINDS := ["physical", "magic", "drain_mp"]
 #     1: 通常攻撃専用のID・kindと装備数値投影を検証する
 #     2: 共通物理計算へ委譲し、通常攻撃のscopeを維持する
 #   ]
-#   引数: [request: 要求（Variant）]
+#   引数: [request: 攻撃力・対象防御力とHP・倍率・会心乱数・揺らぎ・通常攻撃用装備を持つ要求（Variant）]
 #   戻り値: [result: 通常攻撃数値または理由付き拒否。状態や乱数源を所有しない]
 # }
 static func normal_attack(request: Variant) -> Dictionary:
@@ -94,10 +94,10 @@ static func physical_damage(request: Dictionary, equipment: Dictionary) -> Dicti
 
 
 # {
-#   責務: [defend_multiplier: 攻撃・numbersのdefend・multiplierを求める]
-#   処理: [1: 攻撃・numbersのdefend・multiplierを求める]
-#   引数: [definition: 定義（Variant）]
-#   戻り値: [result: 攻撃・numbersのdefend・multiplierを求めるための結果（Dictionary）]
+#   責務: [defend_multiplier: 基本防御の定義から有限な防御倍率を検証して返します]
+#   処理: [1: 基本防御の定義から有限な防御倍率を検証して返します]
+#   引数: [definition: kind=defendとdamage_multiplierを持つ定義。省略時の倍率は0.5です（Variant）]
+#   戻り値: [result: ok=trueとguard、または理由付き拒否。防御行動自体は実行しません（Dictionary）]
 # }
 static func defend_multiplier(definition: Variant = {}) -> Dictionary:
 	# 基本防御の倍率だけを読み、特殊防御の行動実装を代用しない。
@@ -115,11 +115,11 @@ static func defend_multiplier(definition: Variant = {}) -> Dictionary:
 #     1: 入力kind・有限値・乱数範囲を検証する
 #     2: physicalだけguardを適用し、最終ダメージと残HPを求める
 #   ]
-#   引数: [request: 要求（Variant）]
+#   引数: [request: kind・整数ダメージ・防御倍率・揺らぎ・対象の現在HPを持つ要求（Variant）]
 #   戻り値: [result: damage/dealt/remaining_hp/applied_guardまたは拒否結果。魔法や耐性の完全実装ではない]
 # }
 static func finish_damage(request: Variant) -> Dictionary:
-	# Only the final positive-damage path; this does not implement magic, resistance or absorption.
+	# 通常ダメージの最終化だけを担当する。属性耐性と吸収回復はmagic_numbersが先に判定する。
 	if not request is Dictionary or request.get("kind") not in DAMAGE_KINDS:
 		return _failure("最終ダメージにはphysical/magic/drain_mpの数値入力が必要です")
 	var damage := Numbers.integer_value(request.get("damage"))
@@ -142,10 +142,10 @@ static func finish_damage(request: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_equipment_effect: 攻撃・numbersの装備・効果を求める]
-#   処理: [1: 攻撃・numbersの装備・効果を求める]
-#   引数: [definition: 定義（Variant）]
-#   戻り値: [result: 攻撃・numbersの装備・効果を求めるための結果（Dictionary）]
+#   責務: [_equipment_effect: 通常攻撃用の装備威力倍率と固定追加値を検証して取り出します]
+#   処理: [1: 通常攻撃用の装備威力倍率と固定追加値を検証して取り出します]
+#   引数: [definition: skill_modifiers.attackとfixed_bonus_damageを持つ装備定義（Variant）]
+#   戻り値: [result: ok=trueとpower_multiplier/fixed_bonus_damage、または理由付き拒否（Dictionary）]
 # }
 static func _equipment_effect(definition: Variant) -> Dictionary:
 	# 通常攻撃専用の投影。別スキルの補正をここから借用しない。
@@ -165,10 +165,11 @@ static func _equipment_effect(definition: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_failure: 攻撃・numbersのfailureを求める]
-#   処理: [1: 攻撃・numbersのfailureを求める]
-#   引数: [message: message（String）]
-#   戻り値: [result: 攻撃・numbersのfailureを求めるための結果（Dictionary）]
+#   責務: [_failure: 攻撃数値の不正を、診断文付きの拒否結果として返します]
+#   処理: [1: 攻撃数値の不正を、診断文付きの拒否結果として返します]
+#   引数: [message: 呼出元へ表示する不正数値の説明（String）]
+#   戻り値: [result: ok=falseとerror=invalid_attack_numbersおよびmessage（Dictionary）]
 # }
 static func _failure(message: String) -> Dictionary:
+	# 数値計算の失敗を、正常な0ダメージと区別できるようにする。
 	return {"ok": false, "error": "invalid_attack_numbers", "message": message}
