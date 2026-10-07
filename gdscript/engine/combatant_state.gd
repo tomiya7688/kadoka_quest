@@ -48,10 +48,10 @@ func start(identity: Variant, stats: Variant) -> Dictionary:
 
 
 # {
-#   責務: [snapshot: 戦闘個体・状態を状態を複製する]
-#   処理: [1: 戦闘個体・状態を状態を複製する]
+#   責務: [snapshot: combatant_state.gdの戦闘個体が所有する個体情報・能力値・現在HPとMP・逃走と生存状態を読み取り用に返します]
+#   処理: [1: 初期化済みなら個体情報と能力値を複製し、未初期化なら空辞書を返します]
 #   引数: []
-#   戻り値: [result: 戦闘個体・状態を状態を複製するための結果（Dictionary）]
+#   戻り値: [result: identity・stats・hp・mp・fled・aliveを持つ内部状態と独立した辞書、または未初期化の空辞書（Dictionary）]
 # }
 func snapshot() -> Dictionary:
 	if not _initialized:

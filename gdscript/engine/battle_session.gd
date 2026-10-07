@@ -86,7 +86,7 @@ func snapshot() -> Dictionary:
 #     1: 開始可能なphaseと参加者/順序の契約を検証する
 #     2: 新しいroundとcursorを設定する。敵なし停止は終端処理へ委譲してguardを解除する
 #   ]
-#   引数: [shuffle_order: 並べ替え・順序（Variant）]
+#   引数: [shuffle_order: 陣営sideと個体idで表す全参加者の並べ替え候補列。敏捷性が同じ参加者の順を決めます（Variant）]
 #   戻り値: [result: plan/session/stopまたは理由付き拒否。勝敗処理ではない]
 # }
 func begin_round(shuffle_order: Variant) -> Dictionary:
@@ -269,13 +269,13 @@ func apply_defend(ticket: Variant, multiplier: Variant) -> Dictionary:
 
 
 # {
-#   責務: [mp_cost: 戦闘・セッションのMP・消費量を求める]
-#   処理: [1: 戦闘・セッションのMP・消費量を求める]
+#   責務: [mp_cost: 指定した戦闘個体が現在のMPで指定消費量を払えるか確認し、MP自体は変更しません]
+#   処理: [1: 陣営と個体IDから戦闘個体を特定し、消費MPの妥当性と支払い可否の確認をcombatant_state.gdの戦闘個体へ委譲します]
 #   引数: [
-#     key: キー（Variant）
-#     cost: 消費量（Variant）
+#     key: MPの支払い可否を調べる個体の陣営sideと個体idを含む辞書（Variant）
+#     cost: 支払えるか確認する消費MP。combatant_state.gdの戦闘個体が非負整数として検証します（Variant）
 #   ]
-#   戻り値: [result: 戦闘・セッションのMP・消費量を求めるための結果（Dictionary）]
+#   戻り値: [result: 妥当な入力なら消費量cost・支払い可否affordable・現在mp、不正なら拒否理由reasonを含む結果（Dictionary）]
 # }
 func mp_cost(key: Variant, cost: Variant) -> Dictionary:
 	var checked := _resolve(key)

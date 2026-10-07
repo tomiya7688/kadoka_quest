@@ -17,3 +17,7 @@ imports/simulation/*/
 
 # Local-only review criteria; shared coding standards remain tracked.
 /レビュー基準.md
+
+# Codex用のAGENTS.override.mdとdocs/ローカルAI規約/は、開発者専用のためGit管理から除外します。
+/AGENTS.override.md
+/docs/ローカルAI規約/
