@@ -6,6 +6,7 @@
 #     _session: セッション（RefCounted）
 #     _attack: 攻撃（RefCounted）
 #     _defend: 基本ぼうぎょの純粋行動解決（RefCounted）
+#     _physical: MP付き単体物理の行動解決（RefCounted）
 #   ]
 # }
 extends RefCounted
@@ -15,11 +16,13 @@ const Preparation = preload("res://application/turn_preparation.gd")
 const Session = preload("res://engine/battle_session.gd")
 const Attack = preload("res://engine/normal_attack_action.gd")
 const Defend = preload("res://engine/basic_defend_action.gd")
+const Physical = preload("res://engine/physical_skill_action.gd")
 var _preparation: RefCounted
 var _repository: RefCounted
 var _session: RefCounted = Session.new()
 var _attack: RefCounted
 var _defend: RefCounted
+var _physical: RefCounted
 
 
 # {
@@ -37,7 +40,7 @@ func _init(repository: RefCounted) -> void:
 #   責務: [start: 戦闘・セッション・applicationを開始する]
 #   処理: [
 #     1: read-only準備から新規Sessionを構築する
-#     2: 正規skillsで攻撃と基本防御を設定しbegin_roundへ委譲する
+#     2: 正規skillsで通常攻撃・基本防御・MP付き物理を設定しbegin_roundへ委譲する
 #     3: 全成功後だけ内部所有者を切り替える
 #   ]
 #   引数: [
@@ -48,18 +51,22 @@ func _init(repository: RefCounted) -> void:
 #   戻り値: [result: 戦闘・セッション・applicationを開始するための結果（Dictionary）]
 # }
 func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Dictionary:
+	# 準備途中の失敗で使用中Sessionへ部分状態を残さない。
 	if _session.snapshot()["phase"] != "not_started":
 		return {"ok": false, "reason": "already_initialized"}
 	var prepared: Dictionary = _preparation.prepare(allies, enemies, shuffle_order)
 	if not prepared["ok"]:
 		return prepared
+	# 候補所有者を別に構築し、準備失敗時に現在の状態へ部分適用しない。
 	var candidate = Session.new()
 	var started: Dictionary = candidate.start(_snapshots(prepared["teams"]["allies"]), _snapshots(prepared["teams"]["enemies"]))
 	if not started["ok"]:
 		return started
+	# 正規定義の取得だけを委譲し、具体的なスキル規則は各engineが検証する。
 	var skills: Dictionary = _repository.load_skills()
 	if not skills["ok"]:
 		return skills
+	# 各Actionへ同一Sessionを渡す。HP/MPとticketの所有者を増やさない。
 	var attack = Attack.new(candidate)
 	var configured: Dictionary = attack.start(prepared["teams"], skills["value"])
 	if not configured["ok"]:
@@ -68,12 +75,18 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	var guarded: Dictionary = defend.start(skills["value"])
 	if not guarded["ok"]:
 		return guarded
+	var physical = Physical.new(candidate)
+	var equipped: Dictionary = physical.start(prepared["teams"], skills["value"])
+	if not equipped["ok"]:
+		return equipped
+	# 全Actionの設定後にroundを準備し、最後に所有者の組を一度に切り替える。
 	var planned: Dictionary = candidate.begin_round(shuffle_order)
 	if not planned["ok"]:
 		return planned
 	_session = candidate
 	_attack = attack
 	_defend = defend
+	_physical = physical
 	return {"ok": true, "preparation": prepared, "session": snapshot()}
 
 
@@ -125,6 +138,17 @@ func resolve_basic_defend(request: Variant) -> Dictionary:
 # }
 func effects() -> Dictionary:
 	return _session.effects()
+
+
+# {
+#   責務: [resolve_physical_skill: 明示MP付き物理要求を純粋行動解決へ委譲する]
+#   処理: [1: 初期化済みActionへ要求を渡す]
+#   引数: [request: ticket・対象・スキルID・乱数のplain要求（Variant）]
+#   戻り値: [result: Actionの結果または未初期化失敗（Dictionary）]
+# }
+func resolve_physical_skill(request: Variant) -> Dictionary:
+	# ルーティング側は数値計算や行動権判定を持たない。
+	return {"ok": false, "reason": "not_initialized"} if _physical == null else _physical.resolve(request)
 
 
 # {

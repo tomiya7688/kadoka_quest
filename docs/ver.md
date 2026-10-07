@@ -16,6 +16,24 @@
 
 ```
 
+# 93. GDScriptのMP付き単体物理スキル行動・Sessionへの実適用
+
+リモート取得・要約でincomingなしを確認した。GitHub CLIでP0なし、P1移行候補#218と他移行Issueのローカル実装済みを再確認し、移行表の未起票候補から今回分を進めた。push/PR/Issue作成・状態変更は行わない。既存game.py/開発予定、未追跡の資料・reports、正規data/assetsと利用者セーブは保持する。
+
+physical_skill_contextが開始時のfresh snapshot・習得ID・種族許可装備・正規定義の独立コピーを準備する。定義は重複を維持してID索引化し、毎行動の全カタログ走査を避ける。physical_skill_actionは別APIで最新offered・対象生存・正規定義・選択ID装備効果・現在MPを検証し、単一claim→実MP支払い→敵HP適用→finishを同期実行する。通常攻撃へIDを偽装せず、未知効果はfalse/空でも拒否する。不足・未習得・不正・重複は資源とofferedを保持し、死亡・逃走・敵なしは無消費で取消する。基本guardとラウンド間のHP/MP保持は既存Sessionへ委譲する。
+
+combatant_builderは正規レベル/＋選択/装備再構築から独立skill_idsを加えるが、資源snapshotの6キーと保存JSON/schemaは変更しない。applicationはread-only準備と各Actionの開始・ルーティングだけを担当する。engineの計算は既存物理予測と共用し、I/O・乱数源・AI・UIを足さない。追加: engine/physical_skill_context.gd・physical_skill_action.gdとUID、run_physical_action_performance.gdとUID、専用テスト/性能CLI、物理行動契約。更新: Builder/application/共有headlessプローブと、CODEMAP/FORMATS/GDScript README/tools案内/純粋予測契約/移行表。
+
+関連検証（実Godot 4.7.2 / Python 3.14.7）: 78件・2617サブテスト成功（74.70秒）。正規3スキル144組の実MP消費・HP/会心を実Python_take_actionと比較した。選択だけを固定し、MP支払い・物理実処理はmockへ置き換えない。学習/保存の非呼出しと個体/AI不変を確認した。有限MOD8組、レベル1/50/100と未装備/許可/不許可/不明装備、正規＋習得、最新MP不足・ちょうど支払い・同ticket再選択、重複/不正/native NaN/Inf、最新死亡/逃走/敵なし、8体同速/両陣営同ID/ラウンド間保持、開始/返却/入力コピー、専用data/assets/個体/AI/items/partyのbyte不変を検証した。初回の2サブテスト失敗は、既存契約が許容する乱数の数値文字列をテストが不正と扱っていたため修正し、互換性を正本との正例比較へ残した。
+
+性能: 新しい実Godot物理行動は1306.28us/段階（標準20000回/7samples/2000warmup、8体、上限3000us）。実MP総消費426000とHP減少も一致した。既存通常攻撃は変更前2134.39→変更後1342.42us（2000回/3samples/200warmup、同じ上限以内）。環境変動を含む測定差を性能改善の証明とは扱わない。標準editor import成功、専用性能検査をPlayerからimportしない。
+
+差分レビュー: R01/R02は目的が分かるAPIと検証→適用の直線的順序、R03/R08/R09は準備検証/行動所有/application調停/計測の単一責務、R04/R10は構造化宣言と目的・理由の内部コメントを確認した。R05は不正/境界/不足/重複/取消/コピーの回帰、R06/R11/R12は開始時O(定義数)の索引化と最大4体の検索・数値共用・性能閾値、R07はcontext173行/action173行/性能プローブ104行/専用テスト425行/CLI65行の用途別分離を確認した。R13は実セーブ非参照と限定stage、R14は正規ID/＋/MOD対応と未対応の拒否、R15はローカル品質ゲートの成功を確認した。R16はScene変更なしのため新規画面E2Eを対象外とし、実headless行動統合とカタログ構造の証拠を分ける。R17〜R20は新規仕様の背景・目的・手段・操作・期待結果・失敗対応と日本語を確認した。既存全コードの適合監査ではない。
+
+最終検証（2026-10-07）: 実Godotを指定したheadless全1015件・10536サブテストが成功した（462.42秒）。project rules、宣言コメント313ファイル/2629宣言/0エラー、生成repo map/application diagram鮮度、追跡Python234ファイルのblocking lint、Python 3.10構文AST、pip check、相対リンク50件、git diff --checkが成功した。最新UPD checkerのmain ae4636155b5e773d787cfccd1572808829601524を再導入し、対象PythonのErrorなし・Warning17/Attention100は変更前と同じ。これはGDScript静的責務検査ではなく、実Godotの構文・参照・行動契約検証と区別する。標準Python性能検査13項目は変更前後とも成功した。E2Eカタログは構造・参照のみ成功（covered12/missing25/intentionally-not-e2e1）。新規UI/戦闘SceneのE2E成功とは扱わない。
+
+戦闘Scene、魔法/耐性/状態異常/特殊防御/全スキル、AI、勝敗/報酬/復活、実GUI/IME、配布export、リモートCI、別Python版での実行はUnverified。次はMP付き単体魔法・属性耐性の純粋予測を候補とする。今回分だけローカルコミットし公開操作は行わない。
+
 # 92. GDScriptのMP付き単体物理スキル定義・純粋予測
 
 リモートを取得・要約し、incomingなしを確認した。GitHub CLIでP0/P1と移行候補を確認し、公開P1移行Issueはすべてローカル実装済みだったため、移行表の未起票候補を最小の前提単位へ分けた。今回は定義と数値予測だけ。MP付きスキルを通常attackへ偽装せず、実MP支払い・単一行動権・SessionへのHP適用・AI/Sceneは後続へ残す。公開Issue作成・状態変更やpushは行わない。

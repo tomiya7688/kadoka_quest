@@ -380,6 +380,8 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 #251の[基本防御行動](GDScript基本防御行動契約.md)は別APIで厳密な{ticket,skill_id:defend}だけを受けます。target/guard等の上書きは拒否。正規defendの有限MP0/既定倍率0.5を検証し、Session所有guardだけを更新します。effects()はscope:basic_guard_onlyとteams:{allies:{id:倍率},enemies:{id:倍率}}の独立コピー、資源snapshotは従来6キー。通常/会心の物理攻撃は対象の現在guardを使い、正規終端で全guard1、HP/MP/fledは保持。保存JSON/schemaは変更しません。
 
+未起票の[MP付き物理行動](GDScript物理スキル行動契約.md)はresolve_physical_skill({ticket,target,skill_id,critical_roll,variance})だけを受けます。開始時の再構築結果に独立したskill_idsを加えますが、資源snapshotの6キーは変更しません。選択IDの許可装備補正と最新MPを使い、単一claim→実MP消費→HP→finishを行います。未習得・不足・不正・未対応効果は不消費です。保存JSON/schemaは変更せず、AI/Sceneは未接続です。
+
 #224の[暗号入力契約](GDScript暗号入力契約.md)は既存 `password_spring` を使い、入力/案内/誤答/activeを純粋な実行時Sessionだけに持ちます。7文字/かな許可/完全一致の結果はplain `password_matched / password_cancelled`。入力/誤答/取消は保存せず、一致の取得・保存は#225の[独立applicationサービス](GDScriptおばけ取得契約.md)へ接続します。新しいJSON/schema/フラグは追加しません。
 
 不足するmaru/kadokaの個体だけをLv1/経験0/＋なし/装備null/source:ghost_home_password/種族由来の初期AIで追加し、state.flags.ghost_entrance_openをtrueにします。既存個体/AI/items/parties/metaと、stateの保存済み位置/方向/current_party/復活地点/他フラグ/未知キーは保持します。フラグtrueならstateを不要に再出力せず、不足個体だけを追加します。初回プロフィール作成は従来のF5で行い、未保存/破損なら取得を拒否します。

@@ -8,6 +8,7 @@ extends SceneTree
 const Session = preload("res://engine/battle_session.gd")
 const Attack = preload("res://engine/normal_attack_action.gd")
 const Defend = preload("res://engine/basic_defend_action.gd")
+const Physical = preload("res://engine/physical_skill_action.gd")
 const Numbers = preload("res://engine/attack_numbers.gd")
 const Application = preload("res://application/battle_session_application.gd")
 const Repository = preload("res://data/content_repository.gd")
@@ -39,9 +40,9 @@ func _initialize() -> void:
 
 
 # {
-#   責務: [_case: private入力から攻撃・任意基本防御を構築し資源と別effectsを観測する]
+#   責務: [_case: private入力から通常攻撃・任意防御/物理スキルを構築し資源と別effectsを観測する]
 #   処理: [
-#     1: pure Sessionまたはread-only applicationを初期化する
+#     1: pure Sessionまたはread-only applicationと任意MP付き物理Actionを初期化する
 #     2: 明示操作と入力/出力コピー編集試験を進める
 #     3: 実セーブに触れず資源・guard・入力保持の結果を返す
 #   ]
@@ -61,6 +62,7 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 	var session: RefCounted
 	var attack: RefCounted
 	var defend: RefCounted
+	var physical: RefCounted
 	var initialized: Dictionary
 	if joined:
 		session = Application.new(Repository.new(OS.get_environment("KADOKA_CONTENT_ROOT")))
@@ -71,14 +73,21 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 		attack = Attack.new(session)
 		if case.get("basic_defend", false):
 			defend = Defend.new(session)
+		# 新旧の行動プローブは同じ資源所有者を使い、物理スキル試験だけを追加設定する。
+		if case.get("physical_skill", false):
+			physical = Physical.new(session)
 		var teams := {"allies": [], "enemies": []}
 		for side in Order.SIDES:
 			for member: Dictionary in input.get(side, []):
-				teams[side].append({"snapshot": member, "equipment": input.get("equipment", {}).get(side, {}).get(member["identity"]["id"], {})})
+				teams[side].append({"snapshot": member,
+					"skill_ids": input.get("learned", {}).get(side, {}).get(member["identity"]["id"], []),
+					"equipment": input.get("equipment", {}).get(side, {}).get(member["identity"]["id"], {})})
 		if initialized["ok"]:
 			initialized = attack.start(case.get("context", teams), input.get("skills", {"schema_version": 1, "skills": [{"id": "attack", "kind": "physical"}]}))
 		if initialized["ok"] and case.get("basic_defend", false):
 			initialized = defend.start(input.get("skills", {"schema_version": 1, "skills": [{"id": "defend", "kind": "defend"}]}))
+		if initialized["ok"] and case.get("physical_skill", false):
+			initialized = physical.start(case.get("physical_context", teams), input.get("skills"))
 		if initialized["ok"]:
 			initialized = session.begin_round(input["shuffle_order"])
 	var initial := initialized.duplicate(true)
@@ -90,7 +99,7 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 		var pending: Variant = session.snapshot()["pending"]
 		if pending is Dictionary:
 			last_ticket = pending["ticket"].duplicate(true)
-		var value := _execute(session, attack, action, input, last_ticket, joined, defend)
+		var value := _execute(session, attack, action, input, last_ticket, joined, defend, physical)
 		var copied := value.duplicate(true)
 		if action.get("mutate_result", false):
 			_mutate(value)
@@ -115,11 +124,12 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 #     ticket: 行動権チケット（Variant）
 #     joined: joined（bool）
 #     defend: テスト対象の基本防御Action。旧通常攻撃ケースではnull（RefCounted）
+#     physical: MP付き物理Action。通常ケースではnull（RefCounted）
 #   ]
 #   戻り値: [result: run・normal・攻撃・probeを実行するための結果（Dictionary）]
 # }
 func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input: Dictionary, ticket: Variant,
-	joined: bool, defend: RefCounted) -> Dictionary:
+	joined: bool, defend: RefCounted, physical: RefCounted) -> Dictionary:
 	match action["kind"]:
 		"next": return session.next_actor()
 		"begin": return session.begin_round(action.get("order", input["shuffle_order"]))
@@ -141,6 +151,17 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 				request.merge(action.get("overrides", {}), true)
 			return session.resolve_basic_defend(request) if joined else defend.resolve(request)
 		"configure_defend": return defend.start(null)
+		"physical":
+			# 通常攻撃へIDを偽装せず、別Actionで正規IDの補正・MPを検証する。
+			var request: Variant = action.get("request", {"ticket": ticket, "target": action.get("target"),
+				"skill_id": action.get("skill_id", "body_bash"), "critical_roll": 0.5, "variance": 1.0})
+			if request is Dictionary:
+				request = request.duplicate(true)
+				request.merge(action.get("overrides", {}), true)
+				for special: String in action.get("special", {}):
+					request[special] = INF if action["special"][special] == "inf" else NAN
+			return session.resolve_physical_skill(request) if joined else physical.resolve(request)
+		"configure_physical": return physical.start(null, null)
 		"apply_defend":
 			var guard: Variant = action.get("guard", 0.5)
 			if action.has("special"):
@@ -163,7 +184,7 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 
 # {
 #   責務: [_mutate: run・normal・攻撃・probeのmutateを求める]
-#   処理: [1: run・normal・攻撃・probeのmutateを求める]
+#   処理: [1: 返却値や入力の数値・ID・習得一覧を編集し所有者のコピー独立性を試す]
 #   引数: [value: 値（Variant）]
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
@@ -180,6 +201,9 @@ func _mutate(value: Variant) -> void:
 				value[key] = 999
 		if value.has("id"):
 			value["id"] = "edited output"
+		# 開始後に渡した習得情報を編集しても、Actionの独立コピーは変更されない。
+		if value.has("skill_ids"):
+			value["skill_ids"].clear()
 
 
 # {

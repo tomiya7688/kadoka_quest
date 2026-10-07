@@ -24,28 +24,36 @@ func _init(repository: RefCounted) -> void:
 
 # {
 #   責務: [build: 戦闘個体・構築処理を構築する]
-#   処理: [1: 戦闘個体・構築処理を構築する]
+#   処理: [
+#     1: 正規個体を読み取り専用で再構築する
+#     2: 新鮮な資源と独立した習得ID・許可装備を返す
+#   ]
 #   引数: [record: 個体レコード（Variant）]
 #   戻り値: [result: 戦闘個体・構築処理を構築するための結果（Dictionary）]
 # }
 func build(record: Variant) -> Dictionary:
+	# 保存個体とAIの形式だけを確認し、不正レコードを補修して戦闘へ持ち込まない。
 	if not record is Dictionary or not record.get("monster") is Dictionary or not record.get("ai") is Dictionary:
 		return {"ok": false, "reason": "invalid_record"}
 	var monster: Dictionary = record["monster"]
 	var checked := Records.validate_record(monster, record["ai"], str(monster.get("id", "")))
 	if not checked["ok"]:
 		return {"ok": false, "reason": "invalid_record", "detail": checked}
+	# レベル・＋選択・装備は正規JSONから再構築し、個体やAIへ書き戻さない。
 	var rebuilt: Dictionary = reconstruction.rebuild(monster)
 	if not rebuilt["ok"]:
 		return {"ok": false, "reason": "reconstruction_failed", "detail": rebuilt.duplicate(true)}
 	var modified: Dictionary = rebuilt["modifiers"]
 	if not modified["ok"]:
 		return {"ok": false, "reason": "modifiers_failed", "detail": modified.duplicate(true)}
+	# 戦闘用の最大資源を新規Stateへ投影し、保存レコードとは分離する。
 	var state = State.new()
 	var initialized: Dictionary = state.start(monster, modified["stats"])
 	if not initialized["ok"]:
 		return initialized
-	return {"ok": true, "snapshot": state.snapshot(), "warnings": modified["warnings"].duplicate(true),
+	# 習得IDは資源6キーに混在させず、行動の開始時コピーとして渡す。
+	return {"ok": true, "snapshot": state.snapshot(), "skill_ids": modified["skill_ids"].duplicate(true),
+		"warnings": modified["warnings"].duplicate(true),
 		"equipment": modified["equipment"].duplicate(true), "scope": "combatant_resources_only"}
 
 

@@ -113,6 +113,8 @@ $env:KADOKA_GODOT_EXECUTABLE = '<Godotのconsole実行ファイル>'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_normal_attack.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_basic_defend.py
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_physical_skill.py -q
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_physical_action.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_physical_action.py
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_physical_skill.py
 $env:KADOKA_GDSCRIPT_SAVE_ROOT = 'C:\任意の検証専用フォルダ\savedata'
 $env:KADOKA_GDSCRIPT_SAVE_NAME = 'smoke'
@@ -138,7 +140,7 @@ Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stab
 #228は[行動順契約](../docs/GDScript行動順契約.md)。side+idで両陣営同IDを区別し、開始時生存者→明示shuffle→stable速度順を計算します。行動直前の最新HP/逃走/敵生存を確認しますが、未移植の状態異常/buffや攻撃/AIを成功扱いにしません。新規準備と行動中の最新snapshotを区別します。
 #229は[戦闘Session契約](../docs/GDScript戦闘Session契約.md)。Stateを戦闘開始時だけ初期化して所有し、固定順カーソルとoffered→claimed→finishを扱います。重複取得は進まず、claimは一度だけ、最新死亡/逃走/敵なしは実行不可。HP/MPはラウンド間で保持します。
 
-#230は[通常攻撃行動契約](../docs/GDScript通常攻撃行動契約.md)。applicationがread-only開始と明示通常攻撃を調停し、pure resolverが検証後だけclaim→実HP適用→finishを行います。不正入力/重複で資源やcursorを消費しません。正規attack定義/許可装備は開始時にコピーし、リクエストからの装備/guard上書きは拒否します。#251の基本防御は別APIで接続しました。他スキル/AI/Scene/勝敗保存は未接続です。
+#230は[通常攻撃行動契約](../docs/GDScript通常攻撃行動契約.md)。applicationがread-only開始と明示通常攻撃を調停し、pure resolverが検証後だけclaim→実HP適用→finishを行います。不正入力/重複で資源やcursorを消費しません。正規attack定義/許可装備は開始時にコピーし、リクエストからの装備/guard上書きは拒否します。#251の基本防御と後述のMP付き単体物理は別APIで接続しました。それ以外のスキル/AI/Scene/勝敗保存は未接続です。
 保存I/O: [user://](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)、[FileAccess](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html)、[DirAccess](https://docs.godotengine.org/en/stable/classes/class_diraccess.html)。
 一覧/編成UI: [ScrollContainer](https://docs.godotengine.org/en/stable/classes/class_scrollcontainer.html)、[ItemList](https://docs.godotengine.org/en/stable/classes/class_itemlist.html)。
 
@@ -146,4 +148,4 @@ Godot APIの根拠: [コマンドライン](https://docs.godotengine.org/en/stab
 
 プリセットの責務: `engine/party_preset_contract.gd` は純粋な形式/名前/欠損枠の契約、`data/party_preset_store.gd` は一覧/読込/新規JSONのI/O、`application/party_presets.gd` は所有個体の検証と下書きへの適用、`ui/party_preset_view.gd` は入力/フォーカス/表示とsignalです。実Sceneのキー/クリック・再起動、Python PartyStoreでの読込、121ファイルの一覧、不正/外部変更/実Windows読込ロック、state/個体/AI/元プリセットの不変性を専用コピーで検証します。日本語テキストのイベント入力は検証しますが、実IME・ウィンドウの視認性・exportの証拠ではありません。
 
-MP付き単体物理スキルの[予測契約](../docs/GDScript物理スキル予測契約.md)は、指定定義・MP不足・未対応効果を検証し、既存通常攻撃と物理数値を共用します。元の定義とHP/MPを変更せず、残MPを予測します。ゲーム画面には未接続で、実際のMP消費・行動権取得・HP適用は後続です。開発者は上記の専用テストと性能検査を実行してください。
+MP付き単体物理スキルの[予測契約](../docs/GDScript物理スキル予測契約.md)は元の定義とHP/MPを変更しません。[行動契約](../docs/GDScript物理スキル行動契約.md)で正規習得・装備・最新資源を確認し、別APIへ単一claim→MP支払い→HP適用→finishを接続しました。不足・不正・未対応効果は行動権を消費しません。AI/ゲーム画面には未接続です。開発者は上記の専用テストと性能検査を実行してください。
