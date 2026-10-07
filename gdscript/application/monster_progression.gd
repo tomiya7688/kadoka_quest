@@ -14,20 +14,20 @@ var documents: Dictionary = {}
 
 
 # {
-#   責務: [_init: モンスター・progressionが利用する初期状態と依存を設定する]
-#   処理: [1: モンスター・progressionが利用する初期状態と依存を設定する]
-#   引数: [content: content（RefCounted）]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   責務: [_init: 正規の基礎能力値と習得スキルを取得するリポジトリを保持します]
+#   処理: [1: 正規の基礎能力値と習得スキルを取得するリポジトリを保持します]
+#   引数: [content: 正規種族・装備定義の読込先（RefCounted）]
+#   戻り値: [result: なし（void）。正規基礎定義の取得先を設定します]
 # }
 func _init(content: RefCounted) -> void:
 	repository = content
 
 
 # {
-#   責務: [rebuild: モンスター・progressionのrebuildを求める]
-#   処理: [1: モンスター・progressionのrebuildを求める]
+#   責務: [rebuild: 種族別の基礎定義を構築処理内で共用し、指定レベルの能力値と習得IDの計算へ委譲します]
+#   処理: [1: 種族別の基礎定義を構築処理内で共用し、指定レベルの能力値と習得IDの計算へ委譲します]
 #   引数: [monster: モンスター（Dictionary）]
-#   戻り値: [result: モンスター・progressionのrebuildを求めるための結果（Dictionary）]
+#   戻り値: [result: レベル別能力値・習得IDの再構築結果、または正規定義の読込・検証失敗（Dictionary）]
 # }
 func rebuild(monster: Dictionary) -> Dictionary:
 	var species_id: String = monster["species_id"]

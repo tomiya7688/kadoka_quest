@@ -244,15 +244,15 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
 
 
 # {
-#   責務: [run_benchmarks: benchmarksを実行する]
-#   処理: [1: benchmarksを実行する]
+#   責務: [run_benchmarks: 指定した測定項目を反復計測し、項目名・中央値・時間上限の結果列を返します]
+#   処理: [1: 対象名で絞った専用fixtureの処理を計測し、結果をBenchmarkResultへまとめます]
 #   引数: [
-#     iterations: iterations（int）
-#     samples: samples（int）
-#     warmup: warmup（int）
-#     only: only（set[str] | None）
+#     iterations: 各サンプルで処理を反復する回数（int）
+#     samples: 中央値を求める計測サンプル数（int）
+#     warmup: 計測前に処理を実行する回数（int）
+#     only: 測定項目名の絞り込み。未指定なら全項目（set[str] | None）
 #   ]
-#   戻り値: [result: 処理結果一覧（list[BenchmarkResult]）]
+#   戻り値: [result: 測定項目名・一回あたりの中央値ns・許容上限nsを持つ結果列（list[BenchmarkResult]）]
 # }
 def run_benchmarks(
     iterations: int,
@@ -270,10 +270,10 @@ def run_benchmarks(
 
 
 # {
-#   責務: [build_parser: parserを構築する]
-#   処理: [1: parserを構築する]
+#   責務: [build_parser: 開発性能検査の反復・サンプル・事前実行・測定項目を指定するCLIパーサを作ります]
+#   処理: [1: 性能計測条件と項目選択を受け取るコマンドライン引数を定義します]
 #   引数: []
-#   戻り値: [result: parser（argparse.ArgumentParser）]
+#   戻り値: [result: 開発性能検査の条件を解析するパーサ（argparse.ArgumentParser）]
 # }
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Check Kadoka Quest runtime performance guardrails.")

@@ -9,6 +9,8 @@ const Session = preload("res://engine/battle_session.gd")
 const Attack = preload("res://engine/normal_attack_action.gd")
 const Defend = preload("res://engine/basic_defend_action.gd")
 const Physical = preload("res://engine/physical_skill_action.gd")
+const Magic = preload("res://engine/magic_skill_action.gd")
+const Resistance = preload("res://engine/elemental_resistance.gd")
 const Numbers = preload("res://engine/attack_numbers.gd")
 const Application = preload("res://application/battle_session_application.gd")
 const Repository = preload("res://data/content_repository.gd")
@@ -16,10 +18,10 @@ const Order = preload("res://engine/turn_order.gd")
 
 
 # {
-#   責務: [_initialize: run・normal・攻撃・probeのエントリ処理を実行する]
-#   処理: [1: run・normal・攻撃・probeのエントリ処理を実行する]
+#   責務: [_initialize: 専用JSONの操作列または開発計測を実行し、結果をbase64付き標準出力で返して終了します]
+#   処理: [1: 専用JSONの操作列または開発計測を実行し、結果をbase64付き標準出力で返して終了します]
 #   引数: []
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）。専用結果を標準出力へ返し、プローブを終了します]
 # }
 func _initialize() -> void:
 	var arguments := OS.get_cmdline_user_args()
@@ -40,29 +42,30 @@ func _initialize() -> void:
 
 
 # {
-#   責務: [_case: private入力から通常攻撃・任意防御/物理スキルを構築し資源と別effectsを観測する]
+#   責務: [_case: 専用開始情報でSessionと必要な行動処理を構築し、明示操作後の資源・防御倍率・入力保持を観測します]
 #   処理: [
 #     1: pure Sessionまたはread-only applicationと任意MP付き物理Actionを初期化する
 #     2: 明示操作と入力/出力コピー編集試験を進める
 #     3: 実セーブに触れず資源・guard・入力保持の結果を返す
 #   ]
 #   引数: [
-#     case: case（Dictionary）
-#     joined: joined（bool）
+#     case: 専用開始情報と明示操作列（Dictionary）
+#     joined: trueならapplication経由、falseなら純粋Sessionで実行する設定（bool）
 #   ]
-#   戻り値: [result: run・normal・攻撃・probeのcaseを求めるための結果（Dictionary）]
+#   戻り値: [result: 初期化結果・操作別観測・最終Session・防御倍率・入力保持判定（Dictionary）]
 # }
 func _case(case: Dictionary, joined: bool) -> Dictionary:
 	var input: Dictionary = case["input"].duplicate(true)
 	for special: String in case.get("definition_special", {}):
 		for entry: Dictionary in input.get("skills", {}).get("skills", []):
-			if entry.get("id") == "defend":
+			if entry.get("id") == case.get("special_skill_id", "defend"):
 				entry[special] = INF if case["definition_special"][special] == "inf" else NAN
 	var before := input.duplicate(true)
 	var session: RefCounted
 	var attack: RefCounted
 	var defend: RefCounted
 	var physical: RefCounted
+	var magic: RefCounted
 	var initialized: Dictionary
 	if joined:
 		session = Application.new(Repository.new(OS.get_environment("KADOKA_CONTENT_ROOT")))
@@ -76,18 +79,23 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 		# 新旧の行動プローブは同じ資源所有者を使い、物理スキル試験だけを追加設定する。
 		if case.get("physical_skill", false):
 			physical = Physical.new(session)
+		if case.get("magic_skill", false):
+			magic = Magic.new(session)
 		var teams := {"allies": [], "enemies": []}
 		for side in Order.SIDES:
 			for member: Dictionary in input.get(side, []):
 				teams[side].append({"snapshot": member,
 					"skill_ids": input.get("learned", {}).get(side, {}).get(member["identity"]["id"], []),
-					"equipment": input.get("equipment", {}).get(side, {}).get(member["identity"]["id"], {})})
+					"equipment": input.get("equipment", {}).get(side, {}).get(member["identity"]["id"], {}),
+					"resistances": input.get("resistances", {}).get(side, {}).get(member["identity"]["id"], {})})
 		if initialized["ok"]:
 			initialized = attack.start(case.get("context", teams), input.get("skills", {"schema_version": 1, "skills": [{"id": "attack", "kind": "physical"}]}))
 		if initialized["ok"] and case.get("basic_defend", false):
 			initialized = defend.start(input.get("skills", {"schema_version": 1, "skills": [{"id": "defend", "kind": "defend"}]}))
 		if initialized["ok"] and case.get("physical_skill", false):
 			initialized = physical.start(case.get("physical_context", teams), input.get("skills"))
+		if initialized["ok"] and case.get("magic_skill", false):
+			initialized = magic.start(case.get("magic_context", teams), input.get("skills"))
 		if initialized["ok"]:
 			initialized = session.begin_round(input["shuffle_order"])
 	var initial := initialized.duplicate(true)
@@ -99,7 +107,7 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 		var pending: Variant = session.snapshot()["pending"]
 		if pending is Dictionary:
 			last_ticket = pending["ticket"].duplicate(true)
-		var value := _execute(session, attack, action, input, last_ticket, joined, defend, physical)
+		var value := _execute(session, attack, action, input, last_ticket, joined, defend, physical, magic)
 		var copied := value.duplicate(true)
 		if action.get("mutate_result", false):
 			_mutate(value)
@@ -114,22 +122,23 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 
 
 # {
-#   責務: [_execute: headless試験の明示操作を純粋処理またはapplicationへ渡す]
-#   処理: [1: 操作種別で委譲する。final_numbersは魔法行動ではなく数値だけを試験する]
+#   責務: [_execute: 専用テストの明示操作をSession・行動処理・純粋耐性計算へ委譲します]
+#   処理: [1: 専用テストの明示操作をSession・行動処理・純粋耐性計算へ委譲します]
 #   引数: [
 #     session: セッション（RefCounted）
 #     attack: 攻撃（RefCounted）
-#     action: action（Dictionary）
+#     action: 種別と操作別引数を持つ専用要求（Dictionary）
 #     input: 入力（Dictionary）
 #     ticket: 行動権チケット（Variant）
-#     joined: joined（bool）
+#     joined: trueならapplication経由、falseなら純粋Sessionで実行する設定（bool）
 #     defend: テスト対象の基本防御Action。旧通常攻撃ケースではnull（RefCounted）
 #     physical: MP付き物理Action。通常ケースではnull（RefCounted）
+#     magic: MP付き単体魔法Action。通常ケースではnull（RefCounted）
 #   ]
-#   戻り値: [result: run・normal・攻撃・probeを実行するための結果（Dictionary）]
+#   戻り値: [result: 操作を委譲した担当モジュールの結果または不明操作の拒否（Dictionary）]
 # }
 func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input: Dictionary, ticket: Variant,
-	joined: bool, defend: RefCounted, physical: RefCounted) -> Dictionary:
+	joined: bool, defend: RefCounted, physical: RefCounted, magic: RefCounted) -> Dictionary:
 	match action["kind"]:
 		"next": return session.next_actor()
 		"begin": return session.begin_round(action.get("order", input["shuffle_order"]))
@@ -162,6 +171,23 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 					request[special] = INF if action["special"][special] == "inf" else NAN
 			return session.resolve_physical_skill(request) if joined else physical.resolve(request)
 		"configure_physical": return physical.start(null, null)
+		"magic":
+			# 魔法は会心値を持たず、耐性・MP・威力の上書きも受け付けない。
+			var request: Variant = action.get("request", {"ticket": ticket, "target": action.get("target"),
+				"skill_id": action.get("skill_id", "weaken"), "variance": 1.0})
+			if request is Dictionary:
+				request = request.duplicate(true)
+				request.merge(action.get("overrides", {}), true)
+				for special: String in action.get("special", {}):
+					request[special] = INF if action["special"][special] == "inf" else NAN
+			return session.resolve_magic_skill(request) if joined else magic.resolve(request)
+		"configure_magic": return magic.start(null, null)
+		"resistance": return Resistance.prepare(action.get("species"), action.get("equipment"))
+		"heal":
+			var amount: Variant = action.get("amount")
+			if action.has("special"):
+				amount = INF if action["special"] == "inf" else NAN
+			return session.heal(action.get("actor"), amount)
 		"apply_defend":
 			var guard: Variant = action.get("guard", 0.5)
 			if action.has("special"):
@@ -183,10 +209,10 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 
 
 # {
-#   責務: [_mutate: run・normal・攻撃・probeのmutateを求める]
-#   処理: [1: 返却値や入力の数値・ID・習得一覧を編集し所有者のコピー独立性を試す]
+#   責務: [_mutate: 入力や返却値のコピー内の数値・ID・習得・耐性を編集し、所有者から独立しているか試します]
+#   処理: [1: 入力や返却値のコピー内の数値・ID・習得・耐性を編集し、所有者から独立しているか試します]
 #   引数: [value: 値（Variant）]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）。検証対象コピー内の数値・ID・習得・耐性を編集します]
 # }
 func _mutate(value: Variant) -> void:
 	if value is Array:
@@ -204,13 +230,17 @@ func _mutate(value: Variant) -> void:
 		# 開始後に渡した習得情報を編集しても、Actionの独立コピーは変更されない。
 		if value.has("skill_ids"):
 			value["skill_ids"].clear()
+		# 開始時耐性の独立コピーを確認するため、コピー内の属性値も編集する。
+		for element in ["mental", "fire", "ice"]:
+			if value.get(element) is String:
+				value[element] = "immune"
 
 
 # {
-#   責務: [_performance: run・normal・攻撃・probeのperformanceを求める]
-#   処理: [1: run・normal・攻撃・probeのperformanceを求める]
+#   責務: [_performance: 専用の8体Sessionで通常攻撃1回の次行動取得から完了までを反復計測します]
+#   処理: [1: 専用の8体Sessionで通常攻撃1回の次行動取得から完了までを反復計測します]
 #   引数: [payload: 要求データ（Dictionary）]
-#   戻り値: [result: run・normal・攻撃・probeのperformanceを求めるための結果（Dictionary）]
+#   戻り値: [result: 8体の通常攻撃1回あたりの中央値usと最終資源検証値（Dictionary）]
 # }
 func _performance(payload: Dictionary) -> Dictionary:
 	var teams := {"allies": [], "enemies": []}
@@ -249,14 +279,14 @@ func _performance(payload: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_stage: run・normal・攻撃・probeのstageを求める]
-#   処理: [1: run・normal・攻撃・probeのstageを求める]
+#   責務: [_stage: 専用8体Sessionのラウンドを必要時だけ開始し、次の通常攻撃を実行してHP減少を確認します]
+#   処理: [1: 専用8体Sessionのラウンドを必要時だけ開始し、次の通常攻撃を実行してHP減少を確認します]
 #   引数: [
 #     session: セッション（RefCounted）
 #     attack: 攻撃（RefCounted）
 #     order: 順序（Array）
 #   ]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）。次の通常攻撃を実行し、MP非消費とHP減少を確認します]
 # }
 func _stage(session: RefCounted, attack: RefCounted, order: Array) -> void:
 	if session.snapshot()["phase"] != "round_active":

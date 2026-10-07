@@ -13,20 +13,20 @@ var last_error := ""
 
 
 # {
-#   責務: [_init: content・データ取得先が利用する初期状態と依存を設定する]
-#   処理: [1: content・データ取得先が利用する初期状態と依存を設定する]
+#   責務: [_init: 正規dataを読む基準ディレクトリを設定します]
+#   処理: [1: 正規dataを読む基準ディレクトリを設定します]
 #   引数: [content_root: content・基準ディレクトリ（String）]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）。正規dataを読む基準ディレクトリを設定します]
 # }
 func _init(content_root: String) -> void:
 	root = content_root.simplify_path()
 
 
 # {
-#   責務: [_read_dictionary: dictionaryを読み取る]
-#   処理: [1: dictionaryを読み取る]
-#   引数: [relative: relative（String）]
-#   戻り値: [result: dictionaryを読み取るための結果（Dictionary）]
+#   責務: [_read_dictionary: 基準ディレクトリ内のJSONオブジェクトを読み、失敗時は空辞書とlast_errorを返します]
+#   処理: [1: 基準ディレクトリ内のJSONオブジェクトを読み、失敗時は空辞書とlast_errorを返します]
+#   引数: [relative: 正規data内のJSON相対パス（String）]
+#   戻り値: [result: 読み取ったJSONオブジェクト、またはlast_errorを設定した空辞書（Dictionary）]
 # }
 func _read_dictionary(relative: String) -> Dictionary:
 	last_error = ""
@@ -43,10 +43,10 @@ func _read_dictionary(relative: String) -> Dictionary:
 
 
 # {
-#   責務: [valid_id: content・データ取得先のvalid・識別子を求める]
-#   処理: [1: content・データ取得先のvalid・識別子を求める]
+#   責務: [valid_id: 種族やマップのIDが小文字英数字・下線・ハイフンだけの非空文字列か確認します]
+#   処理: [1: 種族やマップのIDが小文字英数字・下線・ハイフンだけの非空文字列か確認します]
 #   引数: [value: 値（String）]
-#   戻り値: [result: content・データ取得先のvalid・識別子を求めるための結果（bool）]
+#   戻り値: [result: 非空IDが小文字英数字・下線・ハイフンだけならtrue、それ以外false（bool）]
 # }
 static func valid_id(value: String) -> bool:
 	if value.is_empty():
@@ -58,10 +58,10 @@ static func valid_id(value: String) -> bool:
 
 
 # {
-#   責務: [load_blocks: ブロック定義を読み込む]
-#   処理: [1: ブロック定義を読み込む]
+#   責務: [load_blocks: 正規ブロックJSONを読み、各IDをキーにした定義辞書を返します]
+#   処理: [1: 正規ブロックJSONを読み、各IDをキーにした定義辞書を返します]
 #   引数: []
-#   戻り値: [result: ブロック定義を読み込むための結果（Dictionary）]
+#   戻り値: [result: ブロックIDをキーにした定義一覧、またはlast_errorを設定した空辞書（Dictionary）]
 # }
 func load_blocks() -> Dictionary:
 	var definitions := {}
@@ -81,10 +81,10 @@ func load_blocks() -> Dictionary:
 
 
 # {
-#   責務: [load_map: マップを読み込む]
-#   処理: [1: マップを読み込む]
+#   責務: [load_map: 指定マップの寸法・行・開始位置を検証し、イベントファイルをID付きイベントへ追加します]
+#   処理: [1: 指定マップの寸法・行・開始位置を検証し、イベントファイルをID付きイベントへ追加します]
 #   引数: [map_id: マップ・識別子（String）]
-#   戻り値: [result: マップを読み込むための結果（Dictionary）]
+#   戻り値: [result: 寸法・開始地点・タイル・結合イベントを持つマップ、または失敗時の空辞書（Dictionary）]
 # }
 func load_map(map_id: String) -> Dictionary:
 	if not valid_id(map_id):
@@ -125,10 +125,10 @@ func load_map(map_id: String) -> Dictionary:
 
 
 # {
-#   責務: [_positive_integer: content・データ取得先のpositive・integerを求める]
-#   処理: [1: content・データ取得先のpositive・integerを求める]
+#   責務: [_positive_integer: 値が有限で小数部のない正の数値か検証します]
+#   処理: [1: 値が有限で小数部のない正の数値か検証します]
 #   引数: [value: 値（Variant）]
-#   戻り値: [result: content・データ取得先のpositive・integerを求めるための結果（bool）]
+#   戻り値: [result: 有限で小数部のない正の数値ならtrue、それ以外false（bool）]
 # }
 static func _positive_integer(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value) > 0 \
@@ -136,10 +136,10 @@ static func _positive_integer(value: Variant) -> bool:
 
 
 # {
-#   責務: [load_species: 種族を読み込む]
-#   処理: [1: 種族を読み込む]
+#   責務: [load_species: 安全な種族IDのspecies.jsonを読み、失敗時は空辞書とlast_errorを返します]
+#   処理: [1: 安全な種族IDのspecies.jsonを読み、失敗時は空辞書とlast_errorを返します]
 #   引数: [species_id: 種族・識別子（String）]
-#   戻り値: [result: 種族を読み込むための結果（Dictionary）]
+#   戻り値: [result: 指定種族のspecies.jsonオブジェクト、またはlast_errorを設定した空辞書（Dictionary）]
 # }
 func load_species(species_id: String) -> Dictionary:
 	if not valid_id(species_id):
@@ -149,10 +149,10 @@ func load_species(species_id: String) -> Dictionary:
 
 
 # {
-#   責務: [load_progression: progressionを読み込む]
-#   処理: [1: progressionを読み込む]
+#   責務: [load_progression: 指定種族のstats.jsonとskills.jsonを読み、基礎再構築用の定義組を返します]
+#   処理: [1: 指定種族のstats.jsonとskills.jsonを読み、基礎再構築用の定義組を返します]
 #   引数: [species_id: 種族・識別子（String）]
-#   戻り値: [result: progressionを読み込むための結果（Dictionary）]
+#   戻り値: [result: ok=trueとstats/skillsの定義組、またはerror/message付き読込失敗（Dictionary）]
 # }
 func load_progression(species_id: String) -> Dictionary:
 	if not valid_id(species_id):
@@ -168,10 +168,10 @@ func load_progression(species_id: String) -> Dictionary:
 
 
 # {
-#   責務: [load_plus: ＋選択を読み込む]
-#   処理: [1: ＋選択を読み込む]
+#   責務: [load_plus: 指定種族のplus.jsonを読み、okと定義valueまたは読込失敗を返します]
+#   処理: [1: 指定種族のplus.jsonを読み、okと定義valueまたは読込失敗を返します]
 #   引数: [species_id: 種族・識別子（String）]
-#   戻り値: [result: ＋選択を読み込むための結果（Dictionary）]
+#   戻り値: [result: ok=trueとplus.jsonのvalue、またはerror/message付き読込失敗（Dictionary）]
 # }
 func load_plus(species_id: String) -> Dictionary:
 	if not valid_id(species_id):
@@ -181,30 +181,30 @@ func load_plus(species_id: String) -> Dictionary:
 
 
 # {
-#   責務: [load_equipment: 装備を読み込む]
-#   処理: [1: 装備を読み込む]
+#   責務: [load_equipment: 正規equipment.jsonを読み、okと定義valueまたは読込失敗を返します]
+#   処理: [1: 正規equipment.jsonを読み、okと定義valueまたは読込失敗を返します]
 #   引数: []
-#   戻り値: [result: 装備を読み込むための結果（Dictionary）]
+#   戻り値: [result: ok=trueとequipment.jsonのvalue、またはerror/message付き読込失敗（Dictionary）]
 # }
 func load_equipment() -> Dictionary:
 	return _content_result("data/equipment/equipment.json")
 
 
 # {
-#   責務: [load_skills: スキル一覧を読み込む]
-#   処理: [1: スキル一覧を読み込む]
+#   責務: [load_skills: 正規skills.jsonを読み、okと定義valueまたは読込失敗を返します]
+#   処理: [1: 正規skills.jsonを読み、okと定義valueまたは読込失敗を返します]
 #   引数: []
-#   戻り値: [result: スキル一覧を読み込むための結果（Dictionary）]
+#   戻り値: [result: ok=trueとskills.jsonのvalue、またはerror/message付き読込失敗（Dictionary）]
 # }
 func load_skills() -> Dictionary:
 	return _content_result("data/skills/skills.json")
 
 
 # {
-#   責務: [_content_result: content・データ取得先のcontent・処理結果を求める]
-#   処理: [1: content・データ取得先のcontent・処理結果を求める]
-#   引数: [relative: relative（String）]
-#   戻り値: [result: content・データ取得先のcontent・処理結果を求めるための結果（Dictionary）]
+#   責務: [_content_result: 正規JSONオブジェクトの読込を成功valueまたは失敗理由として返します]
+#   処理: [1: 正規JSONオブジェクトの読込を成功valueまたは失敗理由として返します]
+#   引数: [relative: 正規data内のJSON相対パス（String）]
+#   戻り値: [result: ok=trueと読み取ったvalue、またはerror/message付き読込失敗（Dictionary）]
 # }
 func _content_result(relative: String) -> Dictionary:
 	var document := _read_dictionary(relative)

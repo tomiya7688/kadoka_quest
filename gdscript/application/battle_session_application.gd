@@ -7,6 +7,7 @@
 #     _attack: battle_session.gdの戦闘状態へ通常攻撃の結果を反映するnormal_attack_action.gdの行動処理（RefCounted）
 #     _defend: battle_session.gdの戦闘状態へ基本ぼうぎょの倍率を反映するbasic_defend_action.gdの行動処理（RefCounted）
 #     _physical: battle_session.gdの戦闘状態へMP付き単体物理スキルの結果を反映するphysical_skill_action.gdの行動処理（RefCounted）
+#     _magic: 戦闘状態へMP付き単体魔法の結果を反映するmagic_skill_action.gdの行動処理（RefCounted）
 #   ]
 # }
 extends RefCounted
@@ -17,12 +18,14 @@ const Session = preload("res://engine/battle_session.gd")
 const Attack = preload("res://engine/normal_attack_action.gd")
 const Defend = preload("res://engine/basic_defend_action.gd")
 const Physical = preload("res://engine/physical_skill_action.gd")
+const Magic = preload("res://engine/magic_skill_action.gd")
 var _preparation: RefCounted
 var _repository: RefCounted
 var _session: RefCounted = Session.new()
 var _attack: RefCounted
 var _defend: RefCounted
 var _physical: RefCounted
+var _magic: RefCounted
 
 
 # {
@@ -41,7 +44,7 @@ func _init(repository: RefCounted) -> void:
 #   責務: [start: 保存個体から独立した戦闘Sessionと行動処理を構築し、最初のラウンドを開始します]
 #   処理: [
 #     1: turn_preparation.gdの準備処理で参加個体を再構築し、候補のbattle_session.gdの戦闘状態へ戦闘資源を設定します
-#     2: 正規スキル定義で通常攻撃・基本ぼうぎょ・MP付き単体物理の行動処理を設定します
+#     2: 正規スキル定義で通常攻撃・基本ぼうぎょ・MP付き単体物理・単体魔法の行動処理を設定します
 #     3: 最初のラウンドの計画が成功した場合だけ、使用するbattle_session.gdの戦闘状態と行動処理の参照を切り替えます
 #   ]
 #   引数: [
@@ -80,6 +83,11 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	var equipped: Dictionary = physical.start(prepared["teams"], skills["value"])
 	if not equipped["ok"]:
 		return equipped
+	# 魔法用の習得・許可装備・属性耐性も、同じ候補Sessionとの一致を確認する。
+	var magic = Magic.new(candidate)
+	var magical: Dictionary = magic.start(prepared["teams"], skills["value"])
+	if not magical["ok"]:
+		return magical
 	# 戦闘呼び出し処理は、全行動処理の設定と最初のラウンド計画が成功してから、使用する戦闘状態と行動処理を一度に切り替えます。
 	var planned: Dictionary = candidate.begin_round(shuffle_order)
 	if not planned["ok"]:
@@ -88,6 +96,7 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	_attack = attack
 	_defend = defend
 	_physical = physical
+	_magic = magic
 	return {"ok": true, "preparation": prepared, "session": snapshot()}
 
 
@@ -150,6 +159,17 @@ func effects() -> Dictionary:
 func resolve_physical_skill(request: Variant) -> Dictionary:
 	# battle_session_application.gdの呼び出し処理ではダメージ計算や行動権判定を重複実装せず、physical_skill_action.gdの行動処理へ委譲します。
 	return {"ok": false, "reason": "not_initialized"} if _physical == null else _physical.resolve(request)
+
+
+# {
+#   責務: [resolve_magic_skill: 明示された単体魔法の検証・MP消費・HP変化を魔法行動処理へ委譲します]
+#   処理: [1: 初期化済みのmagic_skill_action.gdへ要求を渡し、未初期化なら拒否します]
+#   引数: [request: ticket・敵target・skill_id・varianceの4キーを持つ要求（Variant）]
+#   戻り値: [result: 魔法行動の適用結果または未初期化の拒否（Dictionary）]
+# }
+func resolve_magic_skill(request: Variant) -> Dictionary:
+	# 呼び出し処理は数値・習得判定を重複実装せず、単体魔法の担当へ委譲する。
+	return {"ok": false, "reason": "not_initialized"} if _magic == null else _magic.resolve(request)
 
 
 # {

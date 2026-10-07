@@ -19,10 +19,10 @@ var equipment_document: Dictionary = {}
 
 
 # {
-#   責務: [_init: モンスター・reconstructionが利用する初期状態と依存を設定する]
-#   処理: [1: モンスター・reconstructionが利用する初期状態と依存を設定する]
-#   引数: [content: content（RefCounted）]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   責務: [_init: 正規データの取得先を保持し、基礎能力値と習得スキルを再構築する依存を設定します]
+#   処理: [1: 正規データの取得先を保持し、基礎能力値と習得スキルを再構築する依存を設定します]
+#   引数: [content: 正規種族・装備定義の読込先（RefCounted）]
+#   戻り値: [result: なし（void）。基礎再構築と正規補正定義の取得先を設定します]
 # }
 func _init(content: RefCounted) -> void:
 	repository = content
@@ -30,10 +30,10 @@ func _init(content: RefCounted) -> void:
 
 
 # {
-#   責務: [rebuild: モンスター・reconstructionのrebuildを求める]
-#   処理: [1: モンスター・reconstructionのrebuildを求める]
+#   責務: [rebuild: 基礎能力値と習得スキルの再構築結果へ、＋選択・許可装備の補正結果を加えて返します]
+#   処理: [1: 基礎能力値と習得スキルの再構築結果へ、＋選択・許可装備の補正結果を加えて返します]
 #   引数: [monster: モンスター（Dictionary）]
-#   戻り値: [result: モンスター・reconstructionのrebuildを求めるための結果（Dictionary）]
+#   戻り値: [result: レベル別能力値・習得IDとmodifiersの補正結果、または再構築を拒否した理由（Dictionary）]
 # }
 func rebuild(monster: Dictionary) -> Dictionary:
 	var base: Dictionary = base_service.rebuild(monster)
@@ -44,13 +44,13 @@ func rebuild(monster: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_rebuild_modifiers: モンスター・reconstructionのrebuild・modifiersを求める]
-#   処理: [1: モンスター・reconstructionのrebuild・modifiersを求める]
+#   責務: [_rebuild_modifiers: ＋と装備の定義を構築処理内で共用し、能力値・習得ID・許可装備の純粋計算へ委譲します]
+#   処理: [1: ＋と装備の定義を構築処理内で共用し、能力値・習得ID・許可装備の純粋計算へ委譲します]
 #   引数: [
 #     base: base（Dictionary）
 #     monster: モンスター（Dictionary）
 #   ]
-#   戻り値: [result: モンスター・reconstructionのrebuild・modifiersを求めるための結果（Dictionary）]
+#   戻り値: [result: 補正後能力値・習得ID・許可装備・警告、または補正失敗（Dictionary）]
 # }
 func _rebuild_modifiers(base: Dictionary, monster: Dictionary) -> Dictionary:
 	var species: String = monster["species_id"]

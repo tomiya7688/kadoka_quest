@@ -27,15 +27,15 @@ ROOT = fixture.ROOT
 
 
 # {
-#   責務: [member: test・gdscript・ターン・順序の個体を求める]
-#   処理: [1: test・gdscript・ターン・順序の個体を求める]
+#   責務: [member: 指定ID・速度・HP・逃走状態を持つ順序比較用の資源辞書を作ります]
+#   処理: [1: 指定ID・速度・HP・逃走状態を持つ順序比較用の資源辞書を作ります]
 #   引数: [
-#     identifier: identifier
+#     identifier: 専用比較個体の識別ID
 #     speed: 素早さ
 #     hp: HP
 #     fled: 逃走済み
 #   ]
-#   戻り値: [result: test・gdscript・ターン・順序の個体を求めるための結果（型注釈なし）]
+#   戻り値: [result: 個体情報・能力値・現在HP/MP・生存と逃走を持つ資源辞書（dict）]
 # }
 def member(identifier, speed=10, *, hp=30, fled=False):
     return {"identity": combatant.identity(identifier), "stats": combatant.stats(speed=speed),
@@ -43,26 +43,26 @@ def member(identifier, speed=10, *, hp=30, fled=False):
 
 
 # {
-#   責務: [key: test・gdscript・ターン・順序のキーを求める]
-#   処理: [1: test・gdscript・ターン・順序のキーを求める]
+#   責務: [key: 戦闘参加者を識別するsideとidの辞書を作ります]
+#   処理: [1: 戦闘参加者を識別するsideとidの辞書を作ります]
 #   引数: [
 #     side: 陣営
-#     identifier: identifier
+#     identifier: 専用比較個体の識別ID
 #   ]
-#   戻り値: [result: test・gdscript・ターン・順序のキーを求めるための結果（型注釈なし）]
+#   戻り値: [result: sideとidを持つ独立辞書（dict）]
 # }
 def key(side, identifier):
     return {"side": side, "id": identifier}
 
 
 # {
-#   責務: [participants: test・gdscript・ターン・順序のparticipantsを求める]
-#   処理: [1: test・gdscript・ターン・順序のparticipantsを求める]
+#   責務: [participants: HPが正で未逃走の味方・敵を入力順でside/idの列へ投影します]
+#   処理: [1: HPが正で未逃走の味方・敵を入力順でside/idの列へ投影します]
 #   引数: [
 #     allies: 味方
 #     enemies: 敵
 #   ]
-#   戻り値: [result: test・gdscript・ターン・順序のparticipantsを求めるための結果（型注釈なし）]
+#   戻り値: [result: 生存参加者のside/id列（list）]
 # }
 def participants(allies, enemies):
     return [key(side, entry["identity"]["id"]) for side, team in (("allies", allies), ("enemies", enemies))
@@ -70,14 +70,14 @@ def participants(allies, enemies):
 
 
 # {
-#   責務: [request: test・gdscript・ターン・順序の要求を求める]
-#   処理: [1: test・gdscript・ターン・順序の要求を求める]
+#   責務: [request: 両陣営の資源と生存参加者の明示順を持つ検証要求を作ります]
+#   処理: [1: 両陣営の資源と生存参加者の明示順を持つ検証要求を作ります]
 #   引数: [
 #     allies: 味方
 #     enemies: 敵
-#     changes: changes
+#     changes: 比較ケース別の値や設定の上書き
 #   ]
-#   戻り値: [result: test・gdscript・ターン・順序の要求を求めるための結果（型注釈なし）]
+#   戻り値: [result: 両陣営・装備・明示順とケース別条件を持つ開始情報（dict）]
 # }
 def request(allies=None, enemies=None, **changes):
     allies = [member("ally")] if allies is None else allies

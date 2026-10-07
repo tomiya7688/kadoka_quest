@@ -24,13 +24,13 @@ var _initialized := false
 
 
 # {
-#   責務: [start: 戦闘個体・状態を開始する]
-#   処理: [1: 戦闘個体・状態を開始する]
+#   責務: [start: 個体情報と基礎能力値を検証し、未開始の戦闘個体を最大HP・MPで一度だけ初期化します]
+#   処理: [1: 個体情報と基礎能力値を検証し、未開始の戦闘個体を最大HP・MPで一度だけ初期化します]
 #   引数: [
 #     identity: identity（Variant）
 #     stats: 能力値（Variant）
 #   ]
-#   戻り値: [result: 戦闘個体・状態を開始するための結果（Dictionary）]
+#   戻り値: [result: 初期化の成功と独立した状態、またはok=falseと拒否理由（Dictionary）]
 # }
 func start(identity: Variant, stats: Variant) -> Dictionary:
 	if _initialized:
@@ -61,20 +61,20 @@ func snapshot() -> Dictionary:
 
 
 # {
-#   責務: [alive: 戦闘個体・状態のaliveを求める]
-#   処理: [1: 戦闘個体・状態のaliveを求める]
+#   責務: [alive: 戦闘個体が初期化済み・HP正・未逃走のすべてを満たすか返します]
+#   処理: [1: 戦闘個体が初期化済み・HP正・未逃走のすべてを満たすか返します]
 #   引数: []
-#   戻り値: [result: 戦闘個体・状態のaliveを求めるための結果（bool）]
+#   戻り値: [result: 初期化済み・HP正・未逃走ならtrue、それ以外false（bool）]
 # }
 func alive() -> bool:
 	return _initialized and _hp > 0 and not _fled
 
 
 # {
-#   責務: [take_damage: ダメージを反映する]
-#   処理: [1: ダメージを反映する]
-#   引数: [amount: 量（Variant）]
-#   戻り値: [result: ダメージを反映するための結果（Dictionary）]
+#   責務: [take_damage: 非負整数のダメージを現在HPまで適用し、実ダメージと残HPを返します]
+#   処理: [1: 非負整数のダメージを現在HPまで適用し、実ダメージと残HPを返します]
+#   引数: [amount: 非負整数の要求ダメージ量（Variant）]
+#   戻り値: [result: 要求量requested・実ダメージdealt・現在HPと生存判定、または理由付き拒否（Dictionary）]
 # }
 func take_damage(amount: Variant) -> Dictionary:
 	if not _initialized:
@@ -89,10 +89,10 @@ func take_damage(amount: Variant) -> Dictionary:
 
 
 # {
-#   責務: [mp_cost: 戦闘個体・状態のMP・消費量を求める]
-#   処理: [1: 戦闘個体・状態のMP・消費量を求める]
+#   責務: [mp_cost: 消費量を検証し、現在MPで支払えるか資源更新なしで返します]
+#   処理: [1: 消費量を検証し、現在MPで支払えるか資源更新なしで返します]
 #   引数: [cost: 消費量（Variant）]
-#   戻り値: [result: 戦闘個体・状態のMP・消費量を求めるための結果（Dictionary）]
+#   戻り値: [result: 要求消費量cost・支払い可否affordable・現在mp、または理由付き拒否（Dictionary）]
 # }
 func mp_cost(cost: Variant) -> Dictionary:
 	if not _initialized:
@@ -103,10 +103,29 @@ func mp_cost(cost: Variant) -> Dictionary:
 
 
 # {
-#   責務: [pay_mp: MPを支払う]
-#   処理: [1: MPを支払う]
+#   責務: [heal: 非負整数の回復量を現在HPへ加え、最大HPで止めます]
+#   処理: [1: 初期化と回復量を確認し、最大HPとの差分まで回復して実回復量を返します]
+#   引数: [amount: 安全な範囲の非負整数として扱える回復要求量（Variant）]
+#   戻り値: [result: 要求量requested・実回復量healed・現在hp、または理由付き拒否（Dictionary）]
+# }
+func heal(amount: Variant) -> Dictionary:
+	# 数値資源だけを更新する。逃走状態は解除せず、教会復活や勝敗判定も行わない。
+	if not _initialized:
+		return _failure("not_initialized")
+	if not _nonnegative_integer(amount):
+		return _failure("invalid_healing")
+	var previous := _hp
+	var healed := mini(_stats["hp"] - _hp, int(amount))
+	_hp += healed
+	return {"ok": true, "requested": int(amount), "previous_hp": previous,
+		"healed": healed, "hp": _hp, "alive": alive()}
+
+
+# {
+#   責務: [pay_mp: 支払える非負整数の消費量だけMPから引き、不足時はMPを保持します]
+#   処理: [1: 支払える非負整数の消費量だけMPから引き、不足時はMPを保持します]
 #   引数: [cost: 消費量（Variant）]
-#   戻り値: [result: MPを支払うための結果（Dictionary）]
+#   戻り値: [result: 実消費量spent・現在mp、または資源を保持した不足や不正入力の拒否（Dictionary）]
 # }
 func pay_mp(cost: Variant) -> Dictionary:
 	var checked := mp_cost(cost)
@@ -120,10 +139,10 @@ func pay_mp(cost: Variant) -> Dictionary:
 
 
 # {
-#   責務: [flee: 戦闘個体・状態を逃走状態を設定する]
-#   処理: [1: 戦闘個体・状態を逃走状態を設定する]
+#   責務: [flee: HPとMPを保持したまま戦闘個体を逃走済みにし、生存判定から除外します]
+#   処理: [1: HPとMPを保持したまま戦闘個体を逃走済みにし、生存判定から除外します]
 #   引数: []
-#   戻り値: [result: 戦闘個体・状態を逃走状態を設定するための結果（Dictionary）]
+#   戻り値: [result: 逃走更新の結果・現在HP/MP・生存判定、または未初期化の拒否（Dictionary）]
 # }
 func flee() -> Dictionary:
 	if not _initialized:
@@ -134,10 +153,10 @@ func flee() -> Dictionary:
 
 
 # {
-#   責務: [living: 戦闘個体・状態のlivingを求める]
-#   処理: [1: 戦闘個体・状態のlivingを求める]
+#   責務: [living: 戦闘資源の列を検証し、HPが正で未逃走の個体だけを独立コピーで返します]
+#   処理: [1: 戦闘資源の列を検証し、HPが正で未逃走の個体だけを独立コピーで返します]
 #   引数: [snapshots: snapshots（Variant）]
-#   戻り値: [result: 戦闘個体・状態のlivingを求めるための結果（Dictionary）]
+#   戻り値: [result: 生存個体の独立コピー列members、または拒否理由と失敗位置index（Dictionary）]
 # }
 static func living(snapshots: Variant) -> Dictionary:
 	if not snapshots is Array:
@@ -160,10 +179,10 @@ static func living(snapshots: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_validate_snapshot: 独立した状態の写しを妥当性を検査する]
-#   処理: [1: 独立した状態の写しを妥当性を検査する]
+#   責務: [_validate_snapshot: 資源6キーの構造・HP/MP上限・生存フラグの整合性を検証します]
+#   処理: [1: 資源6キーの構造・HP/MP上限・生存フラグの整合性を検証します]
 #   引数: [value: 値（Variant）]
-#   戻り値: [result: 独立した状態の写しを妥当性を検査するための結果（Dictionary）]
+#   戻り値: [result: 形式検証の成功ok、または戦闘資源の不正を示すreason（Dictionary）]
 # }
 static func _validate_snapshot(value: Variant) -> Dictionary:
 	if not value is Dictionary:
@@ -183,13 +202,13 @@ static func _validate_snapshot(value: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_validate_initial: initialを妥当性を検査する]
-#   処理: [1: initialを妥当性を検査する]
+#   責務: [_validate_initial: 安全な個体IDと非負整数の6能力値を検証し、最大HPが正であることを確認します]
+#   処理: [1: 安全な個体IDと非負整数の6能力値を検証し、最大HPが正であることを確認します]
 #   引数: [
 #     identity: identity（Variant）
 #     stats: 能力値（Variant）
 #   ]
-#   戻り値: [result: initialを妥当性を検査するための結果（Dictionary）]
+#   戻り値: [result: 初期情報の検証成功ok、または不正ID・能力値を示すreason（Dictionary）]
 # }
 static func _validate_initial(identity: Variant, stats: Variant) -> Dictionary:
 	if not identity is Dictionary:
@@ -210,10 +229,10 @@ static func _validate_initial(identity: Variant, stats: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_nonnegative_integer: 戦闘個体・状態のnonnegative・integerを求める]
-#   処理: [1: 戦闘個体・状態のnonnegative・integerを求める]
+#   責務: [_nonnegative_integer: 値が有限で精度上限以内の非負整数値か確認し、boolや数値文字列を拒否します]
+#   処理: [1: 値が有限で精度上限以内の非負整数値か確認し、boolや数値文字列を拒否します]
 #   引数: [value: 値（Variant）]
-#   戻り値: [result: 戦闘個体・状態のnonnegative・integerを求めるための結果（bool）]
+#   戻り値: [result: 有限で精度上限以内の非負整数値ならtrue、bool・文字列・不正値ならfalse（bool）]
 # }
 static func _nonnegative_integer(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) \
@@ -221,10 +240,10 @@ static func _nonnegative_integer(value: Variant) -> bool:
 
 
 # {
-#   責務: [_failure: 戦闘個体・状態のfailureを求める]
-#   処理: [1: 戦闘個体・状態のfailureを求める]
+#   責務: [_failure: 戦闘資源を変更せず、ok=falseと指定した拒否理由を返します]
+#   処理: [1: 戦闘資源を変更せず、ok=falseと指定した拒否理由を返します]
 #   引数: [reason: 理由（String）]
-#   戻り値: [result: 戦闘個体・状態のfailureを求めるための結果（Dictionary）]
+#   戻り値: [result: ok=falseと指定した拒否理由reasonを持つ辞書（Dictionary）]
 # }
 static func _failure(reason: String) -> Dictionary:
 	return {"ok": false, "reason": reason}

@@ -24,20 +24,20 @@ ROOT = fixture.ROOT
 
 
 # {
-#   責務: [identity: test・gdscript・戦闘個体のidentityを求める]
-#   処理: [1: test・gdscript・戦闘個体のidentityを求める]
-#   引数: [identifier: identifier]
-#   戻り値: [result: test・gdscript・戦闘個体のidentityを求めるための結果（型注釈なし）]
+#   責務: [identity: 専用比較個体のID・スライム種族・表示名を作ります]
+#   処理: [1: 専用比較個体のID・スライム種族・表示名を作ります]
+#   引数: [identifier: 専用比較個体の識別ID]
+#   戻り値: [result: id・species_id・nameを持つ個体情報（dict）]
 # }
 def identity(identifier="one"):
     return {"id": identifier, "species_id": "slime", "name": "比較個体"}
 
 
 # {
-#   責務: [stats: test・gdscript・戦闘個体の能力値を求める]
-#   処理: [1: test・gdscript・戦闘個体の能力値を求める]
-#   引数: [changes: changes]
-#   戻り値: [result: test・gdscript・戦闘個体の能力値を求めるための結果（型注釈なし）]
+#   責務: [stats: 6能力値の既定値へ指定した比較用の値を加えます]
+#   処理: [1: 6能力値の既定値へ指定した比較用の値を加えます]
+#   引数: [changes: 比較ケース別の値や設定の上書き]
+#   戻り値: [result: 指定した数値を持つ6能力値（dict）]
 # }
 def stats(**changes):
     return {**dict.fromkeys(STAT_KEYS, 10), "hp": 30, "mp": 7, **changes}
@@ -71,14 +71,14 @@ def action(kind, value=None, **changes):
 
 
 # {
-#   責務: [record: test・gdscript・戦闘個体の個体レコードを求める]
-#   処理: [1: test・gdscript・戦闘個体の個体レコードを求める]
+#   責務: [record: 専用個体の種族・レベル・＋・装備と学習状態を、実セーブから独立した辞書で作ります]
+#   処理: [1: 専用個体の種族・レベル・＋・装備と学習状態を、実セーブから独立した辞書で作ります]
 #   引数: [
-#     identifier: identifier
+#     identifier: 専用比較個体の識別ID
 #     species: 種族
-#     changes: changes
+#     changes: 比較ケース別の値や設定の上書き
 #   ]
-#   戻り値: [result: test・gdscript・戦闘個体の個体レコードを求めるための結果（型注釈なし）]
+#   戻り値: [result: 専用monsterとaiを持つ個体レコード（dict）]
 # }
 def record(identifier="one", species="slime", **changes):
     return {"monster": {**identity(identifier), "schema_version": 1, "species_id": species, "level": 1,

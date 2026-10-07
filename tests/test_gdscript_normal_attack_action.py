@@ -26,14 +26,14 @@ key = turn.key
 
 
 # {
-#   責務: [member: test・gdscript・normal・攻撃・actionの個体を求める]
-#   処理: [1: test・gdscript・normal・攻撃・actionの個体を求める]
+#   責務: [member: 指定ID・速度・最大HPで新鮮な通常攻撃比較用個体を作ります]
+#   処理: [1: 指定ID・速度・最大HPで新鮮な通常攻撃比較用個体を作ります]
 #   引数: [
-#     identifier: identifier
+#     identifier: 専用比較個体の識別ID
 #     speed: 素早さ
 #     hp: HP
 #   ]
-#   戻り値: [result: 独立した状態の写し（型注釈なし）]
+#   戻り値: [result: 個体情報・能力値・現在HP/MP・生存と逃走を持つ資源辞書（dict）]
 # }
 def member(identifier, speed=10, *, hp=30):
     snapshot = turn.member(identifier, speed, hp=hp)
@@ -42,16 +42,16 @@ def member(identifier, speed=10, *, hp=30):
 
 
 # {
-#   責務: [parameters: test・gdscript・normal・攻撃・actionのparametersを求める]
-#   処理: [1: test・gdscript・normal・攻撃・actionのparametersを求める]
+#   責務: [parameters: 指定した攻撃力・敵防御力・敵HP・装備から独立した戦闘開始情報を作ります]
+#   処理: [1: 指定した攻撃力・敵防御力・敵HP・装備から独立した戦闘開始情報を作ります]
 #   引数: [
 #     attack: 攻撃
 #     defense: 防御力
 #     hp: HP
 #     equipment: 装備
-#     changes: changes
+#     changes: 比較ケース別の値や設定の上書き
 #   ]
-#   戻り値: [result: test・gdscript・normal・攻撃・actionのparametersを求めるための結果（型注釈なし）]
+#   戻り値: [result: 両陣営・装備・明示順とケース別条件を持つ開始情報（dict）]
 # }
 def parameters(*, attack=100, defense=10, hp=1000, equipment=None, **changes):
     ally, enemy = member("ally", speed=20), member("enemy", hp=hp)
@@ -61,27 +61,27 @@ def parameters(*, attack=100, defense=10, hp=1000, equipment=None, **changes):
 
 
 # {
-#   責務: [hit: test・gdscript・normal・攻撃・actionのhitを求める]
-#   処理: [1: test・gdscript・normal・攻撃・actionのhitを求める]
+#   責務: [hit: 明示した敵対象へ通常攻撃を要求する専用操作を作ります]
+#   処理: [1: 明示した敵対象へ通常攻撃を要求する専用操作を作ります]
 #   引数: [
 #     target: 対象
-#     changes: changes
+#     changes: 比較ケース別の値や設定の上書き
 #   ]
-#   戻り値: [result: test・gdscript・normal・攻撃・actionのhitを求めるための結果（型注釈なし）]
+#   戻り値: [result: 通常攻撃の操作種別と敵対象を持つ辞書（dict）]
 # }
 def hit(target=None, **changes):
     return {"kind": "attack", "target": key("enemies", "enemy") if target is None else target, **changes}
 
 
 # {
-#   責務: [case: test・gdscript・normal・攻撃・actionのcaseを求める]
-#   処理: [1: test・gdscript・normal・攻撃・actionのcaseを求める]
+#   責務: [case: 戦闘開始情報と明示操作列を専用プローブへ渡す独立ケースを作ります]
+#   処理: [1: 戦闘開始情報と明示操作列を専用プローブへ渡す独立ケースを作ります]
 #   引数: [
-#     input: 入力
+#     input: 両陣営・装備・明示順の開始情報
 #     actions: actions
-#     changes: changes
+#     changes: 比較ケース別の値や設定の上書き
 #   ]
-#   戻り値: [result: test・gdscript・normal・攻撃・actionのcaseを求めるための結果（型注釈なし）]
+#   戻り値: [result: 独立したinputとactionsを持つ検証ケース（dict）]
 # }
 def case(input=None, actions=None, **changes):
     return {"input": parameters() if input is None else input,

@@ -403,3 +403,9 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 - `imports/acquire/`: 再走査で所有フォルダへコピー。同じ個体IDは上書きしない
 - `imports/simulation/`: コピーせず読み取り、模擬戦だけで使用。AI更新なし
 
+### GDScriptの単体魔法行動（実行時だけ）
+
+[単体魔法行動契約](GDScript魔法スキル行動契約.md)の開始情報には、既存snapshot・skill_ids・equipmentと別に、種族と許可装備から再構築したresistances辞書があります。snapshotのidentity・stats・hp・mp・fled・aliveという6キーと、保存JSON/schemaは変更しません。
+
+resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受けます。最新予約・習得・敵対象・現在MP/HPを検証し、一回分のclaim→実MP支払い→ダメージまたは最大HPで止まる吸収回復→finishを行います。会心値・耐性・威力・MPの要求側上書きは拒否します。無効・満タン吸収でもMPを消費し、基本ぼうぎょは魔法を軽減しません。不正・未対応・不足は予約と資源を保持し、死亡/逃走/敵なし取消は資源を消費しません。AI・戦闘画面・全スキルは未接続です。
+

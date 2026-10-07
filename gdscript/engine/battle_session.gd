@@ -28,7 +28,7 @@ var _guards: Dictionary = {"allies": {}, "enemies": {}}
 
 
 # {
-#   責務: [start: 戦闘・セッションを開始する]
+#   責務: [start: 新鮮な両陣営の資源を検証し、個体ID別の資源所有者と防御倍率を一度だけ設定します]
 #   処理: [
 #     1: 両陣営のfresh snapshotを検証し未公開のStateを構築する
 #     2: 全成功後にStateを所有し各guardを1にする
@@ -37,7 +37,7 @@ var _guards: Dictionary = {"allies": {}, "enemies": {}}
 #     allies: 味方（Variant）
 #     enemies: 敵（Variant）
 #   ]
-#   戻り値: [result: 戦闘・セッションを開始するための結果（Dictionary）]
+#   戻り値: [result: 初期化の成功と独立した状態、またはok=falseと拒否理由（Dictionary）]
 # }
 func start(allies: Variant, enemies: Variant) -> Dictionary:
 	if _phase != "not_started":
@@ -69,10 +69,10 @@ func start(allies: Variant, enemies: Variant) -> Dictionary:
 
 
 # {
-#   責務: [snapshot: 戦闘・セッションを状態を複製する]
-#   処理: [1: 戦闘・セッションを状態を複製する]
+#   責務: [snapshot: 戦闘段階・ラウンド・行動順・予約・両陣営資源を内部状態と独立した辞書で返します]
+#   処理: [1: 戦闘段階・ラウンド・行動順・予約・両陣営資源を内部状態と独立した辞書で返します]
 #   引数: []
-#   戻り値: [result: 戦闘・セッションを状態を複製するための結果（Dictionary）]
+#   戻り値: [result: 内部状態から独立した戦闘段階・予約・参加者資源の辞書（Dictionary）]
 # }
 func snapshot() -> Dictionary:
 	return {"phase": _phase, "round": _round, "cursor": _cursor, "order": _order.duplicate(true),
@@ -206,17 +206,32 @@ func finish(ticket: Variant) -> Dictionary:
 
 
 # {
-#   責務: [take_damage: ダメージを反映する]
-#   処理: [1: ダメージを反映する]
+#   責務: [take_damage: 指定したside/idの参加個体へダメージ適用を委譲し、実ダメージと現在HPを返します]
+#   処理: [1: 指定したside/idの参加個体へダメージ適用を委譲し、実ダメージと現在HPを返します]
 #   引数: [
-#     key: キー（Variant）
-#     amount: 量（Variant）
+#     key: sideとidで指定する戦闘参加個体（Variant）
+#     amount: 非負整数の要求ダメージ量（Variant）
 #   ]
-#   戻り値: [result: ダメージを反映するための結果（Dictionary）]
+#   戻り値: [result: 要求量・実ダメージ・現在HP、または理由付き拒否（Dictionary）]
 # }
 func take_damage(key: Variant, amount: Variant) -> Dictionary:
 	var checked := _resolve(key)
 	return checked if not checked["ok"] else _by_id[key["side"]][key["id"]].take_damage(amount)
+
+
+# {
+#   責務: [heal: 指定参加個体のHP回復を資源所有者へ委譲します]
+#   処理: [1: 初期化とside/idを検証し、combatant_state.gdへ最大HPで止まる回復を依頼します]
+#   引数: [
+#     key: 回復対象を指定するsideとid（Variant）
+#     amount: 非負整数の回復要求量（Variant）
+#   ]
+#   戻り値: [result: 個体の実回復量と現在HP、または理由付き拒否（Dictionary）]
+# }
+func heal(key: Variant, amount: Variant) -> Dictionary:
+	# 予約・逃走・勝敗を変更せず、HPの数値更新だけを担当個体へ委譲する。
+	var checked := _resolve(key)
+	return checked if not checked["ok"] else _by_id[key["side"]][key["id"]].heal(amount)
 
 
 # {
@@ -283,13 +298,13 @@ func mp_cost(key: Variant, cost: Variant) -> Dictionary:
 
 
 # {
-#   責務: [pay_mp: MPを支払う]
-#   処理: [1: MPを支払う]
+#   責務: [pay_mp: 指定したside/idの参加個体へMP支払いを委譲し、不正や不足時は資源を保持します]
+#   処理: [1: 指定したside/idの参加個体へMP支払いを委譲し、不正や不足時は資源を保持します]
 #   引数: [
-#     key: キー（Variant）
+#     key: sideとidで指定する戦闘参加個体（Variant）
 #     cost: 消費量（Variant）
 #   ]
-#   戻り値: [result: MPを支払うための結果（Dictionary）]
+#   戻り値: [result: 実消費量spent・現在mp、または資源を保持した不足や不正入力の拒否（Dictionary）]
 # }
 func pay_mp(key: Variant, cost: Variant) -> Dictionary:
 	var checked := _resolve(key)
@@ -297,10 +312,10 @@ func pay_mp(key: Variant, cost: Variant) -> Dictionary:
 
 
 # {
-#   責務: [flee: 戦闘・セッションを逃走状態を設定する]
-#   処理: [1: 戦闘・セッションを逃走状態を設定する]
-#   引数: [key: キー（Variant）]
-#   戻り値: [result: 戦闘・セッションを逃走状態を設定するための結果（Dictionary）]
+#   責務: [flee: 指定した参加個体をHPとMPを保持した逃走状態へ変更します]
+#   処理: [1: 指定した参加個体をHPとMPを保持した逃走状態へ変更します]
+#   引数: [key: sideとidで指定する戦闘参加個体（Variant）]
+#   戻り値: [result: 逃走更新の結果・現在HP/MP・生存判定、または未初期化の拒否（Dictionary）]
 # }
 func flee(key: Variant) -> Dictionary:
 	var checked := _resolve(key)
@@ -308,10 +323,10 @@ func flee(key: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_resolve: 戦闘・セッションを解決する]
-#   処理: [1: 戦闘・セッションを解決する]
-#   引数: [key: キー（Variant）]
-#   戻り値: [result: 戦闘・セッションを解決するための結果（Dictionary）]
+#   責務: [_resolve: Sessionの初期化とside/idの形式・存在を確認し、指定個体への資源操作を許可または拒否します]
+#   処理: [1: Sessionの初期化とside/idの形式・存在を確認し、指定個体への資源操作を許可または拒否します]
+#   引数: [key: sideとidで指定する戦闘参加個体（Variant）]
+#   戻り値: [result: 指定個体の検証成功ok、または未初期化・不正キー・欠落個体のreason（Dictionary）]
 # }
 func _resolve(key: Variant) -> Dictionary:
 	if _phase == "not_started":
@@ -324,10 +339,10 @@ func _resolve(key: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_check_ticket: 行動権チケットを検査する]
-#   処理: [1: 行動権チケットを検査する]
+#   責務: [_check_ticket: 現在の予約と指定ticketのラウンド・位置・行動者が厳密に一致するか検証します]
+#   処理: [1: 現在の予約と指定ticketのラウンド・位置・行動者が厳密に一致するか検証します]
 #   引数: [ticket: 行動権チケット（Variant）]
-#   戻り値: [result: 行動権チケットを検査するための結果（Dictionary）]
+#   戻り値: [result: 予約一致の成功ok、または欠落・不正・不一致を示すreason（Dictionary）]
 # }
 func _check_ticket(ticket: Variant) -> Dictionary:
 	if _phase == "not_started":
@@ -345,10 +360,10 @@ func _check_ticket(ticket: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_check: 戦闘・セッションを検査する]
-#   処理: [1: 戦闘・セッションを検査する]
+#   責務: [_check: 最新資源を順序契約へ渡し、指定行動者の生存・逃走・敵の有無を確認します]
+#   処理: [1: 最新資源を順序契約へ渡し、指定行動者の生存・逃走・敵の有無を確認します]
 #   引数: [key: キー（Dictionary）]
-#   戻り値: [result: 戦闘・セッションを検査するための結果（Dictionary）]
+#   戻り値: [result: 行動者の実行可否can_act・友軍friends・敵foes・停止判定stop（Dictionary）]
 # }
 func _check(key: Dictionary) -> Dictionary:
 	var teams := _snapshots()
@@ -356,10 +371,10 @@ func _check(key: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_snapshots: 戦闘・セッションのsnapshotsを求める]
-#   処理: [1: 戦闘・セッションのsnapshotsを求める]
+#   責務: [_snapshots: 各資源所有者から最新の資源コピーを取得し、指定陣営の列として返します]
+#   処理: [1: 各資源所有者から最新の資源コピーを取得し、指定陣営の列として返します]
 #   引数: []
-#   戻り値: [result: 戦闘・セッションのsnapshotsを求めるための結果（Dictionary）]
+#   戻り値: [result: 指定陣営の参加順で並べた最新の戦闘資源コピー列（Array）]
 # }
 func _snapshots() -> Dictionary:
 	var teams := {"allies": [], "enemies": []}
@@ -370,10 +385,10 @@ func _snapshots() -> Dictionary:
 
 
 # {
-#   責務: [_both_sides_alive: 戦闘・セッションのboth・sides・aliveを求める]
-#   処理: [1: 戦闘・セッションのboth・sides・aliveを求める]
+#   責務: [_both_sides_alive: 両陣営それぞれにHPが正で未逃走の参加個体がいるか確認します]
+#   処理: [1: 両陣営それぞれにHPが正で未逃走の参加個体がいるか確認します]
 #   引数: []
-#   戻り値: [result: 戦闘・セッションのboth・sides・aliveを求めるための結果（bool）]
+#   戻り値: [result: 両陣営に生存・未逃走の参加個体がいる場合true、それ以外false（bool）]
 # }
 func _both_sides_alive() -> bool:
 	for side in Order.SIDES:
@@ -386,10 +401,10 @@ func _both_sides_alive() -> bool:
 
 
 # {
-#   責務: [_update_phase: 進行段階を更新する]
-#   処理: [1: 敵なしまたはカーソル末尾ならguard解除を伴う終端処理へ委譲する]
+#   責務: [_update_phase: 最新生存とカーソルを確認し、戦闘停止またはラウンド終端へ段階を更新します]
+#   処理: [1: 最新生存とカーソルを確認し、戦闘停止またはラウンド終端へ段階を更新します]
 #   引数: []
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）。最新生存とカーソルに応じて戦闘段階を更新します]
 # }
 func _update_phase() -> void:
 	if not _both_sides_alive():
@@ -399,10 +414,10 @@ func _update_phase() -> void:
 
 
 # {
-#   責務: [_end_round: 正常末尾と敵なし停止で全guardだけを解除する]
-#   処理: [1: 終端phaseを設定し死亡・逃走を含む全参加者の倍率を1へ戻す]
+#   責務: [_end_round: HPとMPを保持し、全個体のラウンド限定防御倍率を1へ戻します]
+#   処理: [1: HPとMPを保持し、全個体のラウンド限定防御倍率を1へ戻します]
 #   引数: [phase: round_finishedまたはstopped（String）]
-#   戻り値: [result: なし（void）。HP/MP/fledは保持する]
+#   戻り値: [result: なし（void）。指定段階を設定し、全個体のラウンド限定防御倍率を1へ戻します]
 # }
 func _end_round(phase: String) -> void:
 	_phase = phase
@@ -412,10 +427,10 @@ func _end_round(phase: String) -> void:
 
 
 # {
-#   責務: [_failure: 戦闘・セッションのfailureを求める]
-#   処理: [1: 戦闘・セッションのfailureを求める]
+#   責務: [_failure: Sessionを変更せず、ok=falseと指定した拒否理由を返します]
+#   処理: [1: Sessionを変更せず、ok=falseと指定した拒否理由を返します]
 #   引数: [reason: 理由（String）]
-#   戻り値: [result: 戦闘・セッションのfailureを求めるための結果（Dictionary）]
+#   戻り値: [result: ok=falseと指定した拒否理由reasonを持つ辞書（Dictionary）]
 # }
 func _failure(reason: String) -> Dictionary:
 	return {"ok": false, "reason": reason}
