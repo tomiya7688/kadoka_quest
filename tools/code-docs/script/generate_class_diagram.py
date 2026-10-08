@@ -45,10 +45,14 @@ def render_class_diagram(source_root: Path) -> str:
 
 
 # {
-#   責務: [main: generate・クラス・diagramのエントリ処理を実行する]
-#   処理: [1: generate・クラス・diagramのエントリ処理を実行する]
+#   責務: [main: Pythonのクラス図をMermaidへ出力し、--checkでは保存済みの図の鮮度を照合します]
+#   処理: [
+#     1: CLIで指定されたPythonソースからクラス図の本文を生成します
+#     2: --check指定時は既存ファイルと比較し、不一致や欠落なら失敗を返します
+#     3: --checkがなければ指定出力先へUTF-8のMermaid本文を保存します
+#   ]
 #   引数: []
-#   戻り値: [result: generate・クラス・diagramのエントリ処理を実行するための結果（int）]
+#   戻り値: [result: 図の保存または鮮度の一致なら0、--checkで不一致や欠落なら1（int）]
 # }
 def main() -> int:
     parser = argparse.ArgumentParser(

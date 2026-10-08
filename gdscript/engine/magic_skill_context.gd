@@ -6,6 +6,7 @@ extends RefCounted
 const Preparation = preload("res://engine/physical_skill_context.gd")
 const Quote = preload("res://engine/magic_skill_contract.gd")
 const SelfDamageQuote = preload("res://engine/self_damage_magic_contract.gd")
+const DrainMpQuote = preload("res://engine/drain_mp_skill_contract.gd")
 const Resistance = preload("res://engine/elemental_resistance.gd")
 const Numbers = preload("res://engine/stat_numbers.gd")
 
@@ -44,11 +45,15 @@ static func prepare(teams: Variant, skills: Variant) -> Dictionary:
 #     context: prepareで構築した独立情報（Dictionary）
 #     actor: 検証済み行動者のsideとid（Dictionary）
 #     skill_id: 使用する魔法ID（Variant）
-#     self_damage: trueなら自傷付き、falseなら自傷なしの定義だけを選択する設定（bool）
+#     self_damage: trueなら自傷付き定義を選びます。falseなら自傷を扱いません（bool）
+#     drain_mp: trueなら吸MP定義だけを選択する設定。self_damageとの同時指定は拒否します（bool）
 #   ]
 #   戻り値: [result: skillとfixed_bonus_damage、または理由付き拒否（Dictionary）]
 # }
-static func select(context: Dictionary, actor: Dictionary, skill_id: Variant, self_damage: bool = false) -> Dictionary:
+static func select(context: Dictionary, actor: Dictionary, skill_id: Variant, self_damage: bool = false, drain_mp: bool = false) -> Dictionary:
+	# 未対応の複合効果を一方の予測だけで成功させないため、区分の同時指定を拒否します。
+	if self_damage and drain_mp:
+		return {"ok": false, "reason": "invalid_magic_mode"}
 	# 行動要求から習得や装備を上書きさせず、開始時の正規情報だけを使う。
 	if not skill_id is String or skill_id.is_empty():
 		return {"ok": false, "reason": "invalid_skill_id"}
@@ -58,7 +63,11 @@ static func select(context: Dictionary, actor: Dictionary, skill_id: Variant, se
 	if skill_id not in member["skill_ids"]:
 		return {"ok": false, "reason": "skill_not_learned"}
 	# 固定した区分の検証だけを使い、未対応の自傷効果を通常魔法として黙って無視しない。
-	var contract: GDScript = SelfDamageQuote if self_damage else Quote
+	var contract: GDScript = Quote
+	if self_damage:
+		contract = SelfDamageQuote
+	elif drain_mp:
+		contract = DrainMpQuote
 	var selected: Dictionary = contract.prepare({"schema_version": 1, "skills": context["definitions"].get(skill_id, [])}, skill_id)
 	if not selected["ok"]:
 		return selected

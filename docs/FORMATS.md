@@ -411,7 +411,13 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 ### GDScriptの吸MP魔法予測（実行時だけ）
 
-[吸MPスキル予測契約](GDScript吸MPスキル予測契約.md)はkind:drain_mpと任意のmp_power（省略時0.12）を持つ既存形式の定義を使います。通常魔法の要求に非負整数のactor_max_mp/target_mpを加え、MP消費後の敵MP喪失と術者最大MPまでの回復を別々に予測します。結果はscope:drain_mp_skill_quote、mp_after_payment・drained_mp・recovered_mp・remaining_target_mp・吸収後remaining_mp等です。敵HP0でもMP吸収を予測し、無効/吸収耐性ではMP吸収しません。実HP/MP・Session・保存JSON/schemaは変更せず、実適用・AI・画面は未接続です。未知効果/要求はfalse・0・空でも拒否します。
+[吸MPスキル予測契約](GDScript吸MPスキル予測契約.md)はkind:drain_mpと任意のmp_power（省略時0.12）を持つ既存形式の定義を使います。通常魔法の要求に非負整数のactor_max_mp/target_mpを加え、MP消費後の敵MP喪失と術者最大MPまでの回復を別々に予測します。結果はscope:drain_mp_skill_quote、mp_after_payment・drained_mp・recovered_mp・remaining_target_mp・吸収後remaining_mp等です。敵HP0でもMP吸収を予測し、無効/吸収耐性ではMP吸収しません。予測APIは実HP/MP・Session・保存JSON/schemaを変更しません。Session実適用は次の専用入口へ接続し、AI・画面は未接続です。未知効果/要求はfalse・0・空でも拒否します。
+
+### GDScriptの吸MP魔法行動（実行時だけ）
+
+[吸MPスキル行動契約](GDScript吸MPスキル行動契約.md)のresolve_drain_mp_skillは、厳密な{ticket,target,skill_id,variance}だけを受けます。術者の最大MP・敵の現在MPは最新Sessionから取得し、要求側のMP・係数・喪失量・回復量の上書きを拒否します。吸MP行動は最新予約・習得・許可装備・敵対象・資源を検証し、単一claim→実MP消費→敵HP効果→敵MP喪失→術者MP回復→finishを行います。吸MP行動は敵撃破後もMPを奪い、術者の最大MPで回復を制限します。無効/吸収耐性ではMPを奪わず、不正・不足・取消・重複では追加消費しません。
+
+吸MP行動の結果はscope:explicit_drain_mp_magic_onlyとし、予測numbersと別に実消費spent_mp・敵の実喪失drained_mp・術者の実回復recovered_mpを返します。数値資源APIのrestore_mpは非負整数を検証し、空きMPで制限した実回復量を返します。restore_mpはHP・fled・予約・段階を変えず、死亡/逃走個体への数値MP回復も復活・逃走解除を意味しません。snapshotの6キー・正規data/assets・個体/AI/items/partyの保存JSON/schemaは変更しません。通常/自傷の魔法入口は吸MPを拒否し、AI・戦闘画面は未接続です。
 
 ### GDScriptの自傷魔法予測（実行時だけ）
 

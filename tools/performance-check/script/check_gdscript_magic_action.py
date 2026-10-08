@@ -1,4 +1,4 @@
-"""通常・自傷の単体魔法の実MP/HP適用を実Godotで測定します。Playerと実セーブは使用しません。"""
+"""通常・自傷・吸MP魔法の実HP/MP適用を実Godotで測定します。Playerと実セーブは使用しません。"""
 # {
 #   責務: [check_gdscript_magic_action: 単体魔法行動の時間・HP/MPの実適用を確認する開発専用CLIです]
 #   フィールド: []
@@ -31,7 +31,7 @@ class MagicActionBenchmark:
     #   引数: [
     #     self: 計測条件の所有者
     #     godot: 使用するGodot実行ファイルのパス（str）
-    #     arguments: iterations/samples/warmup/self_damageを持つCLI引数（argparse.Namespace）
+    #     arguments: iterations/samples/warmupと排他的なself_damage/drain_mpを持つCLI引数（argparse.Namespace）
     #   ]
     #   戻り値: [result: なし（None）]
     # }
@@ -40,7 +40,7 @@ class MagicActionBenchmark:
         self.godot = godot
         self.configuration = {"performance": True, "iterations": max(1, arguments.iterations),
                               "samples": max(1, arguments.samples), "warmup": max(0, arguments.warmup),
-                              "self_damage": arguments.self_damage}
+                              "self_damage": arguments.self_damage, "drain_mp": arguments.drain_mp}
 
     # {
     #   責務: [run: 専用JSONで実Godotを起動し、診断と計測結果を確認します]
@@ -69,7 +69,7 @@ class MagicActionBenchmark:
         return self._check_output(process.stdout)
 
     # {
-    #   責務: [_check_output: 時間上限・実MP消費・ダメージ・無効・吸収回復を照合します]
+    #   責務: [_check_output: 時間上限・HP効果・累積MP純減・自傷代償/吸MP上限適用を照合します]
     #   処理: [1: プローブ結果を読み取り、性能と資源の期待値を確認します]
     #   引数: [
     #     self: 計測条件の所有者
@@ -83,10 +83,15 @@ class MagicActionBenchmark:
             if not line.startswith("KADOKA_MAGIC_ACTION_PERFORMANCE="):
                 continue
             result = json.loads(base64.b64decode(line.split("=", 1)[1]))
+            if result.get("ok") is False:
+                print(f"FAIL: {result['reason']}")
+                return 1
             passed = (result["microseconds"] <= 3000 and result["actors"] == 8 and result["hp_changed"]
                       and result["spent_mp"] == result["expected_spent_mp"] and result["minimum_hp"] >= 1
-                      and result["self_dealt"] == result["expected_self_dealt"])
+                      and result["self_dealt"] == result["expected_self_dealt"] and result["mp_applied"])
             mode = "self-magic" if self.configuration["self_damage"] else "magic"
+            if self.configuration["drain_mp"]:
+                mode = "drain-MP"
             print(f"{'OK' if passed else 'FAIL'} Godot next+{mode}(validate/claim/MP/HP/finish) {result['microseconds']:.2f}us <= 3000us "
                   f"[{result['iterations']} iterations, {result['samples']} samples, {result['warmup']} warmup; 8 actors, damage/immune/absorb/strong]")
             return 0 if passed else 1
@@ -109,7 +114,9 @@ def main() -> int:
     parser.add_argument("--iterations", type=int, default=20_000)
     parser.add_argument("--samples", type=int, default=7)
     parser.add_argument("--warmup", type=int, default=2_000)
-    parser.add_argument("--self-damage", action="store_true", help="自傷付き単体魔法の敵HP・術者HP代償を実適用して測定します")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--self-damage", action="store_true", help="自傷付き魔法の敵HP・術者HP代償を実適用して測定します")
+    modes.add_argument("--drain-mp", action="store_true", help="吸MP魔法の敵HP/MP・術者MPを実適用します。総反復数は8の倍数にしてください")
     arguments = parser.parse_args()
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
     if not godot:

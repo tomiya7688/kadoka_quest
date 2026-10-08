@@ -67,6 +67,7 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 	var physical: RefCounted
 	var magic: RefCounted
 	var self_magic: RefCounted
+	var drain_magic: RefCounted
 	var initialized: Dictionary
 	if joined:
 		session = Application.new(Repository.new(OS.get_environment("KADOKA_CONTENT_ROOT")))
@@ -84,6 +85,8 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 			magic = Magic.new(session)
 		if case.get("self_damage_magic", false):
 			self_magic = Magic.new(session, true)
+		if case.get("drain_mp_magic", false):
+			drain_magic = Magic.new(session, case.get("conflicting_magic", false), true)
 		var teams := {"allies": [], "enemies": []}
 		for side in Order.SIDES:
 			for member: Dictionary in input.get(side, []):
@@ -101,6 +104,8 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 			initialized = magic.start(case.get("magic_context", teams), input.get("skills"))
 		if initialized["ok"] and case.get("self_damage_magic", false):
 			initialized = self_magic.start(case.get("magic_context", teams), input.get("skills"))
+		if initialized["ok"] and case.get("drain_mp_magic", false):
+			initialized = drain_magic.start(case.get("magic_context", teams), input.get("skills"))
 		if initialized["ok"]:
 			initialized = session.begin_round(input["shuffle_order"])
 	var initial := initialized.duplicate(true)
@@ -112,7 +117,7 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 		var pending: Variant = session.snapshot()["pending"]
 		if pending is Dictionary:
 			last_ticket = pending["ticket"].duplicate(true)
-		var value := _execute(session, attack, action, input, last_ticket, joined, defend, physical, magic, self_magic)
+		var value := _execute(session, attack, action, input, last_ticket, joined, defend, physical, magic, self_magic, drain_magic)
 		var copied := value.duplicate(true)
 		if action.get("mutate_result", false):
 			_mutate(value)
@@ -140,11 +145,12 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 #     physical: MP付き物理Action。通常ケースではnull（RefCounted）
 #     magic: MP付き単体魔法Action。通常ケースではnull（RefCounted）
 #     self_magic: 自傷付き単体魔法Action。自傷魔法以外の試験ではnull（RefCounted）
+#     drain_magic: 吸MP専用魔法Action。吸MP以外の純粋試験またはapplication試験ではnull（RefCounted）
 #   ]
 #   戻り値: [result: 操作を委譲した担当モジュールの結果または不明操作の拒否（Dictionary）]
 # }
 func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input: Dictionary, ticket: Variant,
-	joined: bool, defend: RefCounted, physical: RefCounted, magic: RefCounted, self_magic: RefCounted) -> Dictionary:
+	joined: bool, defend: RefCounted, physical: RefCounted, magic: RefCounted, self_magic: RefCounted, drain_magic: RefCounted) -> Dictionary:
 	match action["kind"]:
 		"next": return session.next_actor()
 		"begin": return session.begin_round(action.get("order", input["shuffle_order"]))
@@ -177,10 +183,11 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 					request[special] = INF if action["special"][special] == "inf" else NAN
 			return session.resolve_physical_skill(request) if joined else physical.resolve(request)
 		"configure_physical": return physical.start(null, null)
-		"magic", "self_magic":
+		"magic", "self_magic", "drain_magic":
 			# 魔法は会心値を持たず、耐性・MP・威力の上書きも受け付けない。
+			var defaults := {"magic": "weaken", "self_magic": "metal_burst", "drain_magic": "possess"}
 			var request: Variant = action.get("request", {"ticket": ticket, "target": action.get("target"),
-				"skill_id": action.get("skill_id", "metal_burst" if action["kind"] == "self_magic" else "weaken"), "variance": 1.0})
+				"skill_id": action.get("skill_id", defaults[action["kind"]]), "variance": 1.0})
 			if request is Dictionary:
 				request = request.duplicate(true)
 				request.merge(action.get("overrides", {}), true)
@@ -188,15 +195,23 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 					request[special] = INF if action["special"][special] == "inf" else NAN
 			if action["kind"] == "self_magic":
 				return session.resolve_self_damage_magic_skill(request) if joined else self_magic.resolve(request)
+			if action["kind"] == "drain_magic":
+				return session.resolve_drain_mp_skill(request) if joined else drain_magic.resolve(request)
 			return session.resolve_magic_skill(request) if joined else magic.resolve(request)
 		"configure_magic": return magic.start(null, null)
 		"configure_self_magic": return self_magic.start(null, null)
+		"configure_drain_magic": return drain_magic.start(null, null)
 		"resistance": return Resistance.prepare(action.get("species"), action.get("equipment"))
 		"heal":
 			var amount: Variant = action.get("amount")
 			if action.has("special"):
 				amount = INF if action["special"] == "inf" else NAN
 			return session.heal(action.get("actor"), amount)
+		"restore_mp":
+			var amount: Variant = action.get("amount")
+			if action.has("special"):
+				amount = INF if action["special"] == "inf" else NAN
+			return session.restore_mp(action.get("actor"), amount)
 		"apply_defend":
 			var guard: Variant = action.get("guard", 0.5)
 			if action.has("special"):
@@ -231,7 +246,8 @@ func _mutate(value: Variant) -> void:
 		for entry: Variant in value.values():
 			_mutate(entry)
 		for key in ["hp", "mp", "round", "slot", "cursor", "speed", "attack", "power", "fixed_bonus_damage",
-			"power_multiplier", "damage_multiplier", "applied_guard", "self_damage_ratio", "self_damage", "self_dealt", "remaining_actor_hp"]:
+			"power_multiplier", "damage_multiplier", "applied_guard", "self_damage_ratio", "self_damage", "self_dealt", "remaining_actor_hp",
+			"mp_power", "drained_mp", "recovered_mp", "remaining_mp", "remaining_target_mp", "mp_after_payment"]:
 			if value.has(key):
 				value[key] = 999
 		if value.has("id"):

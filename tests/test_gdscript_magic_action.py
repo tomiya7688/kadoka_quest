@@ -17,12 +17,12 @@ from kadoka_quest.core.monster import MonsterRecord
 from kadoka_quest.data.battle_data import BattleDataLoader
 
 # {
-#   責務: [magic_hit: 魔法用の敵対象とスキルIDを明示した操作を作ります]
+#   責務: [magic_hit: 通常魔法の専用プローブへ敵対象・スキルIDとケース別設定を渡す操作を作ります]
 #   処理: [1: 魔法用の敵対象とスキルIDを明示した操作を作ります]
 #   引数: [
-#     changes: ケース別の要求設定
+#     changes: 敵対象・スキルID・揺らぎ・不正要求等のケース別設定（dict）
 #   ]
-#   戻り値: [result: 検証用の独立データまたは比較結果]
+#   戻り値: [result: 通常魔法の専用操作種別と要求設定を持つ辞書（dict）]
 # }
 def magic_hit(**changes):
     return {"kind": "magic", "target": normal.key("enemies", "enemy"), "skill_id": "weaken", **changes}
@@ -31,11 +31,11 @@ def magic_hit(**changes):
 #   責務: [magic_case: 開始情報を独立コピーし、単体魔法用の専用ケースを作ります]
 #   処理: [1: 開始情報を独立コピーし、単体魔法用の専用ケースを作ります]
 #   引数: [
-#     source: 開始時の両陣営・習得・装備・耐性
-#     steps: 明示操作列または既定の魔法1回
-#     changes: ケース別のプローブ設定
+#     source: 開始時の両陣営・習得・装備・耐性。Noneなら専用初期値（dictまたはNone）
+#     steps: 明示操作列。Noneなら次行動取得と通常魔法1回（listまたはNone）
+#     changes: 初期化・コピー編集等のケース別プローブ設定（dict）
 #   ]
-#   戻り値: [result: 検証用の独立データまたは比較結果]
+#   戻り値: [result: 開始情報の独立コピーと明示操作列を持つ魔法試験ケース（dict）]
 # }
 def magic_case(*, source=None, steps=None, **changes):
     source = normal.parameters() if source is None else copy.deepcopy(source)
@@ -69,17 +69,17 @@ class MagicActionTests(unittest.TestCase):
     write = normal.GDScriptNormalActionTests.write
 
     # {
-    #   責務: [_python_action: 選択だけを固定し、Pythonの実MP支払いと魔法のHP変化を比較します]
-    #   処理: [1: 選択だけを固定し、Pythonの実MP支払いと魔法のHP変化を比較します]
+    #   責務: [_python_action: AI選択と揺らぎを固定し、実_take_actionのMP支払いと魔法のHP変化を取得します]
+    #   処理: [1: 独立戦闘個体へ資源・装備・耐性を設定し、学習せず実Pythonの魔法行動を実行します]
     #   引数: [
-    #     self: 専用fixtureの所有者
-    #     source: 比較する能力値・装備・耐性
-    #     definition: 選択した単体魔法
-    #     variance: 明示揺らぎ
-    #     target_hp: 操作後の対象HPまたは初期値
-    #     guard: 対象の基本防御倍率
+    #     self: 専用コンテンツとPython比較先の所有者
+    #     source: 比較する両陣営資源・装備・耐性（dict）
+    #     definition: 選択した単体魔法定義（dict）
+    #     variance: Pythonへ明示するダメージ揺らぎ（float）
+    #     target_hp: 敵の比較時点HP。Noneなら開始情報のHP（intまたはNone）
+    #     guard: 敵の基本防御倍率。魔法では軽減に使用しません（float）
     #   ]
-    #   戻り値: [result: 検証用の独立データまたは比較結果]
+    #   戻り値: [result: 実攻撃後の敵HP remaining_hpと術者MP remaining_mp（dict）]
     # }
     def _python_action(self, source, definition, variance, target_hp=None, guard=1.0):
         # AI選択だけを固定し、数値計算・支払い・適用は実_take_actionを使う。

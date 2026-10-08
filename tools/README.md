@@ -54,11 +54,14 @@ python tools/performance-check/script/check_gdscript_physical_action.py
 python tools/performance-check/script/check_gdscript_magic_skill.py
 python tools/performance-check/script/check_gdscript_magic_action.py
 python tools/performance-check/script/check_gdscript_magic_action.py --self-damage
+python tools/performance-check/script/check_gdscript_magic_action.py --drain-mp
 python tools/performance-check/script/check_gdscript_self_damage_magic.py
 python tools/performance-check/script/check_gdscript_drain_mp_skill.py
 ```
 
 吸MP付き魔法の純粋予測性能はcheck_gdscript_drain_mp_skill.pyで測ります。開発者はKADOKA_GODOT_EXECUTABLEを設定して実行してください。標準20000回・7サンプル・2000回の事前実行で予測1回を測り、中央値3000us以内、敵HP975・術者MP19・敵MP66、敵MP喪失/術者MP回復がともに14と元入力の保持を確認します。起動・読込・実資源更新・描画・AIは測りません。Godot未指定は終了コード2の未検証です。入力と失敗対応は[吸MPスキル予測契約](../docs/GDScript吸MPスキル予測契約.md)を確認してください。
+
+吸MP魔法の実適用性能はcheck_gdscript_magic_action.py --drain-mpで測ります。開発者はKADOKA_GODOT_EXECUTABLEを設定して実行してください。専用8体の1行動を標準20000回・7サンプル・2000回の事前実行で測り、中央値3000us以内、各行動の実MP移転・8体の累積資源・HP変化を確認します。専用係数0.7を使い、無効/吸収ではMPを奪いません。初回の満タン回復で味方2体が各2MPを回復できないため、累積MP純減は総行動数×消費MP5に4を加えた量です。総反復数が8未満または8の倍数でない設定は拒否します。実セーブ・描画・AIの性能は測りません。入力と失敗対応は[吸MPスキル行動契約](../docs/GDScript吸MPスキル行動契約.md)を確認してください。
 
 自傷魔法の実適用性能はcheck_gdscript_magic_action.py --self-damageで測ります。開発者はKADOKA_GODOT_EXECUTABLEを設定して実行してください。専用8体の1行動を標準20000回・7サンプル・2000回の事前実行で測り、中央値3000us以内と累積MP消費・敵HP効果・術者HP代償を確認します。全員の生存を維持する専用MOD率1e-9を使い、正規率0.1とHP1下限は回帰テストへ分けます。実セーブ・描画・AIの性能は測りません。入力・資源・失敗対応は[自傷魔法行動契約](../docs/GDScript自傷魔法行動契約.md)を確認してください。
 

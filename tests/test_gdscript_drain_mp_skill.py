@@ -23,10 +23,10 @@ from kadoka_quest.data.repository import STAT_KEYS
 # }
 class DrainMpBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_prediction_has_no_state_or_scene_dependency: 純粋予測の依存と通常行動への未接続を確認します]
+    #   責務: [test_prediction_has_no_state_or_scene_dependency: 純粋予測のI/O不使用と、applicationが数値計算を所有しない境界を確認します]
     #   処理: [
     #     1: 吸MP契約の禁止依存を確認します
-    #     2: 既存applicationと通常魔法行動が吸MP契約を使用していないか確認します
+    #     2: 呼び出し層と通常魔法契約が吸MP数値予測を直接所有していないか確認します
     #   ]
     #   引数: [self: 予測の依存境界を検証するテストケース]
     #   戻り値: [result: なし（None）]
@@ -37,9 +37,9 @@ class DrainMpBoundaryTests(unittest.TestCase):
         for forbidden in ("FileAccess", "DirAccess", "res://application/", "res://data/", "res://ui/",
                           "battle_session", ".pay_mp(", ".take_damage(", "randf(", "RandomNumberGenerator"):
             self.assertNotIn(forbidden, source)
-        # 純粋予測の追加を、実際の吸MP行動やScene接続の完了と取り違えない。
+        # 専用区分の実適用を魔法行動へ接続しても、applicationやSceneへ数値計算を移しません。
         for name in ("application/battle_session_application", "application/field_application",
-                     "engine/magic_skill_action", "engine/magic_skill_contract"):
+                     "engine/magic_skill_contract"):
             self.assertNotIn("drain_mp_skill_contract",
                              (fixture.ROOT / f"gdscript/{name}.gd").read_text(encoding="utf-8"))
 

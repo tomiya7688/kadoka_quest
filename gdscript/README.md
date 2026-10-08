@@ -170,9 +170,11 @@ MPを消費する単体魔法の[予測契約](../docs/GDScript魔法スキル�
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_magic_action.py --self-damage
 ```
 
-[吸MPスキル予測契約](../docs/GDScript吸MPスキル予測契約.md)はpossessの敵HP・敵MP喪失・術者MP回復を、入力を変更せず予測します。MP消費後に回復し、敵のMP喪失と術者最大MPによる回復上限を分離します。敵を倒した後もMP吸収を予測し、無効/吸収耐性ではMP吸収しません。Sessionへの実適用・AI・画面は未接続です。開発者は上記と同じGodot/Python環境で次の検証を実行してください。実セーブは使用しません。
+[吸MPスキル予測契約](../docs/GDScript吸MPスキル予測契約.md)はpossessの敵HP・敵MP喪失・術者MP回復を、入力を変更せず予測します。[吸MPスキル行動契約](../docs/GDScript吸MPスキル行動契約.md)は専用入口から最新予約・習得・敵対象・資源を検証し、Sessionへ実適用します。MP消費後に回復し、敵のMP喪失と術者最大MPによる回復上限を分離します。敵を倒した後もMPを奪い、無効/吸収耐性では奪いません。AI・画面は未接続です。開発者は上記と同じGodot/Python環境で次の検証を実行してください。実セーブは使用しません。
 
 ```powershell
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_drain_mp_skill.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_drain_mp_skill.py
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_drain_mp_action.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_magic_action.py --drain-mp
 ```

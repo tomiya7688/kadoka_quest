@@ -116,10 +116,10 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     bus = CommandBus()
 
     # {
-    #   責務: [handler: check・実行時・performanceのhandlerを求める]
-    #   処理: [1: check・実行時・performanceのhandlerを求める]
-    #   引数: [value: 値（AppCommand）]
-    #   戻り値: [result: value.action（str）]
+    #   責務: [handler: コマンド配送の性能試験で、受け取った操作名を返す最小の受信処理です]
+    #   処理: [1: ゲーム処理やI/Oを実行せず、受信コマンドのactionを返します]
+    #   引数: [value: field宛ての性能試験で配送するコマンド（AppCommand）]
+    #   戻り値: [result: 受信したコマンドの操作名action（str）]
     # }
     def handler(value: AppCommand) -> str:
         return value.action
@@ -186,10 +186,10 @@ def build_benchmark_cases() -> list[BenchmarkCase]:
     traffic = ChaseTraffic(fork_field)
 
     # {
-    #   責務: [chase_fork: check・実行時・performanceのchase・forkを求める]
-    #   処理: [1: check・実行時・performanceのchase・forkを求める]
+    #   責務: [chase_fork: 分岐を持つ専用マップで追跡モブ2体の移動予約を計測します]
+    #   処理: [1: 同一時刻の移動予約を作り直し、先行モブと後続モブの順に経路を計画します]
     #   引数: []
-    #   戻り値: [result: check・実行時・performanceのchase・forkを求めるための結果（object）]
+    #   戻り値: [result: 先行モブの占有と予約を考慮した後続モブの移動計画（object）]
     # }
     def chase_fork() -> object:
         traffic.clear()
@@ -296,10 +296,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 # {
-#   責務: [main: check・実行時・performanceのエントリ処理を実行する]
-#   処理: [1: check・実行時・performanceのエントリ処理を実行する]
+#   責務: [main: CLIで選択したruntime性能項目を計測し、各時間上限と終了コードを報告します]
+#   処理: [
+#     1: 性能項目の一覧要求または項目名の絞り込みを検証します
+#     2: 指定条件で専用fixtureを反復計測し、項目別の時間と上限を表示します
+#     3: 時間超過が一件でもあれば失敗の終了コードを返します
+#   ]
 #   引数: []
-#   戻り値: [result: check・実行時・performanceのエントリ処理を実行するための結果（int）]
+#   戻り値: [result: 全項目が上限以内なら0、時間超過なら1、未知の項目名なら2（int）]
 # }
 def main() -> int:
     args = build_parser().parse_args()

@@ -9,6 +9,7 @@
 #     _physical: battle_session.gdの戦闘状態へMP付き単体物理スキルの結果を反映するphysical_skill_action.gdの行動処理（RefCounted）
 #     _magic: 戦闘状態へMP付き単体魔法の結果を反映するmagic_skill_action.gdの行動処理（RefCounted）
 #     _self_magic: 敵への魔法効果と術者のHP代償を反映する、自傷専用設定のmagic_skill_action.gd（RefCounted）
+#     _drain_magic: 敵HP効果・敵MP喪失・術者MP回復を反映する、吸MP専用設定のmagic_skill_action.gd（RefCounted）
 #   ]
 # }
 extends RefCounted
@@ -28,6 +29,7 @@ var _defend: RefCounted
 var _physical: RefCounted
 var _magic: RefCounted
 var _self_magic: RefCounted
+var _drain_magic: RefCounted
 
 
 # {
@@ -46,7 +48,7 @@ func _init(repository: RefCounted) -> void:
 #   責務: [start: 保存個体から独立した戦闘Sessionと行動処理を構築し、最初のラウンドを開始します]
 #   処理: [
 #     1: turn_preparation.gdの準備処理で参加個体を再構築し、候補のbattle_session.gdの戦闘状態へ戦闘資源を設定します
-#     2: 正規スキル定義で通常攻撃・基本ぼうぎょ・MP付き単体物理・通常魔法・自傷魔法の行動処理を設定します
+#     2: 正規スキル定義で通常攻撃・基本ぼうぎょ・MP付き物理・通常/自傷/吸MP魔法の行動処理を設定します
 #     3: 最初のラウンドの計画が成功した場合だけ、使用するbattle_session.gdの戦闘状態と行動処理の参照を切り替えます
 #   ]
 #   引数: [
@@ -95,6 +97,11 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	var self_magical: Dictionary = self_magic.start(prepared["teams"], skills["value"])
 	if not self_magical["ok"]:
 		return self_magical
+	# 吸MP専用区分も同じ候補Sessionへ接続し、MP移転の計算・実更新を呼び出し層へ取り込みません。
+	var drain_magic = Magic.new(candidate, false, true)
+	var drain_magical: Dictionary = drain_magic.start(prepared["teams"], skills["value"])
+	if not drain_magical["ok"]:
+		return drain_magical
 	# 戦闘呼び出し処理は、全行動処理の設定と最初のラウンド計画が成功してから、使用する戦闘状態と行動処理を一度に切り替えます。
 	var planned: Dictionary = candidate.begin_round(shuffle_order)
 	if not planned["ok"]:
@@ -105,6 +112,7 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	_physical = physical
 	_magic = magic
 	_self_magic = self_magic
+	_drain_magic = drain_magic
 	return {"ok": true, "preparation": prepared, "session": snapshot()}
 
 
@@ -189,6 +197,17 @@ func resolve_magic_skill(request: Variant) -> Dictionary:
 func resolve_self_damage_magic_skill(request: Variant) -> Dictionary:
 	# 呼び出し処理はHP代償を計算・更新せず、共用の魔法行動処理へ委譲する。
 	return {"ok": false, "reason": "not_initialized"} if _self_magic == null else _self_magic.resolve(request)
+
+
+# {
+#   責務: [resolve_drain_mp_skill: 吸MP魔法の予約・習得・資源の検証と敵HP/両者MP更新を、専用区分の魔法行動へ委譲します]
+#   処理: [1: 吸MP専用のmagic_skill_action.gdへ要求を渡し、未初期化なら資源を変更せず拒否します]
+#   引数: [request: ticket・敵target・skill_id・varianceの4キーを持つ吸MP魔法要求（Variant）]
+#   戻り値: [result: 実MP消費・敵HP/MP喪失・術者MP回復の結果とSession、または理由付き拒否（Dictionary）]
+# }
+func resolve_drain_mp_skill(request: Variant) -> Dictionary:
+	# 呼び出し層はMP移転や最大MPの制限を重複実装せず、資源を所有する戦闘処理へ委譲します。
+	return {"ok": false, "reason": "not_initialized"} if _drain_magic == null else _drain_magic.resolve(request)
 
 
 # {

@@ -2,12 +2,12 @@
 #   責務: [battle_session: 資源・単一カーソルとラウンド限定guardを所有する。攻撃計算や勝敗は扱わない]
 #   フィールド: [
 #     _teams: 両陣営（Dictionary）
-#     _by_id: by・識別子（Dictionary）
-#     _phase: 進行段階
-#     _round: ラウンド
-#     _cursor: カーソル
-#     _order: 順序（Array）
-#     _pending: 保留中の行動（Dictionary）
+#     _by_id: 陣営sideと個体idから資源所有者を検索する索引（Dictionary）
+#     _phase: 戦闘開始前・ラウンド進行中・終端を表す段階（String）
+#     _round: 戦闘開始後のラウンド番号（int）
+#     _cursor: 確定した行動順内の現在位置（int）
+#     _order: 現在ラウンドで固定したside+idの行動順（Array）
+#     _pending: 現在提示中または取得済みの行動予約（Dictionary）
 #     _guards: side+id別の物理防御倍率。資源snapshotとは別に保持する（Dictionary）
 #   ]
 # }
@@ -309,6 +309,21 @@ func mp_cost(key: Variant, cost: Variant) -> Dictionary:
 func pay_mp(key: Variant, cost: Variant) -> Dictionary:
 	var checked := _resolve(key)
 	return checked if not checked["ok"] else _by_id[key["side"]][key["id"]].pay_mp(cost)
+
+
+# {
+#   責務: [restore_mp: 指定個体の最大MPまでの数値回復を資源所有者へ委譲し、予約やHPを変更しません]
+#   処理: [1: 陣営と個体IDを検証し、combatant_state.gdへMP回復を委譲します]
+#   引数: [
+#     key: MPを回復する戦闘参加個体のsideとid（Variant）
+#     amount: 精度上限以内の非負整数として検証するMP回復要求量（Variant）
+#   ]
+#   戻り値: [result: 実回復量restored・現在mp、または資源を保持した拒否（Dictionary）]
+# }
+func restore_mp(key: Variant, amount: Variant) -> Dictionary:
+	# 数値回復は行動権を与えず、ラウンドや逃走・勝敗判定を変更しません。
+	var checked := _resolve(key)
+	return checked if not checked["ok"] else _by_id[key["side"]][key["id"]].restore_mp(amount)
 
 
 # {

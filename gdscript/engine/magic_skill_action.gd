@@ -1,41 +1,54 @@
 # {
-#   責務: [magic_skill_action: 最新の行動予約と資源を検証し、単体魔法のMP消費とHP変化を一度だけ適用します]
+#   責務: [magic_skill_action: 最新予約と資源を検証し、単体魔法のMP消費・HP効果・専用追加効果を一度だけ適用します]
 #   フィールド: [
 #     _session: 戦闘資源と行動予約を所有するSession（RefCounted）
 #     _context: 開始時の習得・装備・耐性・定義の独立情報（Dictionary）
 #     _self_damage: trueなら自傷付き単体魔法だけを受け付ける、構築時固定の区分（bool）
+#     _drain_mp: trueなら吸MP付き単体魔法だけを受け付ける、構築時固定の区分（bool）
 #     _quote: 区分に対応した非破壊の魔法予測処理（GDScript）
+#     _scope: 構築時の魔法区分を示す実適用結果の範囲名（String）
 #   ]
 # }
 extends RefCounted
 const Context = preload("res://engine/magic_skill_context.gd")
 const Quote = preload("res://engine/magic_skill_contract.gd")
 const SelfDamageQuote = preload("res://engine/self_damage_magic_contract.gd")
+const DrainMpQuote = preload("res://engine/drain_mp_skill_contract.gd")
 const Order = preload("res://engine/turn_order.gd")
 const Numbers = preload("res://engine/stat_numbers.gd")
 const REQUEST_FIELDS := ["ticket", "target", "skill_id", "variance"]
 var _session: RefCounted
 var _context: Dictionary = {}
 var _self_damage: bool
+var _drain_mp: bool
 var _quote: GDScript
+var _scope := "explicit_magic_skill_only"
 
 # {
-#   責務: [_init: HP・MP・行動予約の更新先Sessionと、通常/自傷の魔法区分を固定します]
+#   責務: [_init: HP・MP・行動予約の更新先Sessionと、通常/自傷/吸MPの魔法区分を固定します]
 #   処理: [
 #     1: 資源を複製せず、更新先のSession参照を設定します
 #     2: 構築時の魔法区分に対応する純粋予測処理を選択します
 #   ]
 #   引数: [
 #     session: 戦闘資源と行動予約の所有者（RefCounted）
-#     self_damage: trueなら自傷魔法専用、falseなら自傷なしの魔法専用に固定する設定（bool）
+#     self_damage: trueなら自傷専用。falseなら自傷を扱わず、drain_mp=falseの場合は通常魔法専用です（bool）
+#     drain_mp: trueなら吸MP専用。self_damageとの同時指定はstartで拒否します（bool）
 #   ]
 #   戻り値: [result: なし（void）]
 # }
-func _init(session: RefCounted, self_damage: bool = false) -> void:
+func _init(session: RefCounted, self_damage: bool = false, drain_mp: bool = false) -> void:
 	_session = session
 	# 行動要求で区分を変更させず、定義検証と数値予測に同じ区分を使う。
 	_self_damage = self_damage
-	_quote = SelfDamageQuote if self_damage else Quote
+	_drain_mp = drain_mp
+	_quote = Quote
+	if self_damage:
+		_quote = SelfDamageQuote
+		_scope = "explicit_self_damage_magic_only"
+	elif drain_mp:
+		_quote = DrainMpQuote
+		_scope = "explicit_drain_mp_magic_only"
 
 # {
 #   責務: [start: 新鮮なSessionと一致する魔法用の開始情報を一度だけ設定します]
@@ -47,6 +60,9 @@ func _init(session: RefCounted, self_damage: bool = false) -> void:
 #   戻り値: [result: 設定成功または理由付き拒否（Dictionary）]
 # }
 func start(teams: Variant, skills: Variant) -> Dictionary:
+	# 自傷と吸MPの複合効果は今回の予測契約に含まれず、片方だけ実行する設定を拒否します。
+	if _self_damage and _drain_mp:
+		return _reject("invalid_magic_mode")
 	# 消費済み資源や開始後の定義差替えは受け付けない。
 	if not _context.is_empty():
 		return _reject("already_initialized")
@@ -58,14 +74,14 @@ func start(teams: Variant, skills: Variant) -> Dictionary:
 	if checked["snapshots"] != _session.snapshot()["teams"]:
 		return _reject("magic_context_mismatch")
 	_context = checked["context"]
-	return {"ok": true, "scope": "explicit_self_damage_magic_only" if _self_damage else "explicit_magic_skill_only"}
+	return {"ok": true, "scope": _scope}
 
 # {
-#   責務: [resolve: 検証済み単体魔法のMP消費・敵HP効果・自傷区分なら術者HP代償・予約完了を同期実行します]
+#   責務: [resolve: 単体魔法のMP消費・敵HP効果・区分専用のHP代償またはMP移転・予約完了を同期実行します]
 #   処理: [
 #     1: 最新状態と要求を資源更新なしで検証します
 #     2: 予約を一度だけ取得し、行動不可なら資源を消費せず取り消します
-#     3: MP消費・敵への効果・自傷区分なら術者のHP代償の順に適用し、予約を完了します
+#     3: MP消費・敵HP効果・区分専用のHP代償またはMP移転の順に担当資源処理を呼び、予約を完了します
 #   ]
 #   引数: [request: ticket・敵target・skill_id・varianceの4キーを持つ要求（Variant）]
 #   戻り値: [result: 実行結果とSessionコピー、または理由付き拒否（Dictionary）]
@@ -99,12 +115,48 @@ func resolve(request: Variant) -> Dictionary:
 		var cost: Dictionary = _session.take_damage(request["ticket"]["actor"], numbers["self_dealt"])
 		if not cost["ok"]:
 			return _reject("action_self_damage_failed")
+	# 最後の敵を倒してもMP移転を省略せず、終了処理より前に担当資源処理へ委譲します。
+	var transfer: Dictionary = {}
+	if _drain_mp:
+		transfer = _apply_drain_mp(request["ticket"]["actor"], request["target"], numbers)
+		if not transfer["ok"]:
+			return transfer
 	var finished: Dictionary = _session.finish(request["ticket"])
 	if not finished["ok"]:
 		return _reject("action_finish_failed")
-	return {"ok": true, "executed": true, "scope": "explicit_self_damage_magic_only" if _self_damage else "explicit_magic_skill_only",
+	var result := {"ok": true, "executed": true, "scope": _scope,
 		"ticket": request["ticket"].duplicate(true), "target": request["target"].duplicate(true),
 		"numbers": numbers, "spent_mp": paid["spent"], "session": finished["session"]}
+	if _drain_mp:
+		result.merge(transfer, true)
+	return result
+
+# {
+#   責務: [_apply_drain_mp: 予測済みの敵MP喪失と術者の最大MPまでの回復を、同じSessionへ順に適用します]
+#   処理: [
+#     1: 敵の喪失予測量をSessionのMP減算へ渡します
+#     2: 敵が失った実MP量を術者のMP回復へ渡し、実回復量を別に返します
+#   ]
+#   引数: [
+#     actor: 行動予約を取得済みの術者のsideとid（Dictionary）
+#     target: HP効果後には死亡している場合もある敵のsideとid（Dictionary）
+#     numbers: 最新資源から検証済みの吸MP予測（Dictionary）
+#   ]
+#   戻り値: [result: 実喪失drained_mp・実回復recovered_mp、または内部適用の失敗（Dictionary）]
+# }
+func _apply_drain_mp(actor: Dictionary, target: Dictionary, numbers: Dictionary) -> Dictionary:
+	# 無効/吸収耐性や敵MP0では、不要な資源操作を行いません。
+	if numbers["drained_mp"] == 0:
+		return {"ok": true, "drained_mp": 0, "recovered_mp": 0}
+	# pay_mpは数値減算であり、死亡対象への行動許可ではありません。対象の生存はclaim前に検証済みです。
+	var drained: Dictionary = _session.pay_mp(target, numbers["drained_mp"])
+	if not drained["ok"]:
+		return _reject("action_drain_mp_failed")
+	# 回復の上限は資源所有者が守り、術者が回復できないMPを敵へ戻しません。
+	var recovered: Dictionary = _session.restore_mp(actor, drained["spent"])
+	if not recovered["ok"]:
+		return _reject("action_mp_recovery_failed")
+	return {"ok": true, "drained_mp": drained["spent"], "recovered_mp": recovered["restored"]}
 
 # {
 #   責務: [_validate: 最新予約・習得・敵対象・現在MPとHPを確認し、魔法の適用結果を予測します]
@@ -132,7 +184,7 @@ func _validate(request: Variant) -> Dictionary:
 		return inspected
 	var actor: Dictionary = request["ticket"]["actor"]
 	var target: Dictionary = request["target"]
-	var selected := Context.select(_context, actor, request["skill_id"], _self_damage)
+	var selected := Context.select(_context, actor, request["skill_id"], _self_damage, _drain_mp)
 	if not selected["ok"]:
 		return selected
 	if actor["side"] == target["side"]:
@@ -159,6 +211,10 @@ func _validate(request: Variant) -> Dictionary:
 	if _self_damage:
 		forecast["actor_hp"] = attacker["hp"]
 		forecast["actor_max_hp"] = attacker["stats"]["hp"]
+	# 吸MPの上限と敵の残MPは要求から受け取らず、予約検証後の最新Sessionから取得します。
+	if _drain_mp:
+		forecast["actor_max_mp"] = attacker["stats"]["mp"]
+		forecast["target_mp"] = defender["mp"]
 	var numbers: Dictionary = _quote.quote_damage(selected["skill"], forecast)
 	return numbers if not numbers["ok"] else {"ok": true, "numbers": numbers}
 
