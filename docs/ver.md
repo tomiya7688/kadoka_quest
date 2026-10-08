@@ -16,6 +16,35 @@
 
 ```
 
+# 102. GDScriptの単体HP回復をSessionへ一度だけ実適用
+
+リモート取得と差分要約でincomingなしを確認しました（開始時ahead87/behind0）。GitHub CLIでP0なし、公開P1移行Issueのローカル実装済みを確認し、移行表の未起票候補から単体HP回復のSession実適用を進めました。push・PR・Issue作成や状態変更は行っていません。既存game.py・開発予定・未追跡資料・実セーブは保持しました。
+
+heal_skill_contextは開始時の満HP/MP・習得・許可装備と定義のID別索引を独立保持します。共用の開始情報検証だけを再利用し、回復定義の選択はheal_skill_contractへ委譲します。未知の選択装備効果はfalse・0・空でも拒否します。既知の攻撃用威力倍率と固定加算は検証だけ行い、回復量には使いません。
+
+heal_skill_actionは厳密なticket/target/skill_idの3キーだけを受けます。最新offered予約・習得・一意な定義・許可装備・生存する同陣営対象と現在資源を検証し、同期した単一claim→実MP支払い→上限付きHP回復→finishを実行します。本人と敵陣営の仲間への回復にも対応し、sideで両陣営同IDを区別します。
+
+回復上限量はmax(1, int(対象最大HP×回復率))です。実回復は最大HPまでの空き量で制限し、満HPでもMPを払います。魔力・攻撃用装備補正・基本ぼうぎょ・属性耐性・乱数は回復量に使いません。不正・不足・未習得・未対応・死亡/逃走対象は予約取得前に拒否し、提示中予約と資源を保持します。正しい要求に対する術者死亡/逃走/敵なしは、無消費の予約取消へ委譲します。偽造・使用済み・取得済み予約では追加消費しません。
+
+battle_session_applicationは候補Sessionへ専用回復行動を準備し、resolve_heal_skillから委譲します。数値計算・AI選択・HP/MP更新を呼び出し層へ取り込みません。成功結果はscope=explicit_heal_skill_onlyとし、予測numbers・実消費spent_mp・実回復healed・独立sessionを返します。snapshotの6キー・保存JSON/schema・個体/学習AI/items/party・正規data/assetsは変更しません。
+
+追加: 回復用コンテキスト・行動処理とUID、実Godot/Python比較の専用回帰テスト、呼び出し・計算順序・拒否・保存境界・検証方法の契約文書。更新: 共用行動/性能プローブと--heal入口、CODEMAP・形式仕様・GDScript/tools案内・移行表と本履歴。Playerへの開発ツール依存は追加していません。
+
+参照した開始情報検証・保存個体・Python再構築・fixtureの不明瞭な説明も具体化しました。monster.py/battle_data.py/test_gdscript_roster.py/test_gdscript_turn_order.pyのASTがHEADと同じことを確認し、Pythonの実行ロジックは変更していません。全文書・コード全体を監査済みとは扱いません。ローカル説明規約・レビュー基準・論文調査はGit除外のままです。
+
+検証環境は専用Python 3.14.7と実Godot 4.7.2です。専用コンテンツと一時保存領域を使い、選択だけを固定した学習無効の実Python_take_actionで回復とMP支払いを比較しました。対象候補は1体だけで、AIや自動対象選択の移植検証ではありません。
+
+- 専用fixtureの準備不備を修正した後、新規8テスト・119サブテストが通過しました。正規2スキルと有限MODの34組をPythonと比較し、拒否・取消・上限/数値精度・本人回復・8体/同ID/2ラウンド・基本防御無視・Lv別習得・装備制限・入出力独立・保存コピーbyte不変を確認しました。
+- 最終実装のヘッドレス全1082テスト・16175サブテストは515.34秒で通過しました。専用basetemp/cache_dirを使い、標準の回復性能検査と全テストを重ねていません。
+- 回復行動の標準性能検査は20000回・7サンプル・2000回事前実行で中央値1270.53us、上限3000us以内でした。次行動取得から予約完了までを測り、毎行動の実回復1HP/消費6MPと8体の累積HP/MPを確認しました。起動・初期再構築・描画・AI・保存は測りません。
+- 共用プローブ変更前後の既存通常魔法は、同じ2000回・3サンプル・200回事前実行で1870.18us→1293.49usでした。双方は上限3000us以内で、環境の揺らぎを含むため性能向上の証明とは扱いません。途中の1631.22us計測は関連テストと重なったため、全テスト完了後の再計測値を記載しています。
+- Python 3.10構文ASTは追跡247ファイルで通過しました。実Python 3.10で全実行した証拠ではありません。阻害lintは追跡Pythonに絞って0件でした。最新UPD上流main ae4636155b5e773d787cfccd1572808829601524を正規requirementsから再導入し、Python checkerはError0・既存Warning17/Attention100でした。
+- コメント検査は338ファイル・2823宣言・0エラーでした。pip check・責務境界・Godot editor import・生成索引/対象application図の鮮度・diff checkが通過しました。
+- 全テスト完了後の既存Python runtime標準性能検査は13項目すべて通過しました。wild-population-24-slotsは920.40us（上限5000us）、wild-movement-24は355.52us（上限1000us）でした。Python runtimeの実行ロジックは変更していません。
+- E2Eカタログの構造と参照はcovered12/missing25/intentionally-not-e2e1でした。カタログ検査を実E2E成功の証拠にはしていません。
+
+単体HP回復のSession実適用までのローカル実装です。治療付きspirit_recover・AI推論/学習・戦闘Scene/演出・勝敗/報酬/教会復活・実GUI・配布export・リモートCIは未接続または未検証です。次の候補は、治療付き回復に必要な状態異常と治療の純粋契約です。
+
 # 101. GDScriptのMP付き単体HP回復・上限量と残HP/MPを純粋予測
 
 リモート取得と差分要約でincomingなしを確認しました（開始時ahead86/behind0）。GitHub CLIでP0なし、公開P1移行Issueのローカル実装済みを確認し、移行表の未起票候補からsmall_heal/healyの定義・数値予測だけを進めました。push・PR・Issue作成や状態変更は行っていません。既存game.py・開発予定・未追跡資料・実セーブは保持しました。

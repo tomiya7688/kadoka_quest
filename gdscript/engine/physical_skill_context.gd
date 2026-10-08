@@ -1,5 +1,5 @@
 # {
-#   責務: [physical_skill_context: 開始時の個体・習得・許可装備の検証と選択スキルの数値投影]
+#   責務: [physical_skill_context: 開始時の戦闘資源・習得・許可装備を検証し、指定物理スキルの定義と装備補正を選びます]
 #   フィールド: []
 # }
 extends RefCounted
@@ -12,16 +12,16 @@ const EQUIPMENT_FIELDS := ["id", "display_name", "description", "category", "all
 
 
 # {
-#   責務: [prepare: 新鮮な個体・習得・装備とスキル原本を独立コンテキストへ変換する]
+#   責務: [prepare: 満HP/MPの戦闘個体と習得・許可装備・スキル一覧の独立コピーを作ります]
 #   処理: [
-#     1: 両陣営とカタログを検証しID別に索引化する
-#     2: 個体を正規化して独立コピーを返す
+#     1: 両陣営とスキル一覧を検証し、重複検出可能なID別索引を作ります
+#     2: 参加個体の資源・習得・装備を検証し、Session比較用のsnapshotと選択用contextを返します
 #   ]
 #   引数: [
-#     teams: 再構築済み両陣営（Variant）
-#     skills: 正規スキル一覧（Variant）
+#     teams: snapshot・skill_ids・equipmentを持つ再構築済みのallies/enemies（Variant）
+#     skills: schema_version=1とskills配列を持つスキル一覧（Variant）
 #   ]
-#   戻り値: [result: snapshotsとcontextまたは拒否（Dictionary）]
+#   戻り値: [result: 正規化資源snapshotsと独立した個体情報/定義索引context、または理由付き拒否（Dictionary）]
 # }
 static func prepare(teams: Variant, skills: Variant) -> Dictionary:
 	# 未対応定義は削除せず、選択時に個別の対応範囲を確認する。
@@ -57,13 +57,13 @@ static func prepare(teams: Variant, skills: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_prepare_member: 新鮮な資源と習得・許可装備を検証する]
+#   責務: [_prepare_member: 参加個体の満HP/MP・習得ID・装備許可を検証し、独立した開始情報を作ります]
 #   処理: [
-#     1: snapshotと習得IDを検証する
-#     2: 装備を検証し比較用snapshotを正規化する
+#     1: snapshotの資源と習得IDを検証し、資源消費済みや逃走済みの個体を拒否します
+#     2: 装備する種族の許可を検証し、Session比較用の整数snapshotを作ります
 #   ]
-#   引数: [member: 再構築した個体（Variant）]
-#   戻り値: [result: snapshotとmemberまたは拒否（Dictionary）]
+#   引数: [member: 再構築済みのsnapshot・skill_ids・equipmentを持つ参加個体（Variant）]
+#   戻り値: [result: 正規化snapshotと独立した習得/装備member、または理由付き拒否（Dictionary）]
 # }
 static func _prepare_member(member: Variant) -> Dictionary:
 	# 習得情報は行動payloadでなく、開始時に受け取る再構築結果へ限定する。
@@ -91,13 +91,13 @@ static func _prepare_member(member: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_equipment: 非空装備の種族許可と効果の外形を確認する]
-#   処理: [1: 未対応効果と不正許可リストを拒否する]
+#   責務: [_equipment: 空辞書を未装備として扱い、非空装備の種族許可と効果辞書の形式を確認します]
+#   処理: [1: 未対応キー・不正許可リスト・種族不許可・不正なskill_modifiersを拒否します]
 #   引数: [
-#     definition: 選択された装備（Variant）
-#     species: 装備する種族（String）
+#     definition: 再構築で選択した装備定義、または未装備の空辞書（Variant）
+#     species: 装備する戦闘個体の種族ID（String）
 #   ]
-#   戻り値: [result: equipmentまたは拒否（Dictionary）]
+#   戻り値: [result: 独立したequipment、または理由付き拒否（Dictionary）]
 # }
 static func _equipment(definition: Variant, species: String) -> Dictionary:
 	# 空辞書は再構築済みの未装備・不明ID・装備不可であり、補正を加えない。
@@ -122,17 +122,17 @@ static func _equipment(definition: Variant, species: String) -> Dictionary:
 
 
 # {
-#   責務: [select: 習得と正規定義から指定スキルの数値を投影する]
+#   責務: [select: 行動者の習得から指定物理スキルを選び、許可装備の威力倍率と固定加算を取得します]
 #   処理: [
-#     1: 習得と選択定義を検証する
-#     2: 選択IDの装備効果だけを投影する
+#     1: 習得済みIDの一意な物理スキル定義を検証します
+#     2: 選択IDの装備効果だけを検証し、威力倍率と固定加算を返します
 #   ]
 #   引数: [
-#     context: prepare済み情報（Dictionary）
-#     actor: 検証済みsideとid（Dictionary）
-#     skill_id: スキルID（Variant）
+#     context: prepareで作った独立した習得・許可装備と定義のID別索引（Dictionary）
+#     actor: 最新予約で検証済みの行動者のsideとid（Dictionary）
+#     skill_id: 使用を要求する物理スキルID（Variant）
 #   ]
-#   戻り値: [result: skillと装備数値または拒否（Dictionary）]
+#   戻り値: [result: 検証済みskillとequipment補正数値、または理由付き拒否（Dictionary）]
 # }
 static func select(context: Dictionary, actor: Dictionary, skill_id: Variant) -> Dictionary:
 	# 未習得と通常攻撃への偽装を、行動権取得前に区別する。
@@ -163,9 +163,9 @@ static func select(context: Dictionary, actor: Dictionary, skill_id: Variant) ->
 
 
 # {
-#   責務: [_reject: 失敗を判別可能な理由で返す]
-#   処理: [1: plainな失敗結果を作る]
-#   引数: [reason: 呼出元が扱う理由（String）]
+#   責務: [_reject: 開始情報または物理スキル選択の失敗を、理由付き辞書へ変換します]
+#   処理: [1: ok=falseと具体的な拒否理由を返します]
+#   引数: [reason: 開始情報・習得・装備・選択定義を拒否した理由（String）]
 #   戻り値: [result: ok=falseの辞書（Dictionary）]
 # }
 static func _reject(reason: String) -> Dictionary:

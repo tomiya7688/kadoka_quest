@@ -101,13 +101,13 @@ class GDScriptRosterTests(unittest.TestCase):
         self.fail(result.stdout[-1200:] + result.stderr)
 
     # {
-    #   責務: [seed_state: gdscript・所有個体台帳・testsのseed・状態を求める]
-    #   処理: [1: gdscript・所有個体台帳・testsのseed・状態を求める]
+    #   責務: [seed_state: テスト専用保存先へケース別設定を持つ初期state.jsonを作ります]
+    #   処理: [1: 既定状態を複製してinventoryを除き、指定設定を反映して専用保存先へ出力します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     changes: changes
+    #     changes: current_partyなど、専用状態の既定値を置き換える設定（dict）
     #   ]
-    #   戻り値: [result: 状態（型注釈なし）]
+    #   戻り値: [result: 専用領域へ出力した状態辞書（dict）]
     # }
     def seed_state(self, **changes):
         state = json.loads(json.dumps(DEFAULT_STATE, ensure_ascii=False))
@@ -117,14 +117,14 @@ class GDScriptRosterTests(unittest.TestCase):
         return state
 
     # {
-    #   責務: [write: gdscript・所有個体台帳・testsを書き込む]
-    #   処理: [1: gdscript・所有個体台帳・testsを書き込む]
+    #   責務: [write: テスト専用保存先の指定相対パスへJSONを作ります]
+    #   処理: [1: 専用保存先の親フォルダを作り、UTF-8のJSONを出力します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     relative: relative
-    #     value: 値
+    #     relative: 専用profileからの保存ファイルの相対パス（str）
+    #     value: 専用テストで保存するJSON互換値
     #   ]
-    #   戻り値: [result: パス（型注釈なし）]
+    #   戻り値: [result: 専用領域へ作成したファイルのパス（Path）]
     # }
     def write(self, relative, value):
         path = self.profile / relative
@@ -133,15 +133,15 @@ class GDScriptRosterTests(unittest.TestCase):
         return path
 
     # {
-    #   責務: [seed_record: gdscript・所有個体台帳・testsのseed・個体レコードを求める]
-    #   処理: [1: gdscript・所有個体台帳・testsのseed・個体レコードを求める]
+    #   責務: [seed_record: 専用保存先へモンスター個体と既定の学習AIを作ります]
+    #   処理: [1: 指定種族の個体へケース別設定を反映し、個体JSONとAI JSONを出力します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     folder_id: フォルダ・識別子
-    #     species_id: 種族・識別子
-    #     changes: changes
+    #     folder_id: 専用monstersフォルダ内で作る個体フォルダのID（str）
+    #     species_id: 専用個体の種族ID。省略時slime（str）
+    #     changes: levelやnameなど、専用個体の既定値を置き換える設定（dict）
     #   ]
-    #   戻り値: [result: モンスター（型注釈なし）]
+    #   戻り値: [result: 専用保存先へ出力した個体定義（dict）]
     # }
     def seed_record(self, folder_id, species_id="slime", **changes):
         monster = {"schema_version": 1, "id": folder_id, "species_id": species_id, "name": f"個体{folder_id}",

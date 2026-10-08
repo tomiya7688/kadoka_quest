@@ -1,15 +1,16 @@
 # {
-#   責務: [run_normal_attack_probe: Developer-only pure/joined action probe and eight-actor action microbenchmark.]
+#   責務: [run_normal_attack_probe: 専用コピーで明示戦闘行動を実行し、実Godotの資源更新と通常攻撃の性能を観測します]
 #   フィールド: []
 # }
 extends SceneTree
-## Developer-only pure/joined action probe and eight-actor action microbenchmark.
+## この開発用プローブは純粋Sessionとapplicationの明示行動を比較します。Playerから起動せず、実セーブを参照しません。
 
 const Session = preload("res://engine/battle_session.gd")
 const Attack = preload("res://engine/normal_attack_action.gd")
 const Defend = preload("res://engine/basic_defend_action.gd")
 const Physical = preload("res://engine/physical_skill_action.gd")
 const Magic = preload("res://engine/magic_skill_action.gd")
+const Heal = preload("res://engine/heal_skill_action.gd")
 const Resistance = preload("res://engine/elemental_resistance.gd")
 const Numbers = preload("res://engine/attack_numbers.gd")
 const Application = preload("res://application/battle_session_application.gd")
@@ -44,7 +45,7 @@ func _initialize() -> void:
 # {
 #   責務: [_case: 専用開始情報でSessionと必要な行動処理を構築し、明示操作後の資源・防御倍率・入力保持を観測します]
 #   処理: [
-#     1: 独立Sessionまたは読取専用データを使うapplicationと、指定された物理・魔法行動処理を初期化する
+#     1: 独立Sessionまたは読取専用データを使うapplicationと、指定された物理・魔法・回復行動処理を初期化します
 #     2: 明示操作と入力/出力コピー編集試験を進める
 #     3: 実セーブに触れず資源・guard・入力保持の結果を返す
 #   ]
@@ -68,6 +69,7 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 	var magic: RefCounted
 	var self_magic: RefCounted
 	var drain_magic: RefCounted
+	var heal: RefCounted
 	var initialized: Dictionary
 	if joined:
 		session = Application.new(Repository.new(OS.get_environment("KADOKA_CONTENT_ROOT")))
@@ -87,6 +89,8 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 			self_magic = Magic.new(session, true)
 		if case.get("drain_mp_magic", false):
 			drain_magic = Magic.new(session, case.get("conflicting_magic", false), true)
+		if case.get("heal_skill", false):
+			heal = Heal.new(session)
 		var teams := {"allies": [], "enemies": []}
 		for side in Order.SIDES:
 			for member: Dictionary in input.get(side, []):
@@ -106,6 +110,8 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 			initialized = self_magic.start(case.get("magic_context", teams), input.get("skills"))
 		if initialized["ok"] and case.get("drain_mp_magic", false):
 			initialized = drain_magic.start(case.get("magic_context", teams), input.get("skills"))
+		if initialized["ok"] and case.get("heal_skill", false):
+			initialized = heal.start(case.get("heal_context", teams), input.get("skills"))
 		if initialized["ok"]:
 			initialized = session.begin_round(input["shuffle_order"])
 	var initial := initialized.duplicate(true)
@@ -117,7 +123,7 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 		var pending: Variant = session.snapshot()["pending"]
 		if pending is Dictionary:
 			last_ticket = pending["ticket"].duplicate(true)
-		var value := _execute(session, attack, action, input, last_ticket, joined, defend, physical, magic, self_magic, drain_magic)
+		var value := _execute(session, attack, action, input, last_ticket, joined, defend, physical, magic, self_magic, drain_magic, heal)
 		var copied := value.duplicate(true)
 		if action.get("mutate_result", false):
 			_mutate(value)
@@ -146,11 +152,12 @@ func _case(case: Dictionary, joined: bool) -> Dictionary:
 #     magic: MP付き単体魔法Action。通常ケースではnull（RefCounted）
 #     self_magic: 自傷付き単体魔法Action。自傷魔法以外の試験ではnull（RefCounted）
 #     drain_magic: 吸MP専用魔法Action。吸MP以外の純粋試験またはapplication試験ではnull（RefCounted）
+#     heal: 単体HP回復Action。回復以外の純粋試験またはapplication試験ではnull（RefCounted）
 #   ]
 #   戻り値: [result: 操作を委譲した担当モジュールの結果または不明操作の拒否（Dictionary）]
 # }
 func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input: Dictionary, ticket: Variant,
-	joined: bool, defend: RefCounted, physical: RefCounted, magic: RefCounted, self_magic: RefCounted, drain_magic: RefCounted) -> Dictionary:
+	joined: bool, defend: RefCounted, physical: RefCounted, magic: RefCounted, self_magic: RefCounted, drain_magic: RefCounted, heal: RefCounted) -> Dictionary:
 	match action["kind"]:
 		"next": return session.next_actor()
 		"begin": return session.begin_round(action.get("order", input["shuffle_order"]))
@@ -201,6 +208,15 @@ func _execute(session: RefCounted, attack: RefCounted, action: Dictionary, input
 		"configure_magic": return magic.start(null, null)
 		"configure_self_magic": return self_magic.start(null, null)
 		"configure_drain_magic": return drain_magic.start(null, null)
+		"heal_skill":
+			# 数値回復のheal操作とは分け、習得・MP・最新予約を検証するActionへ渡します。
+			var request: Variant = action.get("request", {"ticket": ticket, "target": action.get("target"),
+				"skill_id": action.get("skill_id", "small_heal")})
+			if request is Dictionary:
+				request = request.duplicate(true)
+				request.merge(action.get("overrides", {}), true)
+			return session.resolve_heal_skill(request) if joined else heal.resolve(request)
+		"configure_heal": return heal.start(null, null)
 		"resistance": return Resistance.prepare(action.get("species"), action.get("equipment"))
 		"heal":
 			var amount: Variant = action.get("amount")
@@ -247,7 +263,8 @@ func _mutate(value: Variant) -> void:
 			_mutate(entry)
 		for key in ["hp", "mp", "round", "slot", "cursor", "speed", "attack", "power", "fixed_bonus_damage",
 			"power_multiplier", "damage_multiplier", "applied_guard", "self_damage_ratio", "self_damage", "self_dealt", "remaining_actor_hp",
-			"mp_power", "drained_mp", "recovered_mp", "remaining_mp", "remaining_target_mp", "mp_after_payment"]:
+			"mp_power", "drained_mp", "recovered_mp", "remaining_mp", "remaining_target_mp", "mp_after_payment",
+			"heal_ratio", "heal_amount", "healed", "remaining_hp"]:
 			if value.has(key):
 				value[key] = 999
 		if value.has("id"):

@@ -1,5 +1,5 @@
 # {
-#   責務: [battle_data: 戦闘・データの公開機能・宣言を定義する]
+#   責務: [battle_data: 保存個体から、能力補正・習得・装備許可・耐性を反映した戦闘個体を再構築します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -12,22 +12,22 @@ from kadoka_quest.data.repository import GameRepository
 
 
 # {
-#   責務: [BattleDataLoader: Loads combat-ready species, skill, resistance, stat and equipment data.]
+#   責務: [BattleDataLoader: 指定した正規データ取得先とカタログを保持し、保存個体を戦闘用に再構築します]
 #   フィールド: [
-#     repository: データ取得先
-#     skill_catalog: スキル・catalog
-#     equipment_catalog: 装備・catalog
+#     repository: 種族・能力値・習得・装備を取得する正規リポジトリ（GameRepository）
+#     skill_catalog: 構築時に取得したID別のスキル定義（dict）
+#     equipment_catalog: 構築時に取得したID別の装備定義（dict）
 #   ]
 # }
 class BattleDataLoader:
     """Loads combat-ready species, skill, resistance, stat and equipment data."""
 
     # {
-    #   責務: [__init__: 戦闘・データ・loaderが利用する初期状態と依存を設定する]
-    #   処理: [1: 戦闘・データ・loaderが利用する初期状態と依存を設定する]
+    #   責務: [__init__: 戦闘個体の再構築に使う取得先とスキル・装備一覧を保持します]
+    #   処理: [1: 取得先の参照を保持し、スキルと装備のID別定義を取得します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     repository: データ取得先（GameRepository）
+    #     repository: 戦闘個体を再構築する正規データの取得先（GameRepository）
     #   ]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -37,25 +37,29 @@ class BattleDataLoader:
         self.equipment_catalog = repository.get_equipment()
 
     # {
-    #   責務: [species_definition: 戦闘・データ・loaderの種族・定義を求める]
-    #   処理: [1: 戦闘・データ・loaderの種族・定義を求める]
+    #   責務: [species_definition: 指定種族の耐性・逃走率・経験値などを持つ種族定義を取得します]
+    #   処理: [1: 種族IDの読込をrepositoryへ委譲し、種族定義を返します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     species_id: 種族・識別子（str）
+    #     species_id: 取得する正規種族定義のID（str）
     #   ]
-    #   戻り値: [result: self.repository.get・species(species・id).definition（dict[str, Any]）]
+    #   戻り値: [result: 正規データから読み込んだ種族定義（dict[str, Any]）]
     # }
     def species_definition(self, species_id: str) -> dict[str, Any]:
         return self.repository.get_species(species_id).definition
 
     # {
-    #   責務: [build_combatant: 戦闘個体を構築する]
-    #   処理: [1: 戦闘個体を構築する]
+    #   責務: [build_combatant: 保存個体のLv・＋選択・装備から、満HP/MPの戦闘個体を構築します]
+    #   処理: [
+    #     1: 種族とLv別習得を読み、装備の種族許可を確認します
+    #     2: 許可装備の耐性段階と能力補正を反映します
+    #     3: 元レコードを保存せず、満HP/MPの戦闘個体を返します
+    #   ]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     record: 個体レコード（MonsterRecord）
+    #     record: 種族・Lv・＋選択・装備IDと学習AIを持つ保存個体（MonsterRecord）
     #   ]
-    #   戻り値: [result: 戦闘個体を構築するための結果（Combatant）]
+    #   戻り値: [result: 補正後能力・習得・許可装備・耐性と満HP/MPを持つ戦闘個体（Combatant）]
     # }
     def build_combatant(self, record: MonsterRecord) -> Combatant:
         definition = self.species_definition(record.species_id)

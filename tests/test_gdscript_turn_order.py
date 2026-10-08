@@ -142,13 +142,11 @@ class TurnBoundaryTests(unittest.TestCase):
 
 
 # {
-#   責務: [GDScriptTurnTests: gdscript・ターン・testsの状態と振る舞いを担当する]
+#   責務: [GDScriptTurnTests: 専用個体と保存領域を所有し、実Godotの行動順・最新生存をPythonへ比較します]
 #   フィールド: [
-#     setUp: set・up
-#     seed_state: seed・状態
-#     seed_record: seed・個体レコード
-#     write: write
-#     byte_snapshot: byte・独立した状態の写し
+#     content: 正規data/assetsを複製した一時コンテンツ領域（Path）
+#     repository: 専用コピーを読むPythonリポジトリ
+#     profile: 個体・AI・items・partyの一時保存先（Path）
 #   ]
 # }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real turn-order probes")
@@ -160,14 +158,14 @@ class GDScriptTurnTests(unittest.TestCase):
     byte_snapshot = combatant.GDScriptCombatantTests.byte_snapshot
 
     # {
-    #   責務: [invoke: gdscript・ターン・testsのinvokeを求める]
-    #   処理: [1: gdscript・ターン・testsのinvokeを求める]
+    #   責務: [invoke: 専用操作列を実Godotの行動順プローブで実行し、診断と結果を取得します]
+    #   処理: [1: 専用開始情報をJSONで渡し、正常終了・解析診断と結果の存在を確認します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     cases: cases
-    #     joined: joined
+    #     cases: 純粋engineの行動順・最新生存を比較する専用ケース列
+    #     joined: applicationと正規データ読込を組み合わせる専用ケース列
     #   ]
-    #   戻り値: [result: gdscript・ターン・testsのinvokeを求めるための結果（型注釈なし）]
+    #   戻り値: [result: cases/joinedの行動順・生存観測と入力保持結果（dict）]
     # }
     def invoke(self, cases=(), joined=()):
         path = self.content / "turn-probe.json"

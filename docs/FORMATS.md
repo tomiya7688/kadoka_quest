@@ -407,6 +407,12 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 [回復スキル予測契約](GDScript回復スキル予測契約.md)は、kind:healのsmall_heal/healyと互換MOD定義に、current_mp・target_hp・target_max_hpだけを渡して使います。結果はscope:heal_skill_quoteとし、最大HPで制限する前のheal_amount・実回復量の予測healed・remaining_hp・mp_cost・remaining_mpを返します。満HPではhealedが0でもMP消費を予測します。治療付きspirit_recover・未知効果/要求・MP不足・不正資源や精度超過は拒否します。対象HP0の数値予測は復活許可を意味しません。原本・実資源・Session・保存JSON/schemaは変更せず、AI・戦闘画面は未接続です。
 
+### GDScriptの単体HP回復行動（実行時だけ）
+
+[回復スキル行動契約](GDScript回復スキル行動契約.md)のresolve_heal_skillは、厳密な{ticket,target,skill_id}だけを受けます。targetは本人を含む同陣営の生存個体で、敵・欠落・死亡・逃走対象を拒否します。最新予約・習得・許可装備とSessionの現在MP/対象HPを検証し、単一claim→MP消費→最大HPまでの実HP回復→finishを実行します。満HPでもMPを払い、guard・耐性・魔力・攻撃用装備補正は回復量に使いません。
+
+回復行動の結果はscope:explicit_heal_skill_onlyとし、予測numbersと別に実消費spent_mp・実回復healed・独立sessionを返します。要求側の回復率や資源の上書き・治療付きspirit_recover・未知効果/装備補正を拒否し、不正・不足では予約と資源を保持します。snapshotの6キー、正規data/assets・個体/AI/items/partyの保存JSON/schemaは変更しません。治療・AI・戦闘画面は未接続です。
+
 ### GDScriptの単体魔法行動（実行時だけ）
 
 [単体魔法行動契約](GDScript魔法スキル行動契約.md)の開始情報には、既存snapshot・skill_ids・equipmentと別に、種族と許可装備から再構築したresistances辞書があります。snapshotのidentity・stats・hp・mp・fled・aliveという6キーと、保存JSON/schemaは変更しません。
