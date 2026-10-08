@@ -302,7 +302,7 @@ func mp_cost(key: Variant, cost: Variant) -> Dictionary:
 #   処理: [1: 指定したside/idの参加個体へMP支払いを委譲し、不正や不足時は資源を保持します]
 #   引数: [
 #     key: sideとidで指定する戦闘参加個体（Variant）
-#     cost: 消費量（Variant）
+#     cost: 指定個体が支払う非負整数のMP量（Variant）
 #   ]
 #   戻り値: [result: 実消費量spent・現在mp、または資源を保持した不足や不正入力の拒否（Dictionary）]
 # }
@@ -362,7 +362,7 @@ func _check_ticket(ticket: Variant) -> Dictionary:
 # {
 #   責務: [_check: 最新資源を順序契約へ渡し、指定行動者の生存・逃走・敵の有無を確認します]
 #   処理: [1: 最新資源を順序契約へ渡し、指定行動者の生存・逃走・敵の有無を確認します]
-#   引数: [key: キー（Dictionary）]
+#   引数: [key: 実行可否を調べる行動者の陣営sideと個体id（Dictionary）]
 #   戻り値: [result: 行動者の実行可否can_act・友軍friends・敵foes・停止判定stop（Dictionary）]
 # }
 func _check(key: Dictionary) -> Dictionary:
@@ -371,10 +371,10 @@ func _check(key: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_snapshots: 各資源所有者から最新の資源コピーを取得し、指定陣営の列として返します]
-#   処理: [1: 各資源所有者から最新の資源コピーを取得し、指定陣営の列として返します]
+#   責務: [_snapshots: 各資源所有者から最新コピーを取得し、両陣営の参加者列を持つ辞書を返します]
+#   処理: [1: 初期参加順を保って最新資源をalliesとenemiesの列へ追加します]
 #   引数: []
-#   戻り値: [result: 指定陣営の参加順で並べた最新の戦闘資源コピー列（Array）]
+#   戻り値: [result: alliesとenemiesをキーとする最新資源コピー列の辞書（Dictionary）]
 # }
 func _snapshots() -> Dictionary:
 	var teams := {"allies": [], "enemies": []}

@@ -5,6 +5,7 @@
 extends RefCounted
 const Preparation = preload("res://engine/physical_skill_context.gd")
 const Quote = preload("res://engine/magic_skill_contract.gd")
+const SelfDamageQuote = preload("res://engine/self_damage_magic_contract.gd")
 const Resistance = preload("res://engine/elemental_resistance.gd")
 const Numbers = preload("res://engine/stat_numbers.gd")
 
@@ -43,10 +44,11 @@ static func prepare(teams: Variant, skills: Variant) -> Dictionary:
 #     context: prepareで構築した独立情報（Dictionary）
 #     actor: 検証済み行動者のsideとid（Dictionary）
 #     skill_id: 使用する魔法ID（Variant）
+#     self_damage: trueなら自傷付き、falseなら自傷なしの定義だけを選択する設定（bool）
 #   ]
 #   戻り値: [result: skillとfixed_bonus_damage、または理由付き拒否（Dictionary）]
 # }
-static func select(context: Dictionary, actor: Dictionary, skill_id: Variant) -> Dictionary:
+static func select(context: Dictionary, actor: Dictionary, skill_id: Variant, self_damage: bool = false) -> Dictionary:
 	# 行動要求から習得や装備を上書きさせず、開始時の正規情報だけを使う。
 	if not skill_id is String or skill_id.is_empty():
 		return {"ok": false, "reason": "invalid_skill_id"}
@@ -55,10 +57,13 @@ static func select(context: Dictionary, actor: Dictionary, skill_id: Variant) ->
 	var member: Dictionary = context["members"][actor["side"]][actor["id"]]
 	if skill_id not in member["skill_ids"]:
 		return {"ok": false, "reason": "skill_not_learned"}
-	var selected := Quote.prepare({"schema_version": 1, "skills": context["definitions"].get(skill_id, [])}, skill_id)
+	# 固定した区分の検証だけを使い、未対応の自傷効果を通常魔法として黙って無視しない。
+	var contract: GDScript = SelfDamageQuote if self_damage else Quote
+	var selected: Dictionary = contract.prepare({"schema_version": 1, "skills": context["definitions"].get(skill_id, [])}, skill_id)
 	if not selected["ok"]:
 		return selected
 	var equipment: Dictionary = member["equipment"]
+	# 選択した魔法の未対応補正は値が無効でも捨てず、実行前に拒否する。
 	var modifier: Variant = equipment.get("skill_modifiers", {}).get(skill_id, {})
 	if not modifier is Dictionary:
 		return {"ok": false, "reason": "invalid_magic_equipment"}

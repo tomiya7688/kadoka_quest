@@ -10,7 +10,10 @@ const MagicContract = preload("res://engine/magic_skill_contract.gd")
 
 # {
 #   責務: [prepare: 指定IDの一意な自傷付き単体魔法定義を検証して返します]
-#   処理: [1: 一覧から定義を選択します, 2: 魔法の対応範囲と自傷率を検証します]
+#   処理: [
+#     1: 一覧から定義を選択します
+#     2: 魔法の対応範囲と自傷率を検証します
+#   ]
 #   引数: [
 #     document: schema_version=1とskills配列を持つスキル一覧（Variant）
 #     skill_id: 選択するスキルID（Variant）

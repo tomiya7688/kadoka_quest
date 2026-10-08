@@ -8,6 +8,7 @@
 #     _defend: battle_session.gdの戦闘状態へ基本ぼうぎょの倍率を反映するbasic_defend_action.gdの行動処理（RefCounted）
 #     _physical: battle_session.gdの戦闘状態へMP付き単体物理スキルの結果を反映するphysical_skill_action.gdの行動処理（RefCounted）
 #     _magic: 戦闘状態へMP付き単体魔法の結果を反映するmagic_skill_action.gdの行動処理（RefCounted）
+#     _self_magic: 敵への魔法効果と術者のHP代償を反映する、自傷専用設定のmagic_skill_action.gd（RefCounted）
 #   ]
 # }
 extends RefCounted
@@ -26,6 +27,7 @@ var _attack: RefCounted
 var _defend: RefCounted
 var _physical: RefCounted
 var _magic: RefCounted
+var _self_magic: RefCounted
 
 
 # {
@@ -44,7 +46,7 @@ func _init(repository: RefCounted) -> void:
 #   責務: [start: 保存個体から独立した戦闘Sessionと行動処理を構築し、最初のラウンドを開始します]
 #   処理: [
 #     1: turn_preparation.gdの準備処理で参加個体を再構築し、候補のbattle_session.gdの戦闘状態へ戦闘資源を設定します
-#     2: 正規スキル定義で通常攻撃・基本ぼうぎょ・MP付き単体物理・単体魔法の行動処理を設定します
+#     2: 正規スキル定義で通常攻撃・基本ぼうぎょ・MP付き単体物理・通常魔法・自傷魔法の行動処理を設定します
 #     3: 最初のラウンドの計画が成功した場合だけ、使用するbattle_session.gdの戦闘状態と行動処理の参照を切り替えます
 #   ]
 #   引数: [
@@ -88,6 +90,11 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	var magical: Dictionary = magic.start(prepared["teams"], skills["value"])
 	if not magical["ok"]:
 		return magical
+	# 通常魔法と別の入口で自傷効果を扱い、資源更新の順序は共用の行動処理へ任せる。
+	var self_magic = Magic.new(candidate, true)
+	var self_magical: Dictionary = self_magic.start(prepared["teams"], skills["value"])
+	if not self_magical["ok"]:
+		return self_magical
 	# 戦闘呼び出し処理は、全行動処理の設定と最初のラウンド計画が成功してから、使用する戦闘状態と行動処理を一度に切り替えます。
 	var planned: Dictionary = candidate.begin_round(shuffle_order)
 	if not planned["ok"]:
@@ -97,6 +104,7 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	_defend = defend
 	_physical = physical
 	_magic = magic
+	_self_magic = self_magic
 	return {"ok": true, "preparation": prepared, "session": snapshot()}
 
 
@@ -170,6 +178,17 @@ func resolve_physical_skill(request: Variant) -> Dictionary:
 func resolve_magic_skill(request: Variant) -> Dictionary:
 	# 呼び出し処理は数値・習得判定を重複実装せず、単体魔法の担当へ委譲する。
 	return {"ok": false, "reason": "not_initialized"} if _magic == null else _magic.resolve(request)
+
+
+# {
+#   責務: [resolve_self_damage_magic_skill: 自傷付き単体魔法の検証・MP消費・敵と術者のHP変化を行動処理へ委譲します]
+#   処理: [1: 自傷専用設定のmagic_skill_action.gdへ要求を渡し、未初期化なら拒否します]
+#   引数: [request: ticket・敵target・skill_id・varianceの4キーを持つ自傷魔法要求（Variant）]
+#   戻り値: [result: 自傷魔法の適用結果または理由付き拒否（Dictionary）]
+# }
+func resolve_self_damage_magic_skill(request: Variant) -> Dictionary:
+	# 呼び出し処理はHP代償を計算・更新せず、共用の魔法行動処理へ委譲する。
+	return {"ok": false, "reason": "not_initialized"} if _self_magic == null else _self_magic.resolve(request)
 
 
 # {

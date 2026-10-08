@@ -1,4 +1,4 @@
-"""単体魔法の実MP支払いとHP変化を実Godotで測定します。Playerと実セーブは使用しません。"""
+"""通常・自傷の単体魔法の実MP/HP適用を実Godotで測定します。Playerと実セーブは使用しません。"""
 # {
 #   責務: [check_gdscript_magic_action: 単体魔法行動の時間・HP/MPの実適用を確認する開発専用CLIです]
 #   フィールド: []
@@ -31,7 +31,7 @@ class MagicActionBenchmark:
     #   引数: [
     #     self: 計測条件の所有者
     #     godot: 使用するGodot実行ファイルのパス（str）
-    #     arguments: iterations/samples/warmupを持つCLI引数（argparse.Namespace）
+    #     arguments: iterations/samples/warmup/self_damageを持つCLI引数（argparse.Namespace）
     #   ]
     #   戻り値: [result: なし（None）]
     # }
@@ -39,7 +39,8 @@ class MagicActionBenchmark:
         # 可変CLIオブジェクトを保持せず、計測に必要な値だけを取り出す。
         self.godot = godot
         self.configuration = {"performance": True, "iterations": max(1, arguments.iterations),
-                              "samples": max(1, arguments.samples), "warmup": max(0, arguments.warmup)}
+                              "samples": max(1, arguments.samples), "warmup": max(0, arguments.warmup),
+                              "self_damage": arguments.self_damage}
 
     # {
     #   責務: [run: 専用JSONで実Godotを起動し、診断と計測結果を確認します]
@@ -83,8 +84,10 @@ class MagicActionBenchmark:
                 continue
             result = json.loads(base64.b64decode(line.split("=", 1)[1]))
             passed = (result["microseconds"] <= 3000 and result["actors"] == 8 and result["hp_changed"]
-                      and result["spent_mp"] == result["expected_spent_mp"])
-            print(f"{'OK' if passed else 'FAIL'} Godot next+magic(validate/claim/MP/HP/finish) {result['microseconds']:.2f}us <= 3000us "
+                      and result["spent_mp"] == result["expected_spent_mp"] and result["minimum_hp"] >= 1
+                      and result["self_dealt"] == result["expected_self_dealt"])
+            mode = "self-magic" if self.configuration["self_damage"] else "magic"
+            print(f"{'OK' if passed else 'FAIL'} Godot next+{mode}(validate/claim/MP/HP/finish) {result['microseconds']:.2f}us <= 3000us "
                   f"[{result['iterations']} iterations, {result['samples']} samples, {result['warmup']} warmup; 8 actors, damage/immune/absorb/strong]")
             return 0 if passed else 1
         print("FAIL: missing Godot magic-action performance result")
@@ -106,6 +109,7 @@ def main() -> int:
     parser.add_argument("--iterations", type=int, default=20_000)
     parser.add_argument("--samples", type=int, default=7)
     parser.add_argument("--warmup", type=int, default=2_000)
+    parser.add_argument("--self-damage", action="store_true", help="自傷付き単体魔法の敵HP・術者HP代償を実適用して測定します")
     arguments = parser.parse_args()
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
     if not godot:

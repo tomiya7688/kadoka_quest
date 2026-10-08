@@ -189,16 +189,17 @@ class GDScriptTurnTests(unittest.TestCase):
         self.fail(process.stderr + process.stdout[-1600:])
 
     # {
-    #   責務: [engine: gdscript・ターン・testsのルール処理を求める]
-    #   処理: [1: gdscript・ターン・testsのルール処理を求める]
+    #   責務: [engine: 両陣営のsnapshotから学習無効の独立したPython戦闘個体を再構築します]
+    #   処理: [1: 基本能力と現在資源を複製し、比較用BattleEngineへ両陣営を設定します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     allies: 味方
-    #     enemies: 敵
+    #     self: 専用コンテンツを所有する戦闘比較用テストケース
+    #     allies: 基本能力・現在資源・identityを持つ味方snapshot列
+    #     enemies: 基本能力・現在資源・identityを持つ敵snapshot列
     #   ]
-    #   戻り値: [result: ルール処理（型注釈なし）]
+    #   戻り値: [result: 学習無効で入力と独立した個体を所有するPython戦闘（BattleEngine）]
     # }
     def engine(self, allies, enemies):
+        # 数値比較でAIを学習させず、正規データも専用コピーだけから読む。
         engine = BattleEngine(GameRepository(self.content / "data"), [], [], learning_enabled=False)
         teams = []
         for team in (allies, enemies):

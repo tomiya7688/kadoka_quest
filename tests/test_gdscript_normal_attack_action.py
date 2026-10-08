@@ -30,8 +30,8 @@ key = turn.key
 #   処理: [1: 指定ID・速度・最大HPで新鮮な通常攻撃比較用個体を作ります]
 #   引数: [
 #     identifier: 専用比較個体の識別ID
-#     speed: 素早さ
-#     hp: HP
+#     speed: 比較用個体の基本敏捷性
+#     hp: 比較用個体の最大HP。現在HPも同じ値で初期化します
 #   ]
 #   戻り値: [result: 個体情報・能力値・現在HP/MP・生存と逃走を持つ資源辞書（dict）]
 # }
@@ -45,10 +45,10 @@ def member(identifier, speed=10, *, hp=30):
 #   責務: [parameters: 指定した攻撃力・敵防御力・敵HP・装備から独立した戦闘開始情報を作ります]
 #   処理: [1: 指定した攻撃力・敵防御力・敵HP・装備から独立した戦闘開始情報を作ります]
 #   引数: [
-#     attack: 攻撃
-#     defense: 防御力
-#     hp: HP
-#     equipment: 装備
+#     attack: 味方allyの基本攻撃力
+#     defense: 敵enemyの基本防御力
+#     hp: 敵enemyの最大HP。現在HPも同じ値で初期化します
+#     equipment: 味方allyへ渡す許可装備の効果辞書
 #     changes: 比較ケース別の値や設定の上書き
 #   ]
 #   戻り値: [result: 両陣営・装備・明示順とケース別条件を持つ開始情報（dict）]
@@ -64,7 +64,7 @@ def parameters(*, attack=100, defense=10, hp=1000, equipment=None, **changes):
 #   責務: [hit: 明示した敵対象へ通常攻撃を要求する専用操作を作ります]
 #   処理: [1: 明示した敵対象へ通常攻撃を要求する専用操作を作ります]
 #   引数: [
-#     target: 対象
+#     target: 陣営sideと個体idで表す攻撃対象。Noneならenemies/enemy
 #     changes: 比較ケース別の値や設定の上書き
 #   ]
 #   戻り値: [result: 通常攻撃の操作種別と敵対象を持つ辞書（dict）]
@@ -78,7 +78,7 @@ def hit(target=None, **changes):
 #   処理: [1: 戦闘開始情報と明示操作列を専用プローブへ渡す独立ケースを作ります]
 #   引数: [
 #     input: 両陣営・装備・明示順の開始情報
-#     actions: actions
+#     actions: 次行動取得・通常攻撃などの明示操作列。Noneなら通常攻撃1回
 #     changes: 比較ケース別の値や設定の上書き
 #   ]
 #   戻り値: [result: 独立したinputとactionsを持つ検証ケース（dict）]
@@ -89,13 +89,13 @@ def case(input=None, actions=None, **changes):
 
 
 # {
-#   責務: [NormalActionBoundaryTests: normal・action・boundary・testsの状態と振る舞いを担当する]
+#   責務: [NormalActionBoundaryTests: 通常攻撃の数値・更新・委譲と、Player/開発ツールの責務境界を静的に検証します]
 #   フィールド: []
 # }
 class NormalActionBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_pure_resolution_is_separate_from_routing_and_has_no_io_ai_or_random: 検証: pure resolution is separate from routing and has no io ai or random]
-    #   処理: [1: 検証: pure resolution is separate from routing and has no io ai or random]
+    #   責務: [test_pure_resolution_is_separate_from_routing_and_has_no_io_ai_or_random: 通常攻撃engineにI/O・AI・乱数生成がなく、applicationは更新を委譲することを確認します]
+    #   処理: [1: ソースの禁止依存と専用委譲の存在を照合します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -113,8 +113,8 @@ class NormalActionBoundaryTests(unittest.TestCase):
         self.assertNotIn("normal_attack_action", source)
 
     # {
-    #   責務: [test_action_benchmark_stays_outside_player_runtime: 検証: action benchmark stays outside player runtime]
-    #   処理: [1: 検証: action benchmark stays outside player runtime]
+    #   責務: [test_action_benchmark_stays_outside_player_runtime: 通常攻撃の開発性能検査が時間上限を持ち、Playerから参照されないことを確認します]
+    #   処理: [1: 性能CLIの上限とPlayerソースの非参照を照合します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -128,14 +128,11 @@ class NormalActionBoundaryTests(unittest.TestCase):
 
 
 # {
-#   責務: [GDScriptNormalActionTests: gdscript・normal・action・testsの状態と振る舞いを担当する]
+#   責務: [GDScriptNormalActionTests: 専用戦闘fixtureで実Godotの通常攻撃とPython正本を比較し、資源と保存境界を検証します]
 #   フィールド: [
-#     setUp: set・up
-#     reference: reference
-#     byte_snapshot: byte・独立した状態の写し
-#     seed_state: seed・状態
-#     seed_record: seed・個体レコード
-#     write: write
+#     content: 正規data/assetsを複製した一時領域（Path）
+#     repository: 専用コンテンツを読むPythonリポジトリ
+#     profile: 個体・AI・items・partyの一時保存先（Path）
 #   ]
 # }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real normal-action probes")
@@ -148,14 +145,14 @@ class GDScriptNormalActionTests(unittest.TestCase):
     write = fixture.GDScriptRosterTests.write
 
     # {
-    #   責務: [invoke: gdscript・normal・action・testsのinvokeを求める]
-    #   処理: [1: gdscript・normal・action・testsのinvokeを求める]
+    #   責務: [invoke: 専用JSONで実Godotの明示行動プローブを起動し、診断と結果を取得します]
+    #   処理: [1: 専用コピーの操作列を実行し、正常終了と標準出力の結果を検証します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     cases: cases
-    #     joined: joined
+    #     self: 専用コンテンツと保存先を所有するテストケース
+    #     cases: 純粋Sessionから実行する専用の開始情報と明示操作列
+    #     joined: applicationと正規データ取得を組み合わせる専用試験ケース列
     #   ]
-    #   戻り値: [result: gdscript・normal・action・testsのinvokeを求めるための結果（型注釈なし）]
+    #   戻り値: [result: cases/joinedの初期化・操作観測・最終資源を持つ結果（dict）]
     # }
     def invoke(self, cases=(), joined=()):
         path = self.content / "normal-action-probe.json"
@@ -175,8 +172,8 @@ class GDScriptNormalActionTests(unittest.TestCase):
         self.fail(result.stderr + result.stdout[-1600:])
 
     # {
-    #   責務: [test_normal_critical_equipment_rounding_minimum_and_overkill_match_python_attack: 検証: normal critical equipment rounding minimum and overkill match python attack]
-    #   処理: [1: 検証: normal critical equipment rounding minimum and overkill match python attack]
+    #   責務: [test_normal_critical_equipment_rounding_minimum_and_overkill_match_python_attack: 通常攻撃の会心・許可装備・丸め・最低ダメージ・残HP上限をPythonへ照合します]
+    #   処理: [1: 明示した能力と乱数の各組合せで実GodotとPythonの攻撃数値を比較します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }

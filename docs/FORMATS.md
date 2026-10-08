@@ -411,5 +411,9 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 ### GDScriptの自傷魔法予測（実行時だけ）
 
-[自傷魔法予測契約](GDScript自傷魔法予測契約.md)は、既存スキルのself_damage_ratioと通常魔法の数値要求にactor_hp/actor_max_hpを加えて使います。対象への魔法効果の後に、最大HP基準の代償と術者HP1の下限を予測します。結果はscope:self_damage_magic_quoteとし、self_damage（計算上の代償）・self_dealt（実減少）・remaining_actor_hp等を返します。原本・実HP/MP・Session・保存JSON/schemaは変更しません。実行への接続は後続単位で、通常魔法行動は自傷を拒否します。
+[自傷魔法予測契約](GDScript自傷魔法予測契約.md)は、既存スキルのself_damage_ratioと通常魔法の数値要求にactor_hp/actor_max_hpを加えて使います。対象への魔法効果の後に、最大HP基準の代償と術者HP1の下限を予測します。結果はscope:self_damage_magic_quoteとし、self_damage（計算上の代償）・self_dealt（実減少）・remaining_actor_hp等を返します。予測APIは原本・実HP/MP・Sessionを変更しません。実適用は次の専用入口へ接続し、通常魔法の入口は自傷を拒否します。
+
+### GDScriptの自傷魔法行動（実行時だけ）
+
+[自傷魔法行動契約](GDScript自傷魔法行動契約.md)のresolve_self_damage_magic_skillは、厳密な{ticket,target,skill_id,variance}だけを受けます。術者の現在HP・最大HPはSessionから取得し、要求側での上書きを拒否します。最新予約と習得・許可装備・敵対象・資源を検証し、単一claim→実MP消費→敵効果→術者のself_dealt適用→finishを行います。無効・吸収・最後の敵の撃破でも代償が発生し、HP1を残します。不正・不足・取消・重複で追加消費しません。結果のscopeはexplicit_self_damage_magic_onlyです。snapshotの6キー、正規data/assets、個体/AI/items/partyの保存JSON/schemaは変更しません。AI・戦闘画面は未接続です。
 

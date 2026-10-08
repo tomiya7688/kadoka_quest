@@ -53,8 +53,11 @@ python tools/performance-check/script/check_gdscript_physical_skill.py
 python tools/performance-check/script/check_gdscript_physical_action.py
 python tools/performance-check/script/check_gdscript_magic_skill.py
 python tools/performance-check/script/check_gdscript_magic_action.py
+python tools/performance-check/script/check_gdscript_magic_action.py --self-damage
 python tools/performance-check/script/check_gdscript_self_damage_magic.py
 ```
+
+自傷魔法の実適用性能はcheck_gdscript_magic_action.py --self-damageで測ります。開発者はKADOKA_GODOT_EXECUTABLEを設定して実行してください。専用8体の1行動を標準20000回・7サンプル・2000回の事前実行で測り、中央値3000us以内と累積MP消費・敵HP効果・術者HP代償を確認します。全員の生存を維持する専用MOD率1e-9を使い、正規率0.1とHP1下限は回帰テストへ分けます。実セーブ・描画・AIの性能は測りません。入力・資源・失敗対応は[自傷魔法行動契約](../docs/GDScript自傷魔法行動契約.md)を確認してください。
 
 自傷付き魔法の純粋予測は、通常魔法と同じ20000回・7サンプル・2000回の事前実行で測ります。開発者はGodotを指定し、check_gdscript_self_damage_magic.pyを実行してください。時間上限3000usに加え、敵HP・術者HP代償・残MPの期待値と元入力の保持を確認します。実資源更新や描画は測りません。Godot未指定は終了コード2の未検証です。入力と失敗時の確認方法は[自傷魔法予測契約](../docs/GDScript自傷魔法予測契約.md)を参照してください。
 

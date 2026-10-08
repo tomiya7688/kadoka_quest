@@ -23,19 +23,22 @@ from kadoka_quest.data.repository import STAT_KEYS
 # }
 class SelfDamageMagicBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_prediction_has_no_io_or_action_connection: 純粋計算の依存と実行層への未接続を確認します]
-    #   処理: [1: 禁止依存を検査します, 2: applicationと行動クラスからの未接続を確認します]
+    #   責務: [test_prediction_has_no_io_or_state_mutation: 自傷予測が資源更新やI/Oを行わず、画面からも直接呼ばれないことを確認します]
+    #   処理: [
+    #     1: 予測処理の禁止依存を検査します
+    #     2: applicationと画面が数値予測を直接呼ばないことを確認します
+    #   ]
     #   引数: [self: 純粋計算の責務境界を検証するテストケース]
     #   戻り値: [result: なし（None）]
     # }
-    def test_prediction_has_no_io_or_action_connection(self):
+    def test_prediction_has_no_io_or_state_mutation(self):
         # 数値予測を、実資源更新・乱数生成・永続化の処理にしない。
         source = (fixture.ROOT / "gdscript/engine/self_damage_magic_contract.gd").read_text(encoding="utf-8")
         for forbidden in ("FileAccess", "DirAccess", "res://application/", "res://data/", "res://ui/",
                           "battle_session", ".pay_mp(", ".take_damage(", "randf(", "RandomNumberGenerator"):
             self.assertNotIn(forbidden, source)
-        # 実行への接続は後続単位であり、この予測の追加を戦闘実行完了と扱わない。
-        for name in ("application/battle_session_application", "engine/magic_skill_action", "engine/magic_skill_context"):
+        # 行動処理からの予測利用は許可するが、applicationや画面へ計算責務を移さない。
+        for name in ("application/battle_session_application", "application/field_application"):
             source = (fixture.ROOT / f"gdscript/{name}.gd").read_text(encoding="utf-8")
             self.assertNotIn("self_damage_magic_contract", source)
 
@@ -272,7 +275,10 @@ class SelfDamageMagicQuoteTests(unittest.TestCase):
 
     # {
     #   責務: [test_mp_boundary_and_exact_hp_limits: MP不足・ちょうどの消費予測・術者HP1と精度上限を確認します]
-    #   処理: [1: MPとHPの境界を用意します, 2: 予測値と入力保持を確認します]
+    #   処理: [
+    #     1: 消費MP18の前後と術者HP1・整数精度上限の要求を用意します
+    #     2: 自傷魔法の予測値と要求・結果のコピー独立性を確認します
+    #   ]
     #   引数: [self: 数値境界のテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -297,7 +303,10 @@ class SelfDamageMagicQuoteTests(unittest.TestCase):
 
     # {
     #   責務: [test_performance_probe_measures_real_nonmutating_quote: 共用性能ループが自傷付きの正常予測を測ることを確認します]
-    #   処理: [1: 少数反復で実Godotを呼びます, 2: 実測値・予測結果・元資源の不変を確認します]
+    #   処理: [
+    #     1: 自傷予測の共用プローブを少数反復で実Godotから実行します
+    #     2: 時間値・敵HP800/術者HP80/残MP2の予測と元資源の保持を確認します
+    #   ]
     #   引数: [self: 性能プローブのテストケース]
     #   戻り値: [result: なし（None）]
     # }
