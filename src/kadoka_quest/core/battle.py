@@ -466,17 +466,22 @@ class BattleEngine:
         return True
 
     # {
-    #   責務: [_take_action: actionを反映する]
-    #   処理: [1: actionを反映する]
-    #   引数: [
-    #     self: 処理対象インスタンス
-    #     actor: 行動個体（Combatant）
-    #     foes: foes（list[Combatant]）
-    #     friends: friends（list[Combatant]）
+    #   責務: [_take_action: 現在資源で使用可能なスキルをAIへ選択依頼し、MP消費後に担当処理を呼び、学習有効時だけ結果を記録します]
+    #   処理: [
+    #     1: MPと物理封印から使用可能スキルを絞り、戦闘状況のタグでAIへ選択を依頼します
+    #     2: 選択したスキルのMPを消費し、攻撃・回復・防御・回避・強化の担当処理を呼びます
+    #     3: 学習有効時だけ個体AIへ選択結果の評価を渡します
     #   ]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   引数: [
+    #     self: 戦闘資源・AI選択/学習・乱数源・ログを所有するBattleEngine
+    #     actor: 行動個体（Combatant）
+    #     foes: 攻撃対象と戦闘状況判定に使う敵候補列（list[Combatant]）
+    #     friends: 回復・強化の対象と戦闘状況判定に使う友軍候補列（list[Combatant]）
+    #   ]
+    #   戻り値: [result: なし（None）。戦闘中の資源・行動履歴・ログと、学習有効時の個体AIを更新します]
     # }
     def _take_action(self, actor: Combatant, foes: list[Combatant], friends: list[Combatant]) -> None:
+        # 選択前に使用条件を絞り、AIへ最新のHP/MPと参加者状況を渡す。
         usable = [skill for skill in actor.skills if int(skill.get("mp_cost", 0)) <= actor.mp]
         if actor.physical_locked:
             usable = [skill for skill in usable if skill.get("kind") != "physical"]
@@ -679,7 +684,9 @@ class BattleEngine:
             self.log.append(f"{actor.name}は代償としてHPを{self_damage}消耗。")
 
         if actual_kind == "drain_mp":
+            # HP効果で敵を倒してもMPを奪うが、属性の無効・吸収では追加効果を行わない。
             if not (resistance_blocks_effect or resistance_absorbs):
+                # 奪った量と術者の回復量は別。最大MPで余っても敵の喪失量を減らさない。
                 drained = min(target.mp, max(1, int(actor.stats["magic"] * float(skill.get("mp_power", 0.12)))))
                 target.mp -= drained
                 actor.mp = min(actor.stats["mp"], actor.mp + drained)

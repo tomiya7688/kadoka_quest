@@ -24,7 +24,10 @@ from check_gdscript_magic_skill import MagicSkillBenchmark
 class SelfDamageMagicBenchmark(MagicSkillBenchmark):
     # {
     #   責務: [__init__: 通常魔法と共通の計測条件に自傷契約の選択を加えます]
-    #   処理: [1: 共通の計測条件を初期化します, 2: プローブの自傷契約を選択します]
+    #   処理: [
+    #     1: 共用MagicSkillBenchmarkで反復条件を初期化します
+    #     2: 共有プローブの自傷魔法契約を選択します
+    #   ]
     #   引数: [
     #     self: 自傷予測計測の所有者
     #     godot: Godotのパス（str）
@@ -39,7 +42,10 @@ class SelfDamageMagicBenchmark(MagicSkillBenchmark):
 
     # {
     #   責務: [_check_output: 時間上限と自傷を含む数値予測および元資源の保持を照合します]
-    #   処理: [1: 計測結果を読みます, 2: 時間・数値・入力不変の全条件を判定します]
+    #   処理: [
+    #     1: 実Godotの標準出力から自傷魔法の計測結果を読みます
+    #     2: 時間上限・敵HP800/術者HP80/残MP2の予測・元資源保持を判定します
+    #   ]
     #   引数: [
     #     self: 自傷予測計測の所有者
     #     output: Godotの標準出力（str）
@@ -66,7 +72,10 @@ class SelfDamageMagicBenchmark(MagicSkillBenchmark):
 
 # {
 #   責務: [main: CLI条件とGodot実行先を検証し、自傷付き魔法の性能計測へ委譲します]
-#   処理: [1: 条件と実行先を読みます, 2: 未指定は未検証として終了し、指定済みなら計測します]
+#   処理: [
+#     1: CLIの反復条件とGodotの実行ファイルを確認します
+#     2: Godot未指定なら未検証、指定済みなら自傷魔法の予測計測を実行します
+#   ]
 #   引数: []
 #   戻り値: [status: 成功0・失敗1・Godot未指定による未検証2（int）]
 # }

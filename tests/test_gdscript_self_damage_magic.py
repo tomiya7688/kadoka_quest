@@ -66,7 +66,10 @@ class SelfDamageMagicQuoteTests(unittest.TestCase):
 
     # {
     #   責務: [run_probe: 自傷契約を指定したケースを、既存の実Godot起動と診断検証へ渡します]
-    #   処理: [1: 契約選択を独立コピーへ加えます, 2: 共有プローブで結果と要求ファイル不変を確認します]
+    #   処理: [
+    #     1: 呼出元の要求を複製し、自傷契約の選択だけを加えます
+    #     2: 共用MagicSkillQuoteTestsで実Godotの結果と要求ファイル不変を確認します
+    #   ]
     #   引数: [
     #     self: 専用領域の所有者
     #     payload: ケース配列または性能条件（dict）

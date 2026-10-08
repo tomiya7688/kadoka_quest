@@ -409,6 +409,10 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受けます。最新予約・習得・敵対象・現在MP/HPを検証し、一回分のclaim→実MP支払い→ダメージまたは最大HPで止まる吸収回復→finishを行います。会心値・耐性・威力・MPの要求側上書きは拒否します。無効・満タン吸収でもMPを消費し、基本ぼうぎょは魔法を軽減しません。不正・未対応・不足は予約と資源を保持し、死亡/逃走/敵なし取消は資源を消費しません。AI・戦闘画面・全スキルは未接続です。
 
+### GDScriptの吸MP魔法予測（実行時だけ）
+
+[吸MPスキル予測契約](GDScript吸MPスキル予測契約.md)はkind:drain_mpと任意のmp_power（省略時0.12）を持つ既存形式の定義を使います。通常魔法の要求に非負整数のactor_max_mp/target_mpを加え、MP消費後の敵MP喪失と術者最大MPまでの回復を別々に予測します。結果はscope:drain_mp_skill_quote、mp_after_payment・drained_mp・recovered_mp・remaining_target_mp・吸収後remaining_mp等です。敵HP0でもMP吸収を予測し、無効/吸収耐性ではMP吸収しません。実HP/MP・Session・保存JSON/schemaは変更せず、実適用・AI・画面は未接続です。未知効果/要求はfalse・0・空でも拒否します。
+
 ### GDScriptの自傷魔法予測（実行時だけ）
 
 [自傷魔法予測契約](GDScript自傷魔法予測契約.md)は、既存スキルのself_damage_ratioと通常魔法の数値要求にactor_hp/actor_max_hpを加えて使います。対象への魔法効果の後に、最大HP基準の代償と術者HP1の下限を予測します。結果はscope:self_damage_magic_quoteとし、self_damage（計算上の代償）・self_dealt（実減少）・remaining_actor_hp等を返します。予測APIは原本・実HP/MP・Sessionを変更しません。実適用は次の専用入口へ接続し、通常魔法の入口は自傷を拒否します。
