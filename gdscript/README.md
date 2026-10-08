@@ -186,6 +186,15 @@ MPを消費する単体魔法の[予測契約](../docs/GDScript魔法スキル�
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_heal_skill.py
 ```
 
+[状態異常一つの治療予測契約](../docs/GDScript状態治療予測契約.md)は、解除不可を飛ばした最初の候補一件を明示確率・判定値で予測し、原本を変えない残存一覧を返します。候補なしでは判定不要、候補があれば確率0でも判定が必要です。未知ID/拡張情報は保持しますが、状態付与/継続効果やSession実治療を実装済みとしません。治療付き回復スキル・AI・画面は未接続で、既存HP回復APIの治療付き定義拒否を維持します。開発者はリポジトリルートで、使えるPythonとGodotの実行ファイルを指定して次を実行してください。
+
+```powershell
+$env:KADOKA_GODOT_EXECUTABLE = '<Godotの実行ファイル>'
+$env:PYTHONPATH = 'src'
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_cure.py tests/test_battle_status_cure.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py
+```
+
 [単体HP回復行動契約](../docs/GDScript回復スキル行動契約.md)は予測をSessionへ接続し、最新予約・習得・許可装備・生存する味方1体を検証して実MP消費・最大HPまでのHP回復・予約完了を行います。本人も指定でき、満HPでもMPを払います。不正・不足では予約と資源を保持し、死亡/逃走対象を復活させません。治療付き回復・AI・戦闘画面は未接続です。開発者は同じGodot/Python環境で次の専用検証を実行してください。実セーブは使用しません。
 
 ```powershell

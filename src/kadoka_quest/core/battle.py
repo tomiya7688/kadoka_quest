@@ -99,20 +99,20 @@ class BattleEngine:
         self.outcome: str | None = None
 
     # {
-    #   責務: [_living: 戦闘・ルール処理のlivingを求める]
-    #   処理: [1: 戦闘・ルール処理のlivingを求める]
-    #   引数: [team: チーム（list[Combatant]）]
-    #   戻り値: [result: 戦闘・ルール処理のlivingを求めるための結果（list[Combatant]）]
+    #   責務: [_living: 陣営の一覧からaliveが真の戦闘個体だけを順序を保持して取り出します]
+    #   処理: [1: 元の一覧を変更せず、生存条件を満たす参照の新しい一覧を返します]
+    #   引数: [team: 生存個体を取り出す陣営の戦闘個体一覧（list[Combatant]）]
+    #   戻り値: [result: aliveが真の個体への参照一覧。個体自体はコピーしません（list[Combatant]）]
     # }
     @staticmethod
     def _living(team: list[Combatant]) -> list[Combatant]:
         return [member for member in team if member.alive]
 
     # {
-    #   責務: [_status_is_removable: 戦闘・ルール処理の状態異常・is・removableを求める]
-    #   処理: [1: 戦闘・ルール処理の状態異常・is・removableを求める]
-    #   引数: [effect: 効果（dict[str, Any] | str）]
-    #   戻り値: [result: 戦闘・ルール処理の状態異常・is・removableを求めるための結果（bool）]
+    #   責務: [_status_is_removable: 状態異常が治療候補にできるか、辞書のremovableから判断します]
+    #   処理: [1: 辞書の解除可否を真偽値にし、省略時と文字列状態は解除可能とします]
+    #   引数: [effect: 治療候補として確認する状態辞書または文字列ID（dict[str, Any] | str）]
+    #   戻り値: [result: 解除可能ならTrue、辞書のremovableが偽ならFalse（bool）]
     # }
     @staticmethod
     def _status_is_removable(effect: dict[str, Any] | str) -> bool:

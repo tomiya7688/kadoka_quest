@@ -1,5 +1,5 @@
 # {
-#   責務: [test_battle_status_cure: test・戦闘・状態異常・cureの公開機能・宣言を定義する]
+#   責務: [test_battle_status_cure: 実Pythonの治療付き回復について、HP回復と状態一つの解除/乱数要否を検証します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -35,31 +35,31 @@ ATTACK = {
 
 
 # {
-#   責務: [FixedRng: fixed・乱数供給元の状態と振る舞いを担当する]
+#   責務: [FixedRng: 判定値を指定順に返し、予期しない乱数呼び出しを検出します]
 #   フィールド: [
-#     values: 値一覧
-#     random_calls: 乱数・calls
+#     values: 次の呼び出しから順に返す未使用の判定値一覧（list[float]）
+#     random_calls: randomが呼ばれた累積回数（int）
 #   ]
 # }
 class FixedRng:
     # {
-    #   責務: [__init__: fixed・乱数供給元が利用する初期状態と依存を設定する]
-    #   処理: [1: fixed・乱数供給元が利用する初期状態と依存を設定する]
+    #   責務: [__init__: 指定した判定値をコピーし、呼び出し回数を0で初期化します]
+    #   処理: [1: 呼出元の一覧を変更しない未使用値一覧を作ります]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     values: 値一覧（list[float]）
+    #     self: 未使用判定値と呼び出し回数を持つ所有者
+    #     values: テストが指定する乱数の代わりの判定値（list[float]）
     #   ]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   戻り値: [result: なし（None）]
     # }
     def __init__(self, values: list[float]) -> None:
         self.values = list(values)
         self.random_calls = 0
 
     # {
-    #   責務: [random: fixed・乱数供給元の乱数を求める]
-    #   処理: [1: fixed・乱数供給元の乱数を求める]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: fixed・乱数供給元の乱数を求めるための結果（float）]
+    #   責務: [random: 次の指定判定値を一つ消費し、呼び出し回数を増やします]
+    #   処理: [1: 未使用値があれば先頭を返し、なければ予期しない呼び出しとして失敗します]
+    #   引数: [self: 判定値と呼び出し回数を持つ所有者]
+    #   戻り値: [result: 次の判定値（float）。未使用値がなければAssertionErrorです]
     # }
     def random(self) -> float:
         self.random_calls += 1
@@ -69,19 +69,19 @@ class FixedRng:
 
 
 # {
-#   責務: [FirstUsableInference: first・usable・inferenceの状態と振る舞いを担当する]
+#   責務: [FirstUsableInference: 使用可能スキルの先頭を選び、治療比較でAIの行動選択だけを固定します]
 #   フィールド: []
 # }
 class FirstUsableInference:
     # {
-    #   責務: [choose: first・usable・inferenceを選択する]
-    #   処理: [1: first・usable・inferenceを選択する]
+    #   責務: [choose: 使用可能一覧の先頭スキルだけを選び、推論や学習は行いません]
+    #   処理: [1: 一覧が空ならNone、それ以外なら先頭定義を返します]
     #   引数: [
-    #     _ai: AI
-    #     skills: スキル一覧
-    #     _args: args
+    #     _ai: 推論へ渡される個体AI。固定選択では使用しません
+    #     skills: 使用可能として渡されたスキル一覧（list）
+    #     _args: 実推論と呼び出し形を合わせる未使用の戦況引数
     #   ]
-    #   戻り値: [result: first・usable・inferenceを選択するための結果（型注釈なし）]
+    #   戻り値: [result: 先頭スキルの定義、またはNone]
     # }
     @staticmethod
     def choose(_ai, skills, *_args):
@@ -89,15 +89,15 @@ class FirstUsableInference:
 
 
 # {
-#   責務: [make_combatant: 戦闘個体を構築する]
-#   処理: [1: 戦闘個体を構築する]
+#   責務: [make_combatant: 治療比較用の最大HP100/MP20の独立した戦闘個体を作ります]
+#   処理: [1: 仮の個体記録・能力値・状態一覧を組み立て、現在HPを指定値にします]
 #   引数: [
-#     name: 名前（str）
-#     skills: スキル一覧（list[dict]）
-#     hp: HP（int）
-#     status_effects: 状態異常・effects（list[dict | str] | None）
+#     name: 仮個体のIDと表示名に使う名前（str）
+#     skills: 比較用個体に与えるスキル定義一覧（list[dict]）
+#     hp: 比較を開始する現在HP。最大HPは100です（int）
+#     status_effects: 比較開始時の状態異常。外側の一覧だけをコピーします（list[dict | str] | None）
 #   ]
-#   戻り値: [result: 戦闘個体（Combatant）]
+#   戻り値: [result: 保存や実データ読み込みを伴わない比較用個体（Combatant）]
 # }
 def make_combatant(
     name: str,
@@ -121,10 +121,10 @@ def make_combatant(
 
 
 # {
-#   責務: [make_engine: ルール処理を構築する]
-#   処理: [1: ルール処理を構築する]
-#   引数: [values: 値一覧（list[float]）]
-#   戻り値: [result: ルール処理（BattleEngine）]
+#   責務: [make_engine: 実治療を比較するため、学習なし・固定乱数/選択のBattleEngineを用意します]
+#   処理: [1: 保存や正規JSONの読み込みをせず、実行に必要な比較用依存を設定します]
+#   引数: [values: 治療判定で順に使う明示値。候補なしは空一覧です（list[float]）]
+#   戻り値: [result: 実_try_cure_status/_take_actionを呼べる比較用エンジン（BattleEngine）]
 # }
 def make_engine(values: list[float]) -> BattleEngine:
     engine = BattleEngine.__new__(BattleEngine)
@@ -139,15 +139,15 @@ def make_engine(values: list[float]) -> BattleEngine:
 
 
 # {
-#   責務: [StatusCureTests: 状態異常・cure・testsの状態と振る舞いを担当する]
+#   責務: [StatusCureTests: 治療付き回復のHP53と、状態一つの解除/保持・判定回数を確認します]
 #   フィールド: []
 # }
 class StatusCureTests(unittest.TestCase):
     # {
-    #   責務: [test_spirit_recover_cures_removable_status_on_success: 検証: spirit recover cures removable status on success]
-    #   処理: [1: 検証: spirit recover cures removable status on success]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_spirit_recover_cures_removable_status_on_success: 3%治療が判定値0.02で毒を解除することを確認します]
+    #   処理: [1: 実回復行動後のHP53・毒の除去・乱数一回と治療ログを照合します]
+    #   引数: [self: 治療成立を検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_spirit_recover_cures_removable_status_on_success(self) -> None:
         engine = make_engine([0.02])
@@ -168,10 +168,10 @@ class StatusCureTests(unittest.TestCase):
         self.assertTrue(any("毒が治った" in line for line in engine.log))
 
     # {
-    #   責務: [test_spirit_recover_leaves_status_on_failed_roll: 検証: spirit recover leaves status on failed roll]
-    #   処理: [1: 検証: spirit recover leaves status on failed roll]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_spirit_recover_leaves_status_on_failed_roll: 判定値0.50で治療不成立でもHP回復だけは行うことを確認します]
+    #   処理: [1: HP53・毒の保持・乱数一回と治療ログなしを照合します]
+    #   引数: [self: 治療不成立を検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_spirit_recover_leaves_status_on_failed_roll(self) -> None:
         engine = make_engine([0.50])
@@ -188,10 +188,10 @@ class StatusCureTests(unittest.TestCase):
         self.assertFalse(any("が治った" in line for line in engine.log))
 
     # {
-    #   責務: [test_no_status_heals_without_consuming_cure_randomness: 検証: no status heals without consuming cure randomness]
-    #   処理: [1: 検証: no status heals without consuming cure randomness]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_no_status_heals_without_consuming_cure_randomness: 状態異常なしなら治療乱数を使わずHPを回復することを確認します]
+    #   処理: [1: 空の状態一覧・HP53と乱数呼び出し0回を照合します]
+    #   引数: [self: 候補なしの回復を検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_no_status_heals_without_consuming_cure_randomness(self) -> None:
         engine = make_engine([])
@@ -206,10 +206,10 @@ class StatusCureTests(unittest.TestCase):
         self.assertEqual(engine.rng.random_calls, 0)
 
     # {
-    #   責務: [test_nonremovable_status_is_not_considered_for_cure: 検証: nonremovable status is not considered for cure]
-    #   処理: [1: 検証: nonremovable status is not considered for cure]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_nonremovable_status_is_not_considered_for_cure: 解除不可の特殊拘束だけなら治療乱数を使わないことを確認します]
+    #   処理: [1: HP53・特殊拘束の保持と乱数呼び出し0回を照合します]
+    #   引数: [self: 解除不可状態の扱いを検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_nonremovable_status_is_not_considered_for_cure(self) -> None:
         engine = make_engine([])
@@ -225,10 +225,10 @@ class StatusCureTests(unittest.TestCase):
         self.assertEqual(engine.rng.random_calls, 0)
 
     # {
-    #   責務: [test_cure_skips_nonremovable_status_and_removes_removable_one: 検証: cure skips nonremovable status and removes removable one]
-    #   処理: [1: 検証: cure skips nonremovable status and removes removable one]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_cure_skips_nonremovable_status_and_removes_removable_one: 先頭の特殊拘束を飛ばして後続の毒一つを治療することを確認します]
+    #   処理: [1: 実回復行動後に特殊拘束だけが残り、毒の治療ログが出ることを照合します]
+    #   引数: [self: 候補順序と一件治療を検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_cure_skips_nonremovable_status_and_removes_removable_one(self) -> None:
         engine = make_engine([0.0])

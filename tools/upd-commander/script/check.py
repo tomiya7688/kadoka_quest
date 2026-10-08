@@ -16,14 +16,14 @@ TARGET = REPO_ROOT / "src" / "kadoka_quest"
 
 
 # {
-#   責務: [build_parser: UPD検査のCLI引数を定義します]
-#   処理: [1: UPD検査のCLI引数を定義します]
+#   責務: [build_parser: Python実装のUPD検査について、エラーを非停止にする調査専用モードを受け付けます]
+#   処理: [1: --advisoryだけを任意引数として定義し、既定のblocking検査と区別します]
 #   引数: []
 #   戻り値: [result: advisory調査モードの引数を解釈するパーサー（argparse.ArgumentParser）]
 # }
 def build_parser() -> argparse.ArgumentParser:
     # 調査専用モードを明示引数にし、既定では検査失敗を終了コードへ残す。
-    parser = argparse.ArgumentParser(description="Run the pinned UPD Commander checker for Kadoka Quest.")
+    parser = argparse.ArgumentParser(description="Run the installed UPD Commander checker for Kadoka Quest.")
     parser.add_argument(
         "--advisory",
         action="store_true",
@@ -33,8 +33,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 # {
-#   責務: [main: 外部UPD検査を起動し、診断表示と終了コードを処理します]
-#   処理: [1: 外部UPD検査を起動し、診断表示と終了コードを処理します]
+#   責務: [main: インストール済みUPD検査器でsrc/kadoka_questを検査し、診断と終了コードを返します]
+#   処理: [1: 同じPythonから検査器を呼び、設定不備は常に失敗、検査エラーは調査モード以外で失敗にします]
 #   引数: []
 #   戻り値: [result: 検査成功0・検査失敗1・設定不備2。advisory指定時だけ検査失敗を報告後0にします（int）]
 # }
