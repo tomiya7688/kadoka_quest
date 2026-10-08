@@ -50,6 +50,7 @@
 
 | タスク種別 | 主実装 | 関連テスト | 仕様 | 境界 |
 | --- | --- | --- | --- | --- |
+| GodotのMP付き単体HP回復予測 | gdscript/engine/heal_skill_contract.gd | tests/test_gdscript_heal_skill.py、gdscript/tests/run_magic_skill_probe.gd | docs/GDScript回復スキル予測契約.md | small_heal/healyと互換MOD定義の回復上限量・実回復量・残HP/MPを非破壊で予測します。治療付き定義を拒否し、性能はcheck_gdscript_heal_skill.pyで測ります。Session・AI・画面未接続、未起票・未pushです。 |
 | Godot起動 / JSON / マス移動 | `gdscript/{project.godot,engine/field_engine.gd,data/content_repository.gd,application/field_session.gd,application/field_application.gd,ui/}` | `tests/test_gdscript_bootstrap.py`, `gdscript/tests/{run_contracts,run_scene_smoke}.gd` | `gdscript/README.md`, `docs/移植境界機能説明書.md` | 正規data/assetsをread-only利用。純粋なFieldEngine入出力をPythonと比較。戦闘・AI・exportは未移植。 |
 | Godotフィールド保存 / 復元 | `gdscript/{engine/field_save_contract.gd,data/json_documents.gd,data/field_save_store.gd,application/field_persistence.gd}` | `tests/test_gdscript_save.py`, `gdscript/tests/run_save_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | F5/F9/起動復元。user://の名前付きフォルダ。既存個体/AI/items不変、破損・不正位置・置換失敗は上書き拒否。戦闘AI・スロットUIは未移植。 |
 | Godot初期個体 / 所有一覧 | `gdscript/{engine/monster_record_contract.gd,data/monster_store.gd,application/owned_roster.gd,ui/roster_view.gd}` | `tests/test_gdscript_roster.py`, `gdscript/tests/run_roster_probe.gd` | `gdscript/README.md`, `docs/FORMATS.md` | 初回F5のみ初期2体/パーティ。F6は全保有/先頭4枠・縦スクロール。既存AI/JSON不変。不正個体は注意、AI判断を代替しない。 |

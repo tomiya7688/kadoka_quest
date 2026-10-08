@@ -12,7 +12,7 @@ from kadoka_quest.core.status_effects import status_stat_multiplier
 
 
 # {
-#   責務: [Combatant: 元の個体レコードと区別して戦闘中の資源・一時効果を保持する]
+#   責務: [Combatant: 元の個体レコードと区別して戦闘中の資源・一時効果を保持します]
 #   フィールド: [
 #     record: 個体レコード（MonsterRecord）
 #     stats: 最大HP・最大MPを含む、この戦闘個体の能力値（dict[str, int]）
@@ -68,29 +68,29 @@ class Combatant:
     experience_reward: dict[str, int] | None = None
 
     # {
-    #   責務: [__post_init__: 戦闘個体が利用する初期状態と依存を設定する]
-    #   処理: [1: 戦闘個体が利用する初期状態と依存を設定する]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [__post_init__: 偽と評価される初期HP/MPを、能力値にある最大HP/MPへ置き換えます]
+    #   処理: [1: 現在値が0等なら最大値を設定し、それ以外の現在値は保持します]
+    #   引数: [self: 戦闘用のHP/MPと能力値を所有するCombatant]
+    #   戻り値: [result: なし（None）。戦闘用HP/MPを初期化します]
     # }
     def __post_init__(self) -> None:
         self.hp = self.hp or self.stats["hp"]
         self.mp = self.mp or self.stats["mp"]
 
     # {
-    #   責務: [alive: HPが正で逃走していない戦闘個体だけを生存と判定する]
-    #   処理: [1: 現在HPとfledを読み、生存条件を評価する]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: 生存ならTrue]
+    #   責務: [alive: HPが正で逃走していない戦闘個体だけを生存と判定します]
+    #   処理: [1: 現在HPとfledを読み、生存条件を評価します]
+    #   引数: [self: 戦闘中のHPと逃走状態を所有するCombatant]
+    #   戻り値: [result: HPが正でfledがFalseならTrue（bool）]
     # }
     @property
     def alive(self) -> bool:
         return self.hp > 0 and not self.fled
 
     # {
-    #   責務: [name: 戦闘個体の名前を求める]
-    #   処理: [1: 戦闘個体の名前を求める]
-    #   引数: [self: 処理対象インスタンス]
+    #   責務: [name: 元個体レコードにある表示名を返します]
+    #   処理: [1: record.nameを読み取ります]
+    #   引数: [self: 元個体レコードを参照するCombatant]
     #   戻り値: [result: self.record.name（str）]
     # }
     @property
@@ -98,10 +98,10 @@ class Combatant:
         return self.record.name
 
     # {
-    #   責務: [speed: 戦闘個体の素早さを求める]
-    #   処理: [1: 戦闘個体の素早さを求める]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: 戦闘個体の素早さを求めるための結果（int）]
+    #   責務: [speed: 基礎速度へ一時倍率と状態異常倍率を掛け、最低1の行動速度を求めます]
+    #   処理: [1: 速度の積を0方向へ整数化して最低1へ制限します]
+    #   引数: [self: 速度・一時倍率・状態異常を所有するCombatant]
+    #   戻り値: [result: 行動順に使う補正後の速度（int）]
     # }
     @property
     def speed(self) -> int:
@@ -109,10 +109,10 @@ class Combatant:
         return max(1, int(self.stats["speed"] * self.speed_multiplier * status_multiplier))
 
     # {
-    #   責務: [defense: 戦闘個体の防御力を求める]
-    #   処理: [1: 戦闘個体の防御力を求める]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: 戦闘個体の防御力を求めるための結果（int）]
+    #   責務: [defense: 基礎防御力へ状態異常倍率を掛け、最低0の防御力を求めます]
+    #   処理: [1: 防御力の積を0方向へ整数化して最低0へ制限します]
+    #   引数: [self: 防御力と状態異常を所有するCombatant]
+    #   戻り値: [result: 物理ダメージ計算に使う補正後防御力（int）]
     # }
     @property
     def defense(self) -> int:

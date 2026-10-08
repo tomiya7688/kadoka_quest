@@ -57,7 +57,10 @@ python tools/performance-check/script/check_gdscript_magic_action.py --self-dama
 python tools/performance-check/script/check_gdscript_magic_action.py --drain-mp
 python tools/performance-check/script/check_gdscript_self_damage_magic.py
 python tools/performance-check/script/check_gdscript_drain_mp_skill.py
+python tools/performance-check/script/check_gdscript_heal_skill.py
 ```
+
+単体HP回復の純粋予測性能はcheck_gdscript_heal_skill.pyで測ります。開発者はKADOKA_GODOT_EXECUTABLEを設定して実行してください。標準20000回・7サンプル・2000回の事前実行で予測1回を測り、中央値3000us以内、回復上限量220・実回復100・残HP1000/MP4と元入力の保持を確認します。起動・読込・実資源更新・描画・AIは測りません。Godot未指定は終了コード2の未検証です。入力と失敗対応は[回復スキル予測契約](../docs/GDScript回復スキル予測契約.md)を確認してください。
 
 吸MP付き魔法の純粋予測性能はcheck_gdscript_drain_mp_skill.pyで測ります。開発者はKADOKA_GODOT_EXECUTABLEを設定して実行してください。標準20000回・7サンプル・2000回の事前実行で予測1回を測り、中央値3000us以内、敵HP975・術者MP19・敵MP66、敵MP喪失/術者MP回復がともに14と元入力の保持を確認します。起動・読込・実資源更新・描画・AIは測りません。Godot未指定は終了コード2の未検証です。入力と失敗対応は[吸MPスキル予測契約](../docs/GDScript吸MPスキル予測契約.md)を確認してください。
 

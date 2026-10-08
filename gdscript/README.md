@@ -178,3 +178,10 @@ MPを消費する単体魔法の[予測契約](../docs/GDScript魔法スキル�
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_drain_mp_action.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_magic_action.py --drain-mp
 ```
+
+[単体HP回復予測契約](../docs/GDScript回復スキル予測契約.md)はsmall_heal/healyと互換MOD定義の回復上限量・最大HPで止まる実回復量・消費後MPを、入力変更なしで予測します。MP不足・不正資源・治療付き定義や未知効果を拒否します。HP0の数値予測は復活許可を意味せず、Session・AI・画面は未接続です。開発者は上記と同じGodot/Python環境で次の専用検証を実行してください。実セーブは使用しません。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_heal_skill.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_heal_skill.py
+```

@@ -121,10 +121,10 @@ class BattleEngine:
         return True
 
     # {
-    #   責務: [_status_display_name: 戦闘・ルール処理の状態異常・display・名前を求める]
-    #   処理: [1: 戦闘・ルール処理の状態異常・display・名前を求める]
-    #   引数: [effect: 効果（dict[str, Any] | str）]
-    #   戻り値: [result: 戦闘・ルール処理の状態異常・display・名前を求めるための結果（str）]
+    #   責務: [_status_display_name: 状態異常の表示名を、定義のdisplay_name・id・既定名の順で求めます]
+    #   処理: [1: 辞書なら表示名候補を選び、辞書でなければ文字列へ変換します]
+    #   引数: [effect: 表示する状態異常の定義または名前（dict[str, Any] | str）]
+    #   戻り値: [result: 戦闘ログに表示する状態異常名（str）]
     # }
     @staticmethod
     def _status_display_name(effect: dict[str, Any] | str) -> str:
@@ -133,16 +133,20 @@ class BattleEngine:
         return str(effect)
 
     # {
-    #   責務: [_try_cure_status: cure・状態異常を実行可能な場合に処理する]
-    #   処理: [1: cure・状態異常を実行可能な場合に処理する]
-    #   引数: [
-    #     self: 処理対象インスタンス
-    #     target: 対象（Combatant）
-    #     chance: chance（float）
+    #   責務: [_try_cure_status: 対象の最初の解除可能な状態異常を確率判定で一つだけ除去します]
+    #   処理: [
+    #     1: 対象の状態異常一覧から最初の解除可能な候補を探します
+    #     2: 候補がある場合だけ0〜1に制限した確率で判定し、成立時に候補を除去します
     #   ]
-    #   戻り値: [result: cure・状態異常を実行可能な場合に処理するための結果（str | None）]
+    #   引数: [
+    #     self: 乱数源と状態異常の解除判定を所有するBattleEngine
+    #     target: 状態異常を治療する戦闘個体（Combatant）
+    #     chance: 0〜1へ制限して使う治療成功確率（float）
+    #   ]
+    #   戻り値: [result: 除去した状態異常の表示名。候補なしまたは判定不成立ならNone（str | None）]
     # }
     def _try_cure_status(self, target: Combatant, chance: float) -> str | None:
+        # 解除できない状態を飛ばし、解除可能な最初の一つだけを候補にする。
         candidate = next(
             (
                 (index, effect)
@@ -153,6 +157,7 @@ class BattleEngine:
         )
         if candidate is None:
             return None
+        # 候補がある場合の判定だけに乱数を使い、確率を0〜1へ制限する。
         if self.rng.random() >= max(0.0, min(1.0, chance)):
             return None
         index, effect = candidate
@@ -160,14 +165,17 @@ class BattleEngine:
         return self._status_display_name(effect)
 
     # {
-    #   責務: [_try_apply_status: apply・状態異常を実行可能な場合に処理する]
-    #   処理: [1: apply・状態異常を実行可能な場合に処理する]
-    #   引数: [
-    #     self: 処理対象インスタンス
-    #     target: 対象（Combatant）
-    #     effect: 効果（dict[str, Any]）
+    #   責務: [_try_apply_status: 未付与の状態異常を、対象の状態耐性で補正した確率に従って付与します]
+    #   処理: [
+    #     1: ID欠落・重複・基礎確率が0以下の定義を拒否し、対象の耐性から付与確率を求めます
+    #     2: 判定成立時だけ効果コピーを状態一覧へ加え、結果をログへ出します
     #   ]
-    #   戻り値: [result: apply・状態異常を実行可能な場合に処理するための結果（bool）]
+    #   引数: [
+    #     self: 乱数源と戦闘ログを所有するBattleEngine
+    #     target: 状態異常を付与する戦闘個体（Combatant）
+    #     effect: ID・基礎確率chance等を持つ状態異常定義（dict[str, Any]）
+    #   ]
+    #   戻り値: [result: 状態異常を付与した場合だけTrue（bool）]
     # }
     def _try_apply_status(self, target: Combatant, effect: dict[str, Any]) -> bool:
         status_id = str(effect.get("id", "")).strip()
@@ -196,13 +204,13 @@ class BattleEngine:
         return True
 
     # {
-    #   責務: [_tick_end_turn_status: end・ターン・状態異常を時間経過を反映する]
-    #   処理: [1: end・ターン・状態異常を時間経過を反映する]
+    #   責務: [_tick_end_turn_status: 生存対象へターン終了時の状態異常ダメージを順に適用します]
+    #   処理: [1: 各状態の終了時ダメージをHP0まで適用してログへ出し、対象死亡時に残りの適用を止めます]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     target: 対象（Combatant）
+    #     self: 状態異常の終了時処理と戦闘ログを所有するBattleEngine
+    #     target: 終了時ダメージを適用する戦闘個体（Combatant）
     #   ]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   戻り値: [result: なし（None）。対象のHPと戦闘ログを更新します]
     # }
     def _tick_end_turn_status(self, target: Combatant) -> None:
         if not target.alive:
@@ -220,13 +228,13 @@ class BattleEngine:
                 break
 
     # {
-    #   責務: [_buff_duration: 戦闘・ルール処理のbuff・継続時間を求める]
-    #   処理: [1: 戦闘・ルール処理のbuff・継続時間を求める]
+    #   責務: [_buff_duration: スキルのdurationから、最低1ターンの継続時間または時間指定なしを求めます]
+    #   処理: [1: 二要素以上の範囲は上下限を補正して抽選し、単値は最低1へ制限し、欠落や変換失敗はNoneを返します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     skill: スキル（dict[str, Any]）
+    #     self: 継続時間の抽選に使う乱数源を所有するBattleEngine
+    #     skill: 任意のdurationを持つスキル定義（dict[str, Any]）
     #   ]
-    #   戻り値: [result: 戦闘・ルール処理のbuff・継続時間を求めるための結果（int | None）]
+    #   戻り値: [result: 継続ターン数。指定なしやTypeError/ValueErrorならNone（int | None）]
     # }
     def _buff_duration(self, skill: dict[str, Any]) -> int | None:
         raw = skill.get("duration")
@@ -522,12 +530,14 @@ class BattleEngine:
             target = self._resolve_attack_target(intended, foes, chosen)
             reward = self._attack(actor, target, chosen)
         elif kind == "heal":
+            # 回復量は対象の最大HPから求める。魔力や装備倍率は使わず、満HPでは実回復0になる。
             target = min(friends, key=lambda item: item.hp / item.stats["hp"])
             amount = max(1, int(target.stats["hp"] * float(chosen.get("heal_ratio", 0.15))))
             before = target.hp
             target.hp = min(target.stats["hp"], target.hp + amount)
             reward = (target.hp - before) / max(1, target.stats["hp"])
             self.log.append(f"{actor.name}の{chosen['display_name']}。{target.name}が{target.hp - before}回復。")
+            # 状態異常の治療判定はHP回復と別効果として、対象の解除可能な状態にだけ行う。
             cure_chance = float(chosen.get("status_cure_chance", 0.0))
             cured_status = self._try_cure_status(target, cure_chance)
             if cured_status is not None:
