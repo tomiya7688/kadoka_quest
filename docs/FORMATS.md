@@ -403,6 +403,12 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 - `imports/acquire/`: 再走査で所有フォルダへコピー。同じ個体IDは上書きしない
 - `imports/simulation/`: コピーせず読み取り、模擬戦だけで使用。AI更新なし
 
+### GDScriptの治療付きHP回復予測（実行時だけ）
+
+[治療付き回復予測契約](GDScript治療付き回復予測契約.md)は、kind:healと必須status_cure_chanceのあるspirit_recover/互換MOD定義へ、current_mp・target_hp・target_max_hp・status_effectsと任意rollだけを渡して使います。既存HP回復と一件治療の純粋契約へ委譲し、MP不足は治療一覧/判定値の検証前に拒否します。候補があれば確率0/1でも明示判定値が必要です。満HPでも消費MPと治療を予測し、不正ではHPだけの部分成功を返しません。
+
+成功結果のscopeはcure_heal_skill_quoteで、heal_amount・healed・remaining_hp・mp_cost・remaining_mpと一件治療のcured/cured_name・candidate_index・roll_required・cure_chance・独立したremaining_status_effectsを返します。未知定義/要求はfalse・0・空でも拒否し、原本・保存JSON/schema・Session/snapshotは変更しません。HP0の数値予測は復活許可を意味しません。既存HP回復入口は治療付き定義を拒否したままで、Session実治療・AI・画面は未接続です。
+
 ### GDScriptの状態異常一つの治療予測（実行時だけ）
 
 [状態治療予測契約](GDScript状態治療予測契約.md)のquote_cureは、status_effects・cure_chanceと任意のrollだけを受けます。状態一覧は文字列/辞書の順序を保持し、解除不可の辞書を飛ばした最初の候補一件だけを予測で除きます。候補があれば確率0でも判定値が必要で、候補なしは判定不要です。0〜1に制限した確率より判定値が小さい場合だけ成立し、等値は不成立です。

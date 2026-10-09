@@ -1,4 +1,4 @@
-"""状態異常一つの治療予測を実Godotで測定します。実セーブ・実治療は使用しません。"""
+"""状態異常一つの治療予測、または--cure-healで治療付きHP回復を測定します。実セーブ・実治療は使用しません。"""
 # {
 #   責務: [check_gdscript_status_cure: 解除不可を飛ばす治療予測の時間・実結果・入力保持を検査する開発専用CLIです]
 #   フィールド: []
@@ -31,14 +31,15 @@ class StatusCureBenchmark:
     #   引数: [
     #     self: 治療予測の計測条件を持つ所有者
     #     godot: 実Godotのパス（str）
-    #     arguments: iterations/samples/warmupを持つCLI条件（argparse.Namespace）
+    #     arguments: iterations/samples/warmupと任意cure_heal区分を持つCLI条件（argparse.Namespace）
     #   ]
     #   戻り値: [result: なし（None）]
     # }
     def __init__(self, godot: str, arguments: argparse.Namespace):
         self.godot = godot
         self.configuration = {"performance": True, "iterations": max(1, arguments.iterations),
-                              "samples": max(1, arguments.samples), "warmup": max(0, arguments.warmup)}
+                              "samples": max(1, arguments.samples), "warmup": max(0, arguments.warmup),
+                              "cure_heal": getattr(arguments, "cure_heal", False)}
 
     # {
     #   責務: [run: 専用JSONで治療予測の実Godotプローブを起動し、診断と計測結果を確認します]
@@ -63,8 +64,8 @@ class StatusCureBenchmark:
         return self._check_output(process.stdout)
 
     # {
-    #   責務: [_check_output: 時間上限・毒だけの治療成立・残存順序と元一覧の保持を照合します]
-    #   処理: [1: Base64の結果を読み、治療候補2・毒の解除と入力保持・一回3000us以内を確認します]
+    #   責務: [_check_output: 時間上限・一件治療・入力保持と、回復付きならHP上限/MP消費を照合します]
+    #   処理: [1: Base64の結果を読み、治療候補2・毒の解除と入力保持・時間上限を確認し、回復区分はHP/MPも照合します]
     #   引数: [
     #     self: 治療予測の性能条件を持つ所有者
     #     output: 実Godotの標準出力（str）
@@ -83,11 +84,36 @@ class StatusCureBenchmark:
                       and len(original) == 4 and original[2]["id"] == "poison"
                       and (quote["candidate_index"], quote["cured"], quote["cured_name"], quote["roll_required"]) == (2, True, "毒", True)
                       and quote["remaining_status_effects"] == [original[0], original[1], original[3]])
-            print(f"{'OK' if passed else 'FAIL'} Godot status-cure quote {result['microseconds']:.2f}us <= 3000us "
+            if self.configuration["cure_heal"]:
+                # 最大HPで制限された実回復量とMP消費まで一致した統合経路だけを合格にする。
+                passed = passed and self._valid_heal_result(result)
+            label = "cure-heal skill" if self.configuration["cure_heal"] else "status-cure"
+            print(f"{'OK' if passed else 'FAIL'} Godot {label} quote {result['microseconds']:.2f}us <= 3000us "
                   f"[{result['iterations']} iterations, {result['samples']} samples, {result['warmup']} warmup; no writes]")
             return 0 if passed else 1
         print("FAIL: missing Godot status-cure result")
         return 1
+
+    # {
+    #   責務: [_valid_heal_result: 治療付き回復が回復上限30・実回復10・残MP6を返し、入力を保持したか確認します]
+    #   処理: [1: 固定定義・固定資源要求と統合予測のHP/MP数値を照合します]
+    #   引数: [
+    #     self: 計測区分と反復条件を持つ所有者
+    #     result: 実Godotから復号した計測結果（dict）
+    #   ]
+    #   戻り値: [passed: 定義・資源入力と期待した回復/MP消費が一致すればTrue（bool）]
+    # }
+    def _valid_heal_result(self, result: dict) -> bool:
+        quote = result["quote"]
+        definition = result.get("original_definition")
+        request = result.get("original_request")
+        return (definition == {"id": "spirit_recover", "display_name": "精霊回復", "kind": "heal",
+                               "mp_cost": 4, "heal_ratio": 0.03, "status_cure_chance": 0.03}
+                and request == {"current_mp": 10, "target_hp": 990, "target_max_hp": 1000,
+                                "roll": 0.02, "status_effects": result["original_effects"]}
+                and quote.get("scope") == "cure_heal_skill_quote"
+                and (quote.get("heal_amount"), quote.get("healed"), quote.get("remaining_hp"),
+                     quote.get("mp_cost"), quote.get("remaining_mp")) == (30, 10, 1000, 4, 6))
 
 
 # {
@@ -101,6 +127,7 @@ def main() -> int:
     parser.add_argument("--iterations", type=int, default=20_000)
     parser.add_argument("--samples", type=int, default=7)
     parser.add_argument("--warmup", type=int, default=2_000)
+    parser.add_argument("--cure-heal", action="store_true", help="一件治療と最大HP制限付きHP回復の統合予測を測定します")
     arguments = parser.parse_args()
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
     # Godotがない環境では、計測したように成功を返しません。

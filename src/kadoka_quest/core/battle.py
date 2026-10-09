@@ -460,7 +460,7 @@ class BattleEngine:
     #   戻り値: [result: 敵・fleeを実行可能な場合に処理するための結果（bool）]
     # }
     def _try_enemy_flee(self, actor: Combatant) -> bool:
-        # Only explicitly contextualized wild battles opt in; simulations do not.
+        # encounter_contextを持つ学習有効の野生戦闘だけで敵の逃走を判定し、シミュレーションでは判定しません。
         if not actor.alive or not self.learning_enabled or self.encounter_context is None:
             return False
         try:

@@ -60,9 +60,12 @@ python tools/performance-check/script/check_gdscript_self_damage_magic.py
 python tools/performance-check/script/check_gdscript_drain_mp_skill.py
 python tools/performance-check/script/check_gdscript_heal_skill.py
 python tools/performance-check/script/check_gdscript_status_cure.py
+python tools/performance-check/script/check_gdscript_status_cure.py --cure-heal
 ```
 
 状態異常一つの治療予測性能はcheck_gdscript_status_cure.pyで測ります。開発者はKADOKA_GODOT_EXECUTABLEを設定して実行してください。解除不可2件を飛ばした毒一件の治療予測を標準20000回・7サンプル・2000回事前実行で測り、中央値3000us以内・毒だけの除去・元一覧保持を確認します。起動/読込・実治療・描画・AIは測りません。Godot未指定は終了コード2の未検証です。入力と失敗対応は[状態治療予測契約](../docs/GDScript状態治療予測契約.md)を確認してください。
+
+治療付きHP回復の予測性能はcheck_gdscript_status_cure.py --cure-healで測ります。開発者はリポジトリルートで、環境変数KADOKA_GODOT_EXECUTABLEに使えるGodotの実行ファイルを設定して実行してください。HP990/1000・MP10から回復上限30/実回復10・残HP1000/MP6と毒一件の解除・入力保持を照合します。20000回・7サンプル・2000回事前実行で一回中央値3000us以内を確認し、治療単体は区分なしで再測定できます。実Session治療・描画・AIは測らず、具体的な入力と拒否は[治療付き回復予測契約](../docs/GDScript治療付き回復予測契約.md)を確認してください。
 
 単体HP回復の実適用性能はcheck_gdscript_magic_action.py --healで測ります。開発者はKADOKA_GODOT_EXECUTABLEを設定して実行してください。専用8体の次行動取得から実MP消費・実HP回復・予約完了までを標準20000回・7サンプル・2000回事前実行で測り、中央値3000us以内と8体の累積HP/MPを確認します。全反復で回復する専用MOD率1e-9を使い、満HPでのMP消費・正規回復率は回帰テストへ分けます。実セーブ・描画・AIは測りません。入力と失敗対応は[回復スキル行動契約](../docs/GDScript回復スキル行動契約.md)を確認してください。
 

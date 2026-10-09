@@ -16,6 +16,32 @@
 
 ```
 
+# 104. GDScriptで治療付きHP回復を既存純粋契約へ統合
+
+リモート取得と差分要約でincomingなしを確認しました（開始時ahead89/behind0）。GitHub CLIでP0なし、公開P1移行Issueのローカル実装済みを確認し、移行表の未起票候補からspirit_recoverの純粋予測契約を進めました。push・PR・Issue作成や状態変更は行っていません。既存game.py・開発予定・未追跡資料・実セーブは保持しました。
+
+cure_heal_skill_contractは、既存HP回復契約と状態一件の治療契約へ委譲し、回復上限量・最大HPで止まる実回復量・消費後MPと一件治療を予測します。例えばHP99/100・MP10・毒ありのspirit_recoverへ判定値0.02を渡すと、回復上限3・実回復1・残HP100/MP6と毒一件除去を返します。満HPでもMP消費と治療を予測します。対象HP0の数値予測は復活許可を意味しません。
+
+定義はkind:heal・正のMP消費と必須の有限status_cure_chanceを検証します。要求はcurrent_mp・target_hp・target_max_hp・status_effectsと任意rollだけです。MP不足を治療一覧/判定値の検証前に拒否し、不正な治療情報でHPだけの部分成功を返しません。候補があれば確率0/1でも明示判定値が必要で、等値は不成立です。未知定義/要求はfalse・0・空でも拒否します。結果区分はcure_heal_skill_quoteで、HP/MP予測と治療名・候補位置・判定要否・制限後確率・独立した残存一覧を返します。
+
+HP回復のvalidate_definitionを共用入口にし、架空の一覧生成と型検証前の深いコピーを除きました。回復契約自体は治療キーを拒否したままで、治療キーを検証済みの統合契約だけがHP回復部分を委譲します。実Godot内で説明欄に循環辞書を作り、直接quoteが再帰コピー前に型不正を拒否する回帰テストも追加しました。元定義・要求・実資源・Session/snapshot・保存JSON/schema・正規data/assetsは変更しません。
+
+追加: gdscript/engine/cure_heal_skill_contract.gdとUID、tests/test_gdscript_cure_heal_skill.py、docs/GDScript治療付き回復予測契約.md。更新: 既存回復契約の検証入口、共用治療プローブと性能CLIの--cure-heal区分、CODEMAP・FORMATS・GDScript/tools案内・移行表と本履歴。起動・保存検査・反復計測を重複実装せず、Playerへの開発ツール依存は追加していません。
+
+参照したPython逃走判定コメントと、開発案内の「同じ環境」を具体化しました。battle.pyのASTがHEADと同じことを確認し、Pythonゲームの実行ロジックは変更していません。全文書/コード全体の監査ではありません。ローカル説明規約・レビュー基準・論文調査はGit除外のままです。
+
+検証環境は専用Python 3.14.7と実Godot 4.7.2です。行動選択だけを固定した学習なしPythonの実_take_action回復分岐と、実GodotのHP/MP・治療・乱数要否を比較しました。原本・返却値の独立性と、専用ダミーの個体/AI/items/party/state・要求JSONのbyte不変も確認しました。最終統合専用9テスト/2737 subtestsと、既存HP回復予測/実行を含む関連35テスト/3763 subtestsが成功しました。
+
+共用治療単体性能は変更前23.73us、最終変更後23.93us、新規統合予測は70.59usでした。いずれも標準20000回・7サンプル・2000回事前実行で、一回上限3000us以内・期待結果・入力保持が一致しました。統合経路は回復上限30・最大HPで制限された実回復10・残MP6と毒一件治療を確認します。起動・I/O・実Session更新・描画・AIは計測しません。
+
+最終コードでヘッドレス全1098テスト/19596 subtestsが成功しました（588.79秒）。既存runtimeの標準13性能項目もすべて上限以内でした（野生24枠生成839.77us、二体追跡129.42us、野生移動338.60us、end-to-end3.76us等）。重い標準性能計測と全体テストは時間を分け、同時に実行していません。
+
+追跡Pythonの3.10構文検査とblocking flake8、宣言コメント344ファイル/2873宣言、project rules、生成REPO_MAP/クラス図の鮮度、pip check、差分検査が成功しました。3.10構文検査は実3.10での実行検証ではありません。E2E一覧はcovered12/missing25/intentionally-not-e2e1の構造検査だけで、全E2E/GUI成功とは扱いません。Godot editor importは終了0で解析/実行診断なし、新規契約のUIDを追加しました。
+
+UPD検査器はmainのae4636155b5e773d787cfccd1572808829601524を再インストールして実行し、blocking error0・既存warning17/attention100でした。UPDはPython設計の検査であり、GDScriptの同等設計検査済みとはしません。
+
+次の候補は戦闘中の状態一覧を独立保持・更新する契約です。その後に治療付き回復の実行準備とSession実適用を進めます。状態付与/継続効果・AI・戦闘画面・実GUI・配布export・リモートCIは今回の検証範囲ではありません。
+
 # 103. GDScriptで状態異常一つの治療を非破壊予測
 
 リモート取得と差分要約でincomingなしを確認しました（開始時ahead88/behind0）。GitHub CLIでP0なし、公開P1移行Issueのローカル実装済みを確認し、移行表の未起票候補から状態異常一つの治療予測を進めました。push・PR・Issue作成や状態変更は行っていません。既存game.py・開発予定・未追跡資料・実セーブは保持しました。

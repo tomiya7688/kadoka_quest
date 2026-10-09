@@ -25,7 +25,7 @@ static func prepare(document: Variant, skill_id: Variant) -> Dictionary:
 	var selected := MagicContract.select_definition(document, skill_id)
 	if not selected["ok"]:
 		return selected
-	return _validate_definition(selected["skill"])
+	return validate_definition(selected["skill"])
 
 
 # {
@@ -42,7 +42,7 @@ static func prepare(document: Variant, skill_id: Variant) -> Dictionary:
 # }
 static func quote_heal(definition: Variant, request: Variant) -> Dictionary:
 	# prepareを省略した直接要求にも、同じ効果・数値の検証を適用する。
-	var validated := _validate_definition(definition)
+	var validated := validate_definition(definition)
 	if not validated["ok"]:
 		return validated
 	var resources := _validate_request(request)
@@ -55,7 +55,7 @@ static func quote_heal(definition: Variant, request: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_validate_definition: 単体HP回復だけの定義を確認し、未知効果を値によらず拒否します]
+#   責務: [validate_definition: 単体HP回復だけの定義を確認し、未知効果を値によらず拒否します]
 #   処理: [
 #     1: 許可キー・ID・表示名・説明・heal区分を確認します
 #     2: 有限回復率と正の整数化MP消費を確認し、独立定義へ正規化します
@@ -63,7 +63,7 @@ static func quote_heal(definition: Variant, request: Variant) -> Dictionary:
 #   引数: [definition: 選択または直接指定した回復定義（Variant）]
 #   戻り値: [result: 検証済みの独立したskill、または理由付き拒否（Dictionary）]
 # }
-static func _validate_definition(definition: Variant) -> Dictionary:
+static func validate_definition(definition: Variant) -> Dictionary:
 	# 治療確率0やfalseも捨てずに拒否し、HP回復だけで治療対応を偽装しない。
 	if not definition is Dictionary:
 		return _reject("invalid_skill_definition")

@@ -179,14 +179,14 @@ MPを消費する単体魔法の[予測契約](../docs/GDScript魔法スキル�
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_magic_action.py --drain-mp
 ```
 
-[単体HP回復予測契約](../docs/GDScript回復スキル予測契約.md)はsmall_heal/healyと互換MOD定義の回復上限量・最大HPで止まる実回復量・消費後MPを、入力変更なしで予測します。MP不足・不正資源・治療付き定義や未知効果を拒否します。HP0の数値予測は復活許可を意味しません。予測APIはSessionを変更せず、実適用は次の行動契約へ接続しています。AI・画面は未接続です。開発者は上記と同じGodot/Python環境で次の専用検証を実行してください。実セーブは使用しません。
+[単体HP回復予測契約](../docs/GDScript回復スキル予測契約.md)はsmall_heal/healyと互換MOD定義の回復上限量・最大HPで止まる実回復量・消費後MPを、入力変更なしで予測します。MP不足・不正資源・治療付き定義や未知効果を拒否します。HP0の数値予測は復活許可を意味しません。予測APIはSessionを変更せず、実適用は[回復スキル行動契約](../docs/GDScript回復スキル行動契約.md)へ接続しています。AI・画面は未接続です。開発者はリポジトリルートで、環境変数KADOKA_GODOT_EXECUTABLEに使えるGodotの実行ファイルを設定し、次の専用検証を指定したPythonで実行してください。実セーブは使用しません。
 
 ```powershell
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_heal_skill.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_heal_skill.py
 ```
 
-[状態異常一つの治療予測契約](../docs/GDScript状態治療予測契約.md)は、解除不可を飛ばした最初の候補一件を明示確率・判定値で予測し、原本を変えない残存一覧を返します。候補なしでは判定不要、候補があれば確率0でも判定が必要です。未知ID/拡張情報は保持しますが、状態付与/継続効果やSession実治療を実装済みとしません。治療付き回復スキル・AI・画面は未接続で、既存HP回復APIの治療付き定義拒否を維持します。開発者はリポジトリルートで、使えるPythonとGodotの実行ファイルを指定して次を実行してください。
+[状態異常一つの治療予測契約](../docs/GDScript状態治療予測契約.md)は、解除不可を飛ばした最初の候補一件を明示確率・判定値で予測し、原本を変えない残存一覧を返します。候補なしでは判定不要、候補があれば確率0でも判定が必要です。未知ID/拡張情報は保持しますが、状態付与/継続効果やSession実治療を実装済みとしません。治療付き回復の予測は別の専用契約へ委譲し、既存HP回復APIの治療付き定義拒否を維持します。AI・画面は未接続です。開発者はリポジトリルートで、使えるPythonとGodotの実行ファイルを指定して次を実行してください。
 
 ```powershell
 $env:KADOKA_GODOT_EXECUTABLE = '<Godotの実行ファイル>'
@@ -195,7 +195,16 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py
 ```
 
-[単体HP回復行動契約](../docs/GDScript回復スキル行動契約.md)は予測をSessionへ接続し、最新予約・習得・許可装備・生存する味方1体を検証して実MP消費・最大HPまでのHP回復・予約完了を行います。本人も指定でき、満HPでもMPを払います。不正・不足では予約と資源を保持し、死亡/逃走対象を復活させません。治療付き回復・AI・戦闘画面は未接続です。開発者は同じGodot/Python環境で次の専用検証を実行してください。実セーブは使用しません。
+[治療付きHP回復予測契約](../docs/GDScript治療付き回復予測契約.md)はspirit_recoverの回復上限・最大HPで止まる実回復量・消費後MPと一件治療を既存純粋契約で予測します。例えばHP99/100・MP10・毒あり・判定値0.02なら、実回復1・残MP6・毒一件の除去を予測します。満HPでもMP消費と治療を予測し、不正・不足では部分成功を返しません。実資源・Session・AI・画面は変更しません。開発者はリポジトリルートで、使えるPythonとGodotを指定して次の検証を実行してください。
+
+```powershell
+$env:KADOKA_GODOT_EXECUTABLE = '<Godotの実行ファイル>'
+$env:PYTHONPATH = 'src'
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_cure_heal_skill.py tests/test_gdscript_status_cure.py tests/test_battle_status_cure.py tests/test_gdscript_heal_skill.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --cure-heal
+```
+
+[単体HP回復行動契約](../docs/GDScript回復スキル行動契約.md)は予測をSessionへ接続し、最新予約・習得・許可装備・生存する味方1体を検証して実MP消費・最大HPまでのHP回復・予約完了を行います。本人も指定でき、満HPでもMPを払います。不正・不足では予約と資源を保持し、死亡/逃走対象を復活させません。治療付き回復・AI・戦闘画面は未接続です。開発者はリポジトリルートで、環境変数KADOKA_GODOT_EXECUTABLEに使えるGodotの実行ファイルを設定し、次の専用検証を指定したPythonで実行してください。実セーブは使用しません。
 
 ```powershell
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_heal_action.py -q
