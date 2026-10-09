@@ -195,6 +195,15 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py
 ```
 
+[戦闘状態一覧契約](../docs/GDScript戦闘状態一覧契約.md)の所有者は、初期配列を独立保持し、予測で一覧を変えず、最新の一覧で成立した治療候補一件だけを除きます。例えば特殊拘束・毒・眠りの順に状態がある場合、成功した治療は毒だけを除きます。外部の一覧上書き・古い予測の持ち込みを拒否し、入力と返却値のネスト編集も所有状態へ伝播させません。HP/MP・保存・行動予約・Session・AI・画面は未接続です。開発者はリポジトリルートで使えるPythonとGodotを指定し、次を実行してください。
+
+```powershell
+$env:KADOKA_GODOT_EXECUTABLE = '<Godotの実行ファイル>'
+$env:PYTHONPATH = 'src'
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_combatant_status.py tests/test_gdscript_status_cure.py tests/test_gdscript_combatant.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --status-state
+```
+
 [治療付きHP回復予測契約](../docs/GDScript治療付き回復予測契約.md)はspirit_recoverの回復上限・最大HPで止まる実回復量・消費後MPと一件治療を既存純粋契約で予測します。例えばHP99/100・MP10・毒あり・判定値0.02なら、実回復1・残MP6・毒一件の除去を予測します。満HPでもMP消費と治療を予測し、不正・不足では部分成功を返しません。実資源・Session・AI・画面は変更しません。開発者はリポジトリルートで、使えるPythonとGodotを指定して次の検証を実行してください。
 
 ```powershell

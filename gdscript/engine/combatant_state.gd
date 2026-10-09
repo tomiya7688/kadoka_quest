@@ -1,5 +1,5 @@
 # {
-#   責務: [combatant_state: Battle-only numeric state. No persistence, turn policy or AI inference.]
+#   責務: [combatant_state: 戦闘個体一体の現在HP/MPと生死・逃走状態を所有し、保存・行動順・AI判断は担当しません]
 #   フィールド: [
 #     _identity: 戦闘個体のid・species_id・name（Dictionary）
 #     _stats: 最大HP/MPを含む戦闘用の6能力値（Dictionary）
@@ -10,7 +10,7 @@
 #   ]
 # }
 extends RefCounted
-## Battle-only numeric state. No persistence, turn policy or AI inference.
+## combatant_stateは戦闘個体一体の数値資源を保持し、保存・行動順・AI判断は行いません。
 
 const Records = preload("res://engine/monster_record_contract.gd")
 const MAX_EXACT_INTEGER := 9007199254740991
@@ -91,7 +91,7 @@ func take_damage(amount: Variant) -> Dictionary:
 # {
 #   責務: [mp_cost: 消費量を検証し、現在MPで支払えるか資源更新なしで返します]
 #   処理: [1: 消費量を検証し、現在MPで支払えるか資源更新なしで返します]
-#   引数: [cost: 消費量（Variant）]
+#   引数: [cost: 戦闘個体の現在MPから支払う、非負整数の消費要求量（Variant）]
 #   戻り値: [result: 要求消費量cost・支払い可否affordable・現在mp、または理由付き拒否（Dictionary）]
 # }
 func mp_cost(cost: Variant) -> Dictionary:
@@ -124,7 +124,7 @@ func heal(amount: Variant) -> Dictionary:
 # {
 #   責務: [pay_mp: 支払える非負整数の消費量だけMPから引き、不足時はMPを保持します]
 #   処理: [1: 支払える非負整数の消費量だけMPから引き、不足時はMPを保持します]
-#   引数: [cost: 消費量（Variant）]
+#   引数: [cost: 戦闘個体の現在MPから支払う、非負整数の消費要求量（Variant）]
 #   戻り値: [result: 実消費量spent・現在mp、または資源を保持した不足や不正入力の拒否（Dictionary）]
 # }
 func pay_mp(cost: Variant) -> Dictionary:

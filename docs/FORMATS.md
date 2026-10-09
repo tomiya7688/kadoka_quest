@@ -403,6 +403,12 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 - `imports/acquire/`: 再走査で所有フォルダへコピー。同じ個体IDは上書きしない
 - `imports/simulation/`: コピーせず読み取り、模擬戦だけで使用。AI更新なし
 
+### GDScriptの戦闘状態一覧保持・一件治療（実行時だけ）
+
+[戦闘状態一覧契約](GDScript戦闘状態一覧契約.md)のcombatant_status_stateは、明示した順序付き状態配列を一度だけ検証・独立保持します。snapshotはstatus_effectsだけの独立コピー、未開始は空辞書です。既存combatant_state/Sessionの数値snapshot六キーと保存JSON/schemaは変更しません。
+
+状態所有者のquote_cure/cureはcure_chanceと任意rollだけを受け、共用治療契約の確率・候補順序・判定値規則を使います。予測では一覧を変更せず、実治療では最新一覧の最初の候補一件だけを除きます。不成立/拒否は一覧を保持し、外部一覧や古い予測の持ち込みは拒否します。予測scopeはstatus_cure_quote、実治療scopeはcombatant_status_cureで、残存一覧は独立コピーです。行動予約による重複防止・HP/MP・状態付与/継続効果・Session・保存・AI・画面は未接続です。
+
 ### GDScriptの治療付きHP回復予測（実行時だけ）
 
 [治療付き回復予測契約](GDScript治療付き回復予測契約.md)は、kind:healと必須status_cure_chanceのあるspirit_recover/互換MOD定義へ、current_mp・target_hp・target_max_hp・status_effectsと任意rollだけを渡して使います。既存HP回復と一件治療の純粋契約へ委譲し、MP不足は治療一覧/判定値の検証前に拒否します。候補があれば確率0/1でも明示判定値が必要です。満HPでも消費MPと治療を予測し、不正ではHPだけの部分成功を返しません。

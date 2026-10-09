@@ -1,16 +1,17 @@
 # {
-#   責務: [run_status_cure_probe: 専用JSONで治療単体または治療付きHP回復のPython比較・厳密拒否・入力保持・性能を観測します]
+#   責務: [run_status_cure_probe: 専用JSONで治療予測または状態所有者を起動し、Python比較・厳密拒否・原本保持・性能を観測します]
 #   フィールド: []
 # }
 extends SceneTree
 
 const Contract = preload("res://engine/status_cure_contract.gd")
 const CureHealContract = preload("res://engine/cure_heal_skill_contract.gd")
+const StatusStateProbe = preload("res://tests/combatant_status_probe.gd")
 
 
 # {
-#   責務: [_initialize: 専用要求JSONだけを読み、治療予測の観測を標準出力へ返します]
-#   処理: [1: 要求ファイルを読み、ケース検証または反復計測を実行してBase64のJSONを出力します]
+#   責務: [_initialize: 専用要求JSONだけを読み、治療予測または状態保持/更新の観測を標準出力へ返します]
+#   処理: [1: 要求JSONの区分に応じて状態専用ヘルパーまたは純粋治療プローブへ委譲し、Base64のJSONを出力します]
 #   引数: []
 #   戻り値: [result: なし（void）。引数またはJSON形式不正は終了コード2です]
 # }
@@ -25,7 +26,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("performance", false):
+	if payload.get("status_state", false):
+		result = StatusStateProbe.run(payload)
+	elif payload.get("performance", false):
 		result = _measure_quote(payload)
 	else:
 		var results: Array = []

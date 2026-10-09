@@ -1,6 +1,6 @@
-"""状態異常一つの治療予測、または--cure-healで治療付きHP回復を測定します。実セーブ・実治療は使用しません。"""
+"""治療予測を測定します。--cure-healはHP回復付き予測、--status-stateは専用の状態開始・予測・一件治療・読取を測ります。実セーブは使用しません。"""
 # {
-#   責務: [check_gdscript_status_cure: 解除不可を飛ばす治療予測の時間・実結果・入力保持を検査する開発専用CLIです]
+#   責務: [check_gdscript_status_cure: 一件治療予測または専用状態保持/更新の時間・実結果・原本保持を検査する開発専用CLIです]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -29,9 +29,9 @@ class StatusCureBenchmark:
     #   責務: [__init__: 指定されたGodotとCLIの反復条件を保持します]
     #   処理: [1: 可変CLIオブジェクトではなく、計測に必要な値だけを取り出します]
     #   引数: [
-    #     self: 治療予測の計測条件を持つ所有者
+    #     self: 治療予測または状態保持/更新の計測条件を持つ所有者
     #     godot: 実Godotのパス（str）
-    #     arguments: iterations/samples/warmupと任意cure_heal区分を持つCLI条件（argparse.Namespace）
+    #     arguments: iterations/samples/warmupと任意cure_heal/status_state区分を持つCLI条件（argparse.Namespace）
     #   ]
     #   戻り値: [result: なし（None）]
     # }
@@ -39,10 +39,11 @@ class StatusCureBenchmark:
         self.godot = godot
         self.configuration = {"performance": True, "iterations": max(1, arguments.iterations),
                               "samples": max(1, arguments.samples), "warmup": max(0, arguments.warmup),
-                              "cure_heal": getattr(arguments, "cure_heal", False)}
+                              "cure_heal": getattr(arguments, "cure_heal", False),
+                              "status_state": getattr(arguments, "status_state", False)}
 
     # {
-    #   責務: [run: 専用JSONで治療予測の実Godotプローブを起動し、診断と計測結果を確認します]
+    #   責務: [run: 専用JSONで治療予測または状態保持/更新の実Godotプローブを起動し、診断と計測結果を確認します]
     #   処理: [1: 専用JSONの一時領域でプローブを呼び、診断がなければ結果検査へ委譲します]
     #   引数: [self: 計測先と反復条件を持つ所有者]
     #   戻り値: [status: 正常結果と性能条件を満たせば0、診断や条件不一致なら1（int）]
@@ -57,17 +58,17 @@ class StatusCureBenchmark:
                  "res://tests/run_status_cure_probe.gd", "--", str(path)],
                 capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600,
             )
-        # 高速な解析失敗や拒否結果を、正常な治療予測の性能と扱わない。
+        # 高速な解析失敗や拒否結果を、正常な治療予測/状態更新の性能と扱わない。
         if process.returncode or "SCRIPT ERROR" in process.stderr or "ERROR:" in process.stderr:
             print(process.stderr + process.stdout)
             return 1
         return self._check_output(process.stdout)
 
     # {
-    #   責務: [_check_output: 時間上限・一件治療・入力保持と、回復付きならHP上限/MP消費を照合します]
-    #   処理: [1: Base64の結果を読み、治療候補2・毒の解除と入力保持・時間上限を確認し、回復区分はHP/MPも照合します]
+    #   責務: [_check_output: 時間上限・一件治療・原本保持と、区分ごとのHP/MPまたは状態保持/更新を照合します]
+    #   処理: [1: 復号した実Godot結果の毒一件治療・原本保持・時間上限を確認し、回復区分は資源、状態区分は前後一覧も確認します]
     #   引数: [
-    #     self: 治療予測の性能条件を持つ所有者
+    #     self: 治療予測または状態保持/更新の性能条件を持つ所有者
     #     output: 実Godotの標準出力（str）
     #   ]
     #   戻り値: [status: 全条件一致なら0、結果欠落や不一致なら1（int）]
@@ -87,9 +88,12 @@ class StatusCureBenchmark:
             if self.configuration["cure_heal"]:
                 # 最大HPで制限された実回復量とMP消費まで一致した統合経路だけを合格にする。
                 passed = passed and self._valid_heal_result(result)
-            label = "cure-heal skill" if self.configuration["cure_heal"] else "status-cure"
-            print(f"{'OK' if passed else 'FAIL'} Godot {label} quote {result['microseconds']:.2f}us <= 3000us "
-                  f"[{result['iterations']} iterations, {result['samples']} samples, {result['warmup']} warmup; no writes]")
+            label = "cure-heal skill quote" if self.configuration["cure_heal"] else "status-cure quote"
+            if self.configuration["status_state"]:
+                passed = passed and self._valid_state_result(result)
+                label = "combatant status lifecycle"
+            print(f"{'OK' if passed else 'FAIL'} Godot {label} {result['microseconds']:.2f}us <= 3000us "
+                  f"[{result['iterations']} iterations, {result['samples']} samples, {result['warmup']} warmup; no save writes]")
             return 0 if passed else 1
         print("FAIL: missing Godot status-cure result")
         return 1
@@ -115,9 +119,28 @@ class StatusCureBenchmark:
                 and (quote.get("heal_amount"), quote.get("healed"), quote.get("remaining_hp"),
                      quote.get("mp_cost"), quote.get("remaining_mp")) == (30, 10, 1000, 4, 6))
 
+    # {
+    #   責務: [_valid_state_result: 新規状態の開始・予測非変更・一件実解除と、結果一覧を照合します]
+    #   処理: [1: 開始一覧4件・予測前後不変・実解除後3件と、予測/実更新の区分を照合します]
+    #   引数: [
+    #     self: 状態ライフサイクルの計測条件を持つ所有者
+    #     result: 実Godotから復号したライフサイクル観測（dict）
+    #   ]
+    #   戻り値: [passed: 開始・予測・更新・読み取りの期待条件がすべて一致すればTrue（bool）]
+    # }
+    def _valid_state_result(self, result: dict) -> bool:
+        quote = result["quote"]
+        expected_initial = {"status_effects": result["original_effects"]}
+        expected_after = {"status_effects": quote["remaining_status_effects"]}
+        return (quote.get("scope") == "combatant_status_cure"
+                and result.get("started") == {"ok": True, "snapshot": expected_initial}
+                and result.get("after_quote") == expected_initial
+                and result.get("after") == expected_after
+                and result.get("prediction") == {**quote, "scope": "status_cure_quote"})
+
 
 # {
-#   責務: [main: CLI条件とGodot実行先を確認し、治療予測の性能計測へ委譲します]
+#   責務: [main: CLI条件とGodot実行先を確認し、治療予測または専用状態所有者のライフサイクル計測へ委譲します]
 #   処理: [1: 反復条件を解析し、実Godot指定済みなら計測、未指定なら未検証を返します]
 #   引数: []
 #   戻り値: [status: 成功0・失敗1・Godot未指定の未検証2（int）]
@@ -127,7 +150,9 @@ def main() -> int:
     parser.add_argument("--iterations", type=int, default=20_000)
     parser.add_argument("--samples", type=int, default=7)
     parser.add_argument("--warmup", type=int, default=2_000)
-    parser.add_argument("--cure-heal", action="store_true", help="一件治療と最大HP制限付きHP回復の統合予測を測定します")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--cure-heal", action="store_true", help="一件治療と最大HP制限付きHP回復の統合予測を測定します")
+    mode.add_argument("--status-state", action="store_true", help="専用の状態開始・予測・一件治療・読み取りを測定します")
     arguments = parser.parse_args()
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
     # Godotがない環境では、計測したように成功を返しません。

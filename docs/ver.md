@@ -16,6 +16,30 @@
 
 ```
 
+# 105. GDScriptで戦闘状態一覧を独立保持し、一件治療を適用
+
+リモート取得と要約でincomingなしを確認しました（開始時ahead90/behind0）。GitHub CLIでP0なし、公開P1移行Issueのローカル実装済みを確認し、移行表の未起票候補から戦闘状態一覧の独立保持を進めました。push・PR・Issue作成や状態変更は行っていません。既存game.py・開発予定・未追跡資料・実セーブは保持しました。
+
+combatant_status_stateは初期配列を検証して一度だけ独立保持します。例えば解除不可の特殊拘束・毒・眠りへ確率0.03/判定値0.02を渡すと、予測は所有一覧を変更せず、cureは最新一覧から毒一件だけを除きます。外部の予測・候補位置・残存一覧を更新命令として受けず、不成立/拒否は所有状態を保持します。初期入力・開始結果・snapshot・治療結果のネスト編集も所有一覧へ伝播しません。不正開始からは正常な一覧で再試行でき、開始済みのリセットは拒否します。
+
+状態検証・候補順・成功率/明示判定は共用の純粋治療契約へ委譲し、未知MOD ID・重複・JSON互換拡張情報を情報として保持します。要求はcure_chanceと任意rollだけで、未知キーをfalse/0/空でも拒否します。候補があれば確率0/1でもrollが必要です。quoteはstatus_cure_quote、cureはcombatant_status_cure区分を返します。状態所有者に行動予約による重複防止はなく、cureを二度呼べば更新後の次候補を治療します。HP/MP・生死・逃走・Session・保存・乱数生成・AIは扱いません。
+
+追加: gdscript/engine/combatant_status_state.gdとUID、gdscript/tests/combatant_status_probe.gdとUID、tests/test_gdscript_combatant_status.py、docs/GDScript戦闘状態一覧契約.md。更新: 共用治療起動プローブ/保存fixtureの再利用、性能CLIの--status-state区分、CODEMAP・FORMATS・GDScript/tools案内・移行表と本履歴。起動・I/O・保存検査の重複実装やPlayerから開発ツールへの依存は追加していません。
+
+参照したcombatant_stateの省略された責務・引数説明を日本語で具体化しました。数値資源の実行コードと六キーsnapshotは変更していません。新規仕様は具体例・条件/結果・拒否対応・検証方法から説明しています。全文書/コード全体の監査ではなく、Git除外のローカル説明規約・レビュー基準は公開対象にしていません。
+
+検証環境は専用Python 3.14.7と実Godot 4.7.2です。実Godotの連続quote/cureを学習なしPython正本の実_try_cure_statusと照合し、原本/返却値の独立性・厳密拒否・専用保存ダミーと要求JSONのbyte不変を確認しました。関連41テスト/4250 subtestsと、最終コードのヘッドレス全1105テスト/19866 subtestsが成功しました（全体545.86秒）。全体テスト終了後は本履歴へ結果を記録しただけで、実行コードを変更していません。
+
+標準性能は、共用治療予測が変更前24.40us/変更後41.00us、治療付き回復予測が85.58us、新規状態の開始→予測→読取→実治療→読取が125.64usでした。全区分とも20000回・7サンプル・2000回事前実行で一回上限3000us以内と期待結果・原本保持が一致しました。新規経路は各反復で四件を初期化し、予測後四件・毒一件除去後三件を検査します。起動/I/O・Session・描画・AI・保存は計測しません。
+
+既存runtimeの標準13項目もすべて上限以内でした（野生24枠生成1013.04us、二体追跡147.55us、野生移動393.81us、end-to-end4.10us等）。標準性能計測はヘッドレス全体テストと同時実行していません。
+
+追跡Python251ファイルの3.10構文検査とblocking flake8、宣言コメント347ファイル/2898宣言、project rules、生成REPO_MAP/クラス図の鮮度、pip check、差分検査が成功しました。3.10構文検査は実3.10での実行検証ではありません。新規仕様のローカルファイルリンク5件が存在することも確認しました。E2E一覧はcovered12/missing25/intentionally-not-e2e1の構造検査だけで、全E2E/GUI成功とは扱いません。実Godot editor importは終了0で解析/実行診断なしでした。
+
+UPD検査器はmainのae4636155b5e773d787cfccd1572808829601524を再インストールして実行し、blocking error0・既存warning17/attention100でした。UPDはPython設計の検査であり、GDScriptの同等設計検査済みとはしません。
+
+次の候補は治療付き回復の実行準備と状態所有者のSession保持条件です。状態付与/継続効果・治療付き回復のSession実行・AI・戦闘画面・実GUI・配布export・リモートCIは今回の検証範囲ではありません。正規data/assets・保存JSON/schemaは変更しません。
+
 # 104. GDScriptで治療付きHP回復を既存純粋契約へ統合
 
 リモート取得と差分要約でincomingなしを確認しました（開始時ahead89/behind0）。GitHub CLIでP0なし、公開P1移行Issueのローカル実装済みを確認し、移行表の未起票候補からspirit_recoverの純粋予測契約を進めました。push・PR・Issue作成や状態変更は行っていません。既存game.py・開発予定・未追跡資料・実セーブは保持しました。
