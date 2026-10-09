@@ -1,5 +1,7 @@
 # Project tooling
 
+治療付き回復の準備済み定義選択は、リポジトリルートでKADOKA_GODOT_EXECUTABLEを指定して`python tools/performance-check/script/check_gdscript_status_cure.py --cure-context`を実行してください。八体/千件の準備済み索引からの選択だけを標準20000回・7サンプル・2000回事前実行で測り、中央値3000us以内・正常定義・参加数/索引数・入力/準備保持を確認します。初期状態検証/索引構築・起動/I/O・実更新・Session・描画・AIは計測しません。Godot未指定は終了コード2の未検証です。入力・境界・再試行方法は[準備契約](../docs/GDScript治療付き回復準備契約.md)を参照してください。
+
 Development and maintenance tools live under `tools/<tool-name>/`.
 
 Each tool keeps executable scripts under `tools/<tool-name>/script/`. Tool-specific support files should stay inside that tool directory. Do not add new project tooling directly to the repository root or top-level `scripts/`.

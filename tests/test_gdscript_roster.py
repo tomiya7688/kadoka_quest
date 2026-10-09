@@ -152,23 +152,23 @@ class GDScriptRosterTests(unittest.TestCase):
         return monster
 
     # {
-    #   責務: [saved_files: gdscript・所有個体台帳・testsのsaved・filesを求める]
-    #   処理: [1: gdscript・所有個体台帳・testsのsaved・filesを求める]
+    #   責務: [saved_files: 専用セーブ領域の相対パスとbyte列を保持し、再保存前後を比較可能にします]
+    #   処理: [1: 専用領域のファイルを列挙し、指定時だけstate.jsonを比較対象から除きます]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     exclude_state: exclude・状態
+    #     self: 検証専用セーブ領域profileを持つテストケース
+    #     exclude_state: state.jsonを比較から除く場合はTrue（bool）
     #   ]
-    #   戻り値: [result: gdscript・所有個体台帳・testsのsaved・filesを求めるための結果（型注釈なし）]
+    #   戻り値: [result: profile基準の相対パスをキーとするbyte列の辞書（dict[str, bytes]）]
     # }
     def saved_files(self, exclude_state=False):
         return {str(path.relative_to(self.profile)): path.read_bytes() for path in self.profile.rglob("*")
                 if path.is_file() and not (exclude_state and path.name == "state.json")}
 
     # {
-    #   責務: [test_default_ai_matches_python_all_profiles_and_tactics: 検証: default ai matches python all profiles and tactics]
-    #   処理: [1: 検証: default ai matches python all profiles and tactics]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_default_ai_matches_python_all_profiles_and_tactics: 七つのAIプロファイルと五つの作戦でGodot初期AIがPythonと一致するか確認します]
+    #   処理: [1: 未知プロファイル/作戦を含む全組合せを作り、Godotの生成結果をdefault_aiと比較します]
+    #   引数: [self: 専用のGodot所有個体プローブを持つテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_default_ai_matches_python_all_profiles_and_tactics(self):
         cases = [{"profile": profile, "tactic": tactic}
@@ -180,10 +180,10 @@ class GDScriptRosterTests(unittest.TestCase):
                 self.assertEqual(value, default_ai(**case))
 
     # {
-    #   責務: [test_individual_documents_match_python_factory_and_level_clamp: 検証: individual documents match python factory and level clamp]
-    #   処理: [1: 検証: individual documents match python factory and level clamp]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_individual_documents_match_python_factory_and_level_clamp: 七種族の個体/AI生成とLv1〜100への制限がPythonと一致するか確認します]
+    #   処理: [1: 各種族のLv-9/1/42/100/200をGodotで生成し、PythonのMonsterStore.create結果と比較します]
+    #   引数: [self: 正規dataの専用コピーとGodotプローブを持つテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_individual_documents_match_python_factory_and_level_clamp(self):
         cases = [{"id": f"reference_{index}_{level}", "species_id": species, "level": level, "name": "比較個体"}
@@ -198,10 +198,10 @@ class GDScriptRosterTests(unittest.TestCase):
                 self.assertEqual(value, {"monster": expected.monster, "ai": expected.ai})
 
     # {
-    #   責務: [test_new_save_starters_party_reload_and_repeat_save_do_not_duplicate: 検証: new save starters party reload and repeat save do not duplicate]
-    #   処理: [1: 検証: new save starters party reload and repeat save do not duplicate]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_new_save_starters_party_reload_and_repeat_save_do_not_duplicate: 新規セーブの主人公/ボールスライムと再読込時の個体・パーティ保持を確認します]
+    #   処理: [1: 保存/再読込後の個体数とbyte保持を比較し、Python互換・一時フォルダ不残留・旧保存領域の不変を確認します]
+    #   引数: [self: 専用セーブと旧領域ダミーを持つテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_new_save_starters_party_reload_and_repeat_save_do_not_duplicate(self):
         result = self.probe([{"kind": "key", "key": "F5"}, {"kind": "key", "key": "F6"}])["observations"]
@@ -221,10 +221,10 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual((self.legacy / "sentinel.json").read_text(encoding="utf-8"), '{"keep":true}')
 
     # {
-    #   責務: [test_existing_individual_ai_unknown_keys_and_party_order_are_readonly: 検証: existing individual ai unknown keys and party order are readonly]
-    #   処理: [1: 検証: existing individual ai unknown keys and party order are readonly]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_existing_individual_ai_unknown_keys_and_party_order_are_readonly: 所有一覧表示と再保存が個体/AIのMOD情報や欠損枠を含むパーティ順を保持するか確認します]
+    #   処理: [1: 専用個体/AIの既知/未知情報とパーティを用意し、表示/保存後のbyte列と並びを比較します]
+    #   引数: [self: 専用セーブの所有個体と一覧表示を検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_existing_individual_ai_unknown_keys_and_party_order_are_readonly(self):
         state = self.seed_state(current_party=["まるA", None, "missing", "hero_01"])
@@ -248,10 +248,10 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual(stored["current_party"], state["current_party"])
 
     # {
-    #   責務: [test_unlimited_roster_scroll_and_modal_input_does_not_move_or_save: 検証: unlimited roster scroll and modal input does not move or save]
-    #   処理: [1: 検証: unlimited roster scroll and modal input does not move or save]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_unlimited_roster_scroll_and_modal_input_does_not_move_or_save: 百二十体の所有一覧スクロールと、一覧表示中の移動/保存抑止を確認します]
+    #   処理: [1: 専用一覧で末尾/先頭/ページ移動を操作し、閉じるまで座標と保存byte列を保持するか確認します]
+    #   引数: [self: 専用セーブで一覧操作を検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_unlimited_roster_scroll_and_modal_input_does_not_move_or_save(self):
         self.seed_state(current_party=["owned_000"])
@@ -271,8 +271,8 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual(self.saved_files(), before)
 
     # {
-    #   責務: [test_invalid_records_are_reported_without_deletion_or_repair: 検証: invalid records are reported without deletion or repair]
-    #   処理: [1: 検証: invalid records are reported without deletion or repair]
+    #   責務: [test_invalid_records_are_reported_without_deletion_or_repair: 読込不能な個体を報告し、勝手な削除や修復を行わないことを検証します]
+    #   処理: [1: 不正な専用個体レコードを用意し、読込拒否の表示と原本保持を確認します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }

@@ -1,5 +1,5 @@
 # {
-#   責務: [run_status_cure_probe: 専用JSONで治療予測または状態所有者を起動し、Python比較・厳密拒否・原本保持・性能を観測します]
+#   責務: [run_status_cure_probe: 専用JSONから治療予測・状態所有者・治療付き回復準備を起動し、比較/拒否/原本保持/性能を観測します]
 #   フィールド: []
 # }
 extends SceneTree
@@ -7,16 +7,17 @@ extends SceneTree
 const Contract = preload("res://engine/status_cure_contract.gd")
 const CureHealContract = preload("res://engine/cure_heal_skill_contract.gd")
 const StatusStateProbe = preload("res://tests/combatant_status_probe.gd")
+const ContextProbe = preload("res://tests/cure_heal_context_probe.gd")
 
 
 # {
-#   責務: [_initialize: 専用要求JSONだけを読み、治療予測または状態保持/更新の観測を標準出力へ返します]
-#   処理: [1: 要求JSONの区分に応じて状態専用ヘルパーまたは純粋治療プローブへ委譲し、Base64のJSONを出力します]
+#   責務: [_initialize: 専用要求JSONを読み、治療/状態更新/準備選択の観測を標準出力へ返します]
+#   処理: [1: 要求区分に応じた専用ヘルパーへ委譲し、Base64のJSONを出力します]
 #   引数: []
 #   戻り値: [result: なし（void）。引数またはJSON形式不正は終了コード2です]
 # }
 func _initialize() -> void:
-	# 利用者セーブ・正規data/assetsへの出力先を持たず、指定JSONだけを読みます。
+	# 利用者セーブや正規data/assetsへの書き込み先を持たず、専用要求を読みます。
 	var arguments := OS.get_cmdline_user_args()
 	if arguments.size() != 1:
 		quit(2)
@@ -26,7 +27,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("status_state", false):
+	if payload.get("cure_context", false):
+		result = ContextProbe.run(payload)
+	elif payload.get("status_state", false):
 		result = StatusStateProbe.run(payload)
 	elif payload.get("performance", false):
 		result = _measure_quote(payload)

@@ -403,6 +403,12 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 - `imports/acquire/`: 再走査で所有フォルダへコピー。同じ個体IDは上書きしない
 - `imports/simulation/`: コピーせず読み取り、模擬戦だけで使用。AI更新なし
 
+### GDScriptの治療付きHP回復準備（実行時だけ）
+
+[治療付き回復準備契約](GDScript治療付き回復準備契約.md)は既存回復の開始資源/習得/許可装備を共用検証し、initial_statusesのallies/enemies別ID集合を全参加者と一致させます。状態なしも[]で明示し、欠落/余分なID・不正状態を部分成功なしで拒否します。同じIDでも陣営を分離します。成功結果のsnapshots/context/initial_statusesは入力と独立した編集可能な通常データであり、Sessionの状態所有者や不変の内部状態ではありません。
+
+専用selectは準備済みの習得/許可装備/ID索引から一意な治療付き定義を返します。通常HP回復入口の治療拒否は維持し、未知効果や補正はfalse/0/空でも無視しません。HP/MP・状態・行動予約を更新せず、数値snapshot六キーと正規data/assets・保存JSON/schemaは変更しません。状態所有者のSession保持・実治療・AI・画面は未接続です。
+
 ### GDScriptの戦闘状態一覧保持・一件治療（実行時だけ）
 
 [戦闘状態一覧契約](GDScript戦闘状態一覧契約.md)のcombatant_status_stateは、明示した順序付き状態配列を一度だけ検証・独立保持します。snapshotはstatus_effectsだけの独立コピー、未開始は空辞書です。既存combatant_state/Sessionの数値snapshot六キーと保存JSON/schemaは変更しません。

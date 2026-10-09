@@ -1,22 +1,22 @@
 # {
-#   責務: [content_repository: Read-only access to the existing canonical data, never savedata/UserData.]
+#   責務: [content_repository: プロジェクト内の正規dataを読み取る入口です。保存やUserData管理は担当しません]
 #   フィールド: [
-#     root: 基準ディレクトリ（String）
-#     last_error: last・error
+#     root: data/を含むプロジェクトの基準ディレクトリ（String）
+#     last_error: 直近JSON読み取りの失敗理由。成功時は空文字列です（String）
 #   ]
 # }
 extends RefCounted
-## Read-only access to the existing canonical data, never savedata/UserData.
+## 正規dataの読み取りを担当し、保存データの書き込みは行いません。
 
 var root: String
 var last_error := ""
 
 
 # {
-#   責務: [_init: 正規dataを読む基準ディレクトリを設定します]
-#   処理: [1: 正規dataを読む基準ディレクトリを設定します]
-#   引数: [content_root: content・基準ディレクトリ（String）]
-#   戻り値: [result: なし（void）。正規dataを読む基準ディレクトリを設定します]
+#   責務: [_init: 正規dataの相対参照に使うプロジェクト基準パスを保持します]
+#   処理: [1: 指定パスを簡約化し、rootへ保持します]
+#   引数: [content_root: data/を含むプロジェクトのディレクトリ。data/自体ではありません（String）]
+#   戻り値: [result: なし（void）]
 # }
 func _init(content_root: String) -> void:
 	root = content_root.simplify_path()
@@ -45,7 +45,7 @@ func _read_dictionary(relative: String) -> Dictionary:
 # {
 #   責務: [valid_id: 種族やマップのIDが小文字英数字・下線・ハイフンだけの非空文字列か確認します]
 #   処理: [1: 種族やマップのIDが小文字英数字・下線・ハイフンだけの非空文字列か確認します]
-#   引数: [value: 値（String）]
+#   引数: [value: 検証する種族またはマップのID候補（String）]
 #   戻り値: [result: 非空IDが小文字英数字・下線・ハイフンだけならtrue、それ以外false（bool）]
 # }
 static func valid_id(value: String) -> bool:

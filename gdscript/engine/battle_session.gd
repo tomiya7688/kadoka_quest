@@ -1,7 +1,7 @@
 # {
-#   責務: [battle_session: 資源・単一カーソルとラウンド限定guardを所有する。攻撃計算や勝敗は扱わない]
+#   責務: [battle_session: 戦闘個体のHP/MP・一回限りの行動予約・ラウンド限定物理防御を所有します。攻撃計算や勝敗判定は行いません]
 #   フィールド: [
-#     _teams: 両陣営（Dictionary）
+#     _teams: allies/enemies別に保持する戦闘個体の資源所有者列（Dictionary）
 #     _by_id: 陣営sideと個体idから資源所有者を検索する索引（Dictionary）
 #     _phase: 戦闘開始前・ラウンド進行中・終端を表す段階（String）
 #     _round: 戦闘開始後のラウンド番号（int）
@@ -12,7 +12,7 @@
 #   ]
 # }
 extends RefCounted
-## Own resources, a single-use cursor and round-local guard; no damage calculation or outcomes.
+## 戦闘個体の資源と行動予約を保持し、攻撃計算や勝敗判定は別契約へ分離します。
 
 const State = preload("res://engine/combatant_state.gd")
 const Order = preload("res://engine/turn_order.gd")
@@ -28,14 +28,14 @@ var _guards: Dictionary = {"allies": {}, "enemies": {}}
 
 
 # {
-#   責務: [start: 新鮮な両陣営の資源を検証し、個体ID別の資源所有者と防御倍率を一度だけ設定します]
+#   責務: [start: 満HP/MP・未逃走の参加者を検証し、資源所有者と初期防御倍率を一度だけ設定します]
 #   処理: [
-#     1: 両陣営のfresh snapshotを検証し未公開のStateを構築する
-#     2: 全成功後にStateを所有し各guardを1にする
+#     1: 参加者と開始資源を検証し、内部へ公開していない資源所有者を構築します
+#     2: 全員成功後に資源所有者を保持し、物理防御倍率を1としてラウンド開始待ちへ進みます
 #   ]
 #   引数: [
-#     allies: 味方（Variant）
-#     enemies: 敵（Variant）
+#     allies: 味方参加者の六キー数値snapshot列。各個体は満HP/MP・未逃走です（Variant）
+#     enemies: 敵参加者の六キー数値snapshot列。各個体は満HP/MP・未逃走です（Variant）
 #   ]
 #   戻り値: [result: 初期化の成功と独立した状態、またはok=falseと拒否理由（Dictionary）]
 # }

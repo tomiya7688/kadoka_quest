@@ -16,10 +16,10 @@ FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
 # {
-#   責務: [signature: generate・repo・マップのsignatureを求める]
-#   処理: [1: generate・repo・マップのsignatureを求める]
-#   引数: [node: node（ast.FunctionDef | ast.AsyncFunctionDef）]
-#   戻り値: [result: generate・repo・マップのsignatureを求めるための結果（str）]
+#   責務: [signature: Python関数宣言から、既定値を省略記号にした読み取り用シグネチャを作ります]
+#   処理: [1: 引数ASTをコピーして既定値だけを省略し、関数名・async区分・戻り値注釈を結合します]
+#   引数: [node: 索引へ表示するPython関数または非同期関数の宣言AST（ast.FunctionDef | ast.AsyncFunctionDef）]
+#   戻り値: [result: 既定値の具体式を含まない関数宣言の文字列（str）]
 # }
 def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
     arguments = deepcopy(node.args)
@@ -35,10 +35,10 @@ def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
 
 
 # {
-#   責務: [public_symbols: generate・repo・マップのpublic・symbolsを求める]
-#   処理: [1: generate・repo・マップのpublic・symbolsを求める]
-#   引数: [tree: tree（ast.Module）]
-#   戻り値: [result: lines（list[str]）]
+#   責務: [public_symbols: モジュールの公開関数/クラスと直下の公開メソッドを索引用に列挙します]
+#   処理: [1: トップレベル宣言を順に調べ、公開メソッドと例外的に__init__も表示します]
+#   引数: [tree: 索引対象Pythonモジュールの解析済みAST（ast.Module）]
+#   戻り値: [result: 公開宣言と直接メソッドの表示行。私的関数やネスト宣言は含みません（list[str]）]
 # }
 def public_symbols(tree: ast.Module) -> list[str]:
     lines = []
@@ -57,10 +57,10 @@ def public_symbols(tree: ast.Module) -> list[str]:
 
 
 # {
-#   責務: [render_repo_map: repo・マップを表示用データを生成する]
-#   処理: [1: repo・マップを表示用データを生成する]
-#   引数: [source: 元データ（Path）]
-#   戻り値: [result: repo・マップを表示用データを生成するための結果（str）]
+#   責務: [render_repo_map: Pythonソースをimportせず解析し、公開宣言のMarkdown索引を生成します]
+#   処理: [1: 存在するソースディレクトリのPythonファイルを相対パス順に解析し、公開宣言を整形します]
+#   引数: [source: 索引対象Pythonファイルを再帰列挙するディレクトリ（Path）]
+#   戻り値: [result: 生成条件・相対パス・公開宣言を記したMarkdown全文（str）]
 # }
 def render_repo_map(source: Path) -> str:
     if not source.is_dir():

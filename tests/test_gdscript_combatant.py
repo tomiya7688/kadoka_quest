@@ -87,15 +87,15 @@ def record(identifier="one", species="slime", **changes):
 
 
 # {
-#   責務: [CombatantBoundaryTests: 戦闘個体・boundary・testsの状態と振る舞いを担当する]
+#   責務: [CombatantBoundaryTests: 戦闘個体の資源契約と再構築入口からI/O・画面・乱数・学習を分離する依存境界を検証します]
 #   フィールド: []
 # }
 class CombatantBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_pure_state_has_no_io_ui_random_learning_or_reconstruction: 検証: pure state has no io ui random learning or reconstruction]
-    #   処理: [1: 検証: pure state has no io ui random learning or reconstruction]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_pure_state_has_no_io_ui_random_learning_or_reconstruction: 資源保持と個体再構築にI/O・画面・乱数・学習の依存がないか確認します]
+    #   処理: [1: 資源契約とBuilderの禁止参照、およびフィールドへの未接続をソースで検査します]
+    #   引数: [self: 戦闘個体の依存境界を検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_pure_state_has_no_io_ui_random_learning_or_reconstruction(self):
         source = (ROOT / "gdscript/engine/combatant_state.gd").read_text(encoding="utf-8")
@@ -110,10 +110,10 @@ class CombatantBoundaryTests(unittest.TestCase):
         self.assertNotIn("combatant_state", field)
 
     # {
-    #   責務: [test_performance_tool_remains_developer_only: 検証: performance tool remains developer only]
-    #   処理: [1: 検証: performance tool remains developer only]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_performance_tool_remains_developer_only: 戦闘個体の性能検査CLIをゲーム本体や画面から呼ばないことを確認します]
+    #   処理: [1: Python本体とGodot application/uiのソースに開発専用CLI名がないか検査します]
+    #   引数: [self: 性能検査ツールの依存境界を検証するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_performance_tool_remains_developer_only(self):
         for directory in (ROOT / "src/kadoka_quest", ROOT / "gdscript/application", ROOT / "gdscript/ui"):
@@ -123,13 +123,13 @@ class CombatantBoundaryTests(unittest.TestCase):
 
 
 # {
-#   責務: [GDScriptCombatantTests: gdscript・戦闘個体・testsの状態と振る舞いを担当する]
+#   責務: [GDScriptCombatantTests: 専用fixtureと実Godotを使い、戦闘個体の再構築・資源保持/更新を検証します]
 #   フィールド: [
-#     setUp: set・up
-#     seed_state: seed・状態
-#     seed_record: seed・個体レコード
-#     write: write
-#     saved_files: saved・files
+#     setUp: 所有個体fixtureへ委譲して検証専用領域を用意するメソッド
+#     seed_state: 所有個体fixtureを使い専用フィールド状態を作るメソッド
+#     seed_record: 所有個体fixtureを使い専用個体/AIを作るメソッド
+#     write: 専用領域へfixture JSONを書き込むメソッド
+#     saved_files: 専用保存ファイルの相対パスとbyte列を比較用に返すメソッド
 #   ]
 # }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real combatant-resource probes")
