@@ -29,6 +29,8 @@ ticketはちょうど `{"round":1,"slot":0,"actor":{"side":"allies","id":"slime_
 
 ## 読み取り専用開始調停
 
+明示初期状態での[専用Session開始・状態読取](GDScript戦闘Session状態保持契約.md)を追加しました。start_with_statusesは全参加者の資源と状態が成功した場合だけ保持し、statuses/statusは数値snapshotとは別の独立コピーを返します。従来startは状態未設定のままです。Applicationの開始は以下の従来入口を維持し、治療付き回復の行動実行は未接続です。
+
 `application/battle_session_application.gd` の `start(allies_records, enemies_records, shuffle_order)` は既存read-only Preparation→新しいSession.start→begin_roundを調停します。全成功後だけ内部Sessionを公開用snapshotへ切り替えます。失敗時はnot_startedのまま、修復/書換なしです。返却はok/preparation/sessionのplain data。#230では[通常攻撃行動契約](GDScript通常攻撃行動契約.md)のread-only定義準備と行動ルーティングを追加し、begin_round/next_actor/resolve_normal_attackも公開しました。Session自体へ攻撃計算は追加しません。
 
 準備のwarnings/equipmentは独立plain結果で保持しますが、Sessionの資源snapshotにAI/耐性/状態異常等を混ぜません。snapshot追加キーは未対応として拒否し、保有JSONの未知キーを削除しません。保存schema/ファイルを追加せず、個体/学習済AI/party/items/data/assetsを保持します。

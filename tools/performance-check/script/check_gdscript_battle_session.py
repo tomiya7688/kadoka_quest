@@ -18,10 +18,10 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 # {
-#   責務: [main: check・gdscript・戦闘・セッションのエントリ処理を実行する]
-#   処理: [1: check・gdscript・戦闘・セッションのエントリ処理を実行する]
+#   責務: [main: 八体Sessionの一行動段階を実Godotで計測し、中央値2000us以内を確認します]
+#   処理: [1: 専用一時JSONで計測を起動し、診断・八体の実結果・時間上限を照合します]
 #   引数: []
-#   戻り値: [result: check・gdscript・戦闘・セッションのエントリ処理を実行するための結果（int）]
+#   戻り値: [status: 正常計測0、診断/結果不一致/超過1、Godot未指定の未検証2（int）]
 # }
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)

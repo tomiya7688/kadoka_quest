@@ -6,6 +6,7 @@ extends RefCounted
 const Healing = preload("res://engine/heal_skill_context.gd")
 const Curing = preload("res://engine/status_cure_contract.gd")
 const Order = preload("res://engine/turn_order.gd")
+const InitialMap = preload("res://engine/initial_status_map.gd")
 
 
 # {
@@ -58,19 +59,14 @@ static func select(context: Variant, actor: Variant, skill_id: Variant) -> Dicti
 # }
 static func _initial_statuses(snapshots: Dictionary, initial_statuses: Variant) -> Dictionary:
 	# 空状態を暗黙補完せず、敵も含むすべての参加者に明示した一覧を要求します。
-	if not initial_statuses is Dictionary or initial_statuses.size() != 2:
-		return {"ok": false, "reason": "invalid_initial_statuses"}
+	var matched := InitialMap.validate(snapshots, initial_statuses)
+	if not matched["ok"]:
+		return matched
 	var result := {"allies": {}, "enemies": {}}
 	for side in Order.SIDES:
-		var entries: Variant = initial_statuses.get(side)
-		if not entries is Dictionary:
-			return {"ok": false, "reason": "invalid_initial_statuses", "side": side}
-		if entries.size() != snapshots[side].size():
-			return {"ok": false, "reason": "status_context_mismatch", "side": side}
+		var entries: Dictionary = initial_statuses[side]
 		for member: Dictionary in snapshots[side]:
 			var id: String = member["identity"]["id"]
-			if not entries.has(id):
-				return {"ok": false, "reason": "status_context_mismatch", "side": side, "id": id}
 			# 未知MOD情報は保持しますが、付与/継続効果や治療成功をここで実行しません。
 			var checked := Curing.select_candidate(entries[id])
 			if not checked["ok"]:

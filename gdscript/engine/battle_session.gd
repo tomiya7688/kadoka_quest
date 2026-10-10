@@ -1,5 +1,5 @@
 # {
-#   責務: [battle_session: 戦闘個体のHP/MP・一回限りの行動予約・ラウンド限定物理防御を所有します。攻撃計算や勝敗判定は行いません]
+#   責務: [battle_session: 戦闘個体の資源・行動予約・物理防御と、専用開始時の状態所有者を保持します。攻撃計算や勝敗判定は行いません]
 #   フィールド: [
 #     _teams: allies/enemies別に保持する戦闘個体の資源所有者列（Dictionary）
 #     _by_id: 陣営sideと個体idから資源所有者を検索する索引（Dictionary）
@@ -9,14 +9,16 @@
 #     _order: 現在ラウンドで固定したside+idの行動順（Array）
 #     _pending: 現在提示中または取得済みの行動予約（Dictionary）
 #     _guards: side+id別の物理防御倍率。資源snapshotとは別に保持する（Dictionary）
+#     _statuses: 専用開始でだけ保持するbattle_status_state。従来開始と未開始ではnullです（RefCounted）
 #   ]
 # }
 extends RefCounted
-## 戦闘個体の資源と行動予約を保持し、攻撃計算や勝敗判定は別契約へ分離します。
+## 数値資源・予約と専用開始時の状態を分離保持します。攻撃計算・実治療・勝敗は担当しません。
 
 const State = preload("res://engine/combatant_state.gd")
 const Order = preload("res://engine/turn_order.gd")
 const StatNumbers = preload("res://engine/stat_numbers.gd")
+const Statuses = preload("res://engine/battle_status_state.gd")
 var _teams: Dictionary = {"allies": [], "enemies": []}
 var _by_id: Dictionary = {"allies": {}, "enemies": {}}
 var _phase := "not_started"
@@ -25,10 +27,11 @@ var _cursor := 0
 var _order: Array = []
 var _pending: Dictionary = {}
 var _guards: Dictionary = {"allies": {}, "enemies": {}}
+var _statuses: RefCounted
 
 
 # {
-#   責務: [start: 満HP/MP・未逃走の参加者を検証し、資源所有者と初期防御倍率を一度だけ設定します]
+#   責務: [start: 従来入口で満資源参加者と防御倍率を一度設定します。状態所有者は構築しません]
 #   処理: [
 #     1: 参加者と開始資源を検証し、内部へ公開していない資源所有者を構築します
 #     2: 全員成功後に資源所有者を保持し、物理防御倍率を1としてラウンド開始待ちへ進みます
@@ -40,6 +43,41 @@ var _guards: Dictionary = {"allies": {}, "enemies": {}}
 #   戻り値: [result: 初期化の成功と独立した状態、またはok=falseと拒否理由（Dictionary）]
 # }
 func start(allies: Variant, enemies: Variant) -> Dictionary:
+	var prepared := _prepare_start(allies, enemies)
+	return prepared if not prepared["ok"] else _commit_start(prepared, null)
+
+
+# {
+#   責務: [start_with_statuses: 明示初期状態付きの新規戦闘を、数値資源と状態の両方が成功した場合だけ開始します]
+#   処理: [1: 数値開始と状態所有者を未公開のまま構築し、両方成功した場合だけSessionへ保持します]
+#   引数: [
+#     allies: 満HP/MP・未逃走の味方数値snapshot列（Variant）
+#     enemies: 満HP/MP・未逃走の敵数値snapshot列（Variant）
+#     initial_statuses: 全参加者のside/idに一致する明示初期状態。省略や暗黙空配列補完は行いません（Variant）
+#   ]
+#   戻り値: [result: 従来形式の独立した数値session、または未開始を保持した拒否（Dictionary）]
+# }
+func start_with_statuses(allies: Variant, enemies: Variant, initial_statuses: Variant) -> Dictionary:
+	var prepared := _prepare_start(allies, enemies)
+	if not prepared["ok"]:
+		return prepared
+	var statuses = Statuses.new()
+	var initialized: Dictionary = statuses.start({"allies": allies, "enemies": enemies}, initial_statuses)
+	if not initialized["ok"]:
+		return initialized
+	return _commit_start(prepared, statuses)
+
+
+# {
+#   責務: [_prepare_start: 新規開始の数値参加者を検証し、Sessionへ未公開の資源所有者を構築します]
+#   処理: [1: 未開始・参加者・満HP/MPを確認し、全員の資源所有者とID索引をローカルに構築します]
+#   引数: [
+#     allies: 味方の六キー数値snapshot列（Variant）
+#     enemies: 敵の六キー数値snapshot列（Variant）
+#   ]
+#   戻り値: [result: 内部コミット用の資源所有者/索引。公開APIや層外へ渡しません。または拒否（Dictionary）]
+# }
+func _prepare_start(allies: Variant, enemies: Variant) -> Dictionary:
 	if _phase != "not_started":
 		return _failure("already_initialized")
 	var checked := Order.participants(allies, enemies)
@@ -59,13 +97,51 @@ func start(allies: Variant, enemies: Variant) -> Dictionary:
 				return initialized
 			teams[side].append(state)
 			by_id[side][member["identity"]["id"]] = state
-	_teams = teams
-	_by_id = by_id
+	return {"ok": true, "teams": teams, "by_id": by_id}
+
+
+# {
+#   責務: [_commit_start: 全成功した開始候補だけをSessionへ保持し、初期防御倍率と開始段階を設定します]
+#   処理: [1: 数値/状態所有者を保持し、全物理防御倍率を1にしてラウンド開始待ちへ進みます]
+#   引数: [
+#     prepared: _prepare_startが作った内部専用の資源所有者/索引（Dictionary）
+#     statuses: 初期化済み状態所有者、または従来開始を示すnull（RefCounted）
+#   ]
+#   戻り値: [result: ok=trueと従来の数値sessionコピー。内部所有者を返しません（Dictionary）]
+# }
+func _commit_start(prepared: Dictionary, statuses: RefCounted) -> Dictionary:
+	_teams = prepared["teams"]
+	_by_id = prepared["by_id"]
+	_statuses = statuses
 	for side in Order.SIDES:
-		for id: String in by_id[side]:
+		for id: String in _by_id[side]:
 			_guards[side][id] = 1.0
 	_phase = "between_rounds"
 	return {"ok": true, "session": snapshot()}
+
+
+# {
+#   責務: [statuses: 専用開始で保持する全状態一覧を、数値資源とは別の独立コピーで返します]
+#   処理: [1: 状態所有者がなければ空辞書、専用開始済みなら所有者の読取コピーを返します]
+#   引数: []
+#   戻り値: [result: teamsのside/id別状態配列とscope=battle_status_only、または未設定の空辞書（Dictionary）]
+# }
+func statuses() -> Dictionary:
+	return {} if _statuses == null else _statuses.snapshot()
+
+
+# {
+#   責務: [status: 専用開始した戦闘の指定参加者について状態一覧の独立コピーを取得します]
+#   処理: [1: Sessionの開始と状態設定を確認し、side/idの検証と読み取りを状態所有者へ委譲します]
+#   引数: [key: 読み取る参加者のallies/enemiesを示すsideと個体id（Variant）]
+#   戻り値: [result: ok=trueと個体状態snapshot、または未開始/未設定/不正参加者の拒否（Dictionary）]
+# }
+func status(key: Variant) -> Dictionary:
+	if _phase == "not_started":
+		return _failure("not_initialized")
+	if _statuses == null:
+		return _failure("status_not_configured")
+	return _statuses.read(key)
 
 
 # {
@@ -81,7 +157,7 @@ func snapshot() -> Dictionary:
 
 
 # {
-#   責務: [begin_round: 資源を保持したまま明示shuffleに基づくラウンドの順序を固定する]
+#   責務: [begin_round: 現在資源を保持し、生存者だけの明示順と基本速度に基づくラウンド順序を固定します]
 #   処理: [
 #     1: 開始可能なphaseと参加者/順序の契約を検証する
 #     2: 新しいroundとcursorを設定する。敵なし停止は終端処理へ委譲してguardを解除する
@@ -108,7 +184,7 @@ func begin_round(shuffle_order: Variant) -> Dictionary:
 
 
 # {
-#   責務: [next_actor: 死亡/逃走候補を飛ばして未実行のofferedを予約する]
+#   責務: [next_actor: 死亡/逃走者を飛ばし、次の行動候補をoffered段階で提示します。提示だけでは実行権を与えません]
 #   処理: [
 #     1: pendingがあれば同じコピーを返し新しい行動権を与えない
 #     2: 最新生存を確認して候補を予約する。敵なし/末尾なら全guardを解除する
@@ -142,12 +218,12 @@ func next_actor() -> Dictionary:
 
 
 # {
-#   責務: [inspect_ticket: 現在のoffered ticketと最新実行可否を読み取り専用で確認する]
+#   責務: [inspect_ticket: 提示中の行動票と最新生存条件を照合します。取得・資源変更・順序消費は行いません]
 #   処理: [
 #     1: 現在のround/slot/actorとの一致を検証する
 #     2: 既claimedを拒否し、最新の死亡・逃走・敵生存を照合する
 #   ]
-#   引数: [ticket: 行動権チケット（Variant）]
+#   引数: [ticket: 現在ラウンドround・行動順位置slot・side/idのactorを持つ行動票（Variant）]
 #   戻り値: [result: eligibilityまたは拒否理由。行動権は取得しない]
 # }
 func inspect_ticket(ticket: Variant) -> Dictionary:
@@ -161,13 +237,13 @@ func inspect_ticket(ticket: Variant) -> Dictionary:
 
 
 # {
-#   責務: [claim: offered行動権を最新状態と照合し一度だけ取得する]
+#   責務: [claim: 提示中の行動票を最新状態と照合し、一回だけ取得します。実行不能なら候補を取り消します]
 #   処理: [
 #     1: inspect_ticketで現在の行動候補を確認する
 #     2: 実行不能なら候補を取消しcursorを進める
 #     3: 実行可能ならclaimedへ変更する。HP/MPや攻撃計算は変更しない
 #   ]
-#   引数: [ticket: 行動権チケット（Variant）]
+#   引数: [ticket: 提示中のround/slot/actorと一致する一回取得用の行動票（Variant）]
 #   戻り値: [result: can_execute/ticketまたは拒否理由]
 # }
 func claim(ticket: Variant) -> Dictionary:
@@ -185,12 +261,12 @@ func claim(ticket: Variant) -> Dictionary:
 
 
 # {
-#   責務: [finish: 現在claimedの行動を一度だけ完了し必要時にguardを解除する]
+#   責務: [finish: 取得済みの現在行動票を一回だけ完了し、末尾/敵なしで物理防御倍率を1へ戻します]
 #   処理: [
 #     1: 同じticketがclaimedであることを確認する
 #     2: pendingを消費しcursorを進め終端判定へ委譲する
 #   ]
-#   引数: [ticket: 行動権チケット（Variant）]
+#   引数: [ticket: 取得済みの現在round/slot/actorに一致する完了用行動票（Variant）]
 #   戻り値: [result: 更新後sessionまたは非破壊的拒否。戦闘の勝敗確定ではない（Dictionary）]
 # }
 func finish(ticket: Variant) -> Dictionary:
@@ -235,17 +311,17 @@ func heal(key: Variant, amount: Variant) -> Dictionary:
 
 
 # {
-#   責務: [effects: 資源の6キー契約を変更せずguardの独立plainコピーを返す]
+#   責務: [effects: 全参加者の物理防御倍率を、数値資源/状態一覧と別の独立コピーで返します]
 #   処理: [1: 両陣営のside+id倍率を複製する]
 #   引数: []
-#   戻り値: [result: teamsとbasic_guard_only scope（Dictionary）]
+#   戻り値: [result: side/id別の倍率teamsとscope=basic_guard_onlyの独立辞書（Dictionary）]
 # }
 func effects() -> Dictionary:
 	return {"teams": _guards.duplicate(true), "scope": "basic_guard_only"}
 
 
 # {
-#   責務: [guard: 指定個体の現在の信頼済み物理防御倍率を読み取る]
+#   責務: [guard: 指定参加者についてSessionが保持する現在の物理防御倍率を読み取ります]
 #   処理: [1: side+idを検証し所有倍率を返す]
 #   引数: [key: 対象のside+id（Variant）]
 #   戻り値: [result: ok/guardまたはreason付き失敗（Dictionary）]
@@ -256,7 +332,7 @@ func guard(key: Variant) -> Dictionary:
 
 
 # {
-#   責務: [apply_defend: 現在claimedの生存行動者だけのguardを更新する]
+#   責務: [apply_defend: 現在の行動票を取得済みで生存する行動者本人の物理防御倍率だけを更新します]
 #   処理: [
 #     1: ticketの一致とclaimedおよび有限倍率を検証する
 #     2: 最新行動可否を確認し本人の倍率だけを変更する
@@ -444,7 +520,7 @@ func _end_round(phase: String) -> void:
 # {
 #   責務: [_failure: Sessionを変更せず、ok=falseと指定した拒否理由を返します]
 #   処理: [1: Sessionを変更せず、ok=falseと指定した拒否理由を返します]
-#   引数: [reason: 理由（String）]
+#   引数: [reason: Sessionの開始・予約・資源操作を拒否した具体的理由（String）]
 #   戻り値: [result: ok=falseと指定した拒否理由reasonを持つ辞書（Dictionary）]
 # }
 func _failure(reason: String) -> Dictionary:

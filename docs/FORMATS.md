@@ -403,17 +403,21 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 - `imports/acquire/`: 再走査で所有フォルダへコピー。同じ個体IDは上書きしない
 - `imports/simulation/`: コピーせず読み取り、模擬戦だけで使用。AI更新なし
 
+### GDScriptのSession初期状態保持（実行時だけ）
+
+[Session状態保持契約](GDScript戦闘Session状態保持契約.md)のstart_with_statusesは、満数値資源と全参加者に一致する明示initial_statusesを全成功時だけ保持します。statuses()はscope=battle_status_onlyとside/id別teamsの状態配列、status(key)はokとstatus_effectsだけのsnapshotを返す独立読取です。従来Session開始・数値snapshot六キー・保存JSON/schemaは変更しません。状態の更新・Application・AI・画面は未接続です。
+
 ### GDScriptの治療付きHP回復準備（実行時だけ）
 
 [治療付き回復準備契約](GDScript治療付き回復準備契約.md)は既存回復の開始資源/習得/許可装備を共用検証し、initial_statusesのallies/enemies別ID集合を全参加者と一致させます。状態なしも[]で明示し、欠落/余分なID・不正状態を部分成功なしで拒否します。同じIDでも陣営を分離します。成功結果のsnapshots/context/initial_statusesは入力と独立した編集可能な通常データであり、Sessionの状態所有者や不変の内部状態ではありません。
 
-専用selectは準備済みの習得/許可装備/ID索引から一意な治療付き定義を返します。通常HP回復入口の治療拒否は維持し、未知効果や補正はfalse/0/空でも無視しません。HP/MP・状態・行動予約を更新せず、数値snapshot六キーと正規data/assets・保存JSON/schemaは変更しません。状態所有者のSession保持・実治療・AI・画面は未接続です。
+専用selectは準備済みの習得/許可装備/ID索引から一意な治療付き定義を返します。通常HP回復入口の治療拒否は維持し、未知効果や補正はfalse/0/空でも無視しません。準備自体はHP/MP・状態・行動予約を更新せず、数値snapshot六キーと正規data/assets・保存JSON/schemaは変更しません。成功データからのSession保持は上記専用開始へ委譲します。実治療・AI・画面は未接続です。
 
 ### GDScriptの戦闘状態一覧保持・一件治療（実行時だけ）
 
 [戦闘状態一覧契約](GDScript戦闘状態一覧契約.md)のcombatant_status_stateは、明示した順序付き状態配列を一度だけ検証・独立保持します。snapshotはstatus_effectsだけの独立コピー、未開始は空辞書です。既存combatant_state/Sessionの数値snapshot六キーと保存JSON/schemaは変更しません。
 
-状態所有者のquote_cure/cureはcure_chanceと任意rollだけを受け、共用治療契約の確率・候補順序・判定値規則を使います。予測では一覧を変更せず、実治療では最新一覧の最初の候補一件だけを除きます。不成立/拒否は一覧を保持し、外部一覧や古い予測の持ち込みは拒否します。予測scopeはstatus_cure_quote、実治療scopeはcombatant_status_cureで、残存一覧は独立コピーです。行動予約による重複防止・HP/MP・状態付与/継続効果・Session・保存・AI・画面は未接続です。
+状態所有者のquote_cure/cureはcure_chanceと任意rollだけを受け、共用治療契約の確率・候補順序・判定値規則を使います。予測では一覧を変更せず、実治療では最新一覧の最初の候補一件だけを除きます。不成立/拒否は一覧を保持し、外部一覧や古い予測の持ち込みは拒否します。予測scopeはstatus_cure_quote、実治療scopeはcombatant_status_cureで、残存一覧は独立コピーです。Sessionは上記専用開始で保持/読取だけを公開します。行動予約による一回治療制御・HP/MPと治療の統合・状態付与/継続効果・保存・AI・画面は未接続です。
 
 ### GDScriptの治療付きHP回復予測（実行時だけ）
 

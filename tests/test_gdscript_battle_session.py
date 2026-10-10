@@ -26,66 +26,66 @@ key, member, request = turn.key, turn.member, turn.request
 
 
 # {
-#   責務: [action: test・gdscript・戦闘・セッションのactionを求める]
-#   処理: [1: test・gdscript・戦闘・セッションのactionを求める]
+#   責務: [action: 操作名kindとケース別条件からSessionプローブ用操作を作ります]
+#   処理: [1: 操作名に宛先・量・ticket等の指定条件を追加します]
 #   引数: [
-#     kind: 種別
-#     values: 値一覧
+#     kind: プローブの開始/予約/資源操作名（str）
+#     values: 指定操作へ渡すケース別条件
 #   ]
-#   戻り値: [result: test・gdscript・戦闘・セッションのactionを求めるための結果（型注釈なし）]
+#   戻り値: [result: kindと指定条件を持つ辞書（dict）]
 # }
 def action(kind, **values):
     return {"kind": kind, **values}
 
 
 # {
-#   責務: [case: test・gdscript・戦闘・セッションのcaseを求める]
-#   処理: [1: test・gdscript・戦闘・セッションのcaseを求める]
+#   責務: [case: 数値開始入力と操作列を持つ独立Sessionケースを作ります]
+#   処理: [1: parameters未指定なら既定参加者を生成し、操作列と観測条件を付けます]
 #   引数: [
-#     actions: actions
-#     parameters: parameters
-#     values: 値一覧
+#     actions: 新規Sessionに順に適用するプローブ操作列
+#     parameters: 数値開始情報。Noneなら共用requestを使います
+#     values: 任意開始/特殊値/返却編集等の観測条件
 #   ]
-#   戻り値: [result: test・gdscript・戦闘・セッションのcaseを求めるための結果（型注釈なし）]
+#   戻り値: [result: input・actionsと指定観測条件の要求（dict）]
 # }
 def case(actions=(), parameters=None, **values):
     return {"input": request() if parameters is None else parameters, "actions": list(actions), **values}
 
 
 # {
-#   責務: [cycle: test・gdscript・戦闘・セッションを順に切り替える]
-#   処理: [1: test・gdscript・戦闘・セッションを順に切り替える]
-#   引数: [values: 値一覧]
-#   戻り値: [result: test・gdscript・戦闘・セッションを順に切り替えるための結果（型注釈なし）]
+#   責務: [cycle: 一回分の候補提示・予約取得・予約完了の操作列を作ります]
+#   処理: [1: 共通条件を付けたnext/claim/finishを順番に並べます]
+#   引数: [values: 三操作に共通の比較用条件]
+#   戻り値: [result: 一候補を消費するプローブ操作三件（list[dict]）]
 # }
 def cycle(**values):
     return [action("next", **values), action("claim", **values), action("finish", **values)]
 
 
 # {
-#   責務: [ticket: test・gdscript・戦闘・セッションの行動権チケットを求める]
-#   処理: [1: test・gdscript・戦闘・セッションの行動権チケットを求める]
+#   責務: [ticket: ラウンド・行動順位置・参加者を持つ比較用行動票を作ります]
+#   処理: [1: 未指定行動者をallies/allyにし、厳密三キーの票を返します]
 #   引数: [
-#     round_number: ラウンド・数値
-#     slot: 編成枠
-#     actor: 行動個体
+#     round_number: 比較対象のラウンド番号（int）
+#     slot: ラウンド内のゼロ起点行動順位置（int）
+#     actor: side/idの参加者キー。Noneならallies/ally
 #   ]
-#   戻り値: [result: test・gdscript・戦闘・セッションの行動権チケットを求めるための結果（型注釈なし）]
+#   戻り値: [result: round/slot/actorの行動票（dict）]
 # }
 def ticket(round_number=1, slot=0, actor=None):
     return {"round": round_number, "slot": slot, "actor": key("allies", "ally") if actor is None else actor}
 
 
 # {
-#   責務: [SessionBoundaryTests: セッション・boundary・testsの状態と振る舞いを担当する]
+#   責務: [SessionBoundaryTests: 純粋Sessionと開始調停の責務分離・開発専用性能検査の境界を確認します]
 #   フィールド: []
 # }
 class SessionBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_pure_session_and_start_application_keep_responsibilities_separate: 検証: pure session and start application keep responsibilities separate]
-    #   処理: [1: 検証: pure session and start application keep responsibilities separate]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_pure_session_and_start_application_keep_responsibilities_separate: 純粋SessionのI/O/画面/乱数/AI依存を禁じ、開始調停との分離を確認します]
+    #   処理: [1: 禁止依存と順序/資源APIへの委譲、field未接続を静的に検査します]
+    #   引数: [self: Session契約を確認するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_pure_session_and_start_application_keep_responsibilities_separate(self):
         source = (ROOT / "gdscript/engine/battle_session.gd").read_text(encoding="utf-8")
@@ -101,10 +101,10 @@ class SessionBoundaryTests(unittest.TestCase):
         self.assertNotIn("battle_session", field)  # No pretend field/scene battle connection.
 
     # {
-    #   責務: [test_stage_performance_guard_is_developer_only: 検証: stage performance guard is developer only]
-    #   処理: [1: 検証: stage performance guard is developer only]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_stage_performance_guard_is_developer_only: 行動段階の性能ガードがPlayerから独立していることを確認します]
+    #   処理: [1: 2000us上限とnext/claim/finishの実呼出し、Player側からのツール未依存を検査します]
+    #   引数: [self: Session契約を確認するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_stage_performance_guard_is_developer_only(self):
         source = (ROOT / "tools/performance-check/script/check_gdscript_battle_session.py").read_text(encoding="utf-8")
@@ -119,14 +119,14 @@ class SessionBoundaryTests(unittest.TestCase):
 
 
 # {
-#   責務: [GDScriptSessionTests: gdscript・セッション・testsの状態と振る舞いを担当する]
+#   責務: [GDScriptSessionTests: 専用データ領域と実GodotのSessionプロトコル・限定Python比較を所有します]
 #   フィールド: [
-#     setUp: set・up
-#     seed_state: seed・状態
-#     seed_record: seed・個体レコード
-#     write: write
-#     byte_snapshot: byte・独立した状態の写し
-#     engine: ルール処理
+#     setUp: 共用Rosterの一時領域準備処理
+#     seed_state: 専用状態JSONの作成処理
+#     seed_record: 専用個体レコードの作成処理
+#     write: 専用JSONの出力処理
+#     byte_snapshot: 保持対象ファイルのbyte比較用処理
+#     engine: Python比較用BattleEngineの構築処理
 #   ]
 # }
 @unittest.skipUnless(fixture.GODOT, "Set KADOKA_GODOT_EXECUTABLE for real battle-session probes")
@@ -139,14 +139,14 @@ class GDScriptSessionTests(unittest.TestCase):
     engine = turn.GDScriptTurnTests.engine
 
     # {
-    #   責務: [invoke: gdscript・セッション・testsのinvokeを求める]
-    #   処理: [1: gdscript・セッション・testsのinvokeを求める]
+    #   責務: [invoke: 専用内容/保存先を指定して実GodotのSessionプローブを呼び、診断と結果を確認します]
+    #   処理: [1: 専用要求JSONを作り、60秒制限で起動してBase64の観測JSONを復号します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     cases: cases
-    #     joined: joined
+    #     self: 専用内容/保存ダミー領域の所有者
+    #     cases: 純粋Sessionの数値入力・操作ケース列
+    #     joined: 読取専用Applicationの開始比較ケース列
     #   ]
-    #   戻り値: [result: gdscript・セッション・testsのinvokeを求めるための結果（型注釈なし）]
+    #   戻り値: [result: 終了0・解析/実行診断なしを確認した実観測（dict）。byte比較は呼出元で行います]
     # }
     def invoke(self, cases=(), joined=()):
         path = self.content / "session-probe.json"
@@ -168,10 +168,10 @@ class GDScriptSessionTests(unittest.TestCase):
         self.fail(process.stderr + process.stdout[-1600:])
 
     # {
-    #   責務: [test_offer_claim_finish_are_single_use_and_keep_the_cursor_still_until_finish: 検証: offer claim finish are single use and keep the cursor still until finish]
-    #   処理: [1: 検証: offer claim finish are single use and keep the cursor still until finish]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_offer_claim_finish_are_single_use_and_keep_the_cursor_still_until_finish: 候補提示・予約取得・完了が一度限りで、完了前に行動順位置が進まないことを確認します]
+    #   処理: [1: 重複next/claim/finishと早いbeginを実行し、予約段階と位置を照合します]
+    #   引数: [self: Session契約を確認するテストケース]
+    #   戻り値: [result: なし（None）]
     # }
     def test_offer_claim_finish_are_single_use_and_keep_the_cursor_still_until_finish(self):
         steps = [action("next"), action("begin"), action("next"), action("next"), action("finish"),

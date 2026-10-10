@@ -213,11 +213,13 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --cure-heal
 ```
 
-[治療付きHP回復準備契約](../docs/GDScript治療付き回復準備契約.md)は、開始資源・習得・許可装備と全参加者に一致する明示初期状態を検証し、専用入口から習得済み定義を選びます。例えば正規HeroのLv59は精霊回復を選べず、Lv60なら選択できます。返却データは入力と独立した編集可能な辞書で、Sessionの状態所有者ではありません。HP/MP・状態の実更新・行動予約・AI・画面は未接続です。開発者はリポジトリルートで上記Godot/Pythonを指定して次を実行してください。実セーブは使用しません。
+[治療付きHP回復準備契約](../docs/GDScript治療付き回復準備契約.md)は、開始資源・習得・許可装備と全参加者に一致する明示初期状態を検証し、専用入口から習得済み定義を選びます。例えば正規HeroのLv59は精霊回復を選べず、Lv60なら選択できます。返却データは編集可能な通常辞書で、準備だけではSessionに登録しません。開発者が成功データを[専用Session開始](../docs/GDScript戦闘Session状態保持契約.md)へ渡すと、数値とは別に状態を独立保持/読取できます。従来開始は状態未設定です。実治療・Application/AI/画面は未接続です。開発者はリポジトリルートで上記Godot/Pythonを指定して次を実行してください。実セーブは使用しません。
 
 ```powershell
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_cure_heal_context.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --cure-context
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_session_status.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --session-status
 ```
 
 [単体HP回復行動契約](../docs/GDScript回復スキル行動契約.md)は予測をSessionへ接続し、最新予約・習得・許可装備・生存する味方1体を検証して実MP消費・最大HPまでのHP回復・予約完了を行います。本人も指定でき、満HPでもMPを払います。不正・不足では予約と資源を保持し、死亡/逃走対象を復活させません。治療付き回復・AI・戦闘画面は未接続です。開発者はリポジトリルートで、環境変数KADOKA_GODOT_EXECUTABLEに使えるGodotの実行ファイルを設定し、次の専用検証を指定したPythonで実行してください。実セーブは使用しません。

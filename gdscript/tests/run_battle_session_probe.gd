@@ -12,10 +12,10 @@ const Order = preload("res://engine/turn_order.gd")
 
 
 # {
-#   責務: [_initialize: run・戦闘・セッション・probeのエントリ処理を実行する]
-#   処理: [1: run・戦闘・セッション・probeのエントリ処理を実行する]
+#   責務: [_initialize: 専用JSON要求を読み、Sessionケース・開始調停・性能の観測をBase64で出力します]
+#   処理: [1: 引数一件を確認し、要求区分を実プローブへ委譲して終了します]
 #   引数: []
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）。要求引数不正は終了コード2、観測後は0です]
 # }
 func _initialize() -> void:
 	var arguments := OS.get_cmdline_user_args()
@@ -36,10 +36,10 @@ func _initialize() -> void:
 
 
 # {
-#   責務: [_case: run・戦闘・セッション・probeのcaseを求める]
-#   処理: [1: run・戦闘・セッション・probeのcaseを求める]
-#   引数: [case: case（Dictionary）]
-#   戻り値: [result: run・戦闘・セッション・probeのcaseを求めるための結果（Dictionary）]
+#   責務: [_case: 一つの新規Sessionで開始と連続操作を実行し、数値資源/予約と原本保持を観測します]
+#   処理: [1: 入力コピーへ任意非有限値を注入し、指定操作と返却値編集後のSessionを記録します]
+#   引数: [case: 数値入力・操作列と任意開始/特殊値/返却編集条件（Dictionary）]
+#   戻り値: [result: 開始結果・各操作後Session・最終Sessionと原本保持の観測（Dictionary）]
 # }
 func _case(case: Dictionary) -> Dictionary:
 	var session = Session.new()
@@ -67,14 +67,14 @@ func _case(case: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_execute: run・戦闘・セッション・probeを実行する]
-#   処理: [1: run・戦闘・セッション・probeを実行する]
+#   責務: [_execute: 操作名に応じてSessionの開始・予約・資源APIへ委譲します]
+#   処理: [1: 現在予約を既定ticketにし、操作を振り分けます。未知操作は拒否します]
 #   引数: [
-#     session: セッション（RefCounted）
-#     action: action（Dictionary）
-#     input: 入力（Dictionary）
+#     session: 観測専用の実Session（RefCounted）
+#     action: kind・宛先・量・任意ticket/非有限値の操作要求（Dictionary）
+#     input: 開始参加者と明示shuffle_orderの既定条件（Dictionary）
 #   ]
-#   戻り値: [result: run・戦闘・セッション・probeを実行するための結果（Dictionary）]
+#   戻り値: [result: 指定APIの実結果、または未知プローブ操作の理由付き拒否（Dictionary）]
 # }
 func _execute(session: RefCounted, action: Dictionary, input: Dictionary) -> Dictionary:
 	var value: Variant = action.get("value")
@@ -103,13 +103,13 @@ func _execute(session: RefCounted, action: Dictionary, input: Dictionary) -> Dic
 
 
 # {
-#   責務: [_drain: run・戦闘・セッション・probeのdrainを求める]
-#   処理: [1: run・戦闘・セッション・probeのdrainを求める]
+#   責務: [_drain: 最大八体の予約を取得・完了し、指定行動者の直後に資源操作を適用します]
+#   処理: [1: 候補をnext/claimし、実行可能時だけafter指定の効果を適用してfinishします]
 #   引数: [
-#     session: セッション（RefCounted）
-#     effects: effects（Array）
+#     session: ラウンド進行を観測する実Session（RefCounted）
+#     effects: afterで行動者を指定した資源操作列（Array）
 #   ]
-#   戻り値: [result: run・戦闘・セッション・probeのdrainを求めるための結果（Dictionary）]
+#   戻り値: [result: 行動者・最新実行可否・適用結果の列と終了後Session（Dictionary）]
 # }
 func _drain(session: RefCounted, effects: Array) -> Dictionary:
 	var entries: Array = []
@@ -132,10 +132,10 @@ func _drain(session: RefCounted, effects: Array) -> Dictionary:
 
 
 # {
-#   責務: [_joined: run・戦闘・セッション・probeのjoinedを求める]
-#   処理: [1: run・戦闘・セッション・probeのjoinedを求める]
-#   引数: [case: case（Dictionary）]
-#   戻り値: [result: run・戦闘・セッション・probeのjoinedを求めるための結果（Dictionary）]
+#   責務: [_joined: 読取専用RepositoryからのApplication開始を観測し、返却編集と再開始拒否を確認します]
+#   処理: [1: KADOKA_CONTENT_ROOTの専用内容を使い、開始結果を編集して再読取/再開始を照合します]
+#   引数: [case: 個体レコードの両陣営と明示shuffle_order（Dictionary）]
+#   戻り値: [result: 開始コピー・再読取Session・再開始結果と入力保持条件（Dictionary）]
 # }
 func _joined(case: Dictionary) -> Dictionary:
 	var before := case.duplicate(true)
@@ -151,10 +151,10 @@ func _joined(case: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_mutate: run・戦闘・セッション・probeのmutateを求める]
-#   処理: [1: run・戦闘・セッション・probeのmutateを求める]
-#   引数: [value: 値（Variant）]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   責務: [_mutate: 観測用の返却コピーのネストを編集し、内部所有資源との共有を検出します]
+#   処理: [1: 配列/辞書を再帰し、hp/mp/round/slot/cursor/speedと個体idを変更します]
+#   引数: [value: Sessionから取得した編集可能な公開コピー（Variant）]
+#   戻り値: [result: なし（void）。観測用コピーだけを編集します]
 # }
 func _mutate(value: Variant) -> void:
 	if value is Array:
@@ -171,10 +171,10 @@ func _mutate(value: Variant) -> void:
 
 
 # {
-#   責務: [_performance: run・戦闘・セッション・probeのperformanceを求める]
-#   処理: [1: run・戦闘・セッション・probeのperformanceを求める]
-#   引数: [payload: 要求データ（Dictionary）]
-#   戻り値: [result: run・戦闘・セッション・probeのperformanceを求めるための結果（Dictionary）]
+#   責務: [_performance: 初期化済み八体Sessionの予約提示から終了までを反復計測します]
+#   処理: [1: 開始構築を計測外に置き、事前実行後の複数サンプルから中央値を返します]
+#   引数: [payload: iterations/samples/warmupの反復条件（Dictionary）]
+#   戻り値: [result: 一行動段階の中央値・反復条件と参加数八体（Dictionary）]
 # }
 func _performance(payload: Dictionary) -> Dictionary:
 	var input := _benchmark_input()
@@ -197,13 +197,13 @@ func _performance(payload: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_stage: run・戦闘・セッション・probeのstageを求める]
-#   処理: [1: run・戦闘・セッション・probeのstageを求める]
+#   責務: [_stage: 次候補の取得・ゼロ資源操作・完了を一行動段階として実行します]
+#   処理: [1: 必要時にラウンドを開始し、next→claim→0ダメージ/0MP→finishを実行します]
 #   引数: [
-#     session: セッション（RefCounted）
-#     shuffle_order: 並べ替え・順序（Array）
+#     session: 計測中の開始済み実Session（RefCounted）
+#     shuffle_order: 生存する八体の明示順序（Array）
 #   ]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）。実行可否をassertし、予約を一段階完了します]
 # }
 func _stage(session: RefCounted, shuffle_order: Array) -> void:
 	if session.snapshot()["phase"] != "round_active":
@@ -218,10 +218,10 @@ func _stage(session: RefCounted, shuffle_order: Array) -> void:
 
 
 # {
-#   責務: [_benchmark_input: run・戦闘・セッション・probeのbenchmark・入力を求める]
-#   処理: [1: run・戦闘・セッション・probeのbenchmark・入力を求める]
+#   責務: [_benchmark_input: 両陣営四体ずつの満資源参加者と明示順序を作ります]
+#   処理: [1: 同IDでも陣営を分離し、最大HP100/MP20・速度1〜3の専用参加者を生成します]
 #   引数: []
-#   戻り値: [result: run・戦闘・セッション・probeのbenchmark・入力を求めるための結果（Dictionary）]
+#   戻り値: [result: 八体の六キー数値snapshot列とshuffle_order（Dictionary）]
 # }
 func _benchmark_input() -> Dictionary:
 	var teams := {"allies": [], "enemies": []}

@@ -14,13 +14,13 @@ const ACTIVE_TEAM_LIMIT := 4
 
 
 # {
-#   責務: [participants: ターン・順序のparticipantsを求める]
-#   処理: [1: ターン・順序のparticipantsを求める]
+#   責務: [participants: 両陣営の厳密数値参加者を検証し、生存者のside/id列を返します]
+#   処理: [1: 各陣営最大四体と六キー資源を共用検証し、生存者の識別キーを作ります]
 #   引数: [
-#     allies: 味方（Variant）
-#     enemies: 敵（Variant）
+#     allies: 味方の六キー数値snapshot列（Variant）
+#     enemies: 敵の六キー数値snapshot列（Variant）
 #   ]
-#   戻り値: [result: ターン・順序のparticipantsを求めるための結果（Dictionary）]
+#   戻り値: [result: ok=trueと生存者members、または最初の形式/資源拒否（Dictionary）]
 # }
 static func participants(allies: Variant, enemies: Variant) -> Dictionary:
 	var prepared := _prepare(allies, enemies)
@@ -30,24 +30,24 @@ static func participants(allies: Variant, enemies: Variant) -> Dictionary:
 
 
 # {
-#   責務: [valid_key: ターン・順序のvalid・キーを求める]
-#   処理: [1: ターン・順序のvalid・キーを求める]
-#   引数: [key: キー（Variant）]
-#   戻り値: [result: ターン・順序のvalid・キーを求めるための結果（bool）]
+#   責務: [valid_key: side/idだけを持つ参加者キーの形式を確認します]
+#   処理: [1: allies/enemiesのsideと空でない文字列idを厳密に検証します]
+#   引数: [key: 存在検索前に形式を確認する候補キー（Variant）]
+#   戻り値: [valid: 形式が正しければtrue。参加者の存在や生存は保証しません（bool）]
 # }
 static func valid_key(key: Variant) -> bool:
 	return _valid_key(key)
 
 
 # {
-#   責務: [plan: ターン・順序を計画する]
-#   処理: [1: ターン・順序を計画する]
+#   責務: [plan: 生存参加者の明示順を検証し、基本速度で安定した行動順を固定します]
+#   処理: [1: 生存者だけの一意なshuffle_orderを確認し、同速では指定順を保ちます]
 #   引数: [
-#     allies: 味方（Variant）
-#     enemies: 敵（Variant）
-#     shuffle_order: 並べ替え・順序（Variant）
+#     allies: 最新の味方数値snapshot列（Variant）
+#     enemies: 最新の敵数値snapshot列（Variant）
+#     shuffle_order: 生存者全員のside/idを一度ずつ持つ明示順（Variant）
 #   ]
-#   戻り値: [result: ターン・順序を計画するための結果（Dictionary）]
+#   戻り値: [result: 生存者initialと速度順orderの独立キー列、または不正順序の拒否（Dictionary）]
 # }
 static func plan(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Dictionary:
 	var prepared := _prepare(allies, enemies)
@@ -79,14 +79,14 @@ static func plan(allies: Variant, enemies: Variant, shuffle_order: Variant) -> D
 
 
 # {
-#   責務: [check_actor: 行動個体を検査する]
-#   処理: [1: 行動個体を検査する]
+#   責務: [check_actor: 最新資源から指定行動者の生存・逃走と生存敵の有無を確認します]
+#   処理: [1: 参加者を検証し、指定行動者と同陣営/敵陣営の生存者を照合します]
 #   引数: [
-#     key: キー（Variant）
-#     allies: 味方（Variant）
-#     enemies: 敵（Variant）
+#     key: 行動者の厳密side/idキー（Variant）
+#     allies: 最新の味方数値snapshot列（Variant）
+#     enemies: 最新の敵数値snapshot列（Variant）
 #   ]
-#   戻り値: [result: 行動個体を検査するための結果（Dictionary）]
+#   戻り値: [result: can_act/stop/reasonと独立した生存者情報、または不正参加者の拒否（Dictionary）]
 # }
 static func check_actor(key: Variant, allies: Variant, enemies: Variant) -> Dictionary:
 	if not _valid_key(key):
@@ -137,10 +137,10 @@ static func _prepare(allies: Variant, enemies: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_keys: ターン・順序のキー一覧を求める]
-#   処理: [1: ターン・順序のキー一覧を求める]
-#   引数: [prepared: prepared（Dictionary）]
-#   戻り値: [result: ターン・順序のキー一覧を求めるための結果（Array）]
+#   責務: [_keys: 検証済み両陣営から生存参加者だけの独立識別キー列を作ります]
+#   処理: [1: allies/enemies順にlivingのIDをside/id辞書へ取り出します]
+#   引数: [prepared: _prepareが検証したteams/living/by_idを持つ内部結果（Dictionary）]
+#   戻り値: [result: 生存参加者のside/id列。死亡/逃走者は含みません（Array）]
 # }
 static func _keys(prepared: Dictionary) -> Array:
 	var keys: Array = []

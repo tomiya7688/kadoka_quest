@@ -1,6 +1,6 @@
-"""治療予測を測定します。--cure-healは回復付き予測、--status-stateは状態保持/更新、--cure-contextは準備済みの治療付き定義選択を測ります。実セーブは使用しません。"""
+"""治療予測と保持を測ります。--cure-healは回復付き予測、--status-stateは個体状態の更新、--cure-contextは定義選択、--session-statusは八体の状態付きSession開始/読取です。実セーブは使用しません。"""
 # {
-#   責務: [check_gdscript_status_cure: 治療予測・専用状態保持/更新・準備済み定義選択の時間と実結果を検査する開発専用CLIです]
+#   責務: [check_gdscript_status_cure: 治療予測・個体状態更新・準備済み定義選択・八体Session状態保持の時間と実結果を検査する開発専用CLIです]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 # {
-#   責務: [StatusCureBenchmark: 反復条件と実Godotの起動・治療/状態更新/定義選択の結果検査を所有します]
+#   責務: [StatusCureBenchmark: 反復条件と実Godotの起動・治療/状態更新/定義選択/Session状態保持の結果検査を所有します]
 #   フィールド: [
 #     godot: 計測するGodot実行ファイルのパス（str）
 #     configuration: 反復・サンプル・事前実行回数の独立した辞書（dict）
@@ -31,7 +31,7 @@ class StatusCureBenchmark:
     #   引数: [
     #     self: 治療予測・状態更新・定義選択の計測条件を持つ所有者
     #     godot: 実Godotのパス（str）
-    #     arguments: iterations/samples/warmupと任意cure_heal/status_state/cure_context区分を持つCLI条件（argparse.Namespace）
+    #     arguments: iterations/samples/warmupと任意cure_heal/status_state/cure_context/session_status区分を持つCLI条件（argparse.Namespace）
     #   ]
     #   戻り値: [result: なし（None）]
     # }
@@ -41,7 +41,8 @@ class StatusCureBenchmark:
                               "samples": max(1, arguments.samples), "warmup": max(0, arguments.warmup),
                               "cure_heal": getattr(arguments, "cure_heal", False),
                               "status_state": getattr(arguments, "status_state", False),
-                              "cure_context": getattr(arguments, "cure_context", False)}
+                              "cure_context": getattr(arguments, "cure_context", False),
+                              "session_status": getattr(arguments, "session_status", False)}
 
     # {
     #   責務: [run: 専用JSONで治療/状態更新/定義選択の実Godotプローブを起動し、診断と計測結果を確認します]
@@ -79,6 +80,11 @@ class StatusCureBenchmark:
             if not line.startswith("KADOKA_STATUS_CURE_RESULT="):
                 continue
             result = json.loads(base64.b64decode(line.split("=", 1)[1]))
+            if self.configuration["session_status"]:
+                passed = self._valid_session_result(result)
+                print(f"{'OK' if passed else 'FAIL'} Godot session status startup+read {result['microseconds']:.2f}us <= 3000us "
+                      f"[{result['iterations']} iterations, {result['samples']} samples, {result['warmup']} warmup; 8 actors; no save writes]")
+                return 0 if passed else 1
             if self.configuration["cure_context"]:
                 passed = self._valid_context_result(result)
                 print(f"{'OK' if passed else 'FAIL'} Godot cure-heal context selection {result['microseconds']:.2f}us <= 3000us "
@@ -163,8 +169,41 @@ class StatusCureBenchmark:
                     "heal_ratio": 0.03, "status_cure_chance": 0.03}})
 
 
+    # {
+    #   責務: [_valid_session_result: 状態付き開始・八体の初期状態読取・数値資源保持と計測上限を照合します]
+    #   処理: [1: 正常開始と個別/全体読取を入力に照合し、拒否や状態欠落を高速な成功と扱いません]
+    #   引数: [
+    #     self: 計測条件の所有者
+    #     result: 実Godotから復号した計測結果（dict）
+    #   ]
+    #   戻り値: [passed: 開始・読取・原本保持・時間上限がすべて一致すればTrue（bool）]
+    # }
+    def _valid_session_result(self, result: dict) -> bool:
+        snapshots = result.get("original_snapshots", {})
+        statuses = result.get("original_statuses", {})
+        numeric = result.get("numeric", {})
+        # 固定八体そのものを照合し、入力/出力が共に壊れた自己一致を通過させない。
+        expected = {side: [{"identity": {"id": f"member_{index}", "species_id": "slime", "name": f"member_{index}"},
+                            "stats": {"hp": 100, "mp": 100, "attack": 10, "defense": 10, "magic": 10, "speed": 10},
+                            "hp": 100, "mp": 100, "alive": True, "fled": False} for index in range(4)]
+                    for side in ("allies", "enemies")}
+        return (snapshots == expected and 0 <= result.get("microseconds", -1) <= 3000 and result.get("actors") == 8
+                and result.get("input_preserved") is True
+                and all(len(snapshots.get(side, [])) == 4 and len(statuses.get(side, {})) == 4
+                        for side in ("allies", "enemies"))
+                and numeric == {"phase": "between_rounds", "round": 0, "cursor": 0, "order": [],
+                                "pending": None, "teams": snapshots, "scope": "base_battle_cursor"}
+                and result.get("started") == {"ok": True, "session": numeric}
+                and result.get("statuses") == {"teams": statuses, "scope": "battle_status_only"}
+                and all(effects == [{"id": "lock", "removable": False},
+                                    {"id": "poison", "metadata": {"deck": [1, {"kept": True}]}}, "sleep"]
+                        for side in statuses.values() for effects in side.values())
+                and result.get("single") == {"ok": True, "snapshot": {
+                    "status_effects": statuses.get("allies", {}).get("member_0")}})
+
+
 # {
-#   責務: [main: CLI条件とGodot実行先を確認し、治療予測・状態ライフサイクルまたは定義選択計測へ委譲します]
+#   責務: [main: CLI条件とGodot実行先を確認し、治療予測・状態ライフサイクル・定義選択またはSession状態保持計測へ委譲します]
 #   処理: [1: 反復条件を解析し、実Godot指定済みなら計測、未指定なら未検証を返します]
 #   引数: []
 #   戻り値: [status: 成功0・失敗1・Godot未指定の未検証2（int）]
@@ -178,6 +217,7 @@ def main() -> int:
     mode.add_argument("--cure-heal", action="store_true", help="一件治療と最大HP制限付きHP回復の統合予測を測定します")
     mode.add_argument("--status-state", action="store_true", help="専用の状態開始・予測・一件治療・読み取りを測定します")
     mode.add_argument("--cure-context", action="store_true", help="八体・千件の準備済み索引から治療付き回復定義の選択を測定します")
+    mode.add_argument("--session-status", action="store_true", help="八体の明示状態付きSession開始と個別/全体読取を毎反復で測定します")
     arguments = parser.parse_args()
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
     # Godotがない環境では、計測したように成功を返しません。
