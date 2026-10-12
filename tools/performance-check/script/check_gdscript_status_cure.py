@@ -1,4 +1,4 @@
-"""治療予測/保持と実行を測ります。--cure-healは統合予測、--status-stateは個体状態更新、--cure-contextは定義選択、--session-statusは開始/読取、--cure-actionは八体の実回復/MP消費/毒解除です。--status-applyは状態一件の非破壊付与予測です。実セーブは使いません。"""
+"""治療予測/保持と実行を測ります。--cure-healは統合予測、--status-stateは個体状態更新、--cure-contextは定義選択、--session-statusは開始/読取、--cure-actionは八体の実回復/MP消費/毒解除です。--status-applyは非破壊付与予測、--status-apply-stateは準備/予測/一件実付与/重複検査です。実セーブは使いません。"""
 # {
 #   責務: [check_gdscript_status_cure: 治療/付与予測・状態保持/更新・定義選択・実治療の時間と実結果を検査する開発専用CLIです]
 #   フィールド: []
@@ -31,7 +31,7 @@ class StatusCureBenchmark:
     #   引数: [
     #     self: 治療予測・状態更新・定義選択の計測条件を持つ所有者
     #     godot: 実Godotのパス（str）
-    #     arguments: iterations/samples/warmupと排他的cure_heal/status_state/cure_context/session_status/cure_action/status_applyのCLI条件（argparse.Namespace）
+    #     arguments: iterations/samples/warmupと排他的cure_heal/status_state/cure_context/session_status/cure_action/status_apply/status_apply_stateのCLI条件（argparse.Namespace）
     #   ]
     #   戻り値: [result: なし（None）]
     # }
@@ -40,7 +40,8 @@ class StatusCureBenchmark:
         self.configuration = {"performance": True, "iterations": max(1, arguments.iterations),
                               "samples": max(1, arguments.samples), "warmup": max(0, arguments.warmup),
                               "cure_heal": getattr(arguments, "cure_heal", False),
-                              "status_state": getattr(arguments, "status_state", False),
+                              "status_state": getattr(arguments, "status_state", False) or getattr(arguments, "status_apply_state", False),
+                              "status_apply_state": getattr(arguments, "status_apply_state", False),
                               "cure_context": getattr(arguments, "cure_context", False),
                               "session_status": getattr(arguments, "session_status", False),
                               "cure_action": getattr(arguments, "cure_action", False),
@@ -82,6 +83,12 @@ class StatusCureBenchmark:
             if not line.startswith("KADOKA_STATUS_CURE_RESULT="):
                 continue
             result = json.loads(base64.b64decode(line.split("=", 1)[1]))
+            if self.configuration["status_apply_state"]:
+                passed = self._valid_apply_state_result(result)
+                print(f"{'OK' if passed else 'FAIL'} Godot owned-status application {result.get('microseconds', -1):.2f}us <= 3000us "
+                      f"[{self.configuration['iterations']} iterations, {self.configuration['samples']} samples, "
+                      f"{self.configuration['warmup']} warmup; startup/prepare/quote/apply/duplicate/read]")
+                return 0 if passed else 1
             if self.configuration["status_apply"]:
                 # 拒否/欠落や入力と出力が一緒に壊れた自己一致を、速い付与成功と扱いません。
                 if result.get("ok") is False or "microseconds" not in result:
@@ -271,6 +278,42 @@ class StatusCureBenchmark:
                 and last.get("cure", {}).get("cured") is True and last.get("cure", {}).get("cured_name") == "poison")
 
 
+
+    # {
+    #   責務: [_valid_apply_state_result: 新規開始から実付与/重複までの固定状態・原本保持・計測条件/時間を照合します]
+    #   処理: [1: 四件開始・予測非変更・出血一件実追加・判定なし重複保持が固定期待値に全て一致するか返します]
+    #   引数: [
+    #     self: 付与ライフサイクルの計測条件を持つ所有者
+    #     result: 実Godotから復号した付与状態計測結果（dict）
+    #   ]
+    #   戻り値: [passed: 計測条件と一サイクル3000us以内を含む全期待値一致ならTrue（bool）]
+    # }
+    def _valid_apply_state_result(self, result: dict) -> bool:
+        original = [{"id": "lock", "removable": False}, "poison", "sleep",
+                    {"id": "mod", "metadata": {"deck": [1, {"kept": True}]}}]
+        effect = {"id": "bleeding", "display_name": "出血", "chance": 0.4,
+                  "metadata": {"deck": ["a", {"kept": True}]}}
+        candidate = {**effect, "removable": True}
+        candidate.pop("chance")
+        quoted = {"ok": True, "scope": "status_apply_quote", "status_id": "bleeding", "apply_chance": 0.5,
+                  "roll_required": True, "applied": True, "applied_name": "出血", "outcome": "applied",
+                  "resulting_status_effects": [*original, candidate]}
+        after = {"status_effects": [*original, candidate]}
+        repeated = {**quoted, "scope": "combatant_status_apply", "apply_chance": 0,
+                    "roll_required": False, "applied": False, "applied_name": None, "outcome": "already_present"}
+        # 入出力の自己一致だけで通過させず、付与する固定出血と予測/更新の区別を照合します。
+        return (result.get("original_effects") == original
+                and result.get("original_request") == {"effect": effect, "resistance_level": "weak", "roll": 0.49}
+                and all(result.get(field) == self.configuration[field] for field in ("iterations", "samples", "warmup"))
+                and 0 <= result.get("microseconds", -1) <= 3000 and result.get("input_preserved") is True
+                and result.get("started") == {"ok": True, "snapshot": {"status_effects": original}}
+                and result.get("prepared") == {"ok": True, "effects": original, "effect": candidate, "status_id": "bleeding",
+                                              "apply_chance": 0.5, "roll_required": True, "outcome": "ready"}
+                and result.get("prediction") == quoted and result.get("after_quote") == {"status_effects": original}
+                and result.get("quote") == {**quoted, "scope": "combatant_status_apply"}
+                and result.get("after") == after and result.get("repeated") == repeated and result.get("after_repeat") == after)
+
+
 # {
 #   責務: [main: CLI条件とGodot実行先を確認し、治療/付与予測・状態保持・定義選択・治療付き実行の計測へ委譲します]
 #   処理: [1: 反復条件を解析し、実Godot指定済みなら計測、未指定なら未検証を返します]
@@ -289,6 +332,7 @@ def main() -> int:
     mode.add_argument("--session-status", action="store_true", help="八体の明示状態付きSession開始と個別/全体読取を毎反復で測定します")
     mode.add_argument("--cure-action", action="store_true", help="八体の実回復/MP消費/毒解除を測ります。総行動数は8の倍数にしてください")
     mode.add_argument("--status-apply", action="store_true", help="四件の元状態を保持する新規一件の付与成功予測を測定します")
+    mode.add_argument("--status-apply-state", action="store_true", help="状態開始/付与準備/予測/一件実付与/同ID重複保持を測定します")
     arguments = parser.parse_args()
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
     # Godotがない環境では、計測したように成功を返しません。

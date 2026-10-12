@@ -237,3 +237,10 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_apply.py tests/test_gdscript_status_cure.py tests/test_battle_bleeding.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --status-apply
 ```
+
+[個体状態所有者の一件付与](../docs/GDScript戦闘状態一覧契約.md#最新一覧への一件付与)は、最新一覧で付与を再判定し、成功した候補一件だけを独立保持します。例えば出血付与後の再付与は重ならず、治療で除いた後は再付与できます。準備/予測は状態を変えず、古い一覧/予測の上書きを拒否します。付与のSession/行動・継続効果・AI・画面は未接続です。開発者はリポジトリルートで使えるPython/Godotを指定し、次を実行してください。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_owned_status_application.py tests/test_gdscript_combatant_status.py tests/test_gdscript_status_apply.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --status-apply-state
+```

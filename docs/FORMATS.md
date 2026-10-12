@@ -477,3 +477,9 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 付与予測のscopeはstatus_apply_quoteです。IDなし・重複・確率0以下・無効耐性ではroll不要、正の確率では1でもroll必須です。付与予測は指定済み不正roll・未知要求を拒否します。現在一覧の形式検査は治療と共用し、原本・実状態・数値snapshot・保存JSON/schemaは変更しません。状態所有者/Sessionの付与更新・継続効果・AI・画面は未接続です。
 
+### GDScriptの個体状態所有者による一件付与（保存形式変更なし）
+
+[戦闘状態一覧契約](GDScript戦闘状態一覧契約.md#最新一覧への一件付与)のprepare_applicationはeffectと任意resistance_levelだけを受け、最新一覧で判定値の要否を返します。quote_application/applyは任意rollも受け、外部一覧/古い予測の持ち込みを拒否します。実付与applyはscope:combatant_status_applyで一件追加後の独立resulting_status_effectsを返し、成立した新規候補だけを別コピーして所有一覧へ追加します。同IDは重ねず、予測/不成立/拒否で状態を変更しません。治療後は同IDを再付与できます。
+
+個体状態所有者の付与は数値snapshot六キーと保存JSON/schemaを変更しません。個体状態所有者はHP/MP・生死・逃走・行動予約・スキル条件・耐性再構築を持たず、付与のSession/行動接続・継続効果・保存・AI・画面は未接続です。
+

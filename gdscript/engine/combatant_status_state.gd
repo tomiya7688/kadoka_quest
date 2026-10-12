@@ -1,5 +1,5 @@
 # {
-#   責務: [combatant_status_state: 戦闘個体一体の順序付き状態一覧を独立保持し、明示判定による一件治療だけを適用します]
+#   責務: [combatant_status_state: 戦闘個体一体の順序付き状態一覧を独立保持し、明示判定による一件治療と重複しない一件付与を適用します]
 #   フィールド: [
 #     _effects: 原本と独立した検証済み状態一覧（Array）
 #     _initialized: 状態一覧の初期化が成功済みかどうか（bool）
@@ -7,6 +7,7 @@
 # }
 extends RefCounted
 
+const ApplyContract = preload("res://engine/status_apply_contract.gd")
 const CureContract = preload("res://engine/status_cure_contract.gd")
 var _effects: Array = []
 var _initialized := false
@@ -76,6 +77,75 @@ func cure(request: Variant) -> Dictionary:
 		_effects.remove_at(quoted["candidate_index"])
 	quoted["scope"] = "combatant_status_cure"
 	return quoted
+
+
+
+# {
+#   責務: [prepare_application: 最新の所有一覧から付与確率と判定値の要否を取得し、状態を変更しません]
+#   処理: [1: 外部一覧/予測の上書きを拒否し、所有一覧と効果/耐性を純粋付与準備へ委譲します]
+#   引数: [request: effectと任意resistance_levelだけの要求。rollと外部状態一覧は受けません（Variant）]
+#   戻り値: [result: 独立候補/一覧・確率・判定要否、または所有状態を保持した拒否（Dictionary）]
+# }
+func prepare_application(request: Variant) -> Dictionary:
+	# 判定値を取得する前に最新一覧を正本として渡し、準備結果で所有一覧を変更しません。
+	var checked := _application_request(request, false)
+	if not checked["ok"]:
+		return checked
+	return ApplyContract.prepare_application(checked["request"])
+
+
+# {
+#   責務: [quote_application: 最新の所有一覧で一件付与を予測し、予測による所有状態の変更を行いません]
+#   処理: [1: 状態所有者の開始/要求を確認し、所有一覧・効果・耐性・明示rollを純粋付与予測へ委譲します]
+#   引数: [request: effectと任意resistance_level/rollだけの要求。予測一覧や付与済み結果は受けません（Variant）]
+#   戻り値: [result: status_apply_quote区分の独立予測、または所有状態を保持した拒否（Dictionary）]
+# }
+func quote_application(request: Variant) -> Dictionary:
+	# 外部の一覧上書きを入口で拒否し、確率と重複の規則は純粋契約へ委譲します。
+	var checked := _application_request(request, true)
+	if not checked["ok"]:
+		return checked
+	return ApplyContract.quote_application(checked["request"])
+
+
+# {
+#   責務: [apply: 最新の所有一覧で付与を再判定し、成立した候補一件だけを末尾へ独立コピーして追加します]
+#   処理: [1: quote_applicationで再検証し、付与成立時だけ新規候補を保持して結果区分を実更新へ変更します]
+#   引数: [request: effectと任意resistance_level/rollだけの要求。外部一覧/古い予測を更新命令へ使えません（Variant）]
+#   戻り値: [result: combatant_status_apply区分の独立結果。不成立/重複/拒否では所有一覧を保持します（Dictionary）]
+# }
+func apply(request: Variant) -> Dictionary:
+	# 返却一覧全体で所有一覧を置換せず、新規候補だけを別コピーして返却値の編集から守ります。
+	var quoted := quote_application(request)
+	if not quoted["ok"]:
+		return quoted
+	if quoted["applied"]:
+		_effects.append(quoted["resulting_status_effects"].back().duplicate(true))
+	quoted["scope"] = "combatant_status_apply"
+	return quoted
+
+
+# {
+#   責務: [_application_request: 状態所有者の開始と付与要求キーを検査し、内部一覧を純粋契約へ渡す専用要求を作ります]
+#   処理: [1: 未開始/辞書以外/未知要求を拒否し、外部要求の浅いコピーへ所有一覧を設定します]
+#   引数: [
+#     request: 効果と任意耐性/判定値の付与要求（Variant）
+#     allow_roll: 準備はfalse、予測/実更新はtrueに固定した判定値キーの許可（bool）
+#   ]
+#   戻り値: [result: 内部委譲専用request、または理由付き拒否。内部要求は公開APIから直接返しません（Dictionary）]
+# }
+func _application_request(request: Variant, allow_roll: bool) -> Dictionary:
+	# 状態一覧・候補・古い結果を要求から持ち込ませず、この個体の最新一覧を正本にします。
+	if not _initialized:
+		return _reject("not_initialized")
+	if not request is Dictionary:
+		return _reject("invalid_status_apply_request")
+	for field in request:
+		if field not in ["effect", "resistance_level"] and not (allow_roll and field is String and field == "roll"):
+			return _reject("unsupported_status_apply_request")
+	var forwarded: Dictionary = request.duplicate()
+	forwarded["status_effects"] = _effects
+	return {"ok": true, "request": forwarded}
 
 
 # {

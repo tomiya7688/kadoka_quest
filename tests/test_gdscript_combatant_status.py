@@ -21,7 +21,7 @@ import test_gdscript_status_cure as cure_fixture
 class CombatantStatusBoundaryTests(unittest.TestCase):
     # {
     #   責務: [test_status_owner_does_not_change_numeric_snapshot_or_session_contract: 状態保持を数値snapshotと行動実行へ無断接続しないことを確認します]
-    #   処理: [1: 新規所有者の禁止依存と、既存数値資源/Session/applicationの未接続を確認します]
+    #   処理: [1: 状態所有者の禁止依存と、数値資源/Session/applicationから状態所有者への直接参照がないことを確認します]
     #   引数: [self: 状態所有者の境界を確認するテストケース]
     #   戻り値: [result: なし（None）]
     # }
