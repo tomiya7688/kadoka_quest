@@ -5,7 +5,7 @@
 extends RefCounted
 
 const Numbers = preload("res://engine/stat_numbers.gd")
-const MAX_JSON_DEPTH := 32
+const Effects = preload("res://engine/status_effect_contract.gd")
 
 
 # {
@@ -19,7 +19,7 @@ const MAX_JSON_DEPTH := 32
 # }
 static func select_candidate(effects: Variant) -> Dictionary:
 	# 未知IDも治療候補にできますが、状態の付与・継続効果を実装済みとは扱いません。
-	if not _valid_effects(effects):
+	if not Effects.valid_effects(effects):
 		return _reject("invalid_status_effects")
 	var copied: Array = effects.duplicate(true)
 	var candidate := -1
@@ -71,62 +71,6 @@ static func quote_cure(request: Variant) -> Dictionary:
 	return {"ok": true, "scope": "status_cure_quote", "cured": cured, "cured_name": cured_name,
 		"candidate_index": selected["candidate_index"], "roll_required": selected["roll_required"],
 		"cure_chance": probability, "remaining_status_effects": effects}
-
-
-# {
-#   責務: [_valid_effects: 治療に使うキーの型と、拡張情報を含む一覧全体のJSON互換性を確認します]
-#   処理: [
-#     1: 配列全体の深さ・有限数値・辞書キーを確認します
-#     2: 各状態を文字列または辞書に限定し、id/表示名と解除可否の型を確認します
-#   ]
-#   引数: [effects: 検証前の状態異常一覧。拡張キーは継続効果を実行せず保持します（Variant）]
-#   戻り値: [result: 独立コピー可能な対応一覧ならtrue、それ以外ならfalse（bool）]
-# }
-static func _valid_effects(effects: Variant) -> bool:
-	# JSON以外のObjectや循環・過深なコンテナを独立コピーへ持ち込みません。
-	if not effects is Array or not _is_json_value(effects):
-		return false
-	for effect in effects:
-		if effect is String:
-			continue
-		if not effect is Dictionary:
-			return false
-		for field in ["id", "display_name"]:
-			if effect.has(field) and not effect[field] is String:
-				return false
-		if effect.has("removable") and not effect["removable"] is bool:
-			return false
-	return true
-
-
-# {
-#   責務: [_is_json_value: 拡張情報を有限数値と文字列キーのJSON値だけに限定し、再帰深さを制限します]
-#   処理: [1: コンテナの子を再帰検証し、非有限・精度超過・Object・循環または32段を超える値を拒否します]
-#   引数: [
-#     value: 一覧または拡張情報の一つの値（Variant）
-#     depth: 一覧を0とする再帰深さ。32を超えた値は拒否します（int）
-#   ]
-#   戻り値: [result: 対応範囲のJSON値ならtrue、それ以外ならfalse（bool）]
-# }
-static func _is_json_value(value: Variant, depth: int = 0) -> bool:
-	if depth > MAX_JSON_DEPTH:
-		return false
-	if value == null or value is String or value is bool:
-		return true
-	if value is int or value is float:
-		return is_finite(float(value)) and absf(float(value)) <= Numbers.MAX_EXACT_INTEGER
-	# 配列と辞書は子まで検証し、辞書の未知キーも変更せず返せる値に限定します。
-	if value is Array:
-		for child in value:
-			if not _is_json_value(child, depth + 1):
-				return false
-		return true
-	if value is Dictionary:
-		for key in value:
-			if not key is String or not _is_json_value(value[key], depth + 1):
-				return false
-		return true
-	return false
 
 
 # {

@@ -110,3 +110,5 @@ Reusable patterns in `code-docs` and `task-workflow` were adapted from `tomiya76
 The UPD checker is a development/CI dependency fetched from the MIT-licensed `tomiya7688/upd-commander-base-design` repository. No UPD checker package is added to Kadoka Quest runtime dependencies.
 
 Project-specific OCR, screen capture, Windows input, GUI automation, or unrelated project behavior is intentionally not imported into Kadoka Quest.
+
+状態一件の非破壊付与予測はcheck_gdscript_status_cure.py --status-applyで測ります。開発者は環境変数KADOKA_GODOT_EXECUTABLEへ使えるGodotを設定し、リポジトリルートで指定Pythonから実行してください。四件の状態に対するネスト付き出血の成功予測を標準20000回・7サンプル・2000回事前実行で測り、一予測中央値3000us以内・確率0.5・五件の結果一覧・固定原本保持を成功条件とします。拒否や重複だけの高速結果は通過しません。実状態/Session更新・保存・AI・描画・I/Oは測りません。Godot未指定は終了コード2の未検証です。入力と失敗対応は[付与予測契約](../docs/GDScript状態付与予測契約.md)を確認してください。

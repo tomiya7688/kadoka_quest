@@ -471,3 +471,9 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 [自傷魔法行動契約](GDScript自傷魔法行動契約.md)のresolve_self_damage_magic_skillは、厳密な{ticket,target,skill_id,variance}だけを受けます。術者の現在HP・最大HPはSessionから取得し、要求側での上書きを拒否します。最新予約と習得・許可装備・敵対象・資源を検証し、単一claim→実MP消費→敵効果→術者のself_dealt適用→finishを行います。無効・吸収・最後の敵の撃破でも代償が発生し、HP1を残します。不正・不足・取消・重複で追加消費しません。結果のscopeはexplicit_self_damage_magic_onlyです。snapshotの6キー、正規data/assets、個体/AI/items/partyの保存JSON/schemaは変更しません。AI・戦闘画面は未接続です。
 
+### GDScriptの状態一件の付与予測（保存形式変更なし）
+
+[状態付与予測契約](GDScript状態付与予測契約.md)のquote_applicationはeffect/status_effectsと任意resistance_level/rollを受け、重複防止・状態耐性倍率・明示判定から一件付与後の独立resulting_status_effectsを返します。prepare_applicationはrollを受けず、成功率と判定要否を返します。新規IDの前後空白だけを正規化し、成立時の候補からchanceを除き、display_name/removableの省略値を補います。付与予測は未知MOD IDとJSON互換拡張情報を保持しますが、拡張効果を実行しません。
+
+付与予測のscopeはstatus_apply_quoteです。IDなし・重複・確率0以下・無効耐性ではroll不要、正の確率では1でもroll必須です。付与予測は指定済み不正roll・未知要求を拒否します。現在一覧の形式検査は治療と共用し、原本・実状態・数値snapshot・保存JSON/schemaは変更しません。状態所有者/Sessionの付与更新・継続効果・AI・画面は未接続です。
+

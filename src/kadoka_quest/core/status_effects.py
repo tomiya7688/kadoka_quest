@@ -71,11 +71,11 @@ def has_status(effects: Iterable[dict[str, Any] | str], status_id: str) -> bool:
 #   戻り値: [result: 状態耐性を反映した0以上1以下の付与確率（float）]
 # }
 def status_apply_chance(base_chance: float, resistance_level: str) -> float:
-    """Return the final 0..1 chance for a status effect.
+    """status_apply_chanceは状態付与の基礎確率を耐性で補正し、0〜1へ制限します。
 
-    Invalid special damage-only levels fail closed instead of accidentally
-    making a malformed status resistance easier to apply at runtime. The
-    project validator reports these values as data errors.
+    状態耐性へ誤指定されたダメージ専用absorb/reflectは確率0になります。
+    データ検査はabsorb/reflectを状態耐性のエラーとして報告します。
+    未知の耐性名はPython runtimeの互換動作として等倍になります。
     """
 
     level = str(resistance_level or "normal")

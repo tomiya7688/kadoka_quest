@@ -195,7 +195,7 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py
 ```
 
-[戦闘状態一覧契約](../docs/GDScript戦闘状態一覧契約.md)の所有者は、初期配列を独立保持し、予測で一覧を変えず、最新の一覧で成立した治療候補一件だけを除きます。例えば特殊拘束・毒・眠りの順に状態がある場合、成功した治療は毒だけを除きます。外部の一覧上書き・古い予測の持ち込みを拒否し、入力と返却値のネスト編集も所有状態へ伝播させません。HP/MP・保存・行動予約・Session・AI・画面は未接続です。開発者はリポジトリルートで使えるPythonとGodotを指定し、次を実行してください。
+[戦闘状態一覧契約](../docs/GDScript戦闘状態一覧契約.md)の所有者は、初期配列を独立保持し、予測で一覧を変えず、最新の一覧で成立した治療候補一件だけを除きます。例えば特殊拘束・毒・眠りの順に状態がある場合、成功した治療は毒だけを除きます。外部の一覧上書き・古い予測の持ち込みを拒否し、入力と返却値のネスト編集も所有状態へ伝播させません。状態所有者自体はHP/MPと行動予約を扱わず、Sessionの専用治療行動が数値更新と状態治療を調停します。保存・AI・画面は未接続です。開発者はリポジトリルートで使えるPythonとGodotを指定し、次を実行してください。
 
 ```powershell
 $env:KADOKA_GODOT_EXECUTABLE = '<Godotの実行ファイル>'
@@ -224,9 +224,16 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --cure-action
 ```
 
-[単体HP回復行動契約](../docs/GDScript回復スキル行動契約.md)は予測をSessionへ接続し、最新予約・習得・許可装備・生存する味方1体を検証して実MP消費・最大HPまでのHP回復・予約完了を行います。本人も指定でき、満HPでもMPを払います。不正・不足では予約と資源を保持し、死亡/逃走対象を復活させません。治療付き回復・AI・戦闘画面は未接続です。開発者はリポジトリルートで、環境変数KADOKA_GODOT_EXECUTABLEに使えるGodotの実行ファイルを設定し、次の専用検証を指定したPythonで実行してください。実セーブは使用しません。
+[単体HP回復行動契約](../docs/GDScript回復スキル行動契約.md)は予測をSessionへ接続し、最新予約・習得・許可装備・生存する味方1体を検証して実MP消費・最大HPまでのHP回復・予約完了を行います。本人も指定でき、満HPでもMPを払います。不正・不足では予約と資源を保持し、死亡/逃走対象を復活させません。治療付き回復は別の専用行動に接続済みで、AI・戦闘画面は未接続です。開発者はリポジトリルートで、環境変数KADOKA_GODOT_EXECUTABLEに使えるGodotの実行ファイルを設定し、次の専用検証を指定したPythonで実行してください。実セーブは使用しません。
 
 ```powershell
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_heal_action.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_magic_action.py --heal
+```
+
+[状態一件の付与予測契約](../docs/GDScript状態付与予測契約.md)は重複を防ぎ、状態耐性で補正した確率と明示rollから新しい一覧を返します。例えば基礎確率0.4・weak耐性・roll0.49なら出血一件の成功を予測します。元一覧・実状態/Session・HPMP・保存は変更せず、継続効果/AI/画面は未接続です。開発者はリポジトリルートで上記Python/Godotを指定し、次を実行してください。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_apply.py tests/test_gdscript_status_cure.py tests/test_battle_bleeding.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --status-apply
 ```
