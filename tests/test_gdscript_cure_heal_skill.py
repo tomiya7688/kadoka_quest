@@ -15,13 +15,13 @@ import test_gdscript_status_cure as cure_fixture
 
 
 # {
-#   責務: [CureHealBoundaryTests: 統合予測の依存を純粋計算に限定し、実行側や既存HP回復APIへの未接続を確認します]
+#   責務: [CureHealBoundaryTests: 統合予測のI/O/実更新からの独立と、呼出調停/HPだけの数値契約による直接治療計算の未実装を確認します]
 #   フィールド: []
 # }
 class CureHealBoundaryTests(unittest.TestCase):
     # {
     #   責務: [test_prediction_remains_separate_from_io_ai_rng_and_session: 統合予測を実更新・AI・乱数生成へ接続しないことを確認します]
-    #   処理: [1: 禁止依存と既存application/回復APIへの未接続を確認します]
+    #   処理: [1: 純粋統合予測の禁止依存と、Application/HP数値契約の直接依存がないことを確認します]
     #   引数: [self: 純粋予測の境界を確認するテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -32,7 +32,7 @@ class CureHealBoundaryTests(unittest.TestCase):
                           "battle_session", "randf(", "RandomNumberGenerator", ".pay_mp(", ".heal("):
             self.assertNotIn(forbidden, source)
         for name in ("application/field_application", "application/battle_session_application",
-                     "engine/heal_skill_contract", "engine/heal_skill_action"):
+                     "engine/heal_skill_contract"):
             self.assertNotIn("cure_heal_skill_contract", (root / f"{name}.gd").read_text(encoding="utf-8"))
 
 

@@ -27,13 +27,13 @@ def session_case(**changes):
 
 
 # {
-#   責務: [SessionStatusBoundaryTests: 状態保持の層境界と従来数値形式・未接続の画面/治療行動を確認します]
+#   責務: [SessionStatusBoundaryTests: 状態保持の純粋な層境界と従来数値形式・専用/従来開始の分離を確認します]
 #   フィールド: []
 # }
 class SessionStatusBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_status_storage_stays_pure_and_application_keeps_legacy_start: 状態保持へ保存・乱数生成・治療実行や画面依存を持ち込まないことを確認します]
-    #   処理: [1: 新規engine依存とapplicationの専用入口未接続を静的確認します]
+    #   責務: [test_status_storage_stays_pure_and_application_keeps_legacy_start: 状態所有にI/O/乱数/HPMP更新を持ち込まず、Applicationの従来開始を維持するか確認します]
+    #   処理: [1: 状態保持の禁止依存と、Applicationの明示専用入口/従来区分・数値への状態キー未追加を静的確認します]
     #   引数: [self: 状態保持の境界を確認するテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -42,10 +42,11 @@ class SessionStatusBoundaryTests(unittest.TestCase):
         for name in ("battle_status_state", "initial_status_map"):
             source = (root / f"engine/{name}.gd").read_text(encoding="utf-8")
             for forbidden in ("FileAccess", "DirAccess", "res://application/", "res://data/", "res://ui/",
-                              "randf(", "RandomNumberGenerator", ".cure(", ".pay_mp(", ".heal("):
+                              "randf(", "RandomNumberGenerator", ".pay_mp(", ".heal("):
                 self.assertNotIn(forbidden, source)
         application = (root / "application/battle_session_application.gd").read_text(encoding="utf-8")
-        self.assertNotIn("start_with_statuses", application)
+        self.assertIn("func start_with_statuses(", application)
+        self.assertIn("_start(allies, enemies, shuffle_order, null, false)", application)
         self.assertNotIn("status_effects", (root / "engine/combatant_state.gd").read_text(encoding="utf-8"))
 
 

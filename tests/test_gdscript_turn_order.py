@@ -212,13 +212,13 @@ class GDScriptTurnTests(unittest.TestCase):
         return engine
 
     # {
-    #   責務: [reference: gdscript・ターン・testsのreferenceを求める]
-    #   処理: [1: gdscript・ターン・testsのreferenceを求める]
+    #   責務: [reference: 学習無効の実Python run_roundから初期参加者・速度順・実行候補を取得します]
+    #   処理: [1: 明示shuffleだけを固定し、攻撃と勝敗をstub化した限定比較を実行します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     parameters: parameters
+    #     self: 専用比較データを所有するテストケース
+    #     parameters: 両陣営snapshotと生存者の明示shuffle_order
     #   ]
-    #   戻り値: [result: gdscript・ターン・testsのreferenceを求めるための結果（型注釈なし）]
+    #   戻り値: [result: 初期参加者initial・速度順order・実行候補executedの比較用キー列（dict）]
     # }
     def reference(self, parameters):
         engine = self.engine(parameters["allies"], parameters["enemies"])
@@ -226,23 +226,23 @@ class GDScriptTurnTests(unittest.TestCase):
         executed = []
 
         # {
-        #   責務: [actor_key: gdscript・ターン・testsの行動個体・キーを求める]
-        #   処理: [1: gdscript・ターン・testsの行動個体・キーを求める]
+        #   責務: [actor_key: Python比較個体の参照から所属陣営とIDを持つ識別キーを作ります]
+        #   処理: [1: engine.alliesへの参照一致で所属陣営を決めます]
         #   引数: [
-        #     actor: 行動個体
-        #     friends: friends
+        #     actor: run_roundの比較用戦闘個体
+        #     friends: コールバック引数互換の同陣営列。陣営検索には使いません
         #   ]
-        #   戻り値: [result: gdscript・ターン・testsの行動個体・キーを求めるための結果（型注釈なし）]
+        #   戻り値: [result: side/idの比較用参加者キー（dict）]
         # }
         def actor_key(actor, friends):
             side = "allies" if any(entry is actor for entry in engine.allies) else "enemies"
             return key(side, actor.record.monster_id)
 
         # {
-        #   責務: [shuffle: gdscript・ターン・testsの並べ替えを求める]
-        #   処理: [1: gdscript・ターン・testsの並べ替えを求める]
-        #   引数: [actors: actors]
-        #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+        #   責務: [shuffle: 生存候補を明示shuffle_orderへ並べ替え、実Pythonの速度ソート前の順序を捕捉します]
+        #   処理: [1: 参加キーから候補を索引化し、指定順で同じ候補配列を置き換えます]
+        #   引数: [actors: 実Python run_roundの生存候補と敵/味方列の組]
+        #   戻り値: [result: なし（None）。比較用配列と捕捉値だけを変更します]
         # }
         def shuffle(actors):
             captured["initial"] = [actor_key(actor, friends) for actor, _, friends in actors]
@@ -263,13 +263,13 @@ class GDScriptTurnTests(unittest.TestCase):
                 "order": [actor_key(actor, friends) for actor, _, friends in captured["actors"]], "executed": executed}
 
     # {
-    #   責務: [assert_case: gdscript・ターン・testsのassert・caseを求める]
-    #   処理: [1: gdscript・ターン・testsのassert・caseを求める]
+    #   責務: [assert_case: 順序プローブの入力保持と再実行結果の一致を確認します]
+    #   処理: [1: input_preservedとagain/valueの一致をassertします]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     actual: actual
+    #     self: 順序比較の観測を確認するテストケース
+    #     actual: 専用順序プローブの入力保持/初回/再実行の観測（dict）
     #   ]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   戻り値: [result: なし（None）]
     # }
     def assert_case(self, actual):
         self.assertTrue(actual["input_preserved"])

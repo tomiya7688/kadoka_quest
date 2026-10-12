@@ -1,5 +1,5 @@
 # {
-#   責務: [battle_status_state: 両陣営の参加者ごとに状態所有者を独立保持し、読取専用のコピーを返します]
+#   責務: [battle_status_state: 参加者別の状態を独立保持し、独立読取と最新一覧からの一件治療を個体所有者へ委譲します]
 #   フィールド: [
 #     _by_id: allies/enemiesと個体idをキーとする状態所有者。外部へ返しません（Dictionary）
 #     _initialized: 全参加者の状態初期化が成功済みかどうか（bool）
@@ -71,11 +71,35 @@ func snapshot() -> Dictionary:
 #   戻り値: [result: ok=trueとstatus_effects一キーのsnapshot、または理由付き拒否（Dictionary）]
 # }
 func read(key: Variant) -> Dictionary:
+	var checked := _check_key(key)
+	return checked if not checked["ok"] else {"ok": true, "snapshot": _by_id[key["side"]][key["id"]].snapshot()}
+
+
+# {
+#   責務: [cure: 指定参加者の最新所有状態から一件の治療を個体状態所有者へ委譲します]
+#   処理: [1: 初期化とside/idを共用検証し、所有者へ明示確率/判定値を渡します]
+#   引数: [
+#     key: 治療対象のside/idキー（Variant）
+#     request: cure_chanceと任意rollだけの治療条件。状態や予測の持ち込みは拒否します（Variant）
+#   ]
+#   戻り値: [result: 実治療の独立結果、または状態を保持した拒否（Dictionary）]
+# }
+func cure(key: Variant, request: Variant) -> Dictionary:
+	var checked := _check_key(key)
+	return checked if not checked["ok"] else _by_id[key["side"]][key["id"]].cure(request)
+
+
+# {
+#   責務: [_check_key: 個別読取と治療に共通の初期化・参加者キー・存在条件を確認します]
+#   処理: [1: 初期化済みで厳密side/idに一致する所有者がある場合だけ成功を返します]
+#   引数: [key: 個体別状態を検索する候補キー（Variant）]
+#   戻り値: [result: ok=true、または具体的理由の拒否。所有者は公開しません（Dictionary）]
+# }
+func _check_key(key: Variant) -> Dictionary:
 	if not _initialized:
 		return {"ok": false, "reason": "not_initialized"}
 	if not Order.valid_key(key):
 		return {"ok": false, "reason": "invalid_actor_key"}
 	if not _by_id[key["side"]].has(key["id"]):
 		return {"ok": false, "reason": "actor_missing"}
-	# 所有者そのものを返さず、読取結果から状態更新を行えないようにします。
-	return {"ok": true, "snapshot": _by_id[key["side"]][key["id"]].snapshot()}
+	return {"ok": true}

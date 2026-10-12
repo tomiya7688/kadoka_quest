@@ -1,5 +1,5 @@
 # {
-#   責務: [run_status_cure_probe: 専用JSONから治療予測・個体状態・回復準備・Session状態保持を起動し、拒否/独立性/性能を観測します]
+#   責務: [run_status_cure_probe: 専用JSONから治療予測・個体/Session状態・回復準備/実行を起動し、拒否/独立性/性能を観測します]
 #   フィールド: []
 # }
 extends SceneTree
@@ -9,6 +9,7 @@ const CureHealContract = preload("res://engine/cure_heal_skill_contract.gd")
 const StatusStateProbe = preload("res://tests/combatant_status_probe.gd")
 const ContextProbe = preload("res://tests/cure_heal_context_probe.gd")
 const SessionStatusProbe = preload("res://tests/session_status_probe.gd")
+const CureActionProbe = preload("res://tests/cure_heal_action_probe.gd")
 
 
 # {
@@ -28,7 +29,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("session_status", false):
+	if payload.get("cure_action", false):
+		result = CureActionProbe.run(payload)
+	elif payload.get("session_status", false):
 		result = SessionStatusProbe.run(payload)
 	elif payload.get("cure_context", false):
 		result = ContextProbe.run(payload)

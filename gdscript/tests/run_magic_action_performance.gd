@@ -140,7 +140,7 @@ func _measure(payload: Dictionary) -> Dictionary:
 #   ]
 #   引数: [
 #     session: 8体の資源とticketを所有するSession（RefCounted）
-#     action: コンテキスト準備済みの魔法Action（RefCounted）
+#     action: 指定区分の開始情報を設定済みの魔法行動または単体HP回復行動（RefCounted）
 #     order: 陣営sideと個体idで表す専用8体の明示参加順（Array）
 #     self_damage: trueなら術者HP代償を検証し、falseなら自傷効果を検証しない設定（bool）
 #     drain_mp: trueなら吸MP専用入口の敵MP喪失・術者MP回復も検証する設定（bool）

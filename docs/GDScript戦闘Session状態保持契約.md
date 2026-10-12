@@ -2,7 +2,7 @@
 
 例えば味方と敵に同じ個体ID「same」がいても、味方の毒と敵の空状態を別々に保持します。開発者が読取結果の毒を消しても、Session内の毒は変わりません。数値資源snapshotには状態一覧を追加しません。
 
-この契約の目的は、[治療付き回復準備](GDScript治療付き回復準備契約.md)が返す編集可能な初期状態を、戦闘中の所有状態へ移すことです。専用開始と読取までを扱います。状態を治療する行動処理・Applicationからの開始・AI・戦闘画面は未接続です。
+この契約の目的は、[治療付き回復準備](GDScript治療付き回復準備契約.md)が返す編集可能な初期状態を、戦闘中の所有状態へ移すことです。本書は保持/読取を説明します。[治療付き回復行動](GDScript治療付き回復行動契約.md)からの取得済み予約一回の治療とApplicationの専用開始も接続しました。AI・戦闘画面は未接続です。
 
 ## 開発者が使う入口と具体例
 
@@ -42,11 +42,11 @@ battle_status_stateは参加者ごとに[個体状態所有者](GDScript戦闘�
 
 開始成功は従来と同じ{"ok": true, "session": 数値snapshot}です。Session.snapshot()はphase/round/cursor/order/pending/teams/scopeの七キー、参加者はidentity/stats/hp/mp/fled/aliveの六キーを維持します。状態を数値snapshotへ混ぜません。
 
-Session.statuses()は{"teams": {"allies": {"個体ID": 状態配列}, "enemies": {...}}, "scope": "battle_status_only"}を返します。Session.status(key)は、side/idだけの参加者キーに対して{"ok": true, "snapshot": {"status_effects": 状態配列}}を返します。全体/個別とも、ネストまで独立した編集可能な通常データです。状態所有者そのものや状態更新APIは公開しません。
+Session.statuses()は{"teams": {"allies": {"個体ID": 状態配列}, "enemies": {...}}, "scope": "battle_status_only"}を返します。Session.status(key)は、side/idだけの参加者キーに対して{"ok": true, "snapshot": {"status_effects": 状態配列}}を返します。全体/個別とも、ネストまで独立した編集可能な通常データです。状態所有者そのものや一覧上書きAPIは公開しません。更新は上記行動契約のapply_status_cureで現在取得済み予約一回に制限します。
 
 状態はラウンドの開始/終了・予約提示/取得/完了・HP/MP操作・死亡・逃走・stopped後も保持します。物理防御倍率の終端解除は状態を解除しません。毒の継続ダメージ、眠りによる行動取消、残存ターン経過や戦闘後保存は実行しません。既存の通常HP回復行動はHP/MPだけを更新し、状態を治療しません。
 
-従来Session.start(allies, enemies)は状態所有者を構築しません。未開始または従来開始のstatuses()は空辞書です。個別status()は未開始ならnot_initialized、従来開始済みならstatus_not_configuredを返します。専用開始後の不正side/id形式はinvalid_actor_key、不明IDはactor_missingです。既存Applicationはこの単位でも従来入口を使います。
+従来Session.start(allies, enemies)は状態所有者を構築しません。未開始または従来開始のstatuses()は空辞書です。個別status()は未開始ならnot_initialized、従来開始済みならstatus_not_configuredを返します。専用開始後の不正side/id形式はinvalid_actor_key、不明IDはactor_missingです。Applicationは従来開始を維持し、明示状態付きstart_with_statusesだけが状態と治療付き行動を設定します。
 
 ## 検証方法と完了の確認
 

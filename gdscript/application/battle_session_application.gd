@@ -3,7 +3,7 @@
 #   フィールド: [
 #     _preparation: 保存個体の戦闘用再構築と行動順計画を行うturn_preparation.gdの準備処理（RefCounted）
 #     _repository: 種族・装備・スキルなどの正規データの取得を委譲するリポジトリ（RefCounted）
-#     _session: 戦闘中のHP・MP・行動予約・基本防御倍率を所有するbattle_session.gdの戦闘状態（RefCounted）
+#     _session: 戦闘中のHP/MP・行動予約・物理防御と専用開始の状態を所有するbattle_session.gd（RefCounted）
 #     _attack: battle_session.gdの戦闘状態へ通常攻撃の結果を反映するnormal_attack_action.gdの行動処理（RefCounted）
 #     _defend: battle_session.gdの戦闘状態へ基本ぼうぎょの倍率を反映するbasic_defend_action.gdの行動処理（RefCounted）
 #     _physical: battle_session.gdの戦闘状態へMP付き単体物理スキルの結果を反映するphysical_skill_action.gdの行動処理（RefCounted）
@@ -11,6 +11,7 @@
 #     _self_magic: 敵への魔法効果と術者のHP代償を反映する、自傷専用設定のmagic_skill_action.gd（RefCounted）
 #     _drain_magic: 敵HP効果・敵MP喪失・術者MP回復を反映する、吸MP専用設定のmagic_skill_action.gd（RefCounted）
 #     _heal: 生存する味方1体のHP回復と術者MP消費を同じSessionへ反映するheal_skill_action.gd（RefCounted）
+#     _cure_heal: 専用開始時だけ構築する、HP回復/MP消費と一件治療の共用行動処理（RefCounted）
 #   ]
 # }
 extends RefCounted
@@ -33,6 +34,7 @@ var _magic: RefCounted
 var _self_magic: RefCounted
 var _drain_magic: RefCounted
 var _heal: RefCounted
+var _cure_heal: RefCounted
 
 
 # {
@@ -62,6 +64,37 @@ func _init(repository: RefCounted) -> void:
 #   戻り値: [result: 成功時は準備結果preparationと戦闘状態session、失敗時は理由reasonを含む結果（Dictionary）]
 # }
 func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Dictionary:
+	return _start(allies, enemies, shuffle_order, null, false)
+
+
+# {
+#   責務: [start_with_statuses: 保存個体の再構築と明示初期状態付きSession/治療付き回復の構築を調停します]
+#   処理: [1: 全参加者の明示初期状態と保存個体・明示順を共用開始調停へ渡します]
+#   引数: [
+#     allies: 味方の保存個体レコード列（Variant）
+#     enemies: 敵の保存個体レコード列（Variant）
+#     shuffle_order: 生存参加者のside/id別明示順（Variant）
+#     initial_statuses: 全参加者について空状態も明示するside/id別状態辞書（Variant）
+#   ]
+#   戻り値: [result: 全成功後の準備/数値Sessionコピー、または未開始を保持した拒否（Dictionary）]
+# }
+func start_with_statuses(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_statuses: Variant) -> Dictionary:
+	return _start(allies, enemies, shuffle_order, initial_statuses, true)
+
+
+# {
+#   責務: [_start: 未公開の候補Sessionと全行動処理を構築し、全成功後だけ使用中の参照を切り替えます]
+#   処理: [1: 再構築・区分別Session開始・各行動設定・初回ラウンドを担当へ委譲してから公開します]
+#   引数: [
+#     allies: 味方保存個体レコード列（Variant）
+#     enemies: 敵個体レコード列（Variant）
+#     shuffle_order: 初回生存者の明示順（Variant）
+#     initial_statuses: 専用開始の明示状態、従来入口ではnull（Variant）
+#     with_statuses: 専用入口でだけtrueに固定する構築区分（bool）
+#   ]
+#   戻り値: [result: 準備と数値Session、または使用中の参照を変更しない拒否（Dictionary）]
+# }
+func _start(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_statuses: Variant, with_statuses: bool) -> Dictionary:
 	# 戦闘呼び出し処理は、既に開始した戦闘を新しい参加者で二重に初期化する要求を拒否します。
 	if _session.snapshot()["phase"] != "not_started":
 		return {"ok": false, "reason": "already_initialized"}
@@ -70,7 +103,11 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 		return prepared
 	# 戦闘呼び出し処理は、準備失敗時に使用中の戦闘資源を部分更新しないため、候補のbattle_session.gdの戦闘状態を別に構築します。
 	var candidate = Session.new()
-	var started: Dictionary = candidate.start(_snapshots(prepared["teams"]["allies"]), _snapshots(prepared["teams"]["enemies"]))
+	var started: Dictionary
+	if with_statuses:
+		started = candidate.start_with_statuses(_snapshots(prepared["teams"]["allies"]), _snapshots(prepared["teams"]["enemies"]), initial_statuses)
+	else:
+		started = candidate.start(_snapshots(prepared["teams"]["allies"]), _snapshots(prepared["teams"]["enemies"]))
 	if not started["ok"]:
 		return started
 	# 戦闘呼び出し処理は、スキル定義の読込をリポジトリへ委譲し、各スキルの対応範囲の検証を行動処理へ任せます。
@@ -110,6 +147,13 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	var healing: Dictionary = heal.start(prepared["teams"], skills["value"])
 	if not healing["ok"]:
 		return healing
+	var cure_heal: RefCounted
+	if with_statuses:
+		# 専用入口だけが治療付き行動を構築します。通常回復の治療拒否は解除しません。
+		cure_heal = Heal.new(candidate, true)
+		var curing: Dictionary = cure_heal.start_cure_heal(prepared["teams"], skills["value"], initial_statuses)
+		if not curing["ok"]:
+			return curing
 	# 戦闘呼び出し処理は、全行動処理の設定と最初のラウンド計画が成功してから、使用する戦闘状態と行動処理を一度に切り替えます。
 	var planned: Dictionary = candidate.begin_round(shuffle_order)
 	if not planned["ok"]:
@@ -122,6 +166,7 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 	_self_magic = self_magic
 	_drain_magic = drain_magic
 	_heal = heal
+	_cure_heal = cure_heal
 	return {"ok": true, "preparation": prepared, "session": snapshot()}
 
 
@@ -228,6 +273,36 @@ func resolve_drain_mp_skill(request: Variant) -> Dictionary:
 func resolve_heal_skill(request: Variant) -> Dictionary:
 	# 呼び出し層では回復対象を自動選択せず、指定対象の検証と回復量を担当行動へ任せます。
 	return {"ok": false, "reason": "not_initialized"} if _heal == null else _heal.resolve(request)
+
+
+# {
+#   責務: [resolve_cure_heal_skill: 明示された同陣営への治療付き回復を、専用区分の共用回復行動へ委譲します]
+#   処理: [1: 専用行動がなければ未初期化を返し、構築済みなら検証/実更新を担当へ渡します]
+#   引数: [request: 現在ticket・同陣営target・治療付きskill_idと任意rollだけの要求（Variant）]
+#   戻り値: [result: 実HP/MP/治療と独立Session/状態コピー、行動取消、または拒否（Dictionary）]
+# }
+func resolve_cure_heal_skill(request: Variant) -> Dictionary:
+	return {"ok": false, "reason": "not_initialized"} if _cure_heal == null else _cure_heal.resolve(request)
+
+
+# {
+#   責務: [statuses: 全参加者の所有状態を数値snapshotとは別の独立コピーで取得します]
+#   処理: [1: Sessionの全状態読取へ委譲します]
+#   引数: []
+#   戻り値: [result: side/id別teamsとbattle_status_only区分、未設定なら空辞書（Dictionary）]
+# }
+func statuses() -> Dictionary:
+	return _session.statuses()
+
+
+# {
+#   責務: [status: 指定参加者の所有状態一覧を独立コピーとしてSessionから取得します]
+#   処理: [1: Sessionへside/idキーを渡し、読取または拒否を返します]
+#   引数: [key: 読み取る参加者のside/id（Variant）]
+#   戻り値: [result: status_effectsのsnapshotまたは未設定/不正参加者の拒否（Dictionary）]
+# }
+func status(key: Variant) -> Dictionary:
+	return _session.status(key)
 
 
 # {

@@ -104,7 +104,7 @@ class MagicActionBenchmark:
 
 
 # {
-#   責務: [main: Godotの実行先とCLI条件を選び、単体魔法行動の計測へ委譲します]
+#   責務: [main: Godot実行先と排他的CLI条件を選び、通常/自傷/吸MP魔法または単体HP回復の計測へ委譲します]
 #   処理: [
 #     1: CLI条件を読み取ります
 #     2: Godotの有無を確認して計測を呼び出します

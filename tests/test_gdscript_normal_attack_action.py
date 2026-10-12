@@ -392,10 +392,10 @@ class GDScriptNormalActionTests(unittest.TestCase):
             rounds = [0]
 
             # {
-            #   責務: [shuffled: gdscript・normal・action・testsのshuffledを求める]
-            #   処理: [1: gdscript・normal・action・testsのshuffledを求める]
-            #   引数: [actors: actors]
-            #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+            #   責務: [shuffled: 比較用候補を固定乱数で並べ替え、Godotへ渡す初回/次ラウンドの明示順を記録します]
+            #   処理: [1: 陣営とIDを取り出し、初回は開始入力、二回目以降はbegin操作へ順序を渡します]
+            #   引数: [actors: 比較用run_roundの生存候補と敵/味方列の組]
+            #   戻り値: [result: なし（None）。比較用の順序入力と操作列を更新します]
             # }
             def shuffled(actors):
                 generator.shuffle(actors)
@@ -408,14 +408,14 @@ class GDScriptNormalActionTests(unittest.TestCase):
                 rounds[0] += 1
 
             # {
-            #   責務: [perform: gdscript・normal・action・testsのperformを求める]
-            #   処理: [1: gdscript・normal・action・testsのperformを求める]
+            #   責務: [perform: Python比較の敵先頭への実通常攻撃を実行し、Godot操作と実HP差分を記録します]
+            #   処理: [1: 反撃なしの実_attackを呼び、指定対象へのnext/攻撃操作と結果を捕捉します]
             #   引数: [
-            #     actor: 行動個体
-            #     foes: foes
-            #     friends: friends
+            #     actor: 比較中の生存行動者
+            #     foes: 攻撃対象を先頭から選ぶ比較用生存敵列
+            #     friends: run_roundコールバック引数互換の同陣営列
             #   ]
-            #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+            #   戻り値: [result: なし（None）。比較個体HPと観測用操作/イベント列を更新します]
             # }
             def perform(actor, foes, friends):
                 side = "allies" if any(entry is actor for entry in engine.allies) else "enemies"

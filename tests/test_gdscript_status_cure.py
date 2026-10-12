@@ -20,13 +20,13 @@ import test_gdscript_roster as godot_fixture
 
 
 # {
-#   責務: [StatusCureBoundaryTests: 治療予測の純粋な依存と、Session/画面への未接続を確認します]
+#   責務: [StatusCureBoundaryTests: 治療予測のI/O/乱数/状態更新からの分離と、画面/純粋HP回復への未依存を確認します]
 #   フィールド: []
 # }
 class StatusCureBoundaryTests(unittest.TestCase):
     # {
     #   責務: [test_prediction_has_no_io_rng_ai_or_state_mutation_dependency: 治療計算へ保存・乱数生成・AI・実資源更新を持ち込まないことを確認します]
-    #   処理: [1: 純粋契約の禁止依存と、application/既存回復APIへの未接続を確認します]
+    #   処理: [1: 純粋治療の禁止依存と、呼出調停/HPだけの数値契約による直接治療計算の未実装を確認します]
     #   引数: [self: 純粋計算の依存境界を確認するテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -37,7 +37,7 @@ class StatusCureBoundaryTests(unittest.TestCase):
                           "battle_session", "randf(", "RandomNumberGenerator", ".pay_mp(", ".heal("):
             self.assertNotIn(forbidden, source)
         for name in ("application/field_application", "application/battle_session_application",
-                     "engine/heal_skill_contract", "engine/heal_skill_action"):
+                     "engine/heal_skill_contract"):
             source = (godot_fixture.ROOT / f"gdscript/{name}.gd").read_text(encoding="utf-8")
             self.assertNotIn("status_cure_contract", source)
 

@@ -42,7 +42,7 @@ def context_case():
 class CureHealContextBoundaryTests(unittest.TestCase):
     # {
     #   責務: [test_preparation_does_not_add_runtime_mutation_or_io: 準備契約に実更新や保存・画面依存を追加しないことを確認します]
-    #   処理: [1: 純粋準備の禁止依存と、既存行動/applicationへの未接続を確認します]
+    #   処理: [1: 純粋準備の禁止依存と、Session/Applicationによる直接計算の未実装・共用行動の専用入口を確認します]
     #   引数: [self: 準備契約の依存を検査するテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -52,8 +52,9 @@ class CureHealContextBoundaryTests(unittest.TestCase):
         for forbidden in ("FileAccess", "DirAccess", "res://application/", "res://data/", "res://ui/",
                           "battle_session", "RandomNumberGenerator", "randf(", ".pay_mp(", ".heal(", ".cure("):
             self.assertNotIn(forbidden, source)
-        for name in ("engine/heal_skill_action", "engine/battle_session", "application/battle_session_application"):
+        for name in ("engine/battle_session", "application/battle_session_application"):
             self.assertNotIn("cure_heal_skill_context", (root / f"{name}.gd").read_text(encoding="utf-8"))
+        self.assertIn("func start_cure_heal(", (root / "engine/heal_skill_action.gd").read_text(encoding="utf-8"))
 
 
 # {

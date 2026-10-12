@@ -10,10 +10,11 @@
 #     _pending: 現在提示中または取得済みの行動予約（Dictionary）
 #     _guards: side+id別の物理防御倍率。資源snapshotとは別に保持する（Dictionary）
 #     _statuses: 専用開始でだけ保持するbattle_status_state。従来開始と未開始ではnullです（RefCounted）
+#     _last_cure_ticket: 同じ取得済み予約での二回治療を防ぐ、直近の成功判定済み行動票（Dictionary）
 #   ]
 # }
 extends RefCounted
-## 数値資源・予約と専用開始時の状態を分離保持します。攻撃計算・実治療・勝敗は担当しません。
+## 数値資源・予約・状態を分離保持し、取得済み予約の一件治療を状態所有者へ委譲します。回復/攻撃計算と勝敗は担当しません。
 
 const State = preload("res://engine/combatant_state.gd")
 const Order = preload("res://engine/turn_order.gd")
@@ -28,6 +29,7 @@ var _order: Array = []
 var _pending: Dictionary = {}
 var _guards: Dictionary = {"allies": {}, "enemies": {}}
 var _statuses: RefCounted
+var _last_cure_ticket: Dictionary = {}
 
 
 # {
@@ -142,6 +144,46 @@ func status(key: Variant) -> Dictionary:
 	if _statuses == null:
 		return _failure("status_not_configured")
 	return _statuses.read(key)
+
+
+# {
+#   責務: [apply_status_cure: 現在取得済み予約の生存する同陣営対象へ、一予約一回だけ状態治療を委譲します]
+#   処理: [
+#     1: 現在行動票・取得段階・状態設定・対象と行動可否を確認します
+#     2: 状態所有者が最新一覧で判定し、成功した呼出しだけを予約単位で使用済みにします
+#   ]
+#   引数: [
+#     ticket: 現在のround/slot/actorに一致する取得済み行動票（Variant）
+#     target: 同陣営の生存対象を指定するside/id（Variant）
+#     request: cure_chanceと任意rollだけを持つ治療条件（Variant）
+#   ]
+#   戻り値: [result: 実治療の独立結果、または状態を変更しない理由付き拒否（Dictionary）]
+# }
+func apply_status_cure(ticket: Variant, target: Variant, request: Variant) -> Dictionary:
+	var checked := _check_ticket(ticket)
+	if not checked["ok"]:
+		return checked
+	if _pending["stage"] != "claimed":
+		return _failure("pending_not_claimed")
+	if _statuses == null:
+		return _failure("status_not_configured")
+	checked = _resolve(target)
+	if not checked["ok"]:
+		return checked
+	if target["side"] != ticket["actor"]["side"]:
+		return _failure("target_not_friend")
+	if not _by_id[target["side"]][target["id"]].alive():
+		return _failure("target_not_alive")
+	# 取得済み票の最新生存を所有者から読み、八体のsnapshot検証/複製を治療時に繰り返しません。
+	if not _by_id[ticket["actor"]["side"]][ticket["actor"]["id"]].alive() or not _both_sides_alive():
+		return _failure("actor_cannot_cure")
+	if ticket == _last_cure_ticket:
+		return _failure("status_cure_already_applied")
+	# 候補なしや確率不成立でも、一予約内の再判定による治療確率の増加を許しません。
+	var applied: Dictionary = _statuses.cure(target, request)
+	if applied["ok"]:
+		_last_cure_ticket = ticket.duplicate(true)
+	return applied
 
 
 # {

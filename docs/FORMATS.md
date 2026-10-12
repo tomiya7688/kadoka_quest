@@ -405,31 +405,37 @@ F6の一覧は全保有個体と先頭4パーティ枠を表示します。個�
 
 ### GDScriptのSession初期状態保持（実行時だけ）
 
-[Session状態保持契約](GDScript戦闘Session状態保持契約.md)のstart_with_statusesは、満数値資源と全参加者に一致する明示initial_statusesを全成功時だけ保持します。statuses()はscope=battle_status_onlyとside/id別teamsの状態配列、status(key)はokとstatus_effectsだけのsnapshotを返す独立読取です。従来Session開始・数値snapshot六キー・保存JSON/schemaは変更しません。状態の更新・Application・AI・画面は未接続です。
+[Session状態保持契約](GDScript戦闘Session状態保持契約.md)のstart_with_statusesは、満数値資源と全参加者に一致する明示initial_statusesを全成功時だけ保持します。statuses()はscope=battle_status_onlyとside/id別teamsの状態配列、status(key)はokとstatus_effectsだけのsnapshotを返す独立読取です。従来Session開始・数値snapshot六キー・保存JSON/schemaは変更しません。Applicationの専用開始からも設定でき、Session.apply_status_cureは現在取得済み票一回の治療だけを公開します。AI・画面・保存は未接続です。
+
+### GDScriptの治療付きHP回復行動（実行時だけ）
+
+[治療付き回復行動契約](GDScript治療付き回復行動契約.md)のApplication.resolve_cure_heal_skillは、現在のticket・同陣営target・治療付きskill_idと任意rollだけを受けます。候補があれば確率0/1でも0以上1未満の有限rollが必要です。専用開始で構築した行動だけが最新資源/状態を確認し、単一claim→MP消費→上限付きHP回復→最新一覧一件治療→finishを実行します。未知キー・定義/装備不正・不足は取得前に拒否し、取消/重複は追加更新しません。
+
+結果scopeはexplicit_cure_heal_skill_onlyで、独立ticket/target・統合予測numbers・実spent_mp/healed・実治療cure・数値sessionと別のstatusesを返します。現在取得済み票による二回治療は不成立/候補なしでも拒否します。従来開始は状態未設定で、通常resolve_heal_skillの治療付き定義拒否は維持します。数値七/六キー・正規data/assets・保存JSON/schemaは変更しません。
 
 ### GDScriptの治療付きHP回復準備（実行時だけ）
 
 [治療付き回復準備契約](GDScript治療付き回復準備契約.md)は既存回復の開始資源/習得/許可装備を共用検証し、initial_statusesのallies/enemies別ID集合を全参加者と一致させます。状態なしも[]で明示し、欠落/余分なID・不正状態を部分成功なしで拒否します。同じIDでも陣営を分離します。成功結果のsnapshots/context/initial_statusesは入力と独立した編集可能な通常データであり、Sessionの状態所有者や不変の内部状態ではありません。
 
-専用selectは準備済みの習得/許可装備/ID索引から一意な治療付き定義を返します。通常HP回復入口の治療拒否は維持し、未知効果や補正はfalse/0/空でも無視しません。準備自体はHP/MP・状態・行動予約を更新せず、数値snapshot六キーと正規data/assets・保存JSON/schemaは変更しません。成功データからのSession保持は上記専用開始へ委譲します。実治療・AI・画面は未接続です。
+専用selectは準備済みの習得/許可装備/ID索引から一意な治療付き定義を返します。通常HP回復入口の治療拒否は維持し、未知効果や補正はfalse/0/空でも無視しません。準備自体はHP/MP・状態・行動予約を更新せず、数値snapshot六キーと正規data/assets・保存JSON/schemaは変更しません。成功データからのSession保持と実治療は上記専用開始/行動へ委譲します。純粋準備自体は更新せず、AI・画面は未接続です。
 
 ### GDScriptの戦闘状態一覧保持・一件治療（実行時だけ）
 
 [戦闘状態一覧契約](GDScript戦闘状態一覧契約.md)のcombatant_status_stateは、明示した順序付き状態配列を一度だけ検証・独立保持します。snapshotはstatus_effectsだけの独立コピー、未開始は空辞書です。既存combatant_state/Sessionの数値snapshot六キーと保存JSON/schemaは変更しません。
 
-状態所有者のquote_cure/cureはcure_chanceと任意rollだけを受け、共用治療契約の確率・候補順序・判定値規則を使います。予測では一覧を変更せず、実治療では最新一覧の最初の候補一件だけを除きます。不成立/拒否は一覧を保持し、外部一覧や古い予測の持ち込みは拒否します。予測scopeはstatus_cure_quote、実治療scopeはcombatant_status_cureで、残存一覧は独立コピーです。Sessionは上記専用開始で保持/読取だけを公開します。行動予約による一回治療制御・HP/MPと治療の統合・状態付与/継続効果・保存・AI・画面は未接続です。
+状態所有者のquote_cure/cureはcure_chanceと任意rollだけを受け、共用治療契約の確率・候補順序・判定値規則を使います。予測では一覧を変更せず、実治療では最新一覧の最初の候補一件だけを除きます。不成立/拒否は一覧を保持し、外部一覧や古い予測の持ち込みは拒否します。予測scopeはstatus_cure_quote、実治療scopeはcombatant_status_cureで、残存一覧は独立コピーです。Sessionは専用開始の保持/読取と現在取得済み票一回の治療を公開し、上記専用行動がHP/MPと治療を統合します。状態付与/継続効果・保存・AI・画面は未接続です。
 
 ### GDScriptの治療付きHP回復予測（実行時だけ）
 
 [治療付き回復予測契約](GDScript治療付き回復予測契約.md)は、kind:healと必須status_cure_chanceのあるspirit_recover/互換MOD定義へ、current_mp・target_hp・target_max_hp・status_effectsと任意rollだけを渡して使います。既存HP回復と一件治療の純粋契約へ委譲し、MP不足は治療一覧/判定値の検証前に拒否します。候補があれば確率0/1でも明示判定値が必要です。満HPでも消費MPと治療を予測し、不正ではHPだけの部分成功を返しません。
 
-成功結果のscopeはcure_heal_skill_quoteで、heal_amount・healed・remaining_hp・mp_cost・remaining_mpと一件治療のcured/cured_name・candidate_index・roll_required・cure_chance・独立したremaining_status_effectsを返します。未知定義/要求はfalse・0・空でも拒否し、原本・保存JSON/schema・Session/snapshotは変更しません。HP0の数値予測は復活許可を意味しません。既存HP回復入口は治療付き定義を拒否したままで、Session実治療・AI・画面は未接続です。
+成功結果のscopeはcure_heal_skill_quoteで、heal_amount・healed・remaining_hp・mp_cost・remaining_mpと一件治療のcured/cured_name・candidate_index・roll_required・cure_chance・独立したremaining_status_effectsを返します。未知定義/要求はfalse・0・空でも拒否し、原本・保存JSON/schema・Session/snapshotは変更しません。HP0の数値予測は復活許可を意味しません。通常HP回復入口は治療付き定義を拒否したままで、純粋統合予測は上記専用行動へ接続しました。AI・画面は未接続です。
 
 ### GDScriptの状態異常一つの治療予測（実行時だけ）
 
 [状態治療予測契約](GDScript状態治療予測契約.md)のquote_cureは、status_effects・cure_chanceと任意のrollだけを受けます。状態一覧は文字列/辞書の順序を保持し、解除不可の辞書を飛ばした最初の候補一件だけを予測で除きます。候補があれば確率0でも判定値が必要で、候補なしは判定不要です。0〜1に制限した確率より判定値が小さい場合だけ成立し、等値は不成立です。
 
-成功結果のscopeはstatus_cure_quoteで、cured・cured_name・candidate_index・roll_required・cure_chanceと独立したremaining_status_effectsを返します。認識する状態キーは文字列id/display_nameとboolのremovableです。未知IDとJSON互換の拡張キーは情報として保持し、継続効果を実装済みとしません。未知要求・不正型・非有限/精度超過・深さ32超過や必要判定値の欠落は拒否します。原本・保存JSON/schema・Session/snapshotは変更せず、既存HP回復APIの治療付き定義拒否も維持します。Session実治療・AI・画面は未接続です。
+成功結果のscopeはstatus_cure_quoteで、cured・cured_name・candidate_index・roll_required・cure_chanceと独立したremaining_status_effectsを返します。認識する状態キーは文字列id/display_nameとboolのremovableです。未知IDとJSON互換の拡張キーは情報として保持し、継続効果を実装済みとしません。未知要求・不正型・非有限/精度超過・深さ32超過や必要判定値の欠落は拒否します。原本・保存JSON/schema・Session/snapshotは変更せず、既存HP回復APIの治療付き定義拒否も維持します。Session実治療は専用行動から状態所有者へ委譲します。AI・画面は未接続です。
 
 ### GDScriptの単体HP回復予測（実行時だけ）
 

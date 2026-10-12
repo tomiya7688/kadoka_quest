@@ -44,27 +44,27 @@ def stats(**changes):
 
 
 # {
-#   責務: [state_case: test・gdscript・戦闘個体の状態・caseを求める]
-#   処理: [1: test・gdscript・戦闘個体の状態・caseを求める]
+#   責務: [state_case: 独立した個体情報/能力値と指定操作を持つ資源所有者ケースを作ります]
+#   処理: [1: 共用identity/statsへ操作列とケース別開始条件を付けます]
 #   引数: [
-#     actions: actions
-#     changes: changes
+#     actions: 順番に適用する専用資源操作列
+#     changes: 個体情報/能力値/開始有無等の上書き条件
 #   ]
-#   戻り値: [result: test・gdscript・戦闘個体の状態・caseを求めるための結果（型注釈なし）]
+#   戻り値: [result: identity/stats/actionsと指定条件の専用要求（dict）]
 # }
 def state_case(actions=(), **changes):
     return {"identity": identity(), "stats": stats(), "actions": list(actions), **changes}
 
 
 # {
-#   責務: [action: test・gdscript・戦闘個体のactionを求める]
-#   処理: [1: test・gdscript・戦闘個体のactionを求める]
+#   責務: [action: 個体資源プローブへ渡す操作名・数値と指定条件を作ります]
+#   処理: [1: kind/valueと不正値/特殊値等の比較条件をまとめます]
 #   引数: [
-#     kind: 種別
-#     value: 値
-#     changes: changes
+#     kind: ダメージ/MP/逃走等のプローブ操作名
+#     value: 指定操作の量。Noneは未指定です
+#     changes: 型/特殊値等の個別観測条件
 #   ]
-#   戻り値: [result: test・gdscript・戦闘個体のactionを求めるための結果（型注釈なし）]
+#   戻り値: [result: kind/valueと比較条件を持つ操作辞書（dict）]
 # }
 def action(kind, value=None, **changes):
     return {"kind": kind, "value": value, **changes}
@@ -141,13 +141,13 @@ class GDScriptCombatantTests(unittest.TestCase):
     saved_files = fixture.GDScriptRosterTests.saved_files
 
     # {
-    #   責務: [invoke: gdscript・戦闘個体・testsのinvokeを求める]
-    #   処理: [1: gdscript・戦闘個体・testsのinvokeを求める]
+    #   責務: [invoke: 専用内容/保存先で実Godotの資源プローブを起動し、診断と結果を確認します]
+    #   処理: [1: 専用JSONで60秒制限の起動を行い、正常終了とBase64結果を照合します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     request: 要求
+    #     self: 専用コンテンツと保存先の所有者
+    #     request: 個体資源または再構築ケースの専用要求条件
     #   ]
-    #   戻り値: [result: gdscript・戦闘個体・testsのinvokeを求めるための結果（型注釈なし）]
+    #   戻り値: [result: 診断なしで復号した実Godot観測（dict）]
     # }
     def invoke(self, **request):
         path = self.content / "combatant-probe.json"
@@ -169,10 +169,10 @@ class GDScriptCombatantTests(unittest.TestCase):
         self.fail(process.stderr + process.stdout[-1600:])
 
     # {
-    #   責務: [byte_snapshot: gdscript・戦闘個体・testsのbyte・独立した状態の写しを求める]
-    #   処理: [1: gdscript・戦闘個体・testsのbyte・独立した状態の写しを求める]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: gdscript・戦闘個体・testsのbyte・独立した状態の写しを求めるための結果（型注釈なし）]
+    #   責務: [byte_snapshot: 専用data/assets/Python保存/Godot保存ファイルのbyte比較用ハッシュを取得します]
+    #   処理: [1: 相対パスごとに現在ファイルのSHA-256を計算します]
+    #   引数: [self: 専用内容/保存ダミーの所有者]
+    #   戻り値: [result: 相対パスとSHA-256の辞書（dict）]
     # }
     def byte_snapshot(self):
         return {str(path.relative_to(self.content)): hashlib.sha256(path.read_bytes()).hexdigest()
