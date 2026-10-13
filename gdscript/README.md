@@ -244,3 +244,10 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_owned_status_application.py tests/test_gdscript_combatant_status.py tests/test_gdscript_status_apply.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --status-apply-state
 ```
+
+[参加者状態集合の一件付与](../docs/GDScript参加者状態付与契約.md)は、陣営sideと個体idで指定した一体へ付与を委譲します。例えば味方と敵のIDが両方sameでも、enemies/sameへの付与は味方sameを変更しません。準備/予測は非破壊で、実付与は最新一覧で重複を防ぎます。付与のSession予約/行動・AI・画面は未接続です。開発者はリポジトリルートで上記Python/Godotを指定し、次を実行してください。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_roster_status_application.py tests/test_gdscript_owned_status_application.py tests/test_gdscript_session_status.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --roster-status-apply
+```

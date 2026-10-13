@@ -483,3 +483,9 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 個体状態所有者の付与は数値snapshot六キーと保存JSON/schemaを変更しません。個体状態所有者はHP/MP・生死・逃走・行動予約・スキル条件・耐性再構築を持たず、付与のSession/行動接続・継続効果・保存・AI・画面は未接続です。
 
+### GDScriptの参加者状態集合への一件付与（保存形式変更なし）
+
+[参加者状態付与契約](GDScript参加者状態付与契約.md)のbattle_status_stateはprepare_application/quote_application/applyへkeyとrequestを受けます。keyはallies/enemiesのsideと個体idだけで、同IDも陣営別に索引で対象を選びます。初期化・形式・存在を確認した後、状態集合は個体の最新一覧による準備/予測/一件追加へ委譲し、他の参加者を変更しません。外部一覧/古い予測は拒否し、返却値は所有状態と独立です。
+
+状態集合の付与結果は個体のstatus_apply_quoteまたはcombatant_status_applyを維持し、全体snapshotはteamsとscope:battle_status_only、個別readはokとstatus_effects一キーのsnapshotです。数値Session七キー/個体六キーと保存JSON/schemaは変更しません。付与のSession予約/攻撃行動・HPMP・生死/逃走条件・耐性再構築・継続効果・保存・AI・画面は本集合の責務外です。
+
