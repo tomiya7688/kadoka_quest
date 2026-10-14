@@ -1,5 +1,5 @@
 # {
-#   責務: [check_project_rules: check・project・rulesの公開機能・宣言を定義する]
+#   責務: [check_project_rules: 必須ファイルの存在と、coreが画面/ファイルI/Oへ依存していないことを静的検査します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -42,27 +42,29 @@ REQUIRED_PATHS = (
 
 
 # {
-#   責務: [imported_root: check・project・rulesのimported・基準ディレクトリを求める]
-#   処理: [1: check・project・rulesのimported・基準ディレクトリを求める]
-#   引数: [node: node（ast.Import | ast.ImportFrom）]
-#   戻り値: [result: check・project・rulesのimported・基準ディレクトリを求めるための結果（str）]
+#   責務: [imported_root: ASTのimport文から禁止依存との照合に使う先頭モジュール名を取り出します]
+#   処理: [1: ASTのimport文から禁止依存との照合に使う先頭モジュール名を取り出します]
+#   引数: [node: 構文解析済みのimport/from文（ast.Import | ast.ImportFrom）]
+#   戻り値: [result: pygame/osなどの先頭モジュール名。from文の指定がなければ空文字（str）]
 # }
 def imported_root(node: ast.Import | ast.ImportFrom) -> str:
+    # 検査対象の依存をimportせず、文の種類に応じてモジュール名だけを読みます。
     if isinstance(node, ast.Import):
         return node.names[0].name.split(".", 1)[0]
     return str(node.module or "").split(".", 1)[0]
 
 
 # {
-#   責務: [display_path: check・project・rulesのdisplay・パスを求める]
-#   処理: [1: check・project・rulesのdisplay・パスを求める]
+#   責務: [display_path: 診断対象のパスをリポジトリ相対、指定基準相対、絶対パスの順に表示形式へ変換します]
+#   処理: [1: 診断対象のパスをリポジトリ相対、指定基準相対、絶対パスの順に表示形式へ変換します]
 #   引数: [
-#     path: パス（Path）
-#     root: 基準ディレクトリ（Path | None）
+#     path: 診断に表示するファイルのパス（Path）
+#     root: リポジトリ外の対象へ使う任意の相対表示基準（Path | None）
 #   ]
-#   戻り値: [result: check・project・rulesのdisplay・パスを求めるための結果（str）]
+#   戻り値: [result: 基準内なら相対パス、どちらの基準外でも対象を示すパス文字列（str）]
 # }
 def display_path(path: Path, root: Path | None = None) -> str:
+    # 基準外でも例外にせず、利用者が診断対象を特定できる表示へ戻します。
     for base in (REPO_ROOT, root):
         if base is None:
             continue

@@ -4,6 +4,7 @@
 # }
 extends SceneTree
 
+const StatusPhysicalProbe = preload("res://tests/status_physical_probe.gd")
 const RosterApplyProbe = preload("res://tests/battle_status_apply_probe.gd")
 const ApplyProbe = preload("res://tests/status_apply_probe.gd")
 const Contract = preload("res://engine/status_cure_contract.gd")
@@ -31,7 +32,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("session_status_apply", false):
+	if payload.get("status_physical", false):
+		result = StatusPhysicalProbe.run(payload)
+	elif payload.get("session_status_apply", false):
 		result = SessionStatusProbe.run(payload)
 	elif payload.get("roster_status_apply", false):
 		result = RosterApplyProbe.run(payload)

@@ -495,3 +495,9 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 内部claimed_status_updatesは正常な付与判定を一予約一回に制限します。IDなし/重複/確率0/無効/不成立も使用済みとなり、二回目はstatus_application_already_appliedです。不正要求は使用済みにせず、入力を修正して再試行できます。既存治療と付与は各一回の独立制限です。実結果はcombatant_status_apply、数値Session七キー/個体六キー、保存JSON/schemaを維持します。付与付き攻撃行動・耐性再構築・継続効果・保存・AI・画面は未接続です。
 
+### GDScriptの付与付き単体物理予測（保存形式変更なし）
+
+[付与付き物理予測](GDScript状態付与付き物理予測契約.md)のprepareは対応physical定義のstatus_effect辞書を必須にし、従来物理と付与の検証を共用します。prepare_quote/quote_damageは既存物理の数値へstatus_effectsと任意status_resistance_level、結果予測だけの任意status_rollを追加します。defenseは現在状態の補正済み値で、契約は状態から能力を再構築しません。
+
+結果はscope:status_physical_skill_preparationまたはstatus_physical_skill_quoteとphysical/status/status_eligibleです。実dealtが正で残HPも正のときだけ付与を予測し、致死/ダメージなしは確率0・roll不要で一覧を保持します。指定済み不正rollと不正/未知条件は部分成功なしで拒否します。正規スキルの付与定義はなく、独立MOD形式で検証します。従来入口の拒否、数値/保存JSON/schemaを維持し、実行/予約・能力/耐性再構築・魔法/全体・AI・画面は未接続です。
+

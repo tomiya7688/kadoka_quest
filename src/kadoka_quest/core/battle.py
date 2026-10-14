@@ -1,5 +1,5 @@
 # {
-#   責務: [battle: 戦闘の公開機能・宣言を定義する]
+#   責務: [battle: 個体AI行動・資源/状態変化・戦闘終了とログを扱うBattleEngineを定義します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -46,30 +46,30 @@ MULTI_TARGET_MARKERS = {"all", "all_enemies", "all_foes", "enemies", "foes"}
 #     equipment_catalog: 共有装備定義
 #     inference: AIのスキル選択依存
 #     learning: 行動結果を学習へ反映する依存
-#     allies: 味方
-#     enemies: 敵
-#     log: ログ（list[str]）
+#     allies: 戦闘用に再構築した味方四体までのCombatant列
+#     enemies: 戦闘用に再構築した敵四体までのCombatant列
+#     log: 行動/資源変化/戦闘終了の表示用メッセージ列（list[str]）
 #     round_number: 実行済みラウンド数
 #     outcome: 勝敗/逃走/スカウト等の終了状態
 #   ]
 # }
 class BattleEngine:
     # {
-    #   責務: [__init__: 戦闘・ルール処理が利用する初期状態と依存を設定する]
-    #   処理: [1: 戦闘・ルール処理が利用する初期状態と依存を設定する]
+    #   責務: [__init__: 指定レコードから両陣営の戦闘用個体を再構築し、AI/読込/乱数の依存と初期ログを設定します]
+    #   処理: [1: 読込/AI/乱数を保持し、各陣営四体までを再構築して初期ログ/ラウンド/終了状態を設定します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     repository: データ取得先（GameRepository）
-    #     allies: 味方（list[MonsterRecord]）
-    #     enemies: 敵（list[MonsterRecord]）
-    #     rng: 乱数供給元（random.Random | None）
-    #     learning_enabled: 学習・enabled（bool）
-    #     data_loader: データ・loader（BattleDataLoader | None）
-    #     inference: inference（BattleInference | None）
-    #     learning: 学習（BattleLearning | None）
-    #     encounter_context: encounter・判断用コンテキスト（str | None）
+    #     self: 両陣営の戦闘個体とAI/乱数/ログを保持するBattleEngine
+    #     repository: 戦闘個体・種族/スキル/装備の読込へ渡すデータアクセス依存（GameRepository）
+    #     allies: 戦闘用へ再構築する味方保存レコード。先頭四体までを使用します（list[MonsterRecord]）
+    #     enemies: 戦闘用へ再構築する敵保存レコード。先頭四体までを使用します（list[MonsterRecord]）
+    #     rng: 明示乱数供給元。省略時は独立したrandom.Randomを構築します（random.Random | None）
+    #     learning_enabled: 戦闘中の個体AI学習と対応する野生行動を有効にする設定（bool）
+    #     data_loader: 戦闘用個体/種族定義の読込依存。省略時はrepositoryから構築します（BattleDataLoader | None）
+    #     inference: 個体AIの行動選択依存。省略時はBattleInferenceを構築します（BattleInference | None）
+    #     learning: 行動結果を個体AI学習へ反映する依存。省略時はBattleLearningを構築します（BattleLearning | None）
+    #     encounter_context: 野生遭遇などの行動状況として保持する文脈名。模擬戦ではNoneです（str | None）
     #   ]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   戻り値: [result: なし（None）。構築した戦闘個体と依存をselfへ保持します]
     # }
     def __init__(
         self,

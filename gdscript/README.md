@@ -258,3 +258,10 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_session_status_application.py tests/test_gdscript_cure_heal_action.py tests/test_gdscript_session_status.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --session-status-apply
 ```
+
+[付与付き単体物理予測](../docs/GDScript状態付与付き物理予測契約.md)は、物理ダメージ/MPと付与準備/予測を共用し、正の実ダメージ後も対象が生存する場合だけ一件付与を予測します。例えば79ダメージ後HP921なら出血を判定でき、対象HP0なら付与しません。defenseは補正済み値を渡してください。正規定義に付与はまだなく、独立MOD形式で検証します。実行/予約・AI・画面は未接続です。開発者はリポジトリルートで使えるPython/Godotを指定して次を実行してください。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_physical.py tests/test_gdscript_physical_skill.py tests/test_gdscript_status_apply.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_physical.py
+```
