@@ -238,16 +238,23 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --status-apply
 ```
 
-[個体状態所有者の一件付与](../docs/GDScript戦闘状態一覧契約.md#最新一覧への一件付与)は、最新一覧で付与を再判定し、成功した候補一件だけを独立保持します。例えば出血付与後の再付与は重ならず、治療で除いた後は再付与できます。準備/予測は状態を変えず、古い一覧/予測の上書きを拒否します。付与のSession/行動・継続効果・AI・画面は未接続です。開発者はリポジトリルートで使えるPython/Godotを指定し、次を実行してください。
+[個体状態所有者の一件付与](../docs/GDScript戦闘状態一覧契約.md#最新一覧への一件付与)は、最新一覧で付与を再判定し、成功した候補一件だけを独立保持します。例えば出血付与後の再付与は重ならず、治療で除いた後は再付与できます。準備/予測は状態を変えず、古い一覧/予測の上書きを拒否します。付与のSession予約は専用入口へ接続しました。付与付き攻撃行動・継続効果・AI・画面は未接続です。開発者はリポジトリルートで使えるPython/Godotを指定し、次を実行してください。
 
 ```powershell
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_owned_status_application.py tests/test_gdscript_combatant_status.py tests/test_gdscript_status_apply.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --status-apply-state
 ```
 
-[参加者状態集合の一件付与](../docs/GDScript参加者状態付与契約.md)は、陣営sideと個体idで指定した一体へ付与を委譲します。例えば味方と敵のIDが両方sameでも、enemies/sameへの付与は味方sameを変更しません。準備/予測は非破壊で、実付与は最新一覧で重複を防ぎます。付与のSession予約/行動・AI・画面は未接続です。開発者はリポジトリルートで上記Python/Godotを指定し、次を実行してください。
+[参加者状態集合の一件付与](../docs/GDScript参加者状態付与契約.md)は、陣営sideと個体idで指定した一体へ付与を委譲します。例えば味方と敵のIDが両方sameでも、enemies/sameへの付与は味方sameを変更しません。準備/予測は非破壊で、実付与は最新一覧で重複を防ぎます。付与のSession予約は専用入口へ接続しました。付与付き攻撃行動・AI・画面は未接続です。開発者はリポジトリルートで上記Python/Godotを指定し、次を実行してください。
 
 ```powershell
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_roster_status_application.py tests/test_gdscript_owned_status_application.py tests/test_gdscript_session_status.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --roster-status-apply
+```
+
+[予約付き一回付与](../docs/GDScript予約付き状態付与契約.md)はSession.apply_status_applicationから現在取得済み票と最新生存を確認し、指定一体の所有状態へ更新を委譲します。同じ票の二回目は対象/状態IDを変えても拒否し、不正条件は修正して再試行できます。治療と付与は各一回の独立制限です。付与付き攻撃行動・AI・画面は未接続です。開発者はリポジトリルートで使えるPython/Godotを指定し、次を実行してください。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_session_status_application.py tests/test_gdscript_cure_heal_action.py tests/test_gdscript_session_status.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --session-status-apply
 ```

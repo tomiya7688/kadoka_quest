@@ -10,16 +10,17 @@
 #     _pending: 現在提示中または取得済みの行動予約（Dictionary）
 #     _guards: side+id別の物理防御倍率。資源snapshotとは別に保持する（Dictionary）
 #     _statuses: 専用開始でだけ保持するbattle_status_state。従来開始と未開始ではnullです（RefCounted）
-#     _last_cure_ticket: 同じ取得済み予約での二回治療を防ぐ、直近の成功判定済み行動票（Dictionary）
+#     _status_updates: 取得済み予約の治療/付与を種類別一回に制限する内部所有者（RefCounted）
 #   ]
 # }
 extends RefCounted
-## 数値資源・予約・状態を分離保持し、取得済み予約の一件治療を状態所有者へ委譲します。回復/攻撃計算と勝敗は担当しません。
+## 数値資源・予約・状態を分離保持し、取得済み予約の一件治療/付与を状態所有者へ委譲します。回復/攻撃計算と勝敗は担当しません。
 
 const State = preload("res://engine/combatant_state.gd")
 const Order = preload("res://engine/turn_order.gd")
 const StatNumbers = preload("res://engine/stat_numbers.gd")
 const Statuses = preload("res://engine/battle_status_state.gd")
+const StatusUpdates = preload("res://engine/claimed_status_updates.gd")
 var _teams: Dictionary = {"allies": [], "enemies": []}
 var _by_id: Dictionary = {"allies": {}, "enemies": {}}
 var _phase := "not_started"
@@ -29,7 +30,7 @@ var _order: Array = []
 var _pending: Dictionary = {}
 var _guards: Dictionary = {"allies": {}, "enemies": {}}
 var _statuses: RefCounted
-var _last_cure_ticket: Dictionary = {}
+var _status_updates: RefCounted
 
 
 # {
@@ -115,6 +116,8 @@ func _commit_start(prepared: Dictionary, statuses: RefCounted) -> Dictionary:
 	_teams = prepared["teams"]
 	_by_id = prepared["by_id"]
 	_statuses = statuses
+	# 全成功した開始候補にだけ、独立した種類別の一回判定記録を構築します。
+	_status_updates = StatusUpdates.new(_by_id, statuses)
 	for side in Order.SIDES:
 		for id: String in _by_id[side]:
 			_guards[side][id] = 1.0
@@ -160,30 +163,46 @@ func status(key: Variant) -> Dictionary:
 #   戻り値: [result: 実治療の独立結果、または状態を変更しない理由付き拒否（Dictionary）]
 # }
 func apply_status_cure(ticket: Variant, target: Variant, request: Variant) -> Dictionary:
+	# Sessionだけが現在の予約を照合し、対象/一覧更新と再判定防止は専用所有者へ委譲します。
+	var checked := _check_claimed_status_ticket(ticket)
+	if not checked["ok"]:
+		return checked
+	return _status_updates.cure(ticket, target, request,
+		_by_id[ticket["actor"]["side"]][ticket["actor"]["id"]].alive() and _both_sides_alive())
+
+
+# {
+#   責務: [apply_status_application: 現在取得済み予約で、生存対象への状態一件付与を一回だけ判定します]
+#   処理: [1: 現在の取得済み予約と最新行動可否を確認し、対象/実付与/種類別再判定防止を専用所有者へ委譲します]
+#   引数: [
+#     ticket: 現在のround/slot/actorに一致する取得済み行動票（Variant）
+#     target: 味方/敵/本人を含む生存対象のside/id。スキル対象制限は上位行動で確認してください（Variant）
+#     request: effectと任意resistance_level/rollだけの付与条件。外部一覧/予測は拒否します（Variant）
+#   ]
+#   戻り値: [result: combatant_status_applyの独立結果、または資源/状態/予約を保持した拒否（Dictionary）]
+# }
+func apply_status_application(ticket: Variant, target: Variant, request: Variant) -> Dictionary:
+	# HPMP・防御倍率・予約段階を変更せず、付与の一回判定だけを最新所有一覧へ接続します。
+	var checked := _check_claimed_status_ticket(ticket)
+	if not checked["ok"]:
+		return checked
+	return _status_updates.apply(ticket, target, request,
+		_by_id[ticket["actor"]["side"]][ticket["actor"]["id"]].alive() and _both_sides_alive())
+
+
+# {
+#   責務: [_check_claimed_status_ticket: 治療/付与に共通の現在予約との厳密一致と取得済み段階を確認します]
+#   処理: [1: 既存の行動票検査が成功した後だけ、claimed段階を要求します]
+#   引数: [ticket: 状態更新を要求する現在の行動予約識別子（Variant）]
+#   戻り値: [result: ok=true、または未開始/不正/古い/未取得の予約を示す非破壊的拒否（Dictionary）]
+# }
+func _check_claimed_status_ticket(ticket: Variant) -> Dictionary:
+	# 提示中の行動票を状態更新権として扱わず、取得/完了自体は既存APIへ任せます。
 	var checked := _check_ticket(ticket)
 	if not checked["ok"]:
 		return checked
-	if _pending["stage"] != "claimed":
-		return _failure("pending_not_claimed")
-	if _statuses == null:
-		return _failure("status_not_configured")
-	checked = _resolve(target)
-	if not checked["ok"]:
-		return checked
-	if target["side"] != ticket["actor"]["side"]:
-		return _failure("target_not_friend")
-	if not _by_id[target["side"]][target["id"]].alive():
-		return _failure("target_not_alive")
-	# 取得済み票の最新生存を所有者から読み、八体のsnapshot検証/複製を治療時に繰り返しません。
-	if not _by_id[ticket["actor"]["side"]][ticket["actor"]["id"]].alive() or not _both_sides_alive():
-		return _failure("actor_cannot_cure")
-	if ticket == _last_cure_ticket:
-		return _failure("status_cure_already_applied")
-	# 候補なしや確率不成立でも、一予約内の再判定による治療確率の増加を許しません。
-	var applied: Dictionary = _statuses.cure(target, request)
-	if applied["ok"]:
-		_last_cure_ticket = ticket.duplicate(true)
-	return applied
+	return {"ok": true} if _pending["stage"] == "claimed" else _failure("pending_not_claimed")
+
 
 
 # {

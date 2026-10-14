@@ -475,17 +475,23 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 [状態付与予測契約](GDScript状態付与予測契約.md)のquote_applicationはeffect/status_effectsと任意resistance_level/rollを受け、重複防止・状態耐性倍率・明示判定から一件付与後の独立resulting_status_effectsを返します。prepare_applicationはrollを受けず、成功率と判定要否を返します。新規IDの前後空白だけを正規化し、成立時の候補からchanceを除き、display_name/removableの省略値を補います。付与予測は未知MOD IDとJSON互換拡張情報を保持しますが、拡張効果を実行しません。
 
-付与予測のscopeはstatus_apply_quoteです。IDなし・重複・確率0以下・無効耐性ではroll不要、正の確率では1でもroll必須です。付与予測は指定済み不正roll・未知要求を拒否します。現在一覧の形式検査は治療と共用し、原本・実状態・数値snapshot・保存JSON/schemaは変更しません。状態所有者/Sessionの付与更新・継続効果・AI・画面は未接続です。
+付与予測のscopeはstatus_apply_quoteです。IDなし・重複・確率0以下・無効耐性ではroll不要、正の確率では1でもroll必須です。付与予測は指定済み不正roll・未知要求を拒否します。現在一覧の形式検査は治療と共用し、原本・実状態・数値snapshot・保存JSON/schemaは変更しません。状態所有者/参加者集合/取得済みSession予約への実更新は専用入口へ接続しました。付与付き攻撃行動・継続効果・AI・画面は未接続です。
 
 ### GDScriptの個体状態所有者による一件付与（保存形式変更なし）
 
 [戦闘状態一覧契約](GDScript戦闘状態一覧契約.md#最新一覧への一件付与)のprepare_applicationはeffectと任意resistance_levelだけを受け、最新一覧で判定値の要否を返します。quote_application/applyは任意rollも受け、外部一覧/古い予測の持ち込みを拒否します。実付与applyはscope:combatant_status_applyで一件追加後の独立resulting_status_effectsを返し、成立した新規候補だけを別コピーして所有一覧へ追加します。同IDは重ねず、予測/不成立/拒否で状態を変更しません。治療後は同IDを再付与できます。
 
-個体状態所有者の付与は数値snapshot六キーと保存JSON/schemaを変更しません。個体状態所有者はHP/MP・生死・逃走・行動予約・スキル条件・耐性再構築を持たず、付与のSession/行動接続・継続効果・保存・AI・画面は未接続です。
+個体状態所有者の付与は数値snapshot六キーと保存JSON/schemaを変更しません。個体状態所有者はHP/MP・生死・逃走・行動予約・スキル条件・耐性再構築を持たず、Session予約の付与接続は専用入口で扱います。付与付き行動・継続効果・保存・AI・画面は未接続です。
 
 ### GDScriptの参加者状態集合への一件付与（保存形式変更なし）
 
 [参加者状態付与契約](GDScript参加者状態付与契約.md)のbattle_status_stateはprepare_application/quote_application/applyへkeyとrequestを受けます。keyはallies/enemiesのsideと個体idだけで、同IDも陣営別に索引で対象を選びます。初期化・形式・存在を確認した後、状態集合は個体の最新一覧による準備/予測/一件追加へ委譲し、他の参加者を変更しません。外部一覧/古い予測は拒否し、返却値は所有状態と独立です。
 
 状態集合の付与結果は個体のstatus_apply_quoteまたはcombatant_status_applyを維持し、全体snapshotはteamsとscope:battle_status_only、個別readはokとstatus_effects一キーのsnapshotです。数値Session七キー/個体六キーと保存JSON/schemaは変更しません。付与のSession予約/攻撃行動・HPMP・生死/逃走条件・耐性再構築・継続効果・保存・AI・画面は本集合の責務外です。
+
+### GDScriptの取得済み予約による一回付与（保存形式変更なし）
+
+[予約付き状態付与契約](GDScript予約付き状態付与契約.md)のSession.apply_status_application(ticket, target, request)は、現在取得済みの厳密round/slot/actorと最新生存を確認し、effectと任意resistance_level/rollだけを所有状態へ渡します。対象は生存する味方/敵/本人で、スキルの対象制限や消費MPを代用しません。外部一覧/古い予測/未知要求は拒否し、数値資源・防御倍率・予約段階を変更しません。
+
+内部claimed_status_updatesは正常な付与判定を一予約一回に制限します。IDなし/重複/確率0/無効/不成立も使用済みとなり、二回目はstatus_application_already_appliedです。不正要求は使用済みにせず、入力を修正して再試行できます。既存治療と付与は各一回の独立制限です。実結果はcombatant_status_apply、数値Session七キー/個体六キー、保存JSON/schemaを維持します。付与付き攻撃行動・耐性再構築・継続効果・保存・AI・画面は未接続です。
 

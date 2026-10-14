@@ -41,7 +41,7 @@ def roster_case(effects=None, count=1, **changes):
 class RosterStatusApplicationBoundaryTests(unittest.TestCase):
     # {
     #   責務: [test_roster_delegates_to_owner_without_gameplay_or_io_duplication: 状態集合は対象検査と個体所有者への呼び出しだけを担当するか静的確認します]
-    #   処理: [1: 集合の禁止依存/付与計算の未実装と、Sessionへの付与入口を未追加であることを確認します]
+    #   処理: [1: 集合の禁止依存/付与計算の未実装と、Applicationへの付与行動入口を未追加であることを確認します]
     #   引数: [self: 状態集合の責務境界を検査するテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -52,7 +52,7 @@ class RosterStatusApplicationBoundaryTests(unittest.TestCase):
                           "res://application/", "res://data/", "res://ui/", ".pay_mp(", ".heal("):
             self.assertNotIn(forbidden, source)
         self.assertIn('.apply(request)', source)
-        self.assertNotIn("func apply_status_application(", (root / "engine/battle_session.gd").read_text(encoding="utf-8"))
+        self.assertNotIn("func resolve_status_application(", (root / "application/battle_session_application.gd").read_text(encoding="utf-8"))
 
 
 # {

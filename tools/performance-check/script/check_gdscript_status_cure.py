@@ -1,4 +1,4 @@
-"""治療予測/保持と実行を測ります。--cure-healは統合予測、--status-stateは個体状態更新、--cure-contextは定義選択、--session-statusは開始/読取、--cure-actionは八体の実回復/MP消費/毒解除です。--status-applyは非破壊付与予測、--status-apply-stateは準備/予測/一件実付与/重複検査です。--roster-status-applyは八体保持から対象一体の付与/重複/読取を測ります。実セーブは使いません。"""
+"""治療予測/保持と実行を測ります。--cure-healは統合予測、--status-stateは個体状態更新、--cure-contextは定義選択、--session-statusは開始/読取、--cure-actionは八体の実回復/MP消費/毒解除です。--status-applyは非破壊付与予測、--status-apply-stateは準備/予測/一件実付与/重複検査です。--roster-status-applyは八体保持から対象一体の付与/重複/読取を測ります。--session-status-applyは八体の新規構築込み予約取得/実付与/再判定拒否/完了です。実セーブは使いません。"""
 # {
 #   責務: [check_gdscript_status_cure: 治療/付与予測・状態保持/更新・定義選択・実治療の時間と実結果を検査する開発専用CLIです]
 #   フィールド: []
@@ -31,7 +31,7 @@ class StatusCureBenchmark:
     #   引数: [
     #     self: 治療予測・状態更新・定義選択の計測条件を持つ所有者
     #     godot: 実Godotのパス（str）
-    #     arguments: iterations/samples/warmupと排他的cure_heal/status_state/cure_context/session_status/cure_action/status_apply/status_apply_state/roster_status_applyのCLI条件（argparse.Namespace）
+    #     arguments: iterations/samples/warmupと排他的cure_heal/status_state/cure_context/session_status/cure_action/status_apply/status_apply_state/roster_status_apply/session_status_applyのCLI条件（argparse.Namespace）
     #   ]
     #   戻り値: [result: なし（None）]
     # }
@@ -43,6 +43,7 @@ class StatusCureBenchmark:
                               "status_state": getattr(arguments, "status_state", False) or getattr(arguments, "status_apply_state", False),
                               "status_apply_state": getattr(arguments, "status_apply_state", False),
                               "roster_status_apply": getattr(arguments, "roster_status_apply", False),
+                              "session_status_apply": getattr(arguments, "session_status_apply", False),
                               "cure_context": getattr(arguments, "cure_context", False),
                               "session_status": getattr(arguments, "session_status", False),
                               "cure_action": getattr(arguments, "cure_action", False),
@@ -84,6 +85,12 @@ class StatusCureBenchmark:
             if not line.startswith("KADOKA_STATUS_CURE_RESULT="):
                 continue
             result = json.loads(base64.b64decode(line.split("=", 1)[1]))
+            if self.configuration["session_status_apply"]:
+                passed = self._valid_session_apply_result(result)
+                print(f"{'OK' if passed else 'FAIL'} Godot claimed-status application {result.get('microseconds', -1):.2f}us <= 3000us "
+                      f"[{self.configuration['iterations']} iterations, {self.configuration['samples']} samples, "
+                      f"{self.configuration['warmup']} warmup; 8 actors; new setup each 8 updates]")
+                return 0 if passed else 1
             if self.configuration["roster_status_apply"]:
                 passed = self._valid_roster_apply_result(result)
                 print(f"{'OK' if passed else 'FAIL'} Godot roster-status application {result.get('microseconds', -1):.2f}us <= 3000us "
@@ -367,6 +374,50 @@ class StatusCureBenchmark:
                 and result.get("statuses") == {"teams": after, "scope": "battle_status_only"})
 
 
+
+    # {
+    #   責務: [_valid_session_apply_result: 全反復の実付与/再判定拒否と固定八体の最終状態・原本・時間を照合します]
+    #   処理: [1: 全対象四状態/数値不変/最後の完了と、各測定区分が完全な八行動バッチであるかを確認します]
+    #   引数: [
+    #     self: 予約付き付与の測定条件を持つ所有者
+    #     result: 実Godotの反復観測結果（dict）
+    #   ]
+    #   戻り値: [passed: 固定原本/全実結果/確認数/一判定3000us以内が一致すればTrue（bool）]
+    # }
+    def _valid_session_apply_result(self, result: dict) -> bool:
+        # 実観測と別の固定原本を用意し、原本と結果が一緒に壊れた自己一致を排除します。
+        effects = [{"id": "lock", "removable": False}, "poison", {"id": "mod", "metadata": {"deck": [1, {"kept": True}]}}]
+        effect = {"id": "bleeding", "display_name": "出血", "chance": 0.4, "metadata": {"deck": ["a", {"kept": True}]}}
+        candidate = {key: value for key, value in effect.items() if key != "chance"}
+        candidate["removable"] = True
+        order = [{"side": side, "id": f"member_{index}"} for side in ("allies", "enemies") for index in range(4)]
+        snapshots = {side: [{"identity": {"id": key["id"], "species_id": "slime", "name": key["id"]},
+                            "stats": {"hp": 100, "mp": 100, "attack": 10, "defense": 10, "magic": 10, "speed": 10},
+                            "hp": 100, "mp": 100, "alive": True, "fled": False}
+                           for key in order if key["side"] == side] for side in ("allies", "enemies")}
+        source = {"snapshots": snapshots, "statuses": {side: {key["id"]: effects for key in order if key["side"] == side}
+                                                       for side in ("allies", "enemies")},
+                  "request": {"effect": effect, "resistance_level": "weak", "roll": 0.49}}
+        # 完全な八行動の後だけ全員が四状態となり、数値は満資源のままであることを期待します。
+        statuses = {"teams": {side: {key["id"]: [*effects, candidate] for key in order if key["side"] == side}
+                             for side in ("allies", "enemies")}, "scope": "battle_status_only"}
+        numeric = {"phase": "round_finished", "round": 1, "cursor": 8, "order": order, "pending": None,
+                   "teams": snapshots, "scope": "base_battle_cursor"}
+        applied = {"ok": True, "scope": "combatant_status_apply", "status_id": "bleeding", "apply_chance": 0.5,
+                   "roll_required": True, "applied": True, "applied_name": "出血", "outcome": "applied",
+                   "resulting_status_effects": [*effects, candidate]}
+        # 原本と実結果を固定値へ別々に照合し、拒否/欠落/高速重複だけでの通過を防ぎます。
+        return (result.get("actors") == 8 and result.get("original_source") == source and result.get("original_order") == order
+                and result.get("input_preserved") is True and 0 <= result.get("microseconds", -1) <= 3000
+                and all(result.get(field) == self.configuration[field] for field in ("iterations", "samples", "warmup"))
+                and self.configuration["iterations"] % 8 == 0 and self.configuration["warmup"] % 8 == 0
+                and result.get("completed") == self.configuration["iterations"] * self.configuration["samples"] + self.configuration["warmup"]
+                and result.get("numeric") == numeric and result.get("statuses") == statuses
+                and result.get("last") == {"applied": applied, "repeated": {"ok": False, "reason": "status_application_already_applied"},
+                                          "single": {"ok": True, "snapshot": {"status_effects": [*effects, candidate]}},
+                                          "finished": {"ok": True, "session": numeric}})
+
+
 # {
 #   責務: [main: CLI条件とGodot実行先を確認し、治療/付与予測・状態保持・定義選択・治療付き実行の計測へ委譲します]
 #   処理: [1: 反復条件を解析し、実Godot指定済みなら計測、未指定なら未検証を返します]
@@ -386,6 +437,7 @@ def main() -> int:
     mode.add_argument("--cure-action", action="store_true", help="八体の実回復/MP消費/毒解除を測ります。総行動数は8の倍数にしてください")
     mode.add_argument("--status-apply", action="store_true", help="四件の元状態を保持する新規一件の付与成功予測を測定します")
     mode.add_argument("--status-apply-state", action="store_true", help="状態開始/付与準備/予測/一件実付与/同ID重複保持を測定します")
+    mode.add_argument("--session-status-apply", action="store_true", help="八行動ごとの新規構築/予約取得/実付与/再判定拒否/読取/完了を測ります。反復と事前実行は八の倍数です")
     mode.add_argument("--roster-status-apply", action="store_true", help="八体の状態保持/対象一体の付与準備/予測/実付与/重複/読取を測定します")
     arguments = parser.parse_args()
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")

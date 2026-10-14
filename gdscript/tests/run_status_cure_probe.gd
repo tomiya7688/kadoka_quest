@@ -31,7 +31,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("roster_status_apply", false):
+	if payload.get("session_status_apply", false):
+		result = SessionStatusProbe.run(payload)
+	elif payload.get("roster_status_apply", false):
 		result = RosterApplyProbe.run(payload)
 	elif payload.get("status_apply", false):
 		result = ApplyProbe.run(payload)

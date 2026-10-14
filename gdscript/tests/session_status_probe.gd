@@ -1,5 +1,5 @@
 # {
-#   責務: [session_status_probe: 専用Session開始・状態読取・原本独立性・拒否後再試行を実Godotで観測します]
+#   責務: [session_status_probe: 専用Session開始・予約付き治療/付与・状態読取・原本独立性・拒否後再試行を実Godotで観測します]
 #   フィールド: []
 # }
 extends RefCounted
@@ -7,17 +7,19 @@ const Session = preload("res://engine/battle_session.gd")
 const Context = preload("res://engine/cure_heal_skill_context.gd")
 const Healing = preload("res://engine/heal_skill_action.gd")
 const Benchmark = preload("res://tests/session_status_benchmark.gd")
+const ApplyBenchmark = preload("res://tests/session_status_application_benchmark.gd")
+const Updates = preload("res://tests/claimed_status_update_probe.gd")
 
 
 # {
-#   責務: [run: 状態保持のケース一覧または開始から全状態読取までの計測を専用ヘルパーへ委譲します]
+#   責務: [run: 状態保持/予約付き付与のケース一覧と対応する八体計測を専用ヘルパーへ委譲します]
 #   処理: [1: performance指定を振り分け、通常ケースをそれぞれ新規Sessionで観測します]
 #   引数: [payload: 専用要求JSONを復号したケース一覧または計測条件（Dictionary）]
 #   戻り値: [result: ケース観測列または性能と実結果（Dictionary）]
 # }
 static func run(payload: Dictionary) -> Dictionary:
 	if payload.get("performance", false):
-		return Benchmark.measure(payload)
+		return ApplyBenchmark.new().measure(payload) if payload.get("session_status_apply", false) else Benchmark.measure(payload)
 	var results: Array = []
 	for request: Dictionary in payload.get("cases", []):
 		results.append(_case(request))
@@ -65,12 +67,15 @@ static func _case(request: Dictionary) -> Dictionary:
 	var healing = Healing.new(session)
 	var steps: Array = []
 	for step: Dictionary in input.get("steps", []):
+		# 製品APIが要求コピーを書き換えていないか、操作の直前/直後で確認します。
+		var request_before := JSON.stringify(step)
 		var value := _execute(session, healing, step, input)
+		var request_preserved := request_before == JSON.stringify(step)
 		var original := value.duplicate(true)
 		var owned := session.statuses()
 		_mutate(value)
 		steps.append({"result": original, "independent": owned == session.statuses(),
-			"numeric": session.snapshot(), "statuses": session.statuses(), "guards": session.effects()})
+			"numeric": session.snapshot(), "statuses": session.statuses(), "guards": session.effects(), "request_preserved": request_preserved})
 	var owned := session.statuses()
 	var single := session.status({"side": "allies", "id": "same"})
 	var numeric := session.snapshot()
@@ -80,6 +85,8 @@ static func _case(request: Dictionary) -> Dictionary:
 	_mutate(started)
 	_mutate(input.get("initial_statuses", {}))
 	_mutate(input.get("snapshots", {}))
+	# 付与要求の効果ネストや指定票を後から編集しても、所有状態/記録へ伝播させません。
+	_mutate(input.get("steps", []))
 	return {"started": initial_result, "prepared": initial_preparation,
 		"steps": steps, "numeric": session.snapshot(), "statuses": session.statuses(),
 		"source_independent": owned == session.statuses() and numeric == session.snapshot(),
@@ -103,7 +110,7 @@ static func _start(session: RefCounted, input: Dictionary, legacy: bool) -> Dict
 
 
 # {
-#   責務: [_execute: 指定状態読取・再開始・ラウンド/資源操作を既存Session APIへ委譲します]
+#   責務: [_execute: 指定した状態読取/更新・再開始・ラウンド/資源操作をSession APIへ委譲します]
 #   処理: [1: 専用操作名に対応するAPIを呼び、行動予約は指定がなければ現在の予約を渡します]
 #   引数: [
 #     session: 実Session（RefCounted）
@@ -117,6 +124,7 @@ static func _execute(session: RefCounted, healing: RefCounted, step: Dictionary,
 	var pending: Variant = session.snapshot()["pending"]
 	var ticket: Variant = step.get("ticket", pending["ticket"] if pending is Dictionary else null)
 	match step["operation"]:
+		"apply_status", "apply_cure": return Updates.invoke(session, ticket, step)
 		"statuses": return session.statuses()
 		"status": return session.status(step.get("actor"))
 		"start": return _start(session, step.get("input", input), step.get("legacy", false))

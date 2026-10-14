@@ -1,5 +1,5 @@
 # {
-#   責務: [generate_class_diagram: generate・クラス・diagramの公開機能・宣言を定義する]
+#   責務: [generate_class_diagram: Pythonのトップレベルクラス・継承・メソッド名からMermaid図を生成/照合する開発用CLIです]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -13,12 +13,13 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 # {
-#   責務: [render_class_diagram: クラス・diagramを表示用データを生成する]
-#   処理: [1: クラス・diagramを表示用データを生成する]
-#   引数: [source_root: 元データ・基準ディレクトリ（Path）]
-#   戻り値: [result: クラス・diagramを表示用データを生成するための結果（str）]
+#   責務: [render_class_diagram: 指定ディレクトリのPython ASTからトップレベルクラスのMermaid図本文を生成します]
+#   処理: [1: クラス名・継承・直下のメソッド名を静的抽出し、クラス図本文へ順に並べます]
+#   引数: [source_root: 再帰的にPythonソースを検索するディレクトリ。コードは実行しません（Path）]
+#   戻り値: [result: クラス/継承/メソッド名を持つ末尾改行付きMermaid本文。図の描画や保存は行いません（str）]
 # }
 def render_class_diagram(source_root: Path) -> str:
+    # コードをimportせずASTだけを読み、トップレベルのクラス宣言と直下のメソッドを抽出します。
     classes: list[tuple[str, list[str], list[str]]] = []
     for path in sorted(source_root.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -33,6 +34,7 @@ def render_class_diagram(source_root: Path) -> str:
             ]
             classes.append((node.name, bases, methods))
 
+    # 実装本文や内部状態を図へ転載せず、クラス名・継承・メソッド名だけを表示用本文へ並べます。
     lines = ["classDiagram"]
     for name, bases, methods in classes:
         for base in bases:
