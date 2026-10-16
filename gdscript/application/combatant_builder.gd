@@ -13,6 +13,7 @@ const Records = preload("res://engine/monster_record_contract.gd")
 const Reconstruction = preload("res://application/monster_reconstruction.gd")
 const State = preload("res://engine/combatant_state.gd")
 const Resistance = preload("res://engine/elemental_resistance.gd")
+const StatusResistance = preload("res://engine/status_resistance.gd")
 const ACTIVE_TEAM_LIMIT := 4
 var reconstruction: RefCounted
 var _repository: RefCounted
@@ -37,7 +38,7 @@ func _init(repository: RefCounted) -> void:
 #     2: combatant_state.gdの戦闘個体でHPとMPを最大値へ初期化し、戦闘資源と独立した習得スキルID・許可装備を返します
 #   ]
 #   引数: [record: 保存個体monsterと学習状態aiを含む個体レコード（Variant）]
-#   戻り値: [result: 成功時は資源snapshot・習得ID skill_ids・許可装備equipment・属性耐性resistances・警告warnings、失敗時は理由reason（Dictionary）]
+#   戻り値: [result: 成功時は資源snapshot・習得ID skill_ids・許可装備equipment・属性耐性resistances・状態耐性status_resistances・警告warnings、失敗時は理由reason（Dictionary）]
 # }
 func build(record: Variant) -> Dictionary:
 	# combatant_builder.gdの構築処理は保存個体とAIの形式を検証し、不正なレコードを自動補修して戦闘へ持ち込みません。
@@ -54,7 +55,7 @@ func build(record: Variant) -> Dictionary:
 	var modified: Dictionary = rebuilt["modifiers"]
 	if not modified["ok"]:
 		return {"ok": false, "reason": "modifiers_failed", "detail": modified.duplicate(true)}
-	# 属性耐性は種族定義と許可済み装備から作り、資源6キーや保存レコードへ混ぜない。
+	# 属性と状態の耐性を分離し、数値snapshot六キーや個体/AIの保存情報へ混ぜません。
 	var traits := _resistances(monster["species_id"], modified["equipment"])
 	if not traits["ok"]:
 		return {"ok": false, "reason": "resistance_reconstruction_failed", "detail": traits}
@@ -67,20 +68,21 @@ func build(record: Variant) -> Dictionary:
 	return {"ok": true, "snapshot": state.snapshot(), "skill_ids": modified["skill_ids"].duplicate(true),
 		"warnings": modified["warnings"].duplicate(true),
 		"equipment": modified["equipment"].duplicate(true), "resistances": traits["resistances"],
+		"status_resistances": traits["status_resistances"],
 		"scope": "combatant_resources_only"}
 
 
 # {
-#   責務: [_resistances: 正規種族を構築処理内で共用し、許可装備を含む属性耐性を返します]
+#   責務: [_resistances: 正規種族を構築処理内で共用し、属性耐性と種族由来の状態耐性を分けて返します]
 #   処理: [
 #     1: 未読込の種族定義を取得し、読込失敗とID不一致を拒否します
-#     2: 属性耐性の段階計算を純粋engineへ委譲します
+#     2: 属性の装備段階計算と種族の状態耐性検査を、それぞれの純粋engineへ委譲します
 #   ]
 #   引数: [
 #     species_id: 再構築する正規種族ID（String）
 #     equipment: 再構築済みの許可装備または空辞書（Dictionary）
 #   ]
-#   戻り値: [result: 独立したresistancesまたは理由付き拒否（Dictionary）]
+#   戻り値: [result: 独立resistances/status_resistances、または理由付き拒否（Dictionary）]
 # }
 func _resistances(species_id: String, equipment: Dictionary) -> Dictionary:
 	# 行動のたびにJSONを読み直さず、同じ戦闘準備では種族ごとに一度だけ取得する。
@@ -90,7 +92,15 @@ func _resistances(species_id: String, equipment: Dictionary) -> Dictionary:
 	var species: Dictionary = _species_documents[species_id]
 	if species.is_empty():
 		return {"ok": false, "reason": "invalid_species_definition"}
-	return Resistance.prepare(species, equipment)
+	var traits := Resistance.prepare(species, equipment)
+	if not traits["ok"]:
+		return traits
+	# Python正本は状態耐性へ装備段階や＋選択を加えず、種族定義だけを使います。
+	var statuses := StatusResistance.prepare(species)
+	if not statuses["ok"]:
+		return statuses
+	traits["status_resistances"] = statuses["status_resistances"]
+	return traits
 
 
 # {

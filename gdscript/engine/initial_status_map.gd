@@ -1,9 +1,10 @@
 # {
-#   責務: [initial_status_map: 数値参加者と明示初期状態の陣営/個体IDを照合します。状態の内容検証や保持は行いません]
+#   責務: [initial_status_map: 数値参加者と明示初期状態を照合し、各状態配列を検証/独立コピーします。実状態は保持しません]
 #   フィールド: []
 # }
 extends RefCounted
 const Order = preload("res://engine/turn_order.gd")
+const Effects = preload("res://engine/status_effect_contract.gd")
 
 
 # {
@@ -35,3 +36,32 @@ static func validate(snapshots: Variant, initial_statuses: Variant) -> Dictionar
 			if not entries.has(id):
 				return {"ok": false, "reason": "status_context_mismatch", "side": side, "id": id}
 	return {"ok": true}
+
+
+# {
+#   責務: [prepare: 全参加者に一致する初期状態を検証し、治療/付与の準備へ同じ独立一覧を返します]
+#   処理: [
+#     1: 数値参加者と明示状態のside/id集合の一致を確認します
+#     2: 各状態配列の型/JSON互換性を共用検査し、順序と拡張情報を保って複製します
+#   ]
+#   引数: [
+#     snapshots: 検証済み両陣営の数値snapshot列（Variant）
+#     initial_statuses: 全参加者の状態配列を明示したside/id辞書（Variant）
+#   ]
+#   戻り値: [result: 独立initial_statuses、またはreasonと必要なside/idを持つ拒否（Dictionary）]
+# }
+static func prepare(snapshots: Variant, initial_statuses: Variant) -> Dictionary:
+	# 治療候補や付与確率を計算せず、初期一覧をそのまま保持できるかだけを確認します。
+	var matched := validate(snapshots, initial_statuses)
+	if not matched["ok"]:
+		return matched
+	var result := {"allies": {}, "enemies": {}}
+	for side in Order.SIDES:
+		# 複数の不正一覧があっても、治療準備と同じ参加者順で最初の拒否対象を返します。
+		for member: Dictionary in snapshots[side]:
+			var id: String = member["identity"]["id"]
+			var effects: Variant = initial_statuses[side][id]
+			if not Effects.valid_effects(effects):
+				return {"ok": false, "reason": "invalid_status_effects", "side": side, "id": id}
+			result[side][id] = effects.duplicate(true)
+	return {"ok": true, "initial_statuses": result}

@@ -265,3 +265,11 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_physical.py tests/test_gdscript_physical_skill.py tests/test_gdscript_status_apply.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_physical.py
 ```
+
+
+[付与付き物理の実行準備](../docs/GDScript状態付与付き物理準備契約.md)は、満資源・習得/許可装備・全参加者の明示初期状態・種族状態耐性を独立検証します。Builderは属性耐性と状態耐性を分離し、通常物理入口は付与を引き続き拒否します。準備は実攻撃やSession/Application登録を行いません。開発者はリポジトリルートで使えるPython/Godotを指定し、次を実行してください。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_physical_context.py tests/test_gdscript_cure_heal_context.py tests/test_gdscript_combatant.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_physical.py --context
+```

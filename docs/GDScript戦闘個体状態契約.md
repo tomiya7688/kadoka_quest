@@ -53,3 +53,10 @@ Python Combatant.__post_init__の `hp=0 / mp=0` は新規生成時の最大値�
 開発者専用 `tools/performance-check/script/check_gdscript_combatant.py` は実Godotで8体のinit/damage/MP/flee/snapshot/livingを計測します。標準は20000回・7samples・2000warmup、中央値1ms以内の余裕ある退行ガード。Playerにはimportせず、描画/FPS・I/O・実ターン戦闘の計測ではありません。
 
 [#228の行動順契約](GDScript行動順契約.md)で、順序と行動直前の最新生存/実行可否を追加しました。[#229のSession契約](GDScript戦闘Session契約.md)で戦闘中State保持/ラウンドカーソルへ接続しました。全スキル/AI/実戦闘・自動戦闘UI・敗北復活は後続へ分けます。手動画面/配布exportは未検証です。
+
+
+## 状態付与付き物理の準備へ渡す種族耐性
+
+CombatantBuilderは既存の数値snapshot六キーを維持し、外側の再構築結果にstatus_resistancesを追加します。Builderは種族JSONの状態耐性を独立コピーし、装備の属性resistance_stepsは状態耐性へ反映しません。属性resistancesと同じ種族読込キャッシュを使い、状態耐性のための追加ファイルI/Oは行いません。
+
+開発者はBuilderの再構築結果を[付与付き物理の実行準備](GDScript状態付与付き物理準備契約.md)へ渡してください。準備契約は習得/許可装備・明示初期状態・状態耐性を検証するだけで、HPMP・状態の実適用やSession/Application登録を行いません。既存の個体/学習AIと保存形式は変更しません。

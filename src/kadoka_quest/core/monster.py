@@ -25,7 +25,7 @@ class MonsterRecord:
     # {
     #   責務: [monster_id: 保存個体の識別IDを文字列で読み取ります]
     #   処理: [1: monsterのidを文字列へ変換して返します]
-    #   引数: [self: 処理対象インスタンス]
+    #   引数: [self: 保存個体monsterと学習AIを保持するMonsterRecord]
     #   戻り値: [result: 保存個体を識別するID（str）]
     # }
     @property
@@ -35,7 +35,7 @@ class MonsterRecord:
     # {
     #   責務: [species_id: 保存個体が参照する種族IDを文字列で読み取ります]
     #   処理: [1: monsterのspecies_idを文字列へ変換して返します]
-    #   引数: [self: 処理対象インスタンス]
+    #   引数: [self: 保存個体monsterと学習AIを保持するMonsterRecord]
     #   戻り値: [result: 正規種族データを参照するID（str）]
     # }
     @property
@@ -45,7 +45,7 @@ class MonsterRecord:
     # {
     #   責務: [name: 保存個体の表示名を文字列で読み取ります]
     #   処理: [1: monsterのnameを文字列へ変換して返します]
-    #   引数: [self: 処理対象インスタンス]
+    #   引数: [self: 保存個体monsterと学習AIを保持するMonsterRecord]
     #   戻り値: [result: 個体一覧や戦闘ログで使う個体の表示名（str）]
     # }
     @property
@@ -55,7 +55,7 @@ class MonsterRecord:
     # {
     #   責務: [level: 保存個体のLvを整数で読み取り、省略時は1を返します]
     #   処理: [1: monsterのlevel、または既定値1を整数へ変換します]
-    #   引数: [self: 処理対象インスタンス]
+    #   引数: [self: 保存個体monsterと学習AIを保持するMonsterRecord]
     #   戻り値: [result: 能力値と習得スキルの参照に使う個体Lv（int）]
     # }
     @property
@@ -65,7 +65,7 @@ class MonsterRecord:
     # {
     #   責務: [plus_choices: 保存個体の＋選択IDを文字列のリストとして読み取ります]
     #   処理: [1: monsterのplus_choicesを入力順に文字列へ変換し、省略時は空リストを返します]
-    #   引数: [self: 処理対象インスタンス]
+    #   引数: [self: 保存個体monsterと学習AIを保持するMonsterRecord]
     #   戻り値: [result: 能力補正や追加習得へ使う＋選択IDの新しいリスト（list[str]）]
     # }
     @property
@@ -75,7 +75,7 @@ class MonsterRecord:
     # {
     #   責務: [equipment_id: 保存個体の装備IDを読み取り、空値や省略時は未装備を返します]
     #   処理: [1: monsterのequipment_idが真値なら文字列へ変換し、それ以外はNoneを返します]
-    #   引数: [self: 処理対象インスタンス]
+    #   引数: [self: 保存個体monsterと学習AIを保持するMonsterRecord]
     #   戻り値: [result: 許可確認と装備定義参照へ使うID、または未装備のNone（str | None）]
     # }
     @property
@@ -88,10 +88,10 @@ class MonsterRecord:
 #   責務: [equipment_allows_species: 装備品側の許可リストだけを装備可否の正とする。]
 #   処理: [1: 装備品側の許可リストだけを装備可否の正とする。]
 #   引数: [
-#     equipment: 装備（dict[str, Any]）
-#     species_id: 種族・識別子（str）
+#     equipment: 装備可能な種族ID一覧allowed_species_idsを持つ装備定義（dict[str, Any]）
+#     species_id: 装備できるか照合するモンスターの種族ID（str）
 #   ]
-#   戻り値: [result: 装備品側の許可リストだけを装備可否の正とするための結果（bool）]
+#   戻り値: [result: 種族IDが装備の許可一覧に含まれればTrue、省略/不許可ならFalse（bool）]
 # }
 def equipment_allows_species(equipment: dict[str, Any], species_id: str) -> bool:
     """装備品側の許可リストだけを装備可否の正とする。"""

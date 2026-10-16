@@ -286,10 +286,10 @@ class GDScriptCombatantTests(unittest.TestCase):
         self.assertEqual((second["hp"], second["mp"], second["fled"]), (0, 4, False))
 
     # {
-    #   責務: [test_inputs_returned_snapshots_and_initial_result_have_no_shared_state: 検証: inputs returned snapshots and initial result have no shared state]
-    #   処理: [1: 検証: inputs returned snapshots and initial result have no shared state]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_inputs_returned_snapshots_and_initial_result_have_no_shared_state: 入力と返却snapshot/初期結果の編集が所有資源へ伝播せず、後のダメージが独立して適用されるか確認します]
+    #   処理: [1: 入力と返却snapshot/初期結果の編集が所有資源へ伝播せず、後のダメージが独立して適用されるか確認します]
+    #   引数: [self: 実Godotの資源/再構築観測を検証する専用テストケース]
+    #   戻り値: [result: なし（None）。専用観測の期待動作と入力保持をassertで確認します]
     # }
     def test_inputs_returned_snapshots_and_initial_result_have_no_shared_state(self):
         member = {"identity": identity(), "stats": stats(), "hp": 30, "mp": 7, "alive": True, "fled": False}
@@ -305,10 +305,10 @@ class GDScriptCombatantTests(unittest.TestCase):
         self.assertTrue(result["case_preserved"])
 
     # {
-    #   責務: [test_invalid_damage_and_mp_types_nonfinite_and_bounds_never_mutate: 検証: invalid damage and mp types nonfinite and bounds never mutate]
-    #   処理: [1: 検証: invalid damage and mp types nonfinite and bounds never mutate]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_invalid_damage_and_mp_types_nonfinite_and_bounds_never_mutate: 不正なダメージ/MP数値では資源を保持して拒否し、正確に表せる整数floatは受理するか確認します]
+    #   処理: [1: 不正なダメージ/MP数値では資源を保持して拒否し、正確に表せる整数floatは受理するか確認します]
+    #   引数: [self: 実Godotの資源/再構築観測を検証する専用テストケース]
+    #   戻り値: [result: なし（None）。専用観測の期待動作と入力保持をassertで確認します]
     # }
     def test_invalid_damage_and_mp_types_nonfinite_and_bounds_never_mutate(self):
         invalid = [None, True, False, -1, 1.5, "1", [], {}, 2**53]
@@ -329,10 +329,10 @@ class GDScriptCombatantTests(unittest.TestCase):
         self.assertEqual(result["observations"][2]["value"]["hp"], 0)
 
     # {
-    #   責務: [test_uninitialized_refusal_and_failed_start_can_retry_without_defaults: 検証: uninitialized refusal and failed start can retry without defaults]
-    #   処理: [1: 検証: uninitialized refusal and failed start can retry without defaults]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_uninitialized_refusal_and_failed_start_can_retry_without_defaults: 未初期化の資源操作を拒否し、不正開始の後も有効な条件で開始し直せるか確認します]
+    #   処理: [1: 未初期化の資源操作を拒否し、不正開始の後も有効な条件で開始し直せるか確認します]
+    #   引数: [self: 実Godotの資源/再構築観測を検証する専用テストケース]
+    #   戻り値: [result: なし（None）。専用観測の期待動作と入力保持をassertで確認します]
     # }
     def test_uninitialized_refusal_and_failed_start_can_retry_without_defaults(self):
         steps = [action("damage", 1), action("pay", 1), action("cost", 0), action("flee")]
@@ -367,10 +367,10 @@ class GDScriptCombatantTests(unittest.TestCase):
                 self.assertTrue(actual["input_preserved"])
 
     # {
-    #   責務: [test_living_snapshot_validation_refuses_invalid_or_duplicate_members: 検証: living snapshot validation refuses invalid or duplicate members]
-    #   処理: [1: 検証: living snapshot validation refuses invalid or duplicate members]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_living_snapshot_validation_refuses_invalid_or_duplicate_members: 生存候補の不正な資源/型/生存表示と同陣営ID重複を、理由付きで拒否するか確認します]
+    #   処理: [1: 生存候補の不正な資源/型/生存表示と同陣営ID重複を、理由付きで拒否するか確認します]
+    #   引数: [self: 実Godotの資源/再構築観測を検証する専用テストケース]
+    #   戻り値: [result: なし（None）。専用観測の期待動作と入力保持をassertで確認します]
     # }
     def test_living_snapshot_validation_refuses_invalid_or_duplicate_members(self):
         member = {"identity": identity(), "stats": stats(), "hp": 30, "mp": 7, "alive": True, "fled": False}
@@ -385,10 +385,10 @@ class GDScriptCombatantTests(unittest.TestCase):
         self.assertEqual(result["observations"][-1]["value"]["reason"], "duplicate_member")
 
     # {
-    #   責務: [test_team_limit_is_not_ownership_limit_and_never_silently_truncates: 検証: team limit is not ownership limit and never silently truncates]
-    #   処理: [1: 検証: team limit is not ownership limit and never silently truncates]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_team_limit_is_not_ownership_limit_and_never_silently_truncates: 保有120体は保持し、戦闘参加は四体までに制限して超過/重複/不正を切捨てず拒否するか確認します]
+    #   処理: [1: 保有120体は保持し、戦闘参加は四体までに制限して超過/重複/不正を切捨てず拒否するか確認します]
+    #   引数: [self: 実Godotの資源/再構築観測を検証する専用テストケース]
+    #   戻り値: [result: なし（None）。専用観測の期待動作と入力保持をassertで確認します]
     # }
     def test_team_limit_is_not_ownership_limit_and_never_silently_truncates(self):
         owned = [record(f"owned_{index}") for index in range(120)]
@@ -405,10 +405,10 @@ class GDScriptCombatantTests(unittest.TestCase):
         self.assertTrue(all(item["preserved"] for item in result["teams"]))
 
     # {
-    #   責務: [test_invalid_records_and_unsupported_definitions_are_not_repaired: 検証: invalid records and unsupported definitions are not repaired]
-    #   処理: [1: 検証: invalid records and unsupported definitions are not repaired]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_invalid_records_and_unsupported_definitions_are_not_repaired: 不正な個体/AIや未対応の再構築定義を、保存内容の自動補修なしで拒否するか確認します]
+    #   処理: [1: 不正な個体/AIや未対応の再構築定義を、保存内容の自動補修なしで拒否するか確認します]
+    #   引数: [self: 実Godotの資源/再構築観測を検証する専用テストケース]
+    #   戻り値: [result: なし（None）。専用観測の期待動作と入力保持をassertで確認します]
     # }
     def test_invalid_records_and_unsupported_definitions_are_not_repaired(self):
         invalid = [None, [], {}, {"monster": record()["monster"]},

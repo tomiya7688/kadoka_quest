@@ -4,6 +4,7 @@
 # }
 extends RefCounted
 const Quote = preload("res://engine/physical_skill_contract.gd")
+const StatusQuote = preload("res://engine/status_physical_skill_contract.gd")
 const Order = preload("res://engine/turn_order.gd")
 const State = preload("res://engine/combatant_state.gd")
 const Numbers = preload("res://engine/stat_numbers.gd")
@@ -122,28 +123,69 @@ static func _equipment(definition: Variant, species: String) -> Dictionary:
 
 
 # {
-#   責務: [select: 行動者の習得から指定物理スキルを選び、許可装備の威力倍率と固定加算を取得します]
-#   処理: [
-#     1: 習得済みIDの一意な物理スキル定義を検証します
-#     2: 選択IDの装備効果だけを検証し、威力倍率と固定加算を返します
-#   ]
+#   責務: [select: 習得した通常のMP付き物理定義を選び、状態付与付き定義を引き続き拒否します]
+#   処理: [1: 物理の共用習得/装備選択へ、付与に未対応の既存定義契約を渡します]
 #   引数: [
-#     context: prepareで作った独立した習得・許可装備と定義のID別索引（Dictionary）
-#     actor: 最新予約で検証済みの行動者のsideとid（Dictionary）
-#     skill_id: 使用を要求する物理スキルID（Variant）
+#     context: prepareの個体別習得/許可装備と定義索引（Dictionary）
+#     actor: 選択する参加者のsideとid（Dictionary）
+#     skill_id: MP付き通常物理のスキルID（Variant）
 #   ]
-#   戻り値: [result: 検証済みskillとequipment補正数値、または理由付き拒否（Dictionary）]
+#   戻り値: [result: 独立skillと装備補正、または理由付き拒否（Dictionary）]
 # }
 static func select(context: Dictionary, actor: Dictionary, skill_id: Variant) -> Dictionary:
+	# 従来の物理行動を付与付きとして暗黙に実行しないよう、入口の契約を固定します。
+	return _select(context, actor, skill_id, Quote)
+
+
+# {
+#   責務: [select_status_physical: 付与定義を必須にした単体物理を、通常物理と共用の習得/装備検証で選びます]
+#   処理: [1: 共用選択へ状態付与付き物理の専用定義契約を渡します]
+#   引数: [
+#     context: 開始時に独立コピーした個体別習得/許可装備とID索引（Variant）
+#     actor: 選択する参加者のsideとidだけを持つ辞書（Variant）
+#     skill_id: 選択を要求する付与付き物理ID（Variant）
+#   ]
+#   戻り値: [result: 独立skillと装備補正、または非破壊的な拒否（Dictionary）]
+# }
+static func select_status_physical(context: Variant, actor: Variant, skill_id: Variant) -> Dictionary:
+	# 生の要求からスクリプトやmodeを渡さず、専用入口の定義検査だけを使用します。
+	return _select(context, actor, skill_id, StatusQuote)
+
+
+# {
+#   責務: [_select: 開始時の習得と選択IDの許可装備補正を確認し、指定物理契約で一意な定義を選びます]
+#   処理: [
+#     1: 個体索引・参加者キー・習得を確認し、内部で固定した物理契約へ定義検証を委譲します
+#     2: 選択IDの威力倍率と固定加算を検証し、他IDの装備効果を混ぜず返します
+#   ]
+#   引数: [
+#     context: prepareの個体/定義索引。編集可能な通常データで、認証情報ではありません（Variant）
+#     actor: 参加者を一意に示すside/id（Variant）
+#     skill_id: 通常または付与付きの物理ID（Variant）
+#     definition_contract: 公開入口が固定する物理専用定義契約（GDScript）
+#   ]
+#   戻り値: [result: 独立skillと装備補正、または部分成功なしの拒否（Dictionary）]
+# }
+static func _select(context: Variant, actor: Variant, skill_id: Variant, definition_contract: GDScript) -> Dictionary:
+	# 不正な選択要求で辞書参照の実行診断を発生させず、準備データも変更しません。
+	if not context is Dictionary or not context.get("members") is Dictionary or not context.get("definitions") is Dictionary:
+		return _reject("invalid_physical_context")
+	if not Order.valid_key(actor):
+		return _reject("invalid_actor_key")
+	var side: Variant = context["members"].get(actor["side"])
+	if not side is Dictionary or not side.get(actor["id"]) is Dictionary:
+		return _reject("actor_missing")
+	var member: Dictionary = side[actor["id"]]
+	if not member.get("skill_ids") is Array or not member.get("equipment") is Dictionary:
+		return _reject("invalid_physical_context")
 	# 未習得と通常攻撃への偽装を、行動権取得前に区別する。
 	if not skill_id is String or skill_id.is_empty():
 		return _reject("invalid_skill_id")
 	if skill_id in ["attack", "defend"]:
 		return _reject("unsupported_action")
-	var member: Dictionary = context["members"][actor["side"]][actor["id"]]
 	if skill_id not in member["skill_ids"]:
 		return _reject("skill_not_learned")
-	var selected := Quote.prepare({"schema_version": 1, "skills": context["definitions"].get(skill_id, [])}, skill_id)
+	var selected: Dictionary = definition_contract.prepare({"schema_version": 1, "skills": context["definitions"].get(skill_id, [])}, skill_id)
 	if not selected["ok"]:
 		return selected
 	# 他IDの補正を流用せず、選択IDの未知効果はfalseや空でも拒否する。

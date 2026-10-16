@@ -4,8 +4,6 @@
 # }
 extends RefCounted
 const Healing = preload("res://engine/heal_skill_context.gd")
-const Curing = preload("res://engine/status_cure_contract.gd")
-const Order = preload("res://engine/turn_order.gd")
 const InitialMap = preload("res://engine/initial_status_map.gd")
 
 
@@ -24,7 +22,7 @@ static func prepare(teams: Variant, skills: Variant, initial_statuses: Variant) 
 	var prepared := Healing.prepare(teams, skills)
 	if not prepared["ok"]:
 		return prepared
-	var statuses := _initial_statuses(prepared["snapshots"], initial_statuses)
+	var statuses := InitialMap.prepare(prepared["snapshots"], initial_statuses)
 	if not statuses["ok"]:
 		return statuses
 	prepared["initial_statuses"] = statuses["initial_statuses"]
@@ -43,35 +41,3 @@ static func prepare(teams: Variant, skills: Variant, initial_statuses: Variant) 
 # }
 static func select(context: Variant, actor: Variant, skill_id: Variant) -> Dictionary:
 	return Healing.select_cure_heal(context, actor, skill_id)
-
-
-# {
-#   責務: [_initial_statuses: 数値snapshotの参加者と初期状態のside/idを一対一に照合し、状態配列を独立検証します]
-#   処理: [
-#     1: 両陣営の辞書と全参加者idの一致を確認し、欠落/余分な個体を拒否します
-#     2: 各状態配列を純粋治療契約で検証し、参加者別の独立一覧を返します
-#   ]
-#   引数: [
-#     snapshots: 共用開始検証を通過した両陣営の六キー数値snapshot列（Dictionary）
-#     initial_statuses: 各参加者の初期状態配列を明示したside/id別辞書（Variant）
-#   ]
-#   戻り値: [result: 独立initial_statuses、またはreasonと必要なside/idを持つ拒否（Dictionary）]
-# }
-static func _initial_statuses(snapshots: Dictionary, initial_statuses: Variant) -> Dictionary:
-	# 空状態を暗黙補完せず、敵も含むすべての参加者に明示した一覧を要求します。
-	var matched := InitialMap.validate(snapshots, initial_statuses)
-	if not matched["ok"]:
-		return matched
-	var result := {"allies": {}, "enemies": {}}
-	for side in Order.SIDES:
-		var entries: Dictionary = initial_statuses[side]
-		for member: Dictionary in snapshots[side]:
-			var id: String = member["identity"]["id"]
-			# 未知MOD情報は保持しますが、付与/継続効果や治療成功をここで実行しません。
-			var checked := Curing.select_candidate(entries[id])
-			if not checked["ok"]:
-				checked["side"] = side
-				checked["id"] = id
-				return checked
-			result[side][id] = checked["effects"]
-	return {"ok": true, "initial_statuses": result}

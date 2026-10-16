@@ -45,6 +45,17 @@ static func effect_id(effect: Variant) -> String:
 
 
 # {
+#   責務: [valid_json_value: コピー前の任意入力が深さ32以内の安全なJSON値かを、副作用なしで確認します]
+#   処理: [1: 状態一覧と同じ再帰検査へ委譲し、Object/循環/非有限/精度超過を拒否します]
+#   引数: [value: 自身を深さ0とするJSON由来の準備入力（Variant）]
+#   戻り値: [result: コピー可能なJSON値ならtrue、不正型/値/深さならfalse（bool）]
+# }
+static func valid_json_value(value: Variant) -> bool:
+	# 共用検査の内部関数を呼出側へ公開せず、未検証ネストの安全確認だけを提供します。
+	return _is_json_value(value)
+
+
+# {
 #   責務: [_is_json_value: 状態拡張情報をJSON値に限定し、コピー前に非有限数値・循環・過深なコンテナを拒否します]
 #   処理: [1: 子要素を再帰検査し、深さ32超過・数値精度超過・非文字列キー・Objectを拒否します]
 #   引数: [

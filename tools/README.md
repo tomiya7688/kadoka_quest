@@ -120,3 +120,6 @@ Project-specific OCR, screen capture, Windows input, GUI automation, or unrelate
 取得済み予約の状態付与はcheck_gdscript_status_cure.py --session-status-applyで測ります。開発者は環境変数KADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから実行してください。八行動ごとの新規八体構築/初回順序込みで、予約提示/取得・敵一体への実付与・同予約の別対象への再判定拒否・個別/全体読取・完了を測ります。標準20000回・7サンプル・2000回事前実行で、一判定中央値3000us以内と全反復確認数/最終八体四状態/数値不変/固定原本を照合します。iterationsとwarmupは八の倍数が必要です。起動/I/O・MP消費・攻撃計算・耐性再構築・AI・描画・保存は測りません。Godot未指定は終了コード2の未検証です。入力と拒否対応は[予約付き付与契約](../docs/GDScript予約付き状態付与契約.md)を確認してください。
 
 付与付き物理の純粋予測はcheck_gdscript_status_physical.pyで測ります。開発者はKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから実行してください。共用起動/診断へ委譲し、標準20000回・7サンプル・2000回事前実行で、一予測中央値3000us以内と固定原本・79ダメージ/残HP921/MP97/出血一件成功を照合します。致死/重複/拒否だけの高速結果は通過しません。起動/I/O・一覧prepare・実更新/予約・能力/耐性再構築・AI・描画・保存は測りません。Godot未指定は終了コード2の未検証です。条件と拒否対応は[専用予測契約](../docs/GDScript状態付与付き物理予測契約.md)を確認してください。
+
+
+付与付き物理の準備済み索引からの選択はcheck_gdscript_status_physical.py --contextで測ります。開発者はKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから実行してください。標準20000回・7サンプル・2000回事前実行で一選択中央値3000us以内、固定八体/千定義・付与定義・装備倍率2/加算3・初期状態/耐性・数値六キーと原本保持を照合します。準備/索引構築・I/O・実HPMP/状態更新・予約・AI・描画・保存は測りません。拒否だけの高速結果は通過せず、Godot未指定は終了コード2の未検証です。入出力と未接続範囲は[実行準備契約](../docs/GDScript状態付与付き物理準備契約.md)を確認してください。
