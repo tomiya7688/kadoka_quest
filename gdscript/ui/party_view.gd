@@ -16,6 +16,7 @@ signal assigned(slot: int, id: Variant)
 signal save_requested
 signal cancel_requested
 signal presets_requested
+const Style = preload("res://ui/pixel_theme.gd")
 var presets_button: Button
 var slots: ItemList
 var owned: ItemList
@@ -31,34 +32,25 @@ var buttons: Dictionary = {}
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _ready() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#091329")
-	style.border_color = Color("#d5e0f2")
-	style.set_border_width_all(2)
-	style.set_content_margin_all(16)
-	add_theme_stylebox_override("panel", style)
-	var column := VBoxContainer.new()
-	add_child(column)
+	# 共通のモーダル余白とスクロールで、編成操作を小さい画面でも到達可能にします。
+	var column := Style.modal_column(self)
 	var title_row := HBoxContainer.new()
 	column.add_child(title_row)
 	heading = Label.new()
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_theme_font_size_override("font_size", 20)
 	title_row.add_child(heading)
-	presets_button = Button.new()
-	presets_button.text = "プリセット（P）"
-	presets_button.focus_mode = Control.FOCUS_NONE
+	presets_button = Style.button("プリセット  [P]")
 	presets_button.pressed.connect(func(): presets_requested.emit())
 	title_row.add_child(presets_button)
 	var help := Label.new()
-	help.text = "左で枠、右で個体を選択 → 入れる / Enter　Delete：外す\n↑↓・Home/End・PageUp/Down：選択　Tab：フォーカス移動　Ctrl+S：保存　Esc / F6：キャンセル"
+	help.text = "左で編成枠、右で仲間を選び、Enterで入れてください。\nTab  移動 / Delete  外す / Ctrl+S  保存 / Esc  キャンセル"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(help)
 	var lists := HBoxContainer.new()
 	lists.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(lists)
-	slots = _list(lists, 300)
-	owned = _list(lists, 430)
+	slots = _list(lists, 280)
+	owned = _list(lists, 320)
 	owned.item_activated.connect(func(_index: int): assign_selected())
 	var actions := HBoxContainer.new()
 	column.add_child(actions)
@@ -70,10 +62,7 @@ func _ready() -> void:
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(message)
 	# Do not let Tab or directional focus escape into the covered roster/field.
-	var focus_order: Array[Control] = [slots, owned, buttons["assign"], buttons["clear"], buttons["save"], buttons["cancel"]]
-	for index in focus_order.size():
-		focus_order[index].focus_next = focus_order[index].get_path_to(focus_order[(index + 1) % focus_order.size()])
-		focus_order[index].focus_previous = focus_order[index].get_path_to(focus_order[(index - 1 + focus_order.size()) % focus_order.size()])
+	Style.cycle_focus([slots, owned, buttons["assign"], buttons["clear"], buttons["save"], buttons["cancel"], presets_button])
 
 
 # {
@@ -87,7 +76,7 @@ func _ready() -> void:
 # }
 func _list(parent: Control, width: float) -> ItemList:
 	var list := ItemList.new()
-	list.custom_minimum_size = Vector2(width, 120)
+	list.custom_minimum_size = Vector2(width, 168)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	list.allow_reselect = true
@@ -109,8 +98,7 @@ func _list(parent: Control, width: float) -> ItemList:
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _button(parent: Control, id: String, text: String, callback: Callable) -> void:
-	var button := Button.new()
-	button.text = text
+	var button := Style.button(text)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(callback)
 	parent.add_child(button)

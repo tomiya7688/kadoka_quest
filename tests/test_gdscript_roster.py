@@ -413,14 +413,16 @@ class GDScriptRosterTests(unittest.TestCase):
         self.assertEqual(self.saved_files(), before)
 
     # {
-    #   責務: [test_unsaved_roster_ui_is_readonly_and_does_not_create_a_profile: 検証: unsaved roster ui is readonly and does not create a profile]
-    #   処理: [1: 検証: unsaved roster ui is readonly and does not create a profile]
+    #   責務: [test_unsaved_roster_ui_is_readonly_and_does_not_create_a_profile: 未保存の台帳は初回保存のメニュー導線を示し、台帳参照中のF5と方向キーで保存や探索移動が起きないことを検証します。]
+    #   処理: [1: 台帳を開閉して保存案内・位置・保存先の未作成を確認します。]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
     def test_unsaved_roster_ui_is_readonly_and_does_not_create_a_profile(self):
+        # F5を覚えていない利用者にも、画面内メニューから初期仲間を作成する経路を示します。
         observations = self.probe([{"kind": "key", "key": key} for key in ("F6", "F5", "RIGHT", "F6")])["observations"]
-        self.assertIn("F5で初期仲間", observations[1]["text"])
+        self.assertIn("メニューの「冒険を保存する」", observations[1]["text"])
+        self.assertIn("初期仲間を作成します", observations[1]["text"])
         self.assertTrue(observations[1]["visible"])
         self.assertFalse(observations[-1]["visible"])
         self.assertEqual((observations[-1]["x"], observations[-1]["y"]), (18, 14))

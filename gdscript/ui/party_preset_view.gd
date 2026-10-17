@@ -15,6 +15,7 @@ signal save_requested(name: String)
 signal load_requested(filename: String)
 signal refresh_requested
 signal back_requested
+const Style = preload("res://ui/pixel_theme.gd")
 var listing: ItemList
 var name_input: LineEdit
 var heading: Label
@@ -29,24 +30,17 @@ var buttons: Dictionary = {}
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _ready() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#091329")
-	style.border_color = Color("#d5e0f2")
-	style.set_border_width_all(2)
-	style.set_content_margin_all(16)
-	add_theme_stylebox_override("panel", style)
-	var column := VBoxContainer.new()
-	add_child(column)
+	# 一覧と名前入力を同じピクセルテーマへ揃え、内容超過時は全体をスクロールします。
+	var column := Style.modal_column(self)
 	heading = Label.new()
-	heading.add_theme_font_size_override("font_size", 20)
 	column.add_child(heading)
 	var help := Label.new()
-	help.text = "現在の下書きを別名で追加保存 / 選択プリセットを下書きへ読込\n↑↓・Home/End・PageUp/Down：選択　Tab：巡回　Enter：読込　F5：一覧更新　Esc/F6：戻る"
+	help.text = "一覧でEnterを押すと、選択したプリセットを編成の下書きへ読み込みます。\nTab  移動 / ↑↓・PageUp/Down  選択 / Esc  編成へ戻る"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(help)
 	listing = ItemList.new()
 	listing.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	listing.custom_minimum_size.y = 100
+	listing.custom_minimum_size.y = 136
 	listing.allow_search = false
 	listing.wraparound_items = false
 	listing.item_activated.connect(func(_index: int): request_load())
@@ -66,9 +60,7 @@ func _ready() -> void:
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(message)
 	var order: Array[Control] = [listing, name_input, buttons["save"], buttons["load"], buttons["refresh"], buttons["back"]]
-	for index in order.size():
-		order[index].focus_next = order[index].get_path_to(order[(index + 1) % order.size()])
-		order[index].focus_previous = order[index].get_path_to(order[(index - 1 + order.size()) % order.size()])
+	Style.cycle_focus(order)
 
 
 # {
@@ -83,8 +75,7 @@ func _ready() -> void:
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _button(parent: Control, id: String, text: String, callback: Callable) -> void:
-	var button := Button.new()
-	button.text = text
+	var button := Style.button(text)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(callback)
 	parent.add_child(button)

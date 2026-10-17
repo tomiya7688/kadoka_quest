@@ -107,12 +107,13 @@ class GDScriptRanchTests(unittest.TestCase):
                 self.assertEqual(self.files(), before)
 
     # {
-    #   責務: [test_roster_editor_and_presets_stop_held_movement_and_field_save_load: 検証: roster editor and presets stop held movement and field save load]
-    #   処理: [1: 検証: roster editor and presets stop held movement and field save load]
+    #   責務: [test_roster_editor_and_presets_stop_held_movement_and_field_save_load: 牧場の台帳・編成・プリセット操作で探索位置と向きが変わらず、探索の保存・読込も実行されないことを検証します。]
+    #   処理: [1: 各画面で方向キーを長押しし、保存・読込・Spaceを入力して全観測時点の位置と保存ファイルを比較します。]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
     def test_roster_editor_and_presets_stop_held_movement_and_field_save_load(self):
+        # Spaceが「探索へ戻る」を押した場合も、押下中の方向キーは探索へ持ち越しません。
         self.seed_ranch()
         before = self.files()
         for stage in ([], [key("E")], [key("E"), key("P")]):
@@ -121,9 +122,84 @@ class GDScriptRanchTests(unittest.TestCase):
                     {"kind": "key_down", "key": "RIGHT"}, {"kind": "tick", "seconds": 1.0},
                     key("F5"), key("F9"), key("SPACE"), {"kind": "key_up", "key": "RIGHT"},
                 ]
-                actual = self.probe(actions)["observations"][-1]
-                self.assertEqual((actual["x"], actual["y"], actual["direction"]), (14, 6, "back"))
+                for actual in self.probe(actions)["observations"]:
+                    self.assertEqual((actual["x"], actual["y"], actual["direction"]), (14, 6, "back"))
                 self.assertEqual(self.files(), before)
+
+    # {
+    #   責務: [test_roster_close_requires_direction_release_before_field_movement_resumes: 台帳を閉じたときの方向長押しを無視し、方向キーを離して押し直すと探索を再開できることを検証します。]
+    #   処理: [
+    #     1: 方向キーで台帳の戻るボタンを選び、Spaceで台帳を閉じたまま長押しを続けます。
+    #     2: 方向キーを離して再度押し、探索位置だけが一歩進み保存ファイルが変わらないことを確認します。
+    #   ]
+    #   引数: [self: 隔離した牧場データとGodotプローブを所有するテスト]
+    #   戻り値: [result: なし]
+    # }
+    def test_roster_close_requires_direction_release_before_field_movement_resumes(self):
+        self.seed_ranch()
+        before = self.files()
+        actions = [key("SPACE"), {"kind": "key_down", "key": "RIGHT"}, key("SPACE"),
+                   {"kind": "tick", "seconds": 1.0}, {"kind": "key_up", "key": "RIGHT"}, key("RIGHT")]
+        observations = self.probe(actions)["observations"]
+        # 戻るボタンのネイティブ操作は有効なまま、解除前の位置と向きを保護します。
+        self.assertFalse(observations[3]["roster_visible"])
+        for actual in observations[:-1]:
+            self.assertEqual((actual["x"], actual["y"], actual["direction"]), (14, 6, "back"))
+        self.assertEqual((observations[-1]["x"], observations[-1]["y"], observations[-1]["direction"]),
+                         (15, 6, "right"))
+        self.assertEqual(self.files(), before)
+
+    # {
+    #   責務: [test_roster_close_accepts_same_frame_direction_release_and_repress: 台帳を閉じた後、同じフレーム内に方向キーを離して押し直すと探索移動を再開できることを検証します。]
+    #   処理: [1: 右方向を保持して台帳を閉じ、探索更新を挟まない右方向の解放・再押下で一歩だけ進むことを確認します。]
+    #   引数: [self: 隔離した牧場データとGodotプローブを所有するテスト]
+    #   戻り値: [result: なし]
+    # }
+    def test_roster_close_accepts_same_frame_direction_release_and_repress(self):
+        self.seed_ranch()
+        before = self.files()
+        # key_batchはキー間に_processやフレーム待ちを挟まず、通常の解放フレームに依存しません。
+        actions = [key("SPACE"), {"kind": "key_down", "key": "RIGHT"}, key("SPACE"),
+                   {"kind": "key_batch", "events": [
+                       {"key": "RIGHT", "pressed": False}, {"key": "RIGHT", "pressed": True}]},
+                   {"kind": "key_up", "key": "RIGHT"}]
+        observations = self.probe(actions)["observations"]
+        self.assertFalse(observations[3]["roster_visible"])
+        for actual in observations[:4]:
+            self.assertEqual((actual["x"], actual["y"], actual["direction"]), (14, 6, "back"))
+        for actual in observations[4:]:
+            self.assertEqual((actual["x"], actual["y"], actual["direction"]), (15, 6, "right"))
+        self.assertEqual(self.files(), before)
+
+    # {
+    #   責務: [test_roster_close_waits_until_all_direction_keys_are_released: 台帳終了時に矢印とWASDを同時に保持していた場合、全方向キーを離すまで探索移動を抑止することを検証します。]
+    #   処理: [
+    #     1: 右矢印とAを保持して台帳を閉じ、右矢印だけの解放・再押下では位置と向きが変わらないことを確認します。
+    #     2: 両方の方向キーを離して右矢印を押し直し、同一フレームでも探索を再開できることを確認します。
+    #   ]
+    #   引数: [self: 隔離した牧場データとGodotプローブを所有するテスト]
+    #   戻り値: [result: なし]
+    # }
+    def test_roster_close_waits_until_all_direction_keys_are_released(self):
+        self.seed_ranch()
+        before = self.files()
+        # 一方向のキー解放だけでは、別の方向キーによる持ち越し防止を解除しません。
+        actions = [key("SPACE"), {"kind": "key_down", "key": "RIGHT"},
+                   {"kind": "key_down", "key": "A"}, key("SPACE"),
+                   {"kind": "key_batch", "events": [
+                       {"key": "RIGHT", "pressed": False}, {"key": "RIGHT", "pressed": True}]},
+                   {"kind": "tick", "seconds": 1.0},
+                   {"kind": "key_batch", "events": [
+                       {"key": "RIGHT", "pressed": False}, {"key": "A", "pressed": False},
+                       {"key": "RIGHT", "pressed": True}]},
+                   {"kind": "key_up", "key": "RIGHT"}]
+        observations = self.probe(actions)["observations"]
+        self.assertFalse(observations[4]["roster_visible"])
+        for actual in observations[:7]:
+            self.assertEqual((actual["x"], actual["y"], actual["direction"]), (14, 6, "back"))
+        for actual in observations[7:]:
+            self.assertEqual((actual["x"], actual["y"], actual["direction"]), (15, 6, "right"))
+        self.assertEqual(self.files(), before)
 
     # {
     #   責務: [test_ranch_preset_and_explicit_party_save_preserve_owned_files_and_restart: 検証: ranch preset and explicit party save preserve owned files and restart]
@@ -168,8 +244,8 @@ class GDScriptRanchTests(unittest.TestCase):
         self.assertEqual(self.files(), before)
 
     # {
-    #   責務: [test_new_profile_table_is_read_only_and_explains_initial_save: 検証: new profile table is read only and explains initial save]
-    #   処理: [1: 検証: new profile table is read only and explains initial save]
+    #   責務: [test_new_profile_table_is_read_only_and_explains_initial_save: 未保存プロフィールの牧場台帳はメニューの初回保存導線を示し、参照だけでは保存ファイルを作成しないことを検証します。]
+    #   処理: [1: 隔離マップの開始位置から牧場へ移動して台帳を開き、保存案内とファイル不変を確認します。]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -184,7 +260,8 @@ class GDScriptRanchTests(unittest.TestCase):
         actual = self.probe(actions)["observations"][-1]
         self.assertTrue(actual["roster_visible"])
         self.assertFalse(actual["editing"])
-        self.assertIn("F5", actual["roster_text"])
+        self.assertIn("メニューの「冒険を保存する」", actual["roster_text"])
+        self.assertIn("初期仲間を作成します", actual["roster_text"])
         self.assertIn("編成を開けません", actual["status"])
         self.assertFalse(self.profile.exists())
         self.assertEqual(self.content_hashes(), content_before)

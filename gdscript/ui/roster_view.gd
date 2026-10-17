@@ -11,6 +11,8 @@ extends PanelContainer
 ## Read-only projection and explicit editor entry. No persistence or AI decisions.
 
 signal edit_requested
+signal close_requested
+const Style = preload("res://ui/pixel_theme.gd")
 var edit_button: Button
 
 var heading: Label
@@ -25,27 +27,26 @@ var body: Label
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _ready() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#091329")
-	style.border_color = Color("#d5e0f2")
-	style.set_border_width_all(2)
-	style.set_content_margin_all(16)
-	add_theme_stylebox_override("panel", style)
-	var column := VBoxContainer.new()
-	add_child(column)
+	# 全体と台帳本文をスクロール可能にし、多数の個体でも操作を隠しません。
+	var column := Style.modal_column(self)
 	heading = Label.new()
-	heading.add_theme_font_size_override("font_size", 20)
 	column.add_child(heading)
 	var help := Label.new()
-	help.text = "↑↓ / PageUp・Down / Home・End：スクロール　E：編成　F6 / Esc：閉じる"
+	help.text = "↑↓ / PageUp・Down  スクロール    E  編成    Esc  閉じる"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(help)
-	edit_button = Button.new()
-	edit_button.text = "パーティを編成する（E）"
-	edit_button.focus_mode = Control.FOCUS_NONE
+	var actions := HBoxContainer.new()
+	column.add_child(actions)
+	edit_button = Style.button("パーティを編成する")
+	edit_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	edit_button.pressed.connect(func(): edit_requested.emit())
-	column.add_child(edit_button)
+	actions.add_child(edit_button)
+	var close_button := Style.button("探索へ戻る")
+	close_button.pressed.connect(func(): close_requested.emit())
+	actions.add_child(close_button)
+	Style.cycle_focus([edit_button, close_button])
 	scrolling = ScrollContainer.new()
+	scrolling.custom_minimum_size.y = 220
 	scrolling.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scrolling.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scrolling.focus_mode = Control.FOCUS_NONE
@@ -53,6 +54,7 @@ func _ready() -> void:
 	body = Label.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_constant_override("line_spacing", 6)
 	scrolling.add_child(body)
 
 
@@ -75,7 +77,7 @@ func show_snapshot(snapshot: Dictionary) -> void:
 		elif entry.get("id") != null:
 			text = "読込不可: " + str(entry["id"])
 		lines.append("%d. %s" % [index + 1, text])
-	lines.append("\n保有個体（所有数の上限なし／今回の画面では編集できません）")
+	lines.append("\n保有個体 / 個体編集はGodot版では未対応です。")
 	for id: String in records:
 		var record: Dictionary = records[id]
 		var ai: Dictionary = record["ai"]
@@ -87,7 +89,7 @@ func show_snapshot(snapshot: Dictionary) -> void:
 			str(ai.get("tactic", "balanced")), str(ai.get("battles", 0)),
 		])
 	if records.is_empty():
-		lines.append("新規セーブはF5で初期仲間を作成します。" if snapshot.get("new_profile", false)
+		lines.append("初めての冒険では、メニューの「冒険を保存する」で初期仲間を作成します。" if snapshot.get("new_profile", false)
 			else "このセーブに読込可能な個体はありません。既存セーブへ初期仲間は自動追加しません。")
 	for warning in snapshot.get("warnings", []):
 		lines.append("注意: " + str(warning))
@@ -157,9 +159,10 @@ static func _skill_text(ids: Array) -> String:
 #   責務: [handle_key: キーを入力を処理する]
 #   処理: [1: キーを入力を処理する]
 #   引数: [key: キー（int）]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: 台帳のスクロール操作を受け取った場合だけtrue]
 # }
-func handle_key(key: int) -> void:
+func handle_key(key: int) -> bool:
+	# TabとEnterはGodotの操作部品へ渡し、台帳のボタンもキーボードで押せます。
 	var bar := scrolling.get_v_scroll_bar()
 	match key:
 		KEY_UP: scrolling.scroll_vertical -= 32
@@ -168,3 +171,5 @@ func handle_key(key: int) -> void:
 		KEY_PAGEDOWN: scrolling.scroll_vertical += int(bar.page)
 		KEY_HOME: scrolling.scroll_vertical = 0
 		KEY_END: scrolling.scroll_vertical = int(bar.max_value - bar.page)
+		_: return false
+	return true

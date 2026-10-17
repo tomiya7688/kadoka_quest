@@ -7,6 +7,7 @@
 
 | タスク種別 | 主実装 | 関連テスト | 仕様書・データ | 境界 |
 | --- | --- | --- | --- | --- |
+| ゲーム専用ピクセルGUI | `ui/{game_ui,game_text,game_style,game_controls,game_navigation,title_screen,field_overlay,battle_renderer}.py`, `apps/{launcher,ranch_manager,game}.py`, `gdscript/ui/{pixel_theme,pixel_button,field_chrome}.gd` | `test_game_ui.py`, `test_title_screen.py`, `test_runtime_game_ui.py`, `tests/e2e/test_field_journeys.py`, `gdscript/tests/run_pixel_ui_probe.gd` | `docs/GAME_GUI.md`, `assets/fonts/README.md` | ゲーム専用表示を共用し、Developerのcommon.py配色と既存データ/戦闘規則を変更しません。Godot戦闘画面は未移植です。 |
 | ゲーム状態 / 責務移行 | `apps/{game,progress_session,field_session,battle_session,field_party_session,password_session}.py` | `test_session_ownership.py`, `test_core.py`, `test_battle_flow_service.py`, `test_simulation_facility.py` | `docs/KadokaQuest状態所有者棚卸し.md` | 正本・互換view・保存時点のコピーを区別し、所有者→呼出側→互換削除の順に移す。 |
 | 戦闘 / AI | `core/battle.py`, `core/{ai,battle_inference,battle_learning,battle_context}.py`, `apps/{battle_session,battle_command_app,ai_inspector}.py` | `test_core.py`, `test_ai_inspector.py`, `test_battle_decision_explanation.py` | `docs/戦闘責務分離機能説明書.md`, `docs/状況学習機能説明書.md`, `docs/個体AI可視化機能説明書.md` | 戦闘規則・推論・学習は分離し、描画はUIへ渡す。 |
 | AI学習傾向サマリ / 管理画面 | `core/ai_tendencies.py`, `apps/{ai_inspector,ranch_manager,manage}.py`, `ui/ai_tendency_panel.py` | `test_ai_tendencies.py`, `test_ai_inspector.py`, `test_ai_tendency_ui.py` | `docs/AI学習傾向サマリ機能説明書.md`, `docs/個体AI可視化機能説明書.md` | 既存学習値から5指標を純粋計算。両管理画面でゲージ表示しF5/フォーカス復帰で再読込。 |

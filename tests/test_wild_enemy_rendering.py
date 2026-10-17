@@ -162,14 +162,17 @@ def test_missing_artwork_stays_visible_and_removed_enemy_disappears(screen):
 # }
 def test_camera_clip_includes_partial_sprites_and_culls_distant_ones(screen):
     state = session(50, 30)
-    state.player.snap(25, 15)  # camera origin = (12.5, 6)
-    state.hidden_enemies.monsters = [wild(x=12, y=10), wild("ghost", 0, 0)]
+    state.player.snap(25, 15)
+    # カメラ寸法が変わっても左端へ半分だけ入る個体のクリップを検証します。
+    camera_x = 25 - (FIELD_RECT.width // TILE) / 2
+    camera_y = 15 - (FIELD_RECT.height // TILE) / 2
+    state.hidden_enemies.monsters = [wild(x=camera_x - 0.5, y=10), wild("ghost", 0, 0)]
     images = provider()
     red = pygame.Surface((48, 48))
     red.fill((255, 0, 0))
     images.get.side_effect = lambda species, kind, size: red if species == "slime" else None
     draw_field(screen, state, images, [], 0, now=0)
-    y = FIELD_RECT.y + (10 - 6) * TILE + 9
+    y = round(FIELD_RECT.y + (10 - camera_y) * TILE + 9)
     assert screen.get_at((FIELD_RECT.left, y))[:3] == (255, 0, 0)
     assert screen.get_at((FIELD_RECT.left - 1, y))[:3] != (255, 0, 0)
     assert not any(call.args[0] == "ghost" for call in images.get.call_args_list)

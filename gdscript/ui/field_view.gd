@@ -35,7 +35,7 @@ func show_snapshot(snapshot: Dictionary, image_provider: RefCounted) -> void:
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color("#091329"))
+	draw_rect(Rect2(Vector2.ZERO, size), Color("#000000"))
 	if model.is_empty():
 		return
 	var world: Dictionary = model["map"]

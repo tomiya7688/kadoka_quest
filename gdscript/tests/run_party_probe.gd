@@ -27,8 +27,11 @@ func _initialize() -> void:
 
 
 # {
-#   責務: [_run: run・パーティ・probeを実行する]
-#   処理: [1: run・パーティ・probeを実行する]
+#   責務: [_run: 隔離した探索画面へ要求された操作を投入し、各操作後の画面状態と編成契約の結果をJSONで返します。]
+#   処理: [
+#     1: 探索画面の自動更新を止め、要求されたキー・マウス・保存fixture操作ごとに状態を記録します。
+#     2: 編成下書きとプリセットの純粋契約を評価し、全観測結果を標準出力へ返します。
+#   ]
 #   引数: []
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
@@ -46,6 +49,13 @@ func _run() -> void:
 			"key_down", "key_up":
 				await _set_key(action, action["kind"] == "key_down")
 				scene._process(0.01 if action["kind"] == "key_down" else 0.0)
+			"key_batch":
+				# 同一フレームの解放・再押下を、途中の探索更新で補正せずに届けます。
+				var frame_before := Engine.get_process_frames()
+				for change: Dictionary in action["events"]:
+					_queue_key(change, bool(change["pressed"]))
+				assert(Engine.get_process_frames() == frame_before)
+				scene._process(0.01)
 			"tick":
 				scene._process(float(action.get("seconds", 0.14)))
 			"click":
@@ -115,15 +125,31 @@ func _press(scene: Control, action: Dictionary) -> void:
 
 
 # {
-#   責務: [_set_key: キーを設定する]
-#   処理: [1: キーを設定する]
+#   責務: [_set_key: 物理キーの押下または解放をGodotへ届け、次のフレームまで待ちます。]
+#   処理: [1: キーイベントを同期配送し、画面部品の遅延処理を一フレーム進めます。]
 #   引数: [
-#     action: action（Dictionary）
-#     pressed: pressed（bool）
+#     action: キー名と修飾キーを含む操作辞書
+#     pressed: 押下時はtrue、解放時はfalse
 #   ]
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _set_key(action: Dictionary, pressed: bool) -> void:
+	# 通常の単発キーでは、フォーカス移動などの遅延処理が完了してから観測します。
+	_queue_key(action, pressed)
+	await process_frame
+
+
+# {
+#   責務: [_queue_key: 探索更新やフレーム待ちを挟まず、物理キーイベントをGodotの入力経路へ同期配送します。]
+#   処理: [1: 指定キーと修飾情報をInputEventKeyへ写し、入力バッファを即座に配送します。]
+#   引数: [
+#     action: キー名と修飾キーを含む操作辞書
+#     pressed: 押下時はtrue、解放時はfalse
+#   ]
+#   戻り値: [result: なし]
+# }
+func _queue_key(action: Dictionary, pressed: bool) -> void:
+	# バッチ内の複数キーにも通常操作と同じネイティブ入力経路を使用します。
 	var event := InputEventKey.new()
 	event.physical_keycode = KEYS[action["key"]]
 	event.keycode = event.physical_keycode
@@ -132,7 +158,6 @@ func _set_key(action: Dictionary, pressed: bool) -> void:
 	event.pressed = pressed
 	Input.parse_input_event(event.duplicate())
 	Input.flush_buffered_events()
-	await process_frame
 
 
 # {

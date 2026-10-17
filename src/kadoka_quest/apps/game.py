@@ -37,10 +37,11 @@ from kadoka_quest.data.parties import PartyStore
 from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.data.state import StateStore
 from kadoka_quest.paths import ASSET_ROOT, IMPORT_ROOT, PROJECT_ROOT
-from kadoka_quest.ui.battle_renderer import BattleRenderer
+from kadoka_quest.ui.battle_renderer import BattleRenderer, COMMAND_RECTS
 from kadoka_quest.ui.character_image_provider import CharacterImageProvider
-from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, TEXT, WARN, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
+from kadoka_quest.ui.game_ui import ACCENT, BG, MUTED, TEXT, WARN, Button, draw_frame, draw_text, init_pygame, navigation_event, smoke_frames
 from kadoka_quest.ui.field_renderer import FIELD_RECT, TILE, draw_field
+from kadoka_quest.ui.field_overlay import FieldOverlay
 from kadoka_quest.ui.runtime_input_adapter import RuntimeInputAdapter
 from kadoka_quest.ui.runtime_mouse_adapter import RuntimeMouseAdapter
 
@@ -1746,12 +1747,13 @@ class KadokaQuest:
 
 
 # {
-#   責務: [password_controls: ゲームの暗号・controlsを求める]
-#   処理: [1: ゲームの暗号・controlsを求める]
+#   責務: [password_controls: あいことば画面の文字キーと決定・取消ボタンの共通表示矩形を返します]
+#   処理: [1: 文字キーを十列へ並べ、入力側と描画側が共有する操作矩形を返します]
 #   引数: []
-#   戻り値: [result: ゲームの暗号・controlsを求めるための結果（tuple[list[tuple[str, pygame.Rect]], pygame.Rect, pygame.Rect, pygame.Rect]）]
+#   戻り値: [result: 文字と矩形の一覧、および消去・決定・取消の矩形]
 # }
 def password_controls() -> tuple[list[tuple[str, pygame.Rect]], pygame.Rect, pygame.Rect, pygame.Rect]:
+    # 描画とマウス入力は同じ矩形を使い、見た目と押せる位置を一致させます。
     keys: list[tuple[str, pygame.Rect]] = []
     columns = 10
     key_width, key_height = 82, 52
@@ -1764,39 +1766,44 @@ def password_controls() -> tuple[list[tuple[str, pygame.Rect]], pygame.Rect, pyg
 
 
 # {
-#   責務: [draw_password: 暗号を描画する]
-#   処理: [1: 暗号を描画する]
+#   責務: [draw_password: あいことばSessionの入力文字と仮想かなキーボードを白黒の枠へ描きます]
+#   処理: [1: 七つの入力枠を描き、共有矩形に文字キーと決定・取消を表示します]
 #   引数: [
 #     screen: 描画先（pygame.Surface）
-#     session: セッション（PasswordSession）
+#     session: 入力中の文字とエラー通知を読むあいことばSession
 #   ]
 #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
 # }
 def draw_password(screen: pygame.Surface, session: PasswordSession) -> None:
-    draw_text(screen, "水の湧き場", (455, 34), 36, (100, 210, 255), True)
-    draw_text(screen, "7文字のあいことば", (457, 84), 21, MUTED, True)
+    # あいことばの判定や入力文字は変更せず、ゲーム共通の角形の見た目で描きます。
+    draw_text(screen, "水の湧き場", (400, 34), 32, TEXT)
+    draw_text(screen, "7文字のあいことば", (457, 84), 16, MUTED)
     slot_x = 306
     for index in range(7):
         rect = pygame.Rect(slot_x + index * 74, 135, 62, 70)
-        pygame.draw.rect(screen, PANEL_ALT, rect, border_radius=8)
-        pygame.draw.rect(screen, ACCENT if index == len(session.input_text) and index < 7 else MUTED, rect, 2, border_radius=8)
+        draw_frame(screen, rect, ACCENT if index == len(session.input_text) and index < 7 else TEXT)
         if index < len(session.input_text):
-            draw_text(screen, session.input_text[index], (rect.x + 14, rect.y + 14), 31, TEXT, True)
+            draw_text(screen, session.input_text[index], (rect.x + 14, rect.y + 12), 32, TEXT)
     keys, erase, decide, cancel = password_controls()
     mouse = pygame.mouse.get_pos()
     for label, rect in keys:
-        pygame.draw.rect(screen, (60, 102, 132) if rect.collidepoint(mouse) else PANEL_ALT, rect, border_radius=7)
-        draw_text(screen, label, (rect.x + 26, rect.y + 11), 23, TEXT, True)
-    for label, rect, color in (("けす", erase, WARN), ("決定", decide, GOOD), ("やめる", cancel, MUTED)):
-        pygame.draw.rect(screen, color if rect.collidepoint(mouse) else PANEL_ALT, rect, border_radius=8)
-        draw_text(screen, label, (rect.x + 29, rect.y + 13), 20, TEXT, True)
+        draw_frame(screen, rect, ACCENT if rect.collidepoint(mouse) else MUTED, 2)
+        draw_text(screen, label, (rect.x + 26, rect.y + 2), 32, TEXT)
+    for label, rect in (("けす", erase), ("決定", decide), ("やめる", cancel)):
+        draw_frame(screen, rect, ACCENT if rect.collidepoint(mouse) else TEXT)
+        draw_text(screen, label, (rect.x + 29, rect.y + 13), 16, TEXT)
     if session.message:
-        draw_text(screen, session.message, (390, 645), 18, WARN if "違" in session.message else MUTED, True)
+        draw_text(screen, session.message, (390, 645), 16, WARN if "違" in session.message else MUTED)
+    draw_text(screen, "かなをクリック / Enter 決定 / Backspace けす / Esc 戻る", (280, 700), 16, MUTED)
 
 
 # {
-#   責務: [main: ゲームのエントリ処理を実行する]
-#   処理: [1: ゲームのエントリ処理を実行する]
+#   責務: [main: Playerウィンドウの入力・runtime呼び出し・画面描画を順に調停します]
+#   処理: [
+#     1: ゲームSessionと描画・入力アダプターを用意します
+#     2: メニュー入力または通常入力を意味コマンドへ変換して配送します
+#     3: メニュー中はフィールド更新を止め、現在のモードを描画します
+#   ]
 #   引数: []
 #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
 # }
@@ -1805,17 +1812,18 @@ def main() -> None:
     clock = pygame.time.Clock()
     game = KadokaQuest()
     battle_renderer = BattleRenderer(game.character_images)
+    field_overlay = FieldOverlay()
     input_adapter = RuntimeInputAdapter(MOVE_KEY_DIRECTIONS)
 
     # {
-    #   責務: [dispatch: ゲームを配送する]
-    #   処理: [1: ゲームを配送する]
+    #   責務: [dispatch: UIが生成した意味コマンドを既存runtimeへ渡します]
+    #   処理: [1: 宛先・操作名・引数をruntimeの配送入口へ委譲します]
     #   引数: [
-    #     target: 対象（str）
-    #     action: action（str）
-    #     payload: 要求データ
+    #     target: fieldやbattleなどのコマンド宛先
+    #     action: 宛先が公開する操作名
+    #     payload: 操作へ渡すJSON互換の引数
     #   ]
-    #   戻り値: [result: ゲームを配送するための結果（object）]
+    #   戻り値: [result: runtimeが返す操作結果]
     # }
     def dispatch(target: str, action: str, **payload) -> object:
         return game.runtime.dispatch(target, action, **payload)
@@ -1824,10 +1832,8 @@ def main() -> None:
     smoke = smoke_frames()
     frames = 0
     battle_buttons = [
-        Button(pygame.Rect(355, 650, 95, 48), "戦う", lambda: None),
-        Button(pygame.Rect(460, 650, 95, 48), "スカウト", lambda: None),
-        Button(pygame.Rect(565, 650, 95, 48), "道具", lambda: None),
-        Button(pygame.Rect(670, 650, 95, 48), "逃げる", lambda: None),
+        Button(rect.copy(), label, lambda: None)
+        for rect, label in zip(COMMAND_RECTS, ("たたかう", "スカウト", "どうぐ", "にげる"))
     ]
     password_keys, erase, decide, cancel = password_controls()
     mouse_adapter = RuntimeMouseAdapter(
@@ -1838,41 +1844,53 @@ def main() -> None:
 
     while running:
         for event in pygame.event.get():
+            # 入力変換はUI側で完結させ、pygameイベントをruntimeへ渡しません。
+            # フィールドの十字キーは中立への復帰も移動アダプターへ渡します。
+            if game.mode != "field" or field_overlay.opened or event.type != pygame.JOYHATMOTION:
+                event = navigation_event(event)
             battle = game.battle_session.battle
             battle_finished = bool(battle and battle.outcome)
-            for request in input_adapter.translate(
-                event,
-                game.mode,
-                pygame.time.get_ticks(),
-                battle_finished=battle_finished,
-                battle_playback=game.battle_session.playback,
-            ):
+            requests = field_overlay.handle_event(event) if game.mode == "field" else None
+            if requests is None:
+                requests = input_adapter.translate(
+                    event,
+                    game.mode,
+                    pygame.time.get_ticks(),
+                    battle_finished=battle_finished,
+                    battle_playback=game.battle_session.playback,
+                )
+            for request in requests:
                 if request["kind"] == "quit":
                     running = False
+                    break
                 else:
                     dispatch(str(request["target"]), str(request["action"]), **dict(request["payload"]))
+            if not running:
+                break
             battle = game.battle_session.battle
             battle_enabled = bool(battle and not battle.outcome and not game.battle_session.playback)
             for request in mouse_adapter.translate(event, game.mode, battle_enabled=battle_enabled):
                 dispatch(str(request["target"]), str(request["action"]), **dict(request["payload"]))
 
+        # 終了要求の後は、同じフレームのクリック・移動・自動戦闘を実行しません。
+        if not running:
+            break
         dispatch("manager", "refresh")
         now = pygame.time.get_ticks()
-        if game.mode == "field":
+        # メニューではフィールドの進行を止め、選択中の背後で遭遇が起きないようにします。
+        if game.mode == "field" and not field_overlay.opened:
             dispatch("field", "tick", now=now)
         elif game.mode == "battle":
             dispatch("battle", "tick", now=now)
         screen.fill(BG)
         if game.mode == "field":
-            draw_text(screen, "kadoka quest", (20, 18), 34, ACCENT, True)
             draw_field(screen, game.field_session, game.character_images, game.party(), game.field_party_session.selected_index, now)
+            field_overlay.observe_message(game.status, now)
+            field_overlay.draw(screen, game.party(), game.field_party_session.selected_index, now)
         elif game.mode == "battle":
-            battle_renderer.draw(screen, game.battle_session, battle_buttons)
+            battle_renderer.draw(screen, game.battle_session, battle_buttons, game.status)
         else:
             draw_password(screen, game.password_session)
-        if game.mode != "password":
-            pygame.draw.rect(screen, PANEL_ALT, pygame.Rect(20, 665 if game.mode == "field" else 710, 1080, 48 if game.mode == "field" else 25), border_radius=8)
-            draw_wrapped(screen, game.status, pygame.Rect(35, 674 if game.mode == "field" else 714, 1050, 32), 16)
         pygame.display.flip()
         clock.tick(60)
         frames += 1

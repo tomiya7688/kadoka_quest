@@ -76,7 +76,7 @@ def test_battle_renderer_uses_session_and_visual_provider_only(screen, with_imag
     assert [call.args[1] for call in wrapped.call_args_list] == ["攻撃中", "見える"]
     assert not buttons[0].enabled
     assert vars(session) == before
-    images.get.assert_called_with("slime", "portrait", (82, 82))
+    images.get.assert_called_with("slime", "portrait", (160, 160))
     session.playback = False
     session.auto = True
     renderer.draw(screen, session, buttons)
@@ -113,7 +113,7 @@ def test_field_renderer_reads_live_session_and_supplied_party(screen):
     assert screen.get_at((FIELD_RECT.x + 80, FIELD_RECT.y + 80))[:3] == (0x12, 0x34, 0x56)
     images.get.assert_any_call("maru", "field_left", (48, 48))
     images.get.assert_any_call("hero", "field_front", (48, 48))
-    images.appearance.assert_called_once_with("slime")
+    images.appearance.assert_not_called()
     session.player.direction = "right"
     session.map_data["display_name"] = "更新後"
     with mock.patch("kadoka_quest.ui.field_renderer.draw_text") as text:

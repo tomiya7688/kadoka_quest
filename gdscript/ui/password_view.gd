@@ -15,6 +15,7 @@ signal character_requested(character: String)
 signal backspace_requested
 signal submit_requested
 signal cancel_requested
+const Style = preload("res://ui/pixel_theme.gd")
 var slots: Array[Label] = []
 var buttons: Dictionary = {}
 var text_input: LineEdit
@@ -29,21 +30,14 @@ var keyboard_grid: GridContainer
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _ready() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#091329")
-	style.border_color = Color("#d5e0f2")
-	style.set_border_width_all(2)
-	style.set_content_margin_all(12)
-	add_theme_stylebox_override("panel", style)
-	var column := VBoxContainer.new()
-	add_child(column)
+	# かな配列が画面高を超えた場合も、Tabで選んだキーへスクロールが追従します。
+	var column := Style.modal_column(self)
+	column.add_theme_constant_override("separation", 4)
 	var heading := Label.new()
 	heading.text = "水の湧き場 — 7文字のあいことば"
-	heading.add_theme_font_size_override("font_size", 18)
 	column.add_child(heading)
 	var help := Label.new()
-	help.add_theme_font_size_override("font_size", 14)
-	help.text = "かな入力 / 下のキーをクリック　Enter：決定　Backspace：けす　Esc：やめる\nTab：入力欄とキーを巡回（探索・保存は入力中停止）"
+	help.text = "かな入力 / Tab・矢印  キー選択 / Enter  実行 / Backspace  消去 / Esc  戻る"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(help)
 	var slot_row := HBoxContainer.new()
@@ -53,11 +47,10 @@ func _ready() -> void:
 		slot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		slot.custom_minimum_size = Vector2(64, 32)
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slot.add_theme_font_size_override("font_size", 22)
+		slot.add_theme_color_override("font_color", Style.PAPER)
 		slot_row.add_child(slot)
 		slots.append(slot)
 	text_input = LineEdit.new()
-	text_input.add_theme_font_size_override("font_size", 14)
 	text_input.placeholder_text = "日本語入力（確定した文字を上の7枠へ入力）"
 	text_input.keep_editing_on_text_submit = true
 	text_input.text_changed.connect(_committed_text)
@@ -72,7 +65,6 @@ func _ready() -> void:
 	_button(actions, "submit", "決定", func(): submit_requested.emit())
 	_button(actions, "cancel", "やめる", func(): cancel_requested.emit())
 	message = Label.new()
-	message.add_theme_font_size_override("font_size", 14)
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(message)
 
@@ -91,9 +83,7 @@ func configure_keys(keys: String) -> void:
 	for index in keys.length():
 		order.append(buttons[keys[index]])
 	order.append_array([buttons["backspace"], buttons["submit"], buttons["cancel"]])
-	for index in order.size():
-		order[index].focus_next = order[index].get_path_to(order[(index + 1) % order.size()])
-		order[index].focus_previous = order[index].get_path_to(order[(index - 1 + order.size()) % order.size()])
+	Style.cycle_focus(order)
 
 
 # {
@@ -108,9 +98,7 @@ func configure_keys(keys: String) -> void:
 #   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
 # }
 func _button(parent: Control, id: String, text: String, callback: Callable) -> void:
-	var button := Button.new()
-	button.text = text
-	button.add_theme_font_size_override("font_size", 14)
+	var button := Style.button(text)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.custom_minimum_size = Vector2(64, 30)
 	button.pressed.connect(callback)
@@ -162,6 +150,9 @@ func handle_key(event: InputEventKey) -> bool:
 		return false  # Native IME composition consumes these before password commands.
 	match event.physical_keycode:
 		KEY_ENTER, KEY_KP_ENTER:
+			# かなボタンではEnterを文字入力へ渡し、入力欄のEnterだけを確定要求にします。
+			if get_viewport().gui_get_focus_owner() is Button:
+				return false
 			if not event.echo:
 				submit_requested.emit()
 			return true

@@ -1,5 +1,5 @@
 # {
-#   責務: [field_renderer: フィールド・描画処理の公開機能・宣言を定義する]
+#   責務: [field_renderer: フィールドSessionの地形とキャラクターを広いゲーム画面へ描き、ゲーム状態を変更しません]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -12,17 +12,17 @@ from kadoka_engine.grid_movement import GridMovement
 from kadoka_quest.apps.field_session import FieldSession
 from kadoka_quest.core.monster import MonsterRecord
 from kadoka_quest.ui.character_image_provider import CharacterImageProvider
-from kadoka_quest.ui.common import ACCENT, BG, MUTED, PANEL, PANEL_ALT, draw_text
+from kadoka_quest.ui.game_ui import BG, TEXT, draw_frame, draw_text
 
-FIELD_RECT = pygame.Rect(20, 70, 800, 576)
+FIELD_RECT = pygame.Rect(24, 64, 1072, 640)
 TILE = 32
 
 
 # {
-#   責務: [_hex_color: フィールド・描画処理のhex・色を求める]
-#   処理: [1: フィールド・描画処理のhex・色を求める]
-#   引数: [value: 値（str）]
-#   戻り値: [result: フィールド・描画処理のhex・色を求めるための結果（tuple[int, int, int]）]
+#   責務: [_hex_color: 地形または代替キャラクターの16進色をRGBへ変換します]
+#   処理: [1: 16進色の三成分を読み、不正な色には灰色を返します]
+#   引数: [value: 先頭の#を省略できる6桁の16進色]
+#   戻り値: [result: RGBの三成分。不正な入力では灰色]
 # }
 def _hex_color(value: str) -> tuple[int, int, int]:
     try:
@@ -33,17 +33,21 @@ def _hex_color(value: str) -> tuple[int, int, int]:
 
 
 # {
-#   責務: [draw_field: Render a field snapshot; gameplay decisions stay in the core layer.]
-#   処理: [1: Render a field snapshot; gameplay decisions stay in the core layer.]
+#   責務: [draw_field: 地形とフィールドの個体をカメラ内へ描き、現在地の名称を表示します]
+#   処理: [
+#     1: 主人公の表示位置からカメラ範囲を決めて地形を描きます
+#     2: 野生個体・固定個体・主人公を同じ描画範囲へ重ねます
+#     3: 描画先のクリップを復元して現在地の名称を表示します
+#   ]
 #   引数: [
 #     screen: 描画先（pygame.Surface）
 #     session: セッション（FieldSession）
-#     images: 画像一覧（CharacterImageProvider）
-#     party: パーティ（Sequence[MonsterRecord]）
-#     selected_index: 選択中・位置番号（int）
-#     now: 現在時刻（int | None）
+#     images: キャラクター画像を返すProvider
+#     party: 呼び出し互換のパーティ一覧。常設表示はせず、メニュー側で描きます
+#     selected_index: 呼び出し互換の選択番号。メニュー側で選択個体を描きます
+#     now: 移動補間に使うミリ秒。省略時はpygameの現在時刻
 #   ]
-#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+#   戻り値: [result: なし。Session・個体・乱数状態を変更しません]
 # }
 def draw_field(
     screen: pygame.Surface,
@@ -54,14 +58,15 @@ def draw_field(
     now: int | None = None,
 ) -> None:
     """Render a field snapshot; gameplay decisions stay in the core layer."""
+    # カメラの拡大は表示範囲だけを変え、移動や出現の規則には触れません。
     now = pygame.time.get_ticks() if now is None else int(now)
     visible_x = min(FIELD_RECT.width // TILE, int(session.map_data["width"]))
     visible_y = min(FIELD_RECT.height // TILE, int(session.map_data["height"]))
     player_visual_x, player_visual_y = session.player.visual.position(now)
     camera_x = max(0.0, min(float(session.map_data["width"] - visible_x), player_visual_x - visible_x / 2))
     camera_y = max(0.0, min(float(session.map_data["height"] - visible_y), player_visual_y - visible_y / 2))
-    pygame.draw.rect(screen, PANEL, FIELD_RECT.inflate(8, 8), border_radius=8)
-    pygame.draw.rect(screen, PANEL, FIELD_RECT)
+    draw_frame(screen, FIELD_RECT.inflate(8, 8))
+    pygame.draw.rect(screen, BG, FIELD_RECT)
     previous_clip = screen.get_clip()
     screen.set_clip(FIELD_RECT)
     start_x, start_y = int(camera_x), int(camera_y)
@@ -84,6 +89,7 @@ def draw_field(
             bottom = round(FIELD_RECT.y + (gy + 1 - camera_y) * TILE)
             pygame.draw.rect(screen, color, pygame.Rect(left, top, right - left, bottom - top))
 
+    # 全個体の画像を同じカメラとクリップで描き、画面外の野生画像取得を避けます。
     for monster in session.hidden_enemies.monsters:
         sx = round((float(monster["x"]) - camera_x) * TILE + FIELD_RECT.x)
         sy = round((float(monster["y"]) - camera_y) * TILE + FIELD_RECT.y)
@@ -128,37 +134,10 @@ def draw_field(
     if player_sprite:
         screen.blit(player_sprite, player_sprite.get_rect(center=(px + 16, py + 9)))
     else:
-        pygame.draw.circle(screen, (255, 238, 125), (px + 16, py + 16), 12)
-        pygame.draw.circle(screen, BG, (px + 16, py + 16), 12, 2)
+        pygame.draw.rect(screen, TEXT, (px + 6, py + 4, 20, 24))
+        pygame.draw.rect(screen, BG, (px + 10, py + 10, 4, 4))
+        pygame.draw.rect(screen, BG, (px + 18, py + 10, 4, 4))
     screen.set_clip(previous_clip)
 
-    pygame.draw.rect(screen, PANEL, pygame.Rect(840, 70, 260, 576), border_radius=10)
-    draw_text(screen, session.map_data["display_name"], (855, 85), 23, ACCENT, True)
-    draw_text(screen, f"座標 {session.player.x}, {session.player.y}", (855, 118), 16, MUTED)
-    draw_text(screen, "パーティ", (855, 155), 20, MUTED, True)
-    for index in range(4):
-        rect = pygame.Rect(852, 185 + index * 67, 235, 58)
-        pygame.draw.rect(screen, (55, 94, 122) if index == selected_index else PANEL_ALT, rect, border_radius=7)
-        if index < len(party):
-            record = party[index]
-            icon = images.get(record.species_id, "portrait", (30, 30))
-            if icon:
-                screen.blit(icon, icon.get_rect(center=(872, rect.centery)))
-            else:
-                color = _hex_color(images.appearance(record.species_id)["value"])
-                pygame.draw.circle(screen, color, (872, rect.centery), 13)
-            draw_text(screen, record.name, (893, rect.y + 8), 17)
-            draw_text(screen, f"Lv{record.level} / {record.ai.get('tactic', 'balanced')}", (893, rect.y + 31), 13, MUTED)
-        else:
-            draw_text(screen, f"{index + 1}. 空き", (868, rect.y + 18), 16, MUTED)
-    draw_text(screen, "操作", (855, 475), 19, MUTED, True)
-    controls = (
-        "Space 調べる／岩に入る\n"
-        "L ものを拾う / 1-4 個体選択\n"
-        "T 行動指針 / R AIリセット\n"
-        "F5 個体獲得\n"
-        "F7 編成保存 / F8 編成読込\n"
-        "模擬戦は街の模擬戦会館から"
-    )
-    for line_index, line in enumerate(controls.splitlines()):
-        draw_text(screen, line, (855, 505 + line_index * 20), 13, MUTED)
+    # 地図名だけを常設し、編成や操作説明はFieldOverlayのメニューへ集約します。
+    draw_text(screen, session.map_data["display_name"], (24, 20), 16, TEXT)

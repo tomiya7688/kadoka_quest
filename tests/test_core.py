@@ -856,7 +856,9 @@ class UiWidgetTests(unittest.TestCase):
         self.assertEqual(append[0], {"kind": "command", "target": "password", "action": "append", "payload": {"character": "へ"}})
         self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(45, 15)), "password")[0]["action"], "backspace")
         fight = adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(15, 55)), "battle")
-        self.assertEqual(fight[0]["payload"], {"command": "fight"})
+        self.assertEqual(fight[0]["action"], "selection.set")
+        self.assertEqual(fight[0]["payload"], {"index": 0})
+        self.assertEqual(fight[1]["payload"], {"command": "fight"})
         self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(15, 55)), "battle", battle_enabled=False), [])
         self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=3, pos=(15, 55)), "battle"), [])
 

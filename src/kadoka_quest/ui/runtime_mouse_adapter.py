@@ -1,5 +1,5 @@
 # {
-#   責務: [runtime_mouse_adapter: 実行時・mouse・adapterの公開機能・宣言を定義する]
+#   責務: [runtime_mouse_adapter: 画面内の左クリックを既存runtimeへ渡す意味コマンドへ変換します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -12,22 +12,22 @@ import pygame
 # {
 #   責務: [RuntimeMouseAdapter: Translates screen-specific left clicks into semantic command requests.]
 #   フィールド: [
-#     password_keys: 暗号・キー一覧
-#     password_actions: 暗号・actions
-#     battle_buttons: 戦闘・buttons
+#     password_keys: 暗号の各文字とクリック領域
+#     password_actions: 暗号の操作名とクリック領域
+#     battle_buttons: 戦闘コマンド名とクリック領域
 #   ]
 # }
 class RuntimeMouseAdapter:
     """Translates screen-specific left clicks into semantic command requests."""
 
     # {
-    #   責務: [__init__: 実行時・mouse・adapterが利用する初期状態と依存を設定する]
-    #   処理: [1: 実行時・mouse・adapterが利用する初期状態と依存を設定する]
+    #   責務: [__init__: 暗号と戦闘の操作矩形を独立コピーして保持します]
+    #   処理: [1: 暗号と戦闘の操作矩形を独立コピーして保持します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     password_keys: 暗号・キー一覧（Iterable[tuple[str, pygame.Rect]]）
-    #     password_actions: 暗号・actions（Mapping[str, pygame.Rect]）
-    #     battle_buttons: 戦闘・buttons（Iterable[tuple[str, pygame.Rect]]）
+    #     password_keys: 暗号の各文字とクリック領域（Iterable[tuple[str, pygame.Rect]]）
+    #     password_actions: 暗号の操作名とクリック領域（Mapping[str, pygame.Rect]）
+    #     battle_buttons: 戦闘コマンド名とクリック領域（Iterable[tuple[str, pygame.Rect]]）
     #   ]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -42,16 +42,16 @@ class RuntimeMouseAdapter:
         self.battle_buttons = [(command, rect.copy()) for command, rect in battle_buttons]
 
     # {
-    #   責務: [translate: 実行時・mouse・adapterを変換する]
-    #   処理: [1: 実行時・mouse・adapterを変換する]
+    #   責務: [translate: 現在の画面と操作可能状態に合う左クリックだけをコマンドへ変換します]
+    #   処理: [1: 現在の画面と操作可能状態に合う左クリックだけをコマンドへ変換します]
     #   引数: [
     #     self: 処理対象インスタンス
     #     event: イベント（pygame.event.Event）
-    #     mode: mode（str）
-    #     battle_enabled: 戦闘・enabled（bool）
-    #     now: 現在時刻（int | None）
+    #     mode: field・battle・passwordの画面識別子（str）
+    #     battle_enabled: 戦闘コマンドを実行できるか（bool）
+    #     now: 演出開始へ渡すミリ秒時刻（int | None）
     #   ]
-    #   戻り値: [result: 実行時・mouse・adapterを変換するための結果（list[dict]）]
+    #   戻り値: [result: クリック位置に対応する意味コマンド列。対象外なら空列]
     # }
     def translate(
         self,
@@ -71,13 +71,13 @@ class RuntimeMouseAdapter:
         return []
 
     # {
-    #   責務: [_password_click: 実行時・mouse・adapterの暗号・clickを求める]
-    #   処理: [1: 実行時・mouse・adapterの暗号・clickを求める]
+    #   責務: [_password_click: クリック位置から暗号の文字キーまたは操作ボタンを特定します]
+    #   処理: [1: クリック位置から暗号の文字キーまたは操作ボタンを特定します]
     #   引数: [
     #     self: 処理対象インスタンス
     #     position: 座標（tuple[int, int]）
     #   ]
-    #   戻り値: [result: 実行時・mouse・adapterの暗号・clickを求めるための結果（list[dict]）]
+    #   戻り値: [result: 文字追加・一文字消去・決定・取消のいずれか一つの要求、または空列]
     # }
     def _password_click(self, position: tuple[int, int]) -> list[dict]:
         for character, rect in self.password_keys:
@@ -90,34 +90,35 @@ class RuntimeMouseAdapter:
         return []
 
     # {
-    #   責務: [_battle_click: 実行時・mouse・adapterの戦闘・clickを求める]
-    #   処理: [1: 実行時・mouse・adapterの戦闘・clickを求める]
+    #   責務: [_battle_click: 押した戦闘ボタンを選択してから、そのコマンドの実行要求を返します]
+    #   処理: [1: 共有矩形から押された項目を探し、選択更新とコマンド実行を順に返します]
     #   引数: [
     #     self: 処理対象インスタンス
     #     position: 座標（tuple[int, int]）
-    #     now: 現在時刻（int | None）
+    #     now: 演出開始へ渡すミリ秒時刻（int | None）
     #   ]
     #   戻り値: [result: 実行時・mouse・adapterの戦闘・clickを求めるための結果（list[dict]）]
     # }
     def _battle_click(self, position: tuple[int, int], now: int | None) -> list[dict]:
-        for command, rect in self.battle_buttons:
+        # マウス決定後も、キーボードの選択表示を実行したコマンドへ合わせます。
+        for index, (command, rect) in enumerate(self.battle_buttons):
             if not rect.collidepoint(position):
                 continue
             payload: dict[str, object] = {"command": command}
             if now is not None:
                 payload["now"] = int(now)
-            return [self._command("battle", "execute", **payload)]
+            return [self._command("battle", "selection.set", index=index), self._command("battle", "execute", **payload)]
         return []
 
     # {
-    #   責務: [_command: 実行時・mouse・adapterのコマンドを求める]
-    #   処理: [1: 実行時・mouse・adapterのコマンドを求める]
+    #   責務: [_command: 宛先と操作名と引数を意味コマンドの辞書へまとめます]
+    #   処理: [1: 宛先と操作名と引数を意味コマンドの辞書へまとめます]
     #   引数: [
     #     target: 対象（str）
-    #     action: action（str）
+    #     action: コマンドの操作名（str）
     #     payload: 要求データ（object）
     #   ]
-    #   戻り値: [result: 実行時・mouse・adapterのコマンドを求めるための結果（dict）]
+    #   戻り値: [result: kind・target・action・payloadを持つ意味コマンド辞書]
     # }
     @staticmethod
     def _command(target: str, action: str, **payload: object) -> dict:

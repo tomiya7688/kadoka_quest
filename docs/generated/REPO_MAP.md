@@ -1098,7 +1098,7 @@ draw_ai_tendencies(surface: pygame.Surface, rows: list[dict[str, Any]], rect: py
 ```text
 class BattleRenderer
   __init__(self, images: CharacterImageProvider) -> None
-  draw(self, screen: pygame.Surface, session: BattleSession, buttons: list[Button]) -> None
+  draw(self, screen: pygame.Surface, session: BattleSession, buttons: list[Button], status: str=...) -> None
 ```
 
 ## kadoka_quest/ui/character_image_provider.py
@@ -1137,10 +1137,86 @@ draw_status_bar(surface: pygame.Surface, message: str, rect: pygame.Rect, *, war
 smoke_frames() -> int | None
 ```
 
+## kadoka_quest/ui/field_overlay.py
+
+```text
+class FieldOverlay
+  __init__(self) -> None
+  observe_message(self, message: str, now: int) -> None
+  handle_event(self, event: pygame.event.Event) -> list[dict] | None
+  draw(self, screen: pygame.Surface, party: Sequence[MonsterRecord], selected_index: int, now: int) -> None
+```
+
 ## kadoka_quest/ui/field_renderer.py
 
 ```text
 draw_field(screen: pygame.Surface, session: FieldSession, images: CharacterImageProvider, party: Sequence[MonsterRecord], selected_index: int, now: int | None=...) -> None
+```
+
+## kadoka_quest/ui/game_ai_tendency_panel.py
+
+```text
+draw_ai_tendencies(surface, rows: list[dict], rect: pygame.Rect, columns: int=...) -> None
+```
+
+## kadoka_quest/ui/game_controls.py
+
+```text
+class Button
+  draw(self, surface: pygame.Surface, mouse: tuple[int, int]) -> None
+  handle(self, event: pygame.event.Event) -> bool
+class TextField(BaseTextField)
+  __init__(self, rect: pygame.Rect, value: str=..., numeric: bool=...) -> None
+  draw(self, surface: pygame.Surface, label: str=...) -> None
+class ScrollBar(BaseScrollBar)
+  __init__(self, rect: pygame.Rect, orientation: str=..., total: int=..., page: int=...) -> None
+  configure(self, total: int, page: int) -> None
+  thumb_rect(self) -> pygame.Rect
+  draw(self, surface: pygame.Surface, mouse: tuple[int, int]) -> None
+```
+
+## kadoka_quest/ui/game_navigation.py
+
+```text
+class GamepadDevices
+  __init__(self) -> None
+  open(self) -> None
+  add(self, index: int) -> bool
+  remove(self, instance_id: int) -> None
+initialize_gamepads() -> None
+navigation_event(event: pygame.event.Event) -> pygame.event.Event
+move_list_selection(selected: int, offset: int, total: int, page: int, key: int) -> tuple[int, int]
+```
+
+## kadoka_quest/ui/game_style.py
+
+```text
+draw_frame(surface, rect, color=..., width: int=..., fill=...) -> None
+draw_cursor(surface, position, color=..., scale: int=...) -> None
+```
+
+## kadoka_quest/ui/game_text.py
+
+```text
+class PixelFont
+  __init__(self, scale: int, bold: bool=...) -> None
+  size(self, text: str) -> tuple[int, int]
+  get_height(self) -> int
+  get_linesize(self) -> int
+  render(self, text: str, antialias: bool, color, background=...) -> pygame.Surface
+font(size: int, bold: bool=...) -> PixelFont
+reset_text_cache() -> None
+draw_text(surface, value, position, size: int=..., color=..., bold: bool=...) -> pygame.Rect
+draw_text_clipped(surface, value, rect, size: int=..., color=..., bold: bool=...) -> pygame.Rect
+wrap_lines(value: str, width: int, size: int=...) -> tuple[str, ...]
+draw_wrapped(surface, value: str, rect, size: int=..., color=..., line_gap: int=...) -> int
+```
+
+## kadoka_quest/ui/game_ui.py
+
+```text
+init_pygame(title: str, size: tuple[int, int])
+draw_status_bar(surface, message: str, rect, *, warning: bool=...) -> None
 ```
 
 ## kadoka_quest/ui/map_spawn_form.py
@@ -1245,4 +1321,16 @@ class SpawnTableDialog
   select_tab(self, tab: str) -> None
   handle(self, event: pygame.event.Event, mouse: tuple[int, int] | None=...) -> None
   draw(self, surface: pygame.Surface, mouse: tuple[int, int]) -> None
+```
+
+## kadoka_quest/ui/title_screen.py
+
+```text
+class TitleScreen
+  __init__(self, button_factory: Callable=...) -> None
+  set_profiles(self, names: list[str], active_name: str, select_name: str | None=...) -> None
+  selected_name(self) -> str
+  show_home(self) -> None
+  handle(self, event: pygame.event.Event) -> str | None
+  draw(self, screen: pygame.Surface, mouse: tuple[int, int]) -> None
 ```

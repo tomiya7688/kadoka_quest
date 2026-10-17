@@ -350,18 +350,21 @@ class GDScriptPartyTests(unittest.TestCase):
         self.assertEqual(self.files(), before)
 
     # {
-    #   責務: [test_tab_focus_cycles_and_shift_tab_returns_within_editor: 検証: tab focus cycles and shift tab returns within editor]
-    #   処理: [1: 検証: tab focus cycles and shift tab returns within editor]
+    #   責務: [test_tab_focus_cycles_and_shift_tab_returns_within_editor: 編成画面の七つの操作対象をTabで巡回し、逆順の末尾からプリセットを開けることを検証します。]
+    #   処理: [1: 七回のTabで初期フォーカスへ戻し、Shift+TabとEnterでプリセットボタンを作動させます。]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
     def test_tab_focus_cycles_and_shift_tab_returns_within_editor(self):
+        # プリセットボタンを含む全操作対象が、画面外へ抜けずに巡回できることを確認します。
         self.seed()
-        actual = self.probe([key("F6"), key("E")] + [key("TAB")] * 6 + [key("TAB", shift=True)])["observations"]
+        actual = self.probe([key("F6"), key("E")] + [key("TAB")] * 7 +
+                            [key("TAB", shift=True), key("ENTER")])["observations"]
         initial = actual[2]["focus"]
-        self.assertEqual(actual[-2]["focus"], initial)
-        self.assertNotEqual(actual[-1]["focus"], initial)
-        self.assertEqual(len({entry["focus"] for entry in actual[2:-1]}), 6)
+        self.assertEqual(actual[-3]["focus"], initial)
+        self.assertNotEqual(actual[-2]["focus"], initial)
+        self.assertEqual(len({entry["focus"] for entry in actual[2:-2]}), 7)
+        self.assertTrue(actual[-1]["preset_visible"])
 
     # {
     #   責務: [test_large_owned_list_keyboard_end_scrolls_and_selects_last: 検証: large owned list keyboard end scrolls and selects last]

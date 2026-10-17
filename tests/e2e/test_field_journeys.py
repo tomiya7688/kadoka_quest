@@ -12,10 +12,10 @@ from .harness import PROJECT_ROOT
 
 
 # {
-#   責務: [tap: test・フィールド・journeysのtapを求める]
-#   処理: [1: test・フィールド・journeysのtapを求める]
-#   引数: [key: キー]
-#   戻り値: [result: test・フィールド・journeysのtapを求めるための結果（型注釈なし）]
+#   責務: [tap: フィールドでキーを一度押して離す操作列を作ります]
+#   処理: [1: 押下・解放・120ミリ秒経過を順に並べます]
+#   引数: [key: pygameのキー名]
+#   戻り値: [result: E2Eドライバが実行する三つの操作]
 # }
 def tap(key):
     return [{"kind": "key_down", "key": key}, {"kind": "key_up", "key": key},
@@ -23,73 +23,78 @@ def tap(key):
 
 
 # {
-#   責務: [name_input: test・フィールド・journeysの名前・入力を求める]
-#   処理: [1: test・フィールド・journeysの名前・入力を求める]
-#   引数: [name: 名前]
-#   戻り値: [result: test・フィールド・journeysの名前・入力を求めるための結果（型注釈なし）]
+#   責務: [name_input: フォーカス中のセーブ名入力を指定名へ置き換える操作列を作ります]
+#   処理: [1: 既存文字を消して、指定した名前をキー入力します]
+#   引数: [name: 作成または複製するセーブ名]
+#   戻り値: [result: 名前入力欄へ送る消去と文字入力の操作列]
 # }
 def name_input(name):
-    return [{"kind": "click", "pos": [100, 205]}] + [
+    return [
         {"kind": "key", "key": "backspace"} for _ in range(40)
     ] + [{"kind": "text", "text": name}]
 
 
 # {
-#   責務: [new_game: ゲームを新規作成する]
-#   処理: [1: ゲームを新規作成する]
+#   責務: [new_game: タイトルからキー操作だけで新規セーブを作成し、ゲームを起動する手順を作ります]
+#   処理: [1: 新規作成画面を開き、名前を入力し、作成後にゲーム開始を選びます]
 #   引数: [
 #     name: 名前
 #     label: 表示名
 #   ]
-#   戻り値: [result: ゲームを新規作成するための結果（型注釈なし）]
+#   戻り値: [result: ランチャーの実ループへ送る入力手順と検査地点名]
 # }
 def new_game(name, label):
-    return {"kind": "launcher", "label": label, "frames": [name_input(name) + [
-        {"kind": "click", "pos": [100, 265]}, {"kind": "click", "pos": [500, 175]},
+    return {"kind": "launcher", "label": label, "frames": [[
+        {"kind": "key", "key": "down"}, {"kind": "key", "key": "down"},
+        {"kind": "key", "key": "return"},
+    ] + name_input(name) + [
+        {"kind": "key", "key": "return"}, {"kind": "key", "key": "return"},
     ]]}
 
 
 # {
-#   責務: [load_game: ゲームを読み込む]
-#   処理: [1: ゲームを読み込む]
+#   責務: [load_game: タイトルの保存一覧から指定行を選び、その記録でゲームを開始する手順を作ります]
+#   処理: [1: 一覧の先頭から指定行へ進み、読込とゲーム開始を決定します]
 #   引数: [
 #     index: 位置番号
 #     label: 表示名
 #   ]
-#   戻り値: [result: ゲームを読み込むための結果（型注釈なし）]
+#   戻り値: [result: ランチャーの実ループへ送る入力手順と検査地点名]
 # }
 def load_game(index, label):
     return {"kind": "launcher", "label": label, "frames": [[
-        {"kind": "click", "pos": [100, 405 + index * 40]},
-        {"kind": "click", "pos": [100, 322]}, {"kind": "click", "pos": [500, 175]},
+        {"kind": "key", "key": "down"}, {"kind": "key", "key": "return"},
+        {"kind": "key", "key": "home"},
+    ] + [{"kind": "key", "key": "down"} for _ in range(index)] + [
+        {"kind": "key", "key": "return"}, {"kind": "key", "key": "return"},
     ]]}
 
 
 # {
-#   責務: [snapshot: test・フィールド・journeysを状態を複製する]
-#   処理: [1: test・フィールド・journeysを状態を複製する]
-#   引数: [label: 表示名]
-#   戻り値: [result: test・フィールド・journeysを状態を複製するための結果（型注釈なし）]
+#   責務: [snapshot: ゲームと保存内容を比較する検査地点の取得要求を作ります]
+#   処理: [1: 検査地点名を状態取得要求へ付けます]
+#   引数: [label: 後の検証で参照する検査地点名]
+#   戻り値: [result: E2Eドライバへ渡す状態取得要求]
 # }
 def snapshot(label):
     return {"kind": "snapshot", "label": label}
 
 
 # {
-#   責務: [xy: test・フィールド・journeysのxyを求める]
-#   処理: [1: test・フィールド・journeysのxyを求める]
-#   引数: [point: 地点]
-#   戻り値: [result: test・フィールド・journeysのxyを求めるための結果（型注釈なし）]
+#   責務: [xy: 検査地点から主人公のタイル座標を取り出します]
+#   処理: [1: 主人公のxとyを独立した辞書へ写します]
+#   引数: [point: E2Eドライバが記録した検査地点]
+#   戻り値: [result: 主人公のxとyを持つ辞書]
 # }
 def xy(point):
     return {key: point["player"][key] for key in ("x", "y")}
 
 
 # {
-#   責務: [species: test・フィールド・journeysの種族を求める]
-#   処理: [1: test・フィールド・journeysの種族を求める]
-#   引数: [point: 地点]
-#   戻り値: [result: test・フィールド・journeysの種族を求めるための結果（型注釈なし）]
+#   責務: [species: 検査地点の所有モンスターから種族IDの集合を作ります]
+#   処理: [1: 個体レコードのspecies_idを重複なしで集めます]
+#   引数: [point: E2Eドライバが記録した検査地点]
+#   戻り値: [result: 所有している種族IDの集合]
 # }
 def species(point):
     return {record["monster"]["species_id"] for record in point["monsters"]}
@@ -121,6 +126,7 @@ def test_player_new_game_and_reload(scenario_runner):
     assert started["saved_files"]["meta.json"]["name"] == "journey_01"
     assert set(started["launcher_runs"][0]["controls"]) == {
         "新規作成", "別名保存", "選択データを読み込む", "ゲームを開始", "終了",
+        "セーブデータを選ぶ", "戻る",
     }
     assert "はじまりの街" in points["displayed"]["render"]["texts"]
     assert not any("エディタ" in text or "開発用" in text for text in points["displayed"]["render"]["texts"])
@@ -163,8 +169,12 @@ def test_named_load_restores_selected_profile_without_changing_other(scenario_ru
 # }
 def test_save_as_copies_owned_data_and_keeps_source_independent(scenario_runner):
     """KQ-P04: Given saved A with AI/items/preset; When UI copies to B; Then IDs persist and later B edits spare A."""
-    copy = {"kind": "launcher", "label": "copied", "frames": [name_input("copy_b") + [
-        {"kind": "click", "pos": [250, 265]}, {"kind": "click", "pos": [500, 175]},
+    copy = {"kind": "launcher", "label": "copied", "frames": [[
+        {"kind": "key", "key": "down"}, {"kind": "key", "key": "return"},
+        {"kind": "key", "key": "tab"}, {"kind": "key", "key": "tab"},
+        {"kind": "key", "key": "return"},
+    ] + name_input("copy_b") + [
+        {"kind": "key", "key": "return"}, {"kind": "key", "key": "return"},
     ]]}
     gain = {"kind": "command", "target": "field", "action": "item.gain", "payload": {"item_id": "orange"}}
     points = scenario_runner.run([

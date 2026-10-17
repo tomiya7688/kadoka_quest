@@ -206,22 +206,24 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertFalse(result["visible"])
 
     # {
-    #   責務: [test_empty_and_wrong_submit_stay_open_cancel_and_reopen_reset_input: 検証: empty and wrong submit stay open cancel and reopen reset input]
-    #   処理: [1: 検証: empty and wrong submit stay open cancel and reopen reset input]
+    #   責務: [test_empty_and_wrong_submit_stay_open_cancel_and_reopen_reset_input: 空入力と誤った暗号の明示確定では画面が閉じず、取消後の再表示で入力が消えることを検証します。]
+    #   処理: [1: 入力欄の空Enterと確定ボタンのEnterを試し、取消後に暗号画面を開き直します。]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
     def test_empty_and_wrong_submit_stay_open_cancel_and_reopen_reset_input(self) -> None:
+        # 仮想かなボタンのEnterは文字入力なので、暗号の判定は確定ボタンから要求します。
         result = self.scene(OPEN + [
             {"kind": "key", "key": "Enter"}, {"kind": "click", "target": "あ"},
+            {"kind": "focus", "target": "submit"},
             {"kind": "key", "key": "Enter"}, {"kind": "key", "key": "Escape"},
             {"kind": "key", "key": "E"},
         ])
-        for observation in (result[2], result[4]):
+        for observation in (result[2], result[5]):
             self.assertEqual(observation["message"], "あいことばが違います。")
             self.assertTrue(observation["state"]["active"])
             self.assertEqual(observation["signals"], [])
-        self.assertEqual(result[5]["result"], {"kind": "password_cancelled"})
+        self.assertEqual(result[6]["result"], {"kind": "password_cancelled"})
         self.assertEqual(result[-1]["state"]["input_text"], "")
         self.assertEqual(result[-1]["message"], "7文字のあいことばを入力してください。")
         self.assertTrue(result[-1]["visible"])
@@ -243,16 +245,18 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertFalse(result[-1]["visible"])
 
     # {
-    #   責務: [test_committed_text_signal_and_unicode_with_virtual_button_focus_do_not_double_append: 検証: committed text signal and unicode with virtual button focus do not double append]
-    #   処理: [1: 検証: committed text signal and unicode with virtual button focus do not double append]
+    #   責務: [test_committed_text_signal_and_unicode_with_virtual_button_focus_do_not_double_append: 確定済みテキストと仮想かな選択中のUnicode入力が重複せず、確定ボタンで正しい暗号を判定できることを検証します。]
+    #   処理: [1: 不正文字を含む確定テキストを入力し、末尾を修正して確定ボタンのEnterで一度だけ結果を受け取ります。]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
     def test_committed_text_signal_and_unicode_with_virtual_button_focus_do_not_double_append(self) -> None:
+        # 日本語入力は仮想キーへフォーカスがある場合も受け付け、送信だけは明示操作に分けます。
         result = self.scene(OPEN + [
             {"kind": "commit_signal", "value": "へいx😀わなすみかあ"},
             {"kind": "key", "key": "Backspace"}, {"kind": "focus", "target": "あ"},
-            {"kind": "type", "value": "か"}, {"kind": "key", "key": "Enter"},
+            {"kind": "type", "value": "か"}, {"kind": "focus", "target": "submit"},
+            {"kind": "key", "key": "Enter"},
         ])
         self.assertEqual(result[2]["state"]["input_text"], PASSWORD)
         self.assertEqual(result[2]["native_text"], "")
@@ -289,17 +293,21 @@ class GDScriptPasswordTests(unittest.TestCase):
         self.assertFalse((self.content / "saves").exists())
 
     # {
-    #   責務: [test_tab_space_virtual_navigation_and_wrong_full_length_stay_modal: 検証: tab space virtual navigation and wrong full length stay modal]
-    #   処理: [1: 検証: tab space virtual navigation and wrong full length stay modal]
+    #   責務: [test_tab_space_virtual_navigation_and_wrong_full_length_stay_modal: Tabで選んだ仮想かなはSpaceとEnterで入力でき、確定ボタンから送信した誤った七文字では画面が閉じないことを検証します。]
+    #   処理: [1: 仮想かなのSpaceとEnterで二文字を入力し、七文字まで埋めて明示確定した結果を確認します。]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
     def test_tab_space_virtual_navigation_and_wrong_full_length_stay_modal(self) -> None:
+        # Enterによる仮想かな入力と、確定ボタンによる暗号判定を別の操作として検証します。
         result = self.scene(OPEN + [
             {"kind": "key", "key": "Tab"}, {"kind": "key", "key": "Space"},
-            {"kind": "type", "value": "あ" * 6}, {"kind": "key", "key": "Enter"},
+            {"kind": "key", "key": "Enter"}, {"kind": "type", "value": "あ" * 5},
+            {"kind": "focus", "target": "submit"}, {"kind": "key", "key": "Enter"},
         ])
         self.assertEqual(result[3]["state"]["input_text"], "あ")
+        self.assertEqual(result[4]["state"]["input_text"], "ああ")
+        self.assertEqual(result[4]["signals"], [])
         self.assertEqual(result[-1]["state"]["input_text"], "あ" * 7)
         self.assertEqual(result[-1]["message"], "あいことばが違います。")
         self.assertTrue(result[-1]["visible"])
