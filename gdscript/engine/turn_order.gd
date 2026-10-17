@@ -5,6 +5,7 @@
 extends RefCounted
 ## Pure base-speed ordering and latest-resource eligibility. No turns executed here.
 
+const Eligibility = preload("res://engine/actor_eligibility_projection.gd")
 const State = preload("res://engine/combatant_state.gd")
 const Records = preload("res://engine/monster_record_contract.gd")
 const SIDES := ["allies", "enemies"]
@@ -100,19 +101,18 @@ static func check_actor(key: Variant, allies: Variant, enemies: Variant) -> Dict
 	var other: String = "enemies" if key["side"] == "allies" else "allies"
 	var foes: Array = prepared["teams"][other]["living"]
 	var actor: Dictionary = friends["by_id"][key["id"]]
-	var reason := "no_living_foes" if foes.is_empty() else ("ready" if actor["alive"] else "actor_not_alive")
-	return {"ok": true, "can_act": reason == "ready", "stop": foes.is_empty(), "reason": reason,
-		"actor": key.duplicate(true), "friends": friends["living"].duplicate(true), "foes": foes.duplicate(true)}
+	# 生の参加者形式の厳密検査は維持し、検証後の行動可否の組立だけをSessionと共用します。
+	return Eligibility.project(key, actor["alive"], friends["living"], foes)
 
 
 # {
-#   責務: [_prepare: ターン・順序を準備する]
-#   処理: [1: ターン・順序を準備する]
+#   責務: [_prepare: 両陣営の参加上限と厳密な数値snapshotを検証し、生存者とID索引を独立構築します]
+#   処理: [1: 最大四体/陣営と六キー資源を共用検証し、形式不正は部分結果なしで拒否します]
 #   引数: [
-#     allies: 味方（Variant）
-#     enemies: 敵（Variant）
+#     allies: 味方の数値snapshot列（Variant）
+#     enemies: 敵の数値snapshot列（Variant）
 #   ]
-#   戻り値: [result: ターン・順序を準備するための結果（Dictionary）]
+#   戻り値: [result: 陣営別living/by_id、または不正陣営/参加者の拒否理由（Dictionary）]
 # }
 static func _prepare(allies: Variant, enemies: Variant) -> Dictionary:
 	var teams: Dictionary = {}
@@ -151,10 +151,10 @@ static func _keys(prepared: Dictionary) -> Array:
 
 
 # {
-#   責務: [_valid_key: ターン・順序のvalid・キーを求める]
-#   処理: [1: ターン・順序のvalid・キーを求める]
-#   引数: [key: キー（Variant）]
-#   戻り値: [result: ターン・順序のvalid・キーを求めるための結果（bool）]
+#   責務: [_valid_key: 参加者指定がside/idだけを持ち、許可陣営と安全な文字列IDであるか確認します]
+#   処理: [1: 厳密二キー辞書とallies/enemies・Records.safe_idに適合するIDを確認します]
+#   引数: [key: 参加者の存在検索前に形式を調べる候補（Variant）]
+#   戻り値: [valid: 形式が正しければtrue。存在/生存は検査しません（bool）]
 # }
 static func _valid_key(key: Variant) -> bool:
 	return key is Dictionary and _exact_keys(key, ["side", "id"]) \
@@ -163,13 +163,13 @@ static func _valid_key(key: Variant) -> bool:
 
 
 # {
-#   責務: [_exact_keys: ターン・順序のexact・キー一覧を求める]
-#   処理: [1: ターン・順序のexact・キー一覧を求める]
+#   責務: [_exact_keys: 入力辞書のキー集合が指定したキー一覧と一致するか確認します]
+#   処理: [1: 辞書のキー数と所属を照合し、欠落/未知キーを拒否します]
 #   引数: [
-#     value: 値（Dictionary）
-#     expected: expected（Array）
+#     value: キー集合を確認する入力辞書（Dictionary）
+#     expected: 許可する全キーの一覧（Array）
 #   ]
-#   戻り値: [result: ターン・順序のexact・キー一覧を求めるための結果（bool）]
+#   戻り値: [matches: キーの欠落/未知がなければtrue（bool）]
 # }
 static func _exact_keys(value: Dictionary, expected: Array) -> bool:
 	if value.size() != expected.size():

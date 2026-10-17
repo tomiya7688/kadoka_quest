@@ -123,3 +123,6 @@ Project-specific OCR, screen capture, Windows input, GUI automation, or unrelate
 
 
 付与付き物理の準備済み索引からの選択はcheck_gdscript_status_physical.py --contextで測ります。開発者はKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから実行してください。標準20000回・7サンプル・2000回事前実行で一選択中央値3000us以内、固定八体/千定義・付与定義・装備倍率2/加算3・初期状態/耐性・数値六キーと原本保持を照合します。準備/索引構築・I/O・実HPMP/状態更新・予約・AI・描画・保存は測りません。拒否だけの高速結果は通過せず、Godot未指定は終了コード2の未検証です。入出力と未接続範囲は[実行準備契約](../docs/GDScript状態付与付き物理準備契約.md)を確認してください。
+
+
+付与付き物理の最新予約/資源/状態の非消費検査はcheck_gdscript_status_physical.py --preflightで測ります。開発者はKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから実行してください。標準20000回・7サンプル・2000回事前実行で一検査中央値3000us以内と、固定八体/千定義・成功選択/最新状態・満資源/提示予約の保持を照合します。高速拒否だけでは通過しません。準備/索引作成・起動/I/O・実行/能力補正・AI・描画・保存は測りません。Godot未指定は終了コード2の未検証です。入出力/拒否/未接続範囲は[開始/検査契約](../docs/GDScript状態付与付き物理検査契約.md)を確認してください。

@@ -126,23 +126,10 @@ static func _select(context: Dictionary, request: Dictionary) -> Dictionary:
 #   戻り値: [result: 一選択の中央値・固定期待値照合用の準備要素・実選択・保持確認（Dictionary）]
 # }
 static func _measure(payload: Dictionary) -> Dictionary:
-	var teams := {"allies": [], "enemies": []}
-	var statuses := {"allies": {}, "enemies": {}}
-	for side in ["allies", "enemies"]:
-		for index in 4:
-			var id := "member_" + str(index)
-			var stats := {"hp": 100, "mp": 100, "attack": 10, "defense": 10, "magic": 10, "speed": 10}
-			teams[side].append({"snapshot": {"identity": {"id": id, "species_id": "slime", "name": id},
-				"stats": stats, "hp": 100, "mp": 100, "fled": false, "alive": true}, "skill_ids": ["mod_status_hit"],
-				"equipment": {"allowed_species_ids": ["slime"], "fixed_bonus_damage": 3,
-					"skill_modifiers": {"mod_status_hit": {"power_multiplier": 2}}}, "status_resistances": {"bleeding": "weak"}})
-			statuses[side][id] = ["poison", {"id": "mod", "metadata": {"deck": [1, true]}}]
-	var skills := {"schema_version": 1, "skills": []}
-	for index in 999:
-		skills["skills"].append({"id": "other_" + str(index), "kind": "mod_unknown"})
-	var definition := {"id": "mod_status_hit", "display_name": "計測用付与打撃", "kind": "physical", "mp_cost": 3,
-		"status_effect": {"id": "bleeding", "chance": 0.4, "metadata": {"deck": [1, {"kept": true}]}}}
-	skills["skills"].append(definition)
+	var source := _inputs()
+	var teams: Dictionary = source["teams"]
+	var statuses: Dictionary = source["statuses"]
+	var skills: Dictionary = source["skills"]
 	var before := JSON.stringify([teams, skills, statuses])
 	var prepared := Context.prepare(teams, skills, statuses)
 	if not prepared["ok"]:
@@ -171,3 +158,30 @@ static func _measure(payload: Dictionary) -> Dictionary:
 		"snapshot": prepared["snapshots"]["allies"][0].duplicate(true),
 		"prepared_preserved": prepared_before == JSON.stringify(prepared),
 		"input_preserved": before == JSON.stringify([teams, skills, statuses])}
+
+
+# {
+#   責務: [_inputs: 選択/非消費検査の性能確認へ、八体/千定義・ネスト状態/耐性/装備の共用固定入力を作ります]
+#   処理: [1: 独立した両陣営・状態辞書と一件の対応定義を含む千件一覧を返します]
+#   引数: []
+#   戻り値: [result: teams/statuses/skillsだけを持つ独立した計測入力（Dictionary）]
+# }
+static func _inputs() -> Dictionary:
+	var teams := {"allies": [], "enemies": []}
+	var statuses := {"allies": {}, "enemies": {}}
+	for side in ["allies", "enemies"]:
+		for index in 4:
+			var id := "member_" + str(index)
+			var stats := {"hp": 100, "mp": 100, "attack": 10, "defense": 10, "magic": 10, "speed": 10}
+			teams[side].append({"snapshot": {"identity": {"id": id, "species_id": "slime", "name": id},
+				"stats": stats, "hp": 100, "mp": 100, "fled": false, "alive": true}, "skill_ids": ["mod_status_hit"],
+				"equipment": {"allowed_species_ids": ["slime"], "fixed_bonus_damage": 3,
+					"skill_modifiers": {"mod_status_hit": {"power_multiplier": 2}}}, "status_resistances": {"bleeding": "weak"}})
+			statuses[side][id] = ["poison", {"id": "mod", "metadata": {"deck": [1, true]}}]
+	var skills := {"schema_version": 1, "skills": []}
+	for index in 999:
+		skills["skills"].append({"id": "other_" + str(index), "kind": "mod_unknown"})
+	var definition := {"id": "mod_status_hit", "display_name": "計測用付与打撃", "kind": "physical", "mp_cost": 3,
+		"status_effect": {"id": "bleeding", "chance": 0.4, "metadata": {"deck": [1, {"kept": true}]}}}
+	skills["skills"].append(definition)
+	return {"teams": teams, "statuses": statuses, "skills": skills}

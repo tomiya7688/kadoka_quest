@@ -1,6 +1,6 @@
 # GDScript戦闘Session契約（#229）
 
-#227のHP/MP・生死Stateと別契約のguardを所有し、#228の固定行動順を1体ずつ消費します。攻撃/全スキル/AI/演出/勝敗/保存/教会復活は実行しません。Sceneへの接続もありません。個体別の手動コマンドUIを追加する契約ではありません。
+戦闘Sessionはcombatant_state.gdのHP/MP・生死と、別契約の物理防御倍率guardを所有し、turn_order.gdで固定した行動順を一体ずつ消費します。攻撃/全スキル/AI/演出/勝敗/保存/教会復活は実行しません。Sceneへの接続もありません。個体別の手動コマンドUIを追加する契約ではありません。
 
 ## 所有と新規開始
 
@@ -34,6 +34,31 @@ ticketはちょうど `{"round":1,"slot":0,"actor":{"side":"allies","id":"slime_
 `application/battle_session_application.gd` の `start(allies_records, enemies_records, shuffle_order)` は既存read-only Preparation→新しいSession.start→begin_roundを調停します。全成功後だけ内部Sessionを公開用snapshotへ切り替えます。失敗時はnot_startedのまま、修復/書換なしです。返却はok/preparation/sessionのplain data。#230では[通常攻撃行動契約](GDScript通常攻撃行動契約.md)のread-only定義準備と行動ルーティングを追加し、begin_round/next_actor/resolve_normal_attackも公開しました。Session自体へ攻撃計算は追加しません。
 
 準備のwarnings/equipmentは独立plain結果で保持しますが、Sessionの資源snapshotにAI/耐性/状態異常等を混ぜません。snapshot追加キーは未対応として拒否し、保有JSONの未知キーを削除しません。保存schema/ファイルを追加せず、個体/学習済AI/party/items/data/assetsを保持します。
+
+## 所有資源の最新行動可否と性能境界
+
+戦闘Sessionは開始時に検証済みのcombatant_stateを個体別に保持し、HP/MP/逃走の更新を各所有者の公開APIへ委譲します。各所有者は資源の型/範囲・生存フラグの不変条件を保ちます。Sessionの内部行動可否は、外部JSON相当の全員コピーを毎回作って再検証せず、各所有者の最新alive()を読み、生存者だけのsnapshotを共用投影へ渡します。
+
+actor_eligibility_projection.projectは、形式/存在を確認済みのside/id、最新の行動者生存値、両陣営の検証済み生存者列から、can_act/stop/reasonと独立したactor/friends/foesを組み立てます。投影は生存敵なしを最優先にし、その後で行動者の死亡/逃走を確認します。Sessionと公開turn_order.check_actorは同じ投影を使い、可否の優先規則を二重実装しません。
+
+公開turn_order.check_actorは、生のキー・陣営数・六キー数値資源・安全なID・有限整数・未知キー/整合性を従来どおり検証します。Sessionのキーは検証済み行動順か現在予約に由来し、inspect/claimは現在ticketとの厳密一致とoffered段階を従来どおり確認します。内部投影は新しい行動許可や、入力検証を省略する要求モードではありません。
+
+Sessionは生存者や行動可否をキャッシュしません。予約提示後の死亡/逃走/HP回復・敵の消滅、消費後のMP/HPも次のinspect/claimの読取へ反映します。返却された友軍/敵の数値やキーを編集しても、内部所有資源/予約を変更しません。開発者は公開の開始/資源APIで状態を更新してください。内部所有者のプライベート変数を直接変更する使い方は、本契約の対象外です。
+
+この改善は最大八体の戦闘参加者だけを対象とし、無制限の保有個体を走査しません。数値snapshot六キー、Session七キー、状態一覧とguardの分離、行動順、保存JSON/schemaは変わりません。生存投影は状態異常による能力/行動補正、AI、ダメージ計算、I/Oや描画を追加しません。
+
+開発者はリポジトリルートで使えるPython/Godotを指定し、次を順番に実行してください。機能/性能テストと重い標準性能測定を同時実行しないでください。性能上限は従来のSession一行動2000us、治療/付与一行動3000usを維持します。
+
+```powershell
+$env:KADOKA_GODOT_EXECUTABLE = '<Godotの実行ファイル>'
+$env:PYTHONPATH = 'src'
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_session_eligibility.py tests/test_gdscript_battle_session.py tests/test_gdscript_turn_order.py tests/test_gdscript_cure_heal_action.py tests/test_gdscript_session_status_application.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --cure-action
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_cure.py --session-status-apply
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_battle_session.py
+```
+
+新規の生存投影テストは、固定seedの八体三十二編成と提示後の資源変更を、公開の生入力契約と独立Python期待値へ比較します。テストは敵なし優先・同ID陣営分離・最新生存/資源・予約の非消費・コピー独立性と従来の厳密検査を確認します。テストは実セーブを使いません。開発者はテストが拒否した場合に上限や検査を緩めず、Godotの診断・資源不一致・計測条件を確認してください。
 
 ## 検証範囲
 

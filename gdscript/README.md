@@ -273,3 +273,11 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_physical_context.py tests/test_gdscript_cure_heal_context.py tests/test_gdscript_combatant.py -q
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_physical.py --context
 ```
+
+
+[付与付き物理の専用開始/非消費検査](../docs/GDScript状態付与付き物理検査契約.md)を追加しました。Application.start_with_statusesは全設定成功後だけ専用検査を公開します。inspect_status_physical_skillへ現在ticket/敵target/習得済みskill_idの三キーを渡すと、検査は最新MP/HP・状態/耐性/guardを独立コピーで返します。検査は予約/資源/状態を消費せず、状態補正や実攻撃・AI/画面は未接続です。開発者はリポジトリルートで使えるPython/Godotを指定し、次を実行してください。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_physical_preflight.py tests/test_gdscript_physical_action.py tests/test_gdscript_cure_heal_action.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_status_physical.py --preflight
+```

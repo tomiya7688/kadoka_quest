@@ -86,29 +86,29 @@ def request(allies=None, enemies=None, **changes):
 
 
 # {
-#   責務: [case: test・gdscript・ターン・順序のcaseを求める]
-#   処理: [1: test・gdscript・ターン・順序のcaseを求める]
+#   責務: [case: 操作名と入力値を持つターン順序プローブのケース辞書を作ります]
+#   処理: [1: 指定operationとinputへケース別条件を加え、入力値自体はコピーせず参照します]
 #   引数: [
-#     operation: operation
-#     value: 値
-#     changes: changes
+#     operation: プローブへ依頼する参加者/順序/可否の操作名
+#     value: 指定操作の入力として渡す資源/順序条件
+#     changes: ケース別に上書きする観測条件
 #   ]
-#   戻り値: [result: test・gdscript・ターン・順序のcaseを求めるための結果（型注釈なし）]
+#   戻り値: [result: operation/inputと指定観測条件を持つ辞書（dict）]
 # }
 def case(operation, value, **changes):
     return {"operation": operation, "input": value, **changes}
 
 
 # {
-#   責務: [TurnBoundaryTests: ターン・boundary・testsの状態と振る舞いを担当する]
+#   責務: [TurnBoundaryTests: ターン順序の純粋engineと開発専用性能検査の依存境界を静的に検証します]
 #   フィールド: []
 # }
 class TurnBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_order_keeps_io_ui_rng_ai_and_actions_out_of_pure_engine: 検証: order keeps io ui rng ai and actions out of pure engine]
-    #   処理: [1: 検証: order keeps io ui rng ai and actions out of pure engine]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_order_keeps_io_ui_rng_ai_and_actions_out_of_pure_engine: ターン順序engineへIO/描画/乱数/AI/資源更新を混入させず、開始調停とfieldからの依存も分離します]
+    #   処理: [1: 順序engine/開始調停/fieldのソースへ禁止依存がないことを確認します]
+    #   引数: [self: ターン順序の依存境界を確認するテストケース]
+    #   戻り値: [result: なし（None）。禁止依存や性能条件の欠落はassert失敗です]
     # }
     def test_order_keeps_io_ui_rng_ai_and_actions_out_of_pure_engine(self):
         source = (ROOT / "gdscript/engine/turn_order.gd").read_text(encoding="utf-8")
@@ -124,10 +124,10 @@ class TurnBoundaryTests(unittest.TestCase):
         self.assertNotIn("turn_order", field)
 
     # {
-    #   責務: [test_performance_guard_is_developer_only_and_covers_plan_and_latest_check: 検証: performance guard is developer only and covers plan and latest check]
-    #   処理: [1: 検証: performance guard is developer only and covers plan and latest check]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_performance_guard_is_developer_only_and_covers_plan_and_latest_check: 順序計画/最新行動可否の性能検査を開発専用に保ち、Playerからのimportを防ぎます]
+    #   処理: [1: プローブの実呼出し/性能上限と、Player側ソースのツール未依存を照合します]
+    #   引数: [self: ターン順序の依存境界を確認するテストケース]
+    #   戻り値: [result: なし（None）。禁止依存や性能条件の欠落はassert失敗です]
     # }
     def test_performance_guard_is_developer_only_and_covers_plan_and_latest_check(self):
         probe = (ROOT / "gdscript/tests/run_combatant_probe.gd").read_text(encoding="utf-8")

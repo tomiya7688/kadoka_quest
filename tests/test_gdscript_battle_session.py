@@ -92,7 +92,7 @@ class SessionBoundaryTests(unittest.TestCase):
         for forbidden in ("FileAccess", "DirAccess", "OS.", "randf(", "randi(", "RandomNumberGenerator", "Input.",
                           "res://data/", "res://ui/", "res://application/", ".learn(", "normal_attack(", "sort_custom("):
             self.assertNotIn(forbidden, source)
-        for delegated in ("Order.plan(", "Order.check_actor(", ".take_damage(", ".pay_mp(", ".flee("):
+        for delegated in ("Order.plan(", "Eligibility.project(", ".take_damage(", ".pay_mp(", ".flee("):
             self.assertIn(delegated, source)
         source = (ROOT / "gdscript/application/battle_session_application.gd").read_text(encoding="utf-8")
         for forbidden in ("FileAccess", "DirAccess", "write_atomic", "save(", "Label", ".learn(", ".take_damage("):

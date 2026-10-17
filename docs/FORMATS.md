@@ -509,4 +509,13 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 Builderのstatus_resistancesは属性resistancesと独立し、Pythonと同じく装備の属性resistance_stepsや＋選択を状態耐性へ加えません。未知の文字列耐性名は保持して既存付与契約へ渡します。数値snapshot六キー/Session七キー、正規データと保存JSON/schemaは維持します。初期状態の検証/コピーは治療準備と共用します。
 
-専用selectは習得済みの付与付きphysical定義と選択IDの装備補正だけを返し、通常物理入口の付与拒否を維持します。準備/選択はHPMP・状態・予約・保存を実更新せず、Session/Application行動接続・状態能力補正・AI・画面は未接続です。
+専用selectは習得済みの付与付きphysical定義と選択IDの装備補正だけを返し、通常物理入口の付与拒否を維持します。準備/選択はHPMP・状態・予約・保存を実更新せず、専用開始とSession/Applicationの非消費検査へ接続しました。実攻撃・状態能力補正・AI・画面は未接続です。
+
+
+### GDScriptの付与付き物理の非消費検査（保存形式変更なし）
+
+[開始/検査契約](GDScript状態付与付き物理検査契約.md)は初回ラウンド前のSessionと数値/初期状態が一致した場合だけ非公開contextを保持します。Application.start_with_statusesは候補Session/各行動/検査と初回ラウンドが全成功した場合だけ参照を公開し、従来startは専用検査を設定しません。
+
+inspect_status_physical_skillの要求はticket/target/skill_idの三キーだけです。検査は最新offered・習得/定義/許可装備・敵対象・実行可能者の最新MP/対象生存を確認します。成功scope=status_physical_preflight_onlyは非消費の読取で、独立ticket/eligibility/skill/equipment・actor_resources/target_resources・actor_status/target_status・target_status_resistances/target_guardを返します。stats_scope=before_status_modifiersは状態補正前のstatsを示します。
+
+検査は乱数/外部状態/定義の指定、未知キー、取得済み/古い予約を拒否します。行動不能者はeligibility.can_act=falseとして区別し、検査は予約取消/claim/HPMP変更/状態付与を行いません。検査結果は実行許可/最終ダメージではなく、数値/保存JSON/schemaと通常物理の付与拒否を維持します。

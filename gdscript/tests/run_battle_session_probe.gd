@@ -8,6 +8,7 @@ extends SceneTree
 const Session = preload("res://engine/battle_session.gd")
 const Application = preload("res://application/battle_session_application.gd")
 const Repository = preload("res://data/content_repository.gd")
+const Eligibility = preload("res://engine/actor_eligibility_projection.gd")
 const Order = preload("res://engine/turn_order.gd")
 
 
@@ -93,6 +94,21 @@ func _execute(session: RefCounted, action: Dictionary, input: Dictionary) -> Dic
 		"pay": return session.pay_mp(action.get("actor"), value)
 		"flee": return session.flee(action.get("actor"))
 		"snapshot": return session.snapshot()
+		"heal": return session.heal(action.get("actor"), value)
+		"restore": return session.restore_mp(action.get("actor"), value)
+		"inspect": return session.inspect_ticket(ticket)
+		"eligibility_parity":
+			# 所有者からの経路と公開生入力の厳密経路を、同じ最新資源で照合します。
+			var teams: Dictionary = session.snapshot()["teams"]
+			return {"inspection": session.inspect_ticket(ticket),
+				"reference": Order.check_actor(ticket["actor"], teams["allies"], teams["enemies"])}
+		"projection":
+			# 検証済み投影の読取結果を編集し、供給したキー/生存者ネストの保持を確認します。
+			var before := action.duplicate(true)
+			var projected := Eligibility.project(action["actor"], action["actor_alive"], action["friends"], action["foes"])
+			var copied := projected.duplicate(true)
+			_mutate(projected)
+			return {"projection": copied, "input_preserved": before == action}
 		"drain": return _drain(session, action.get("effects", []))
 		"input_mutation":
 			input["allies"][0]["identity"]["name"] = "edited caller"

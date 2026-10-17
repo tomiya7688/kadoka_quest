@@ -17,6 +17,7 @@ extends RefCounted
 ## 数値資源・予約・状態を分離保持し、取得済み予約の一件治療/付与を状態所有者へ委譲します。回復/攻撃計算と勝敗は担当しません。
 
 const State = preload("res://engine/combatant_state.gd")
+const Eligibility = preload("res://engine/actor_eligibility_projection.gd")
 const Order = preload("res://engine/turn_order.gd")
 const StatNumbers = preload("res://engine/stat_numbers.gd")
 const Statuses = preload("res://engine/battle_status_state.gd")
@@ -512,14 +513,33 @@ func _check_ticket(ticket: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_check: 最新資源を順序契約へ渡し、指定行動者の生存・逃走・敵の有無を確認します]
-#   処理: [1: 最新資源を順序契約へ渡し、指定行動者の生存・逃走・敵の有無を確認します]
+#   責務: [_check: 所有資源の最新生存を投影契約へ渡し、指定行動者の生存・逃走・敵の有無を確認します]
+#   処理: [1: 検証済み所有者から最新生存者だけを読み、共用の投影契約で行動可否を組み立てます]
 #   引数: [key: 実行可否を調べる行動者の陣営sideと個体id（Dictionary）]
 #   戻り値: [result: 行動者の実行可否can_act・友軍friends・敵foes・停止判定stop（Dictionary）]
 # }
 func _check(key: Dictionary) -> Dictionary:
-	var teams := _snapshots()
-	return Order.check_actor(key, teams["allies"], teams["enemies"])
+	# キーは検証済みの行動順/予約に由来し、資源所有者の全更新APIは開始時の不変条件を維持します。
+	# 最新生存を毎回読み、公開コピーの再検証や死者の不要コピーを繰り返しません。
+	var side: String = key["side"]
+	var other := "enemies" if side == "allies" else "allies"
+	return Eligibility.project(key, _by_id[side][key["id"]].alive(),
+		_living_snapshots(_teams[side]), _living_snapshots(_teams[other]))
+
+
+# {
+#   責務: [_living_snapshots: 検証済み資源所有者の最新生存を確認し、生存者だけの独立snapshot列を作ります]
+#   処理: [1: 最大四体の資源所有者を入力順で読み、HP正/未逃走の参加者だけを複製します]
+#   引数: [team: Sessionの新規開始が構築した最大四体の資源所有者列。外部入力ではありません（Array）]
+#   戻り値: [result: 所有者やキャッシュを公開しない、最新の生存者コピー列（Array）]
+# }
+func _living_snapshots(team: Array) -> Array:
+	# 保存済みの生存フラグをキャッシュせず、提示後の死亡/逃走/回復も次の検査へ反映します。
+	var living: Array = []
+	for state: RefCounted in team:
+		if state.alive():
+			living.append(state.snapshot())
+	return living
 
 
 # {

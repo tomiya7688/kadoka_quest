@@ -4,6 +4,7 @@
 # }
 extends SceneTree
 
+const StatusPhysicalPreflightProbe = preload("res://tests/status_physical_preflight_probe.gd")
 const StatusPhysicalContextProbe = preload("res://tests/status_physical_context_probe.gd")
 const StatusPhysicalProbe = preload("res://tests/status_physical_probe.gd")
 const RosterApplyProbe = preload("res://tests/battle_status_apply_probe.gd")
@@ -33,7 +34,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("status_physical_context", false):
+	if payload.get("status_physical_preflight", false):
+		result = StatusPhysicalPreflightProbe.run(payload)
+	elif payload.get("status_physical_context", false):
 		result = StatusPhysicalContextProbe.run(payload)
 	elif payload.get("status_physical", false):
 		result = StatusPhysicalProbe.run(payload)
