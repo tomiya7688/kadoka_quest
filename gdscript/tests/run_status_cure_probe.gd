@@ -1,10 +1,11 @@
 # {
-#   責務: [run_status_cure_probe: 専用JSONから治療/付与/能力値予測・個体/Session状態・回復準備/実行を起動し、拒否/独立性/性能を観測します]
+#   責務: [run_status_cure_probe: 専用JSONから治療/付与/能力値/行動順予測・個体/Session状態・回復準備/実行を起動し、拒否/独立性/性能を観測します]
 #   フィールド: []
 # }
 extends SceneTree
 
 const StatusStatProbe = preload("res://tests/status_stat_probe.gd")
+const StatusTurnProbe = preload("res://tests/status_turn_order_probe.gd")
 const StatusPhysicalPreflightProbe = preload("res://tests/status_physical_preflight_probe.gd")
 const StatusPhysicalContextProbe = preload("res://tests/status_physical_context_probe.gd")
 const StatusPhysicalProbe = preload("res://tests/status_physical_probe.gd")
@@ -19,7 +20,7 @@ const CureActionProbe = preload("res://tests/cure_heal_action_probe.gd")
 
 
 # {
-#   責務: [_initialize: 専用要求JSONを読み、治療/付与/能力値補正・個体状態・準備選択・Session保持の観測を標準出力へ返します]
+#   責務: [_initialize: 専用要求JSONを読み、治療/付与/能力値/行動順補正・個体状態・準備選択・Session保持の観測を標準出力へ返します]
 #   処理: [1: 要求区分に応じた専用ヘルパーへ委譲し、Base64のJSONを出力します]
 #   引数: []
 #   戻り値: [result: なし（void）。引数またはJSON形式不正は終了コード2です]
@@ -35,7 +36,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("status_physical_action", false):
+	if payload.get("status_turn_order", false):
+		result = StatusTurnProbe.run(payload)
+	elif payload.get("status_physical_action", false):
 		result = StatusPhysicalPreflightProbe.run(payload)
 	elif payload.get("status_stats", false):
 		result = StatusStatProbe.run(payload)

@@ -11,10 +11,10 @@ const Repository = preload("res://data/content_repository.gd")
 
 
 # {
-#   責務: [_initialize: run・ターン・probeのエントリ処理を実行する]
-#   処理: [1: run・ターン・probeのエントリ処理を実行する]
+#   責務: [_initialize: 専用JSONの行動順/生存検査と正規個体の読取専用準備を実行し、観測結果を出力します]
+#   処理: [1: ケースごとの入力保持/返却値独立性を観測し、Base64のJSONとして標準出力へ返します]
 #   引数: []
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）。引数不足は終了コード2、正常観測は終了コード0です]
 # }
 func _initialize() -> void:
 	var arguments := OS.get_cmdline_user_args()
@@ -54,13 +54,13 @@ func _initialize() -> void:
 
 
 # {
-#   責務: [_execute: run・ターン・probeを実行する]
-#   処理: [1: run・ターン・probeを実行する]
+#   責務: [_execute: 参加者列挙・基礎順序計画・最新生存検査の指定操作を純粋契約へ委譲します]
+#   処理: [1: operationに対応するOrderの公開関数を呼び、未対応操作は理由付きで拒否します]
 #   引数: [
-#     operation: operation（String）
-#     request: 要求（Dictionary）
+#     operation: participants/plan/checkのいずれかの専用操作名（String）
+#     request: 対応する両陣営数値snapshotと任意の明示順/行動者キー（Dictionary）
 #   ]
-#   戻り値: [result: run・ターン・probeを実行するための結果（Dictionary）]
+#   戻り値: [result: 純粋契約の観測値、またはunknown_probe_operationの拒否（Dictionary）]
 # }
 func _execute(operation: String, request: Dictionary) -> Dictionary:
 	match operation:
@@ -71,10 +71,10 @@ func _execute(operation: String, request: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_mutate: run・ターン・probeのmutateを求める]
-#   処理: [1: run・ターン・probeのmutateを求める]
-#   引数: [value: 値（Dictionary）]
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   責務: [_mutate: 正常な観測結果の識別キー/数値を編集し、再実行結果と原入力の参照独立性を検査可能にします]
+#   処理: [1: 存在するキー列・生存者一覧・行動者の返却値だけを専用の変更値へ置き換えます]
+#   引数: [value: 独立性を検査する純粋契約の結果辞書（Dictionary）]
+#   戻り値: [result: なし（void）。valueだけを変更し、失敗結果は保持します]
 # }
 func _mutate(value: Dictionary) -> void:
 	if not value["ok"]:

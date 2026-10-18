@@ -129,4 +129,6 @@ Project-specific OCR, screen capture, Windows input, GUI automation, or unrelate
 
 状態能力値補正の性能検査は、四状態・重複出血・一時速度倍率1.5を含む固定入力から防御45・速度55を予測し、入力保持も照合します。開発者はKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから `tools/performance-check/script/check_gdscript_status_stats.py` を実行してください。状態能力値補正の標準計測は20000回・7サンプル・2000回事前実行で、一予測中央値3000us以内が合格条件です。状態能力値補正の計測には、起動/I/O・戦闘行動・AI・描画・保存を含めません。専用CLIはGodot未指定時に終了コード2を返し、未検証として扱います。開発者は入力と拒否対応を[状態能力値補正契約](../docs/GDScript状態能力値補正契約.md)で確認してください。
 
+状態補正済み行動順の性能は `tools/performance-check/script/check_gdscript_status_turn_order.py` で検査します。開発者はKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから実行してください。専用検査は同IDの両陣営各四体・四状態・重複出血・倍率1.5/0と同速を含む正常計画を反復し、固定入力・全速度・安定順序・原本保持を独立期待値へ照合します。標準20000回・7サンプル・2000回事前実行で一計画中央値3000us以内を要求します。起動/I/O・Session・行動・AI・描画・保存は計測せず、Godot未指定は終了コード2の未検証です。開発者は入力と拒否対応を[状態補正行動順契約](../docs/GDScript状態補正行動順契約.md)で確認してください。
+
 状態付与付き物理の実行性能は `tools/performance-check/script/check_gdscript_status_physical_action.py` で検査します。開発者は使えるGodotをKADOKA_GODOT_EXECUTABLEへ指定し、リポジトリルートで指定Pythonから実行してください。専用検査は八体/千定義・八行動ごとの新規構築込みで、実MP消費・ダメージ・出血・予約完了/再送拒否を測ります。固定入力/最終資源/状態と確認件数を照合し、標準20000回・7サンプル・2000回事前実行で一行動中央値3000us以内を要求します。起動/I/O・AI・描画・保存は測りません。Godot未指定は終了コード2の未検証です。開発者はAPIと内部失敗時の制限を[専用行動契約](../docs/GDScript状態付与付き物理行動契約.md)で確認してください。

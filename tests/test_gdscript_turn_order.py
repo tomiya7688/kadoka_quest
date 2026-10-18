@@ -77,7 +77,7 @@ def participants(allies, enemies):
 #     enemies: 敵
 #     changes: 比較ケース別の値や設定の上書き
 #   ]
-#   戻り値: [result: 両陣営・装備・明示順とケース別条件を持つ開始情報（dict）]
+#   戻り値: [result: 両陣営の数値snapshot・生存者の明示順とケース別条件を持つ要求（dict）]
 # }
 def request(allies=None, enemies=None, **changes):
     allies = [member("ally")] if allies is None else allies
@@ -161,7 +161,7 @@ class GDScriptTurnTests(unittest.TestCase):
     #   責務: [invoke: 専用操作列を実Godotの行動順プローブで実行し、診断と結果を取得します]
     #   処理: [1: 専用開始情報をJSONで渡し、正常終了・解析診断と結果の存在を確認します]
     #   引数: [
-    #     self: 処理対象インスタンス
+    #     self: 専用コンテンツと保存領域を持つ順序比較テストケース
     #     cases: 純粋engineの行動順・最新生存を比較する専用ケース列
     #     joined: applicationと正規データ読込を組み合わせる専用ケース列
     #   ]
@@ -276,10 +276,10 @@ class GDScriptTurnTests(unittest.TestCase):
         self.assertEqual(actual["again"], actual["value"])
 
     # {
-    #   責務: [test_all_shuffle_permutations_preserve_ties_like_actual_python_run_round: 検証: all shuffle permutations preserve ties like actual python run round]
-    #   処理: [1: 検証: all shuffle permutations preserve ties like actual python run round]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_all_shuffle_permutations_preserve_ties_like_actual_python_run_round: 四体の全明示順で、基礎速度の同速順が実Pythonと一致することを確認します]
+    #   処理: [1: 四組の速度と全24順序を実Godot/Pythonへ渡し、初期順と安定ソート結果を照合します]
+    #   引数: [self: 専用コンテンツと保存領域を持つ順序比較テストケース]
+    #   戻り値: [result: なし（None）。順序不一致や入力変更はassert失敗です]
     # }
     def test_all_shuffle_permutations_preserve_ties_like_actual_python_run_round(self):
         cases = []
@@ -299,10 +299,10 @@ class GDScriptTurnTests(unittest.TestCase):
                 self.assertEqual(expected["order"], expected["executed"])
 
     # {
-    #   責務: [test_eight_actors_mixed_speeds_dead_and_fled_match_python: 検証: eight actors mixed speeds dead and fled match python]
-    #   処理: [1: 検証: eight actors mixed speeds dead and fled match python]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_eight_actors_mixed_speeds_dead_and_fled_match_python: 最大八体の混在した速度/生死/逃走から作る順序を実Pythonと比較します]
+    #   処理: [1: 固定seedの100ケースを実Godotへ渡し、死亡/逃走の除外と初期順/速度順を照合します]
+    #   引数: [self: 専用コンテンツと保存領域を持つ順序比較テストケース]
+    #   戻り値: [result: なし（None）。順序不一致や入力変更はassert失敗です]
     # }
     def test_eight_actors_mixed_speeds_dead_and_fled_match_python(self):
         generator = random.Random(228)
@@ -323,10 +323,10 @@ class GDScriptTurnTests(unittest.TestCase):
                 self.assertEqual(actual["value"]["initial"], expected["initial"])
 
     # {
-    #   責務: [test_participants_keep_ally_then_enemy_slot_order_and_side_namespaces: 検証: participants keep ally then enemy slot order and side namespaces]
-    #   処理: [1: 検証: participants keep ally then enemy slot order and side namespaces]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_participants_keep_ally_then_enemy_slot_order_and_side_namespaces: 両陣営の同IDを分離し、生存者を味方枠順/敵枠順で列挙することを確認します]
+    #   処理: [1: 死亡/逃走/日本語IDを含む参加者列と同速計画を固定期待順へ照合します]
+    #   引数: [self: 専用コンテンツと保存領域を持つ順序比較テストケース]
+    #   戻り値: [result: なし（None）。識別や列挙順の不一致はassert失敗です]
     # }
     def test_participants_keep_ally_then_enemy_slot_order_and_side_namespaces(self):
         allies = [member("shared"), member("dead", hp=0), member("fled", fled=True), member("まる")]
