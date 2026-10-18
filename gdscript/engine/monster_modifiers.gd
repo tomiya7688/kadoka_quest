@@ -10,15 +10,15 @@ const Numbers = preload("res://engine/stat_numbers.gd")
 
 
 # {
-#   責務: [apply: モンスター・modifiersを適用する]
-#   処理: [1: モンスター・modifiersを適用する]
+#   責務: [apply: 基礎能力値と習得スキルへ選択済みの＋効果と許可装備を順に反映した独立結果を返します]
+#   処理: [1: 基礎値と個体の選択を検証し、＋補正・装備選択・装備補正の後に六能力値を最低1へ制限します]
 #   引数: [
-#     base: base（Dictionary）
-#     plus: ＋選択（Variant）
-#     equipment: 装備（Variant）
-#     monster: モンスター（Dictionary）
+#     base: 基礎能力値再構築に成功したstats/skill_idsを持つ結果（Dictionary）
+#     plus: schema_version/stagesを持つ種族の＋定義文書（Variant）
+#     equipment: schema_version/equipmentを持つ装備一覧文書（Variant）
+#     monster: species_id/plus_choices/equipment_idを持つ対象個体の記録（Dictionary）
 #   ]
-#   戻り値: [result: モンスター・modifiersを適用するための結果（Dictionary）]
+#   戻り値: [result: 補正済みstats/skill_ids・装備選択結果・警告、または理由付き失敗（Dictionary）]
 # }
 static func apply(base: Dictionary, plus: Variant, equipment: Variant, monster: Dictionary) -> Dictionary:
 	if not base.get("ok", false) or not base.get("stats") is Dictionary or not base.get("skill_ids") is Array:
@@ -61,15 +61,15 @@ static func apply(base: Dictionary, plus: Variant, equipment: Variant, monster: 
 
 
 # {
-#   責務: [_apply_plus: ＋選択を適用する]
-#   処理: [1: ＋選択を適用する]
+#   責務: [_apply_plus: 選択IDの重複を除き、定義の宣言順で＋効果を作業用の能力値とスキルへ反映します]
+#   処理: [1: 選択済み定義を_apply_optionへ渡し、不明な選択IDは元記録を消さず警告として返します]
 #   引数: [
-#     stats: 能力値（Dictionary）
-#     skills: スキル一覧（Array）
-#     document: 文書（Variant）
-#     choices: choices（Array）
+#     stats: 呼出元が原本から分離した更新対象の六能力値（Dictionary）
+#     skills: 呼出元が原本から分離した更新対象の習得スキルID一覧（Array）
+#     document: stages内に選択肢定義を持つ＋定義文書（Variant）
+#     choices: 個体が選択した＋効果のID一覧（Array）
 #   ]
-#   戻り値: [result: ＋選択を適用するための結果（Dictionary）]
+#   戻り値: [result: 成功と警告、または定義不正の失敗。成功前の作業用更新は呼出元だけが保持します（Dictionary）]
 # }
 static func _apply_plus(stats: Dictionary, skills: Array, document: Variant, choices: Array) -> Dictionary:
 	if not _supported(document) or not document.get("stages", []) is Array:
@@ -99,14 +99,14 @@ static func _apply_plus(stats: Dictionary, skills: Array, document: Variant, cho
 
 
 # {
-#   責務: [_apply_option: optionを適用する]
-#   処理: [1: optionを適用する]
+#   責務: [_apply_option: 一つの＋定義に従いスキル追加または能力値の加算・倍率補正を作業用データへ反映します]
+#   処理: [1: kindを判別し、重複しないスキル追加・整数加算・偶数丸めの倍率補正を行い、未知効果は警告にします]
 #   引数: [
-#     stats: 能力値（Dictionary）
-#     skills: スキル一覧（Array）
-#     option: option（Dictionary）
+#     stats: 呼出元が所有する補正対象の六能力値（Dictionary）
+#     skills: 呼出元が所有する追加対象の習得スキルID一覧（Array）
+#     option: 選択されたid/kindと効果別の値を持つ＋定義（Dictionary）
 #   ]
-#   戻り値: [result: optionを適用するための結果（Dictionary）]
+#   戻り値: [result: 成功と任意警告、または値不正/精度超過の失敗（Dictionary）]
 # }
 static func _apply_option(stats: Dictionary, skills: Array, option: Dictionary) -> Dictionary:
 	var kind: Variant = option.get("kind")
@@ -137,14 +137,14 @@ static func _apply_option(stats: Dictionary, skills: Array, option: Dictionary) 
 
 
 # {
-#   責務: [_select_equipment: 装備を選択する]
-#   処理: [1: 装備を選択する]
+#   責務: [_select_equipment: 個体の装備IDと装備側の許可種族一覧から、補正に使える定義と不適用理由を選びます]
+#   処理: [1: 一覧をID索引へ変換し、未装備・不明ID・種族不許可・適用可能を区別します]
 #   引数: [
-#     document: 文書（Variant）
-#     id: 識別子（Variant）
-#     species: 種族（String）
+#     document: schema_version/equipmentを持つ装備一覧文書。同IDは最後の定義を採用します（Variant）
+#     id: 個体が記録した装備ID。nullまたは空文字列は未装備です（Variant）
+#     species: 装備可否を判定する対象個体の種族ID（String）
 #   ]
-#   戻り値: [result: 装備を選択するための結果（Dictionary）]
+#   戻り値: [result: definition/warnings/statusを持つ選択結果、または形式不正の失敗。元個体の装備IDは変更しません（Dictionary）]
 # }
 static func _select_equipment(document: Variant, id: Variant, species: String) -> Dictionary:
 	if not _supported(document) or not document.get("equipment") is Array:

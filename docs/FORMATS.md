@@ -519,3 +519,9 @@ Builderのstatus_resistancesは属性resistancesと独立し、Pythonと同じ�
 inspect_status_physical_skillの要求はticket/target/skill_idの三キーだけです。検査は最新offered・習得/定義/許可装備・敵対象・実行可能者の最新MP/対象生存を確認します。成功scope=status_physical_preflight_onlyは非消費の読取で、独立ticket/eligibility/skill/equipment・actor_resources/target_resources・actor_status/target_status・target_status_resistances/target_guardを返します。stats_scope=before_status_modifiersは状態補正前のstatsを示します。
 
 検査は乱数/外部状態/定義の指定、未知キー、取得済み/古い予約を拒否します。行動不能者はeligibility.can_act=falseとして区別し、検査は予約取消/claim/HPMP変更/状態付与を行いません。検査結果は実行許可/最終ダメージではなく、数値/保存JSON/schemaと通常物理の付与拒否を維持します。
+
+### GDScriptの状態による防御力・素早さ補正（実行時だけ）
+
+[状態能力値補正契約](GDScript状態能力値補正契約.md)のquote_statsは、補正前のdefense/speed・明示status_effects・任意speed_multiplierを受け取ります。成功結果はok/scope:status_stat_quote/defense/speed、失敗結果はok=false/reasonだけです。出血は防御力と素早さへ0.9倍を一度だけ適用し、素早さは一時倍率を先に掛けてから最後に整数化します。下限は防御0・素早さ1です。入力形式・精度上限・拒否・検証方法は専用契約を参照してください。
+
+補正契約は保存JSON/schemaや数値Session形式を変更しません。HPMP・状態・個体AIを保持または更新せず、Session/攻撃実行/行動順/画面への接続も含みません。開発者は補正済み値を補正前の値として再入力しないでください。

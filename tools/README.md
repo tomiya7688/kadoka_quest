@@ -126,3 +126,5 @@ Project-specific OCR, screen capture, Windows input, GUI automation, or unrelate
 
 
 付与付き物理の最新予約/資源/状態の非消費検査はcheck_gdscript_status_physical.py --preflightで測ります。開発者はKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから実行してください。標準20000回・7サンプル・2000回事前実行で一検査中央値3000us以内と、固定八体/千定義・成功選択/最新状態・満資源/提示予約の保持を照合します。高速拒否だけでは通過しません。準備/索引作成・起動/I/O・実行/能力補正・AI・描画・保存は測りません。Godot未指定は終了コード2の未検証です。入出力/拒否/未接続範囲は[開始/検査契約](../docs/GDScript状態付与付き物理検査契約.md)を確認してください。
+
+状態能力値補正の性能検査は、四状態・重複出血・一時速度倍率1.5を含む固定入力から防御45・速度55を予測し、入力保持も照合します。開発者はKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定し、リポジトリルートで指定Pythonから `tools/performance-check/script/check_gdscript_status_stats.py` を実行してください。状態能力値補正の標準計測は20000回・7サンプル・2000回事前実行で、一予測中央値3000us以内が合格条件です。状態能力値補正の計測には、起動/I/O・戦闘行動・AI・描画・保存を含めません。専用CLIはGodot未指定時に終了コード2を返し、未検証として扱います。開発者は入力と拒否対応を[状態能力値補正契約](../docs/GDScript状態能力値補正契約.md)で確認してください。
