@@ -11,7 +11,7 @@
 #     _self_magic: 敵への魔法効果と術者のHP代償を反映する、自傷専用設定のmagic_skill_action.gd（RefCounted）
 #     _drain_magic: 敵HP効果・敵MP喪失・術者MP回復を反映する、吸MP専用設定のmagic_skill_action.gd（RefCounted）
 #     _heal: 生存する味方1体のHP回復と術者MP消費を同じSessionへ反映するheal_skill_action.gd（RefCounted）
-#     _status_physical: 状態付き開始時だけ設定する、付与付き物理の非消費検査（RefCounted）
+#     _status_physical: 状態付き開始時だけ設定し、付与付き物理の実行と非消費検査を委譲する行動処理（RefCounted）
 #     _cure_heal: 専用開始時だけ構築する、HP回復/MP消費と一件治療の共用行動処理（RefCounted）
 #   ]
 # }
@@ -24,7 +24,7 @@ const Attack = preload("res://engine/normal_attack_action.gd")
 const Defend = preload("res://engine/basic_defend_action.gd")
 const Physical = preload("res://engine/physical_skill_action.gd")
 const Magic = preload("res://engine/magic_skill_action.gd")
-const StatusPhysical = preload("res://engine/status_physical_skill_preflight.gd")
+const StatusPhysical = preload("res://engine/status_physical_skill_action.gd")
 const Heal = preload("res://engine/heal_skill_action.gd")
 var _preparation: RefCounted
 var _repository: RefCounted
@@ -71,7 +71,7 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 
 
 # {
-#   責務: [start_with_statuses: 保存個体の再構築と明示初期状態付きSession・治療付き回復/付与付き物理検査の構築を調停します]
+#   責務: [start_with_statuses: 保存個体の再構築と明示初期状態付きSession・治療付き回復/付与付き物理行動の構築を調停します]
 #   処理: [1: 全参加者の明示初期状態と保存個体・明示順を共用開始調停へ渡します]
 #   引数: [
 #     allies: 味方の保存個体レコード列（Variant）
@@ -158,7 +158,7 @@ func _start(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_s
 		var curing: Dictionary = cure_heal.start_cure_heal(prepared["teams"], skills["value"], initial_statuses)
 		if not curing["ok"]:
 			return curing
-		# 付与付き物理は実行へ接続せず、専用の非消費検査を同じ候補Sessionへ設定します。
+		# 付与付き物理の実行と非消費検査は、同じ候補Sessionと開始情報を使う専用行動へ委譲します。
 		status_physical = StatusPhysical.new(candidate)
 		var status_checked: Dictionary = status_physical.start(prepared["teams"], skills["value"], initial_statuses)
 		if not status_checked["ok"]:
@@ -304,6 +304,17 @@ func resolve_cure_heal_skill(request: Variant) -> Dictionary:
 func inspect_status_physical_skill(request: Variant) -> Dictionary:
 	# 呼び出し層は検査結果を行動の実行許可として保持せず、数値/状態の計算や更新も行いません。
 	return {"ok": false, "reason": "not_initialized"} if _status_physical == null else _status_physical.inspect(request)
+
+
+# {
+#   責務: [resolve_status_physical_skill: 付与付き単体物理の予約検証・状態補正・MP/HP/状態更新を専用行動へ委譲します]
+#   処理: [1: 状態付き開始で構築した行動へ要求を渡し、未設定ならnot_initializedを返します]
+#   引数: [request: ticket/敵target/skill_id/critical_roll/varianceと任意status_rollを持つ行動要求（Variant）]
+#   戻り値: [result: 専用行動の適用結果、行動取消、または拒否（Dictionary）]
+# }
+func resolve_status_physical_skill(request: Variant) -> Dictionary:
+	# 呼出層はダメージや状態を計算せず、同じSessionを持つ専用行動へ渡します。
+	return {"ok": false, "reason": "not_initialized"} if _status_physical == null else _status_physical.resolve(request)
 
 
 # {

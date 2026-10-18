@@ -51,11 +51,11 @@ class SessionEligibilityBoundaryTests(unittest.TestCase):
     #   戻り値: [result: なし（None）]
     # }
     def test_owned_path_reuses_projection_without_revalidating_snapshots(self):
-        # 数値所有者を外部へ渡す別入口や、古い生存フラグのキャッシュを追加しません。
+        # Sessionの内部所有者だけを投影へ渡し、生入力の検証迂回や古い生存フラグのキャッシュを追加しません。
         root = fixture.ROOT / "gdscript/engine"
         source = (root / "battle_session.gd").read_text(encoding="utf-8")
-        check = source.split("func _check(key: Dictionary)")[1].split("func _living_snapshots")[0]
-        self.assertIn("Eligibility.project(", check)
+        check = source.split("func _check(key: Dictionary)")[1].split("func _snapshots")[0]
+        self.assertIn("Eligibility.from_resources(", check)
         self.assertIn(".alive()", check)
         self.assertNotIn("Order.check_actor(", check)
         self.assertNotIn("_snapshots()", check)
@@ -63,6 +63,9 @@ class SessionEligibilityBoundaryTests(unittest.TestCase):
         self.assertIn("var prepared := _prepare(allies, enemies)", raw)
         self.assertIn('if not _valid_key(key):', raw)
         projection = (root / "actor_eligibility_projection.gd").read_text(encoding="utf-8")
+        self.assertIn('friends.duplicate(true), foes.duplicate(true)', projection)
+        self.assertIn('_living_snapshots(friends), _living_snapshots(foes)', projection)
+        self.assertIn('living.append(state.snapshot())', projection)
         for forbidden in ("FileAccess", "DirAccess", "randf(", "RandomNumberGenerator", "res://ui/", "res://data/", ".claim(", ".pay_mp("):
             self.assertNotIn(forbidden, projection)
 
@@ -78,6 +81,34 @@ class SessionEligibilityBoundaryTests(unittest.TestCase):
 class SessionEligibilityTests(unittest.TestCase):
     setUp = fixture.GDScriptRosterTests.setUp
     invoke = session.GDScriptSessionTests.invoke
+
+    # {
+    #   責務: [test_json_integer_tickets_match_native_and_keep_strict_validation: JSONの整数値floatが内部intの予約に一致し、不正な番号は消費せず拒否することを確認します]
+    #   処理: [1: 小数/真偽値/負数/精度超過を拒否後、整数値floatの照合・取得・完了と旧票の再送拒否を実行します]
+    #   引数: [self: 予約の数値表現と非消費の形式検査を確認するテストケース]
+    #   戻り値: [result: なし（None）。各段階の予約保持と最新カーソルを照合します]
+    # }
+    def test_json_integer_tickets_match_native_and_keep_strict_validation(self):
+        invalid = [(1.5, 0), (True, 0), (1, 0.25), (1, False), (1, -1), (9007199254740992, 0)]
+        explicit = session.ticket(round_number=1.0, slot=0.0)
+        actions = [session.action("begin"), session.action("next")]
+        actions += [session.action("inspect", ticket=session.ticket(round_number=round_number, slot=slot))
+                    for round_number, slot in invalid]
+        actions += [session.action("inspect", ticket=explicit, mutate_result=True),
+                    session.action("claim", ticket=explicit), session.action("finish", ticket=explicit),
+                    session.action("inspect", ticket=explicit)]
+        result = self.invoke([session.case(actions)])["cases"][0]
+        self.assertTrue(result["input_preserved"])
+        observations = result["observations"]
+        for observed in observations[2:2 + len(invalid)]:
+            self.assertEqual(observed["value"], {"ok": False, "reason": "invalid_ticket"})
+            self.assertEqual(observed["session"]["pending"]["stage"], "offered")
+            self.assertEqual(observed["session"]["cursor"], 0)
+        self.assertTrue(observations[-4]["value"]["eligibility"]["can_act"])
+        self.assertTrue(observations[-3]["value"]["can_execute"])
+        self.assertTrue(observations[-2]["value"]["ok"])
+        self.assertEqual(observations[-1]["value"], {"ok": False, "reason": "ticket_not_pending"})
+        self.assertEqual(result["session"]["cursor"], 1)
 
     # {
     #   責務: [assert_parity: 所有者検査・公開生入力検査・Python期待値の完全一致と予約段階を確認します]

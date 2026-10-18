@@ -35,7 +35,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("status_stats", false):
+	if payload.get("status_physical_action", false):
+		result = StatusPhysicalPreflightProbe.run(payload)
+	elif payload.get("status_stats", false):
 		result = StatusStatProbe.run(payload)
 	elif payload.get("status_physical_preflight", false):
 		result = StatusPhysicalPreflightProbe.run(payload)

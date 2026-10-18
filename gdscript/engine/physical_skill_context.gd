@@ -34,13 +34,7 @@ static func prepare(teams: Variant, skills: Variant) -> Dictionary:
 	if not teams is Dictionary or teams.size() != 2 or not teams.get("allies") is Array or not teams.get("enemies") is Array:
 		return _reject("invalid_physical_context")
 	# 保有MODスキル数に比例する検索を毎行動に繰り返さず、重複はそのまま検出可能に保持する。
-	var definitions: Dictionary = {}
-	for definition: Variant in skills["skills"]:
-		if definition is Dictionary and definition.get("id") is String:
-			var id: String = definition["id"]
-			if not definitions.has(id):
-				definitions[id] = []
-			definitions[id].append(definition)
+	var definitions := _definition_index(skills["skills"])
 	var snapshots := {"allies": [], "enemies": []}
 	var members := {"allies": {}, "enemies": {}}
 	for side in Order.SIDES:
@@ -50,11 +44,33 @@ static func prepare(teams: Variant, skills: Variant) -> Dictionary:
 				return checked
 			snapshots[side].append(checked["snapshot"])
 			members[side][checked["snapshot"]["identity"]["id"]] = checked["member"]
-	# 参加数・重複・資源6キーは既存の順序契約と同じ制約で確認する。
-	var participants := Order.participants(snapshots["allies"], snapshots["enemies"])
-	if not participants["ok"]:
-		return participants
-	return {"ok": true, "snapshots": snapshots, "context": {"members": members, "definitions": definitions.duplicate(true)}}
+	# 各個体は_prepare_member内のOrder.participantsで厳密検証済みです。集合に残る上限/重複だけを確認します。
+	for side in Order.SIDES:
+		if snapshots[side].size() > Order.ACTIVE_TEAM_LIMIT or members[side].size() != snapshots[side].size():
+			# 不正集合の理由/side/detailは公開の順序契約へ委譲し、従来の拒否形式と優先順を保ちます。
+			return Order.participants(snapshots["allies"], snapshots["enemies"])
+	return {"ok": true, "snapshots": snapshots, "context": {"members": members, "definitions": definitions}}
+
+
+# {
+#   責務: [_definition_index: 文字列IDを持つ定義だけを独立コピーし、重複も保持するID別候補索引を作ります]
+#   処理: [1: 索引対象の定義列を一度だけ深く複製し、新規のID別候補配列へ振り分けます]
+#   引数: [entries: スキル文書の定義列。文字列IDのない要素は従来どおり選択対象にしません（Array）]
+#   戻り値: [result: 原本と参照を共有しないID別の定義候補配列。未知効果や重複定義も削除しません（Dictionary）]
+# }
+static func _definition_index(entries: Array) -> Dictionary:
+	# ID別配列を構築してから丸ごと複製すると、千件の空でない候補配列も二重に生成します。
+	var candidates: Array = []
+	for definition: Variant in entries:
+		if definition is Dictionary and definition.get("id") is String:
+			candidates.append(definition)
+	var definitions: Dictionary = {}
+	for definition: Dictionary in candidates.duplicate(true):
+		var id: String = definition["id"]
+		if not definitions.has(id):
+			definitions[id] = []
+		definitions[id].append(definition)
+	return definitions
 
 
 # {
@@ -82,12 +98,13 @@ static func _prepare_member(member: Variant) -> Dictionary:
 	var equipment := _equipment(member.get("equipment"), snapshot["identity"]["species_id"])
 	if not equipment["ok"]:
 		return equipment
-	# JSON数値をSessionと同じ整数snapshotへ正規化する。資源の所有は移さない。
-	var state = State.new()
-	var initialized: Dictionary = state.start(snapshot["identity"], snapshot["stats"])
-	if not initialized["ok"]:
-		return initialized
-	return {"ok": true, "snapshot": state.snapshot(), "member": {
+	# Order.participantsで六キー/資源/生存整合性を検証済みです。新規所有者を作って再検証せず、JSON整数値を正規化します。
+	var normalized: Dictionary = snapshot.duplicate(true)
+	for stat in State.STAT_KEYS:
+		normalized["stats"][stat] = int(snapshot["stats"][stat])
+	normalized["hp"] = int(snapshot["hp"])
+	normalized["mp"] = int(snapshot["mp"])
+	return {"ok": true, "snapshot": normalized, "member": {
 		"skill_ids": member["skill_ids"].duplicate(true), "equipment": equipment["equipment"]}}
 
 

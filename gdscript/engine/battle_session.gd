@@ -507,7 +507,9 @@ func _check_ticket(ticket: Variant) -> Dictionary:
 		if not (value is int or value is float) or not is_finite(float(value)) \
 			or value < 0 or value > State.MAX_EXACT_INTEGER or float(value) != floorf(float(value)):
 			return _failure("invalid_ticket")
-	if _pending.is_empty() or ticket != _pending["ticket"]:
+	# JSON.parseの整数値floatと内部intは同じ予約番号として照合し、小数/真偽値は上の検証で拒否します。
+	if _pending.is_empty() or int(ticket["round"]) != _pending["ticket"]["round"] \
+		or int(ticket["slot"]) != _pending["ticket"]["slot"] or ticket["actor"] != _pending["ticket"]["actor"]:
 		return _failure("ticket_not_pending")
 	return {"ok": true}
 
@@ -523,23 +525,7 @@ func _check(key: Dictionary) -> Dictionary:
 	# 最新生存を毎回読み、公開コピーの再検証や死者の不要コピーを繰り返しません。
 	var side: String = key["side"]
 	var other := "enemies" if side == "allies" else "allies"
-	return Eligibility.project(key, _by_id[side][key["id"]].alive(),
-		_living_snapshots(_teams[side]), _living_snapshots(_teams[other]))
-
-
-# {
-#   責務: [_living_snapshots: 検証済み資源所有者の最新生存を確認し、生存者だけの独立snapshot列を作ります]
-#   処理: [1: 最大四体の資源所有者を入力順で読み、HP正/未逃走の参加者だけを複製します]
-#   引数: [team: Sessionの新規開始が構築した最大四体の資源所有者列。外部入力ではありません（Array）]
-#   戻り値: [result: 所有者やキャッシュを公開しない、最新の生存者コピー列（Array）]
-# }
-func _living_snapshots(team: Array) -> Array:
-	# 保存済みの生存フラグをキャッシュせず、提示後の死亡/逃走/回復も次の検査へ反映します。
-	var living: Array = []
-	for state: RefCounted in team:
-		if state.alive():
-			living.append(state.snapshot())
-	return living
+	return Eligibility.from_resources(key, _by_id[side][key["id"]].alive(), _teams[side], _teams[other])
 
 
 # {

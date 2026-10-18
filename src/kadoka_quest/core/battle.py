@@ -451,13 +451,13 @@ class BattleEngine:
         return self.log[start_index:]
 
     # {
-    #   責務: [_try_enemy_flee: 敵・fleeを実行可能な場合に処理する]
-    #   処理: [1: 敵・fleeを実行可能な場合に処理する]
+    #   責務: [_try_enemy_flee: 学習有効の野生戦闘だけで遭遇状況別の敵逃走率を判定し、成立時は逃走を記録します]
+    #   処理: [1: 死亡/学習無効/遭遇状況なし/不正率を除外し、乱数が逃走率未満ならfledと戦闘ログを更新します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     actor: 行動個体（Combatant）
+    #     self: 遭遇状況・学習可否・乱数源・戦闘ログを保持するBattleEngine
+    #     actor: 遭遇状況別flee_ratesから逃走判定する敵の行動個体（Combatant）
     #   ]
-    #   戻り値: [result: 敵・fleeを実行可能な場合に処理するための結果（bool）]
+    #   戻り値: [result: 敵を逃走済みに変更した場合True、対象外/不正率/抽選不成立ならFalse（bool）]
     # }
     def _try_enemy_flee(self, actor: Combatant) -> bool:
         # encounter_contextを持つ学習有効の野生戦闘だけで敵の逃走を判定し、シミュレーションでは判定しません。

@@ -39,7 +39,7 @@ ticketはちょうど `{"round":1,"slot":0,"actor":{"side":"allies","id":"slime_
 
 戦闘Sessionは開始時に検証済みのcombatant_stateを個体別に保持し、HP/MP/逃走の更新を各所有者の公開APIへ委譲します。各所有者は資源の型/範囲・生存フラグの不変条件を保ちます。Sessionの内部行動可否は、外部JSON相当の全員コピーを毎回作って再検証せず、各所有者の最新alive()を読み、生存者だけのsnapshotを共用投影へ渡します。
 
-actor_eligibility_projection.projectは、形式/存在を確認済みのside/id、最新の行動者生存値、両陣営の検証済み生存者列から、can_act/stop/reasonと独立したactor/friends/foesを組み立てます。投影は生存敵なしを最優先にし、その後で行動者の死亡/逃走を確認します。Sessionと公開turn_order.check_actorは同じ投影を使い、可否の優先規則を二重実装しません。
+actor_eligibility_projection.projectは、形式/存在を確認済みのside/id、最新の行動者生存値、両陣営の検証済み生存者列から、can_act/stop/reasonと独立したactor/friends/foesを組み立てます。公開turn_order.check_actorはprojectへ検証済みsnapshotを渡します。Sessionはfrom_resourcesへ内部の資源所有者を渡し、生存者の独立snapshotを一度だけ作ります。二つの入口は結果組立を共用し、生存敵なし→行動者死亡/逃走の優先規則を二重実装しません。from_resourcesは外部のJSON入力を検証せずに受け入れる要求モードではありません。
 
 公開turn_order.check_actorは、生のキー・陣営数・六キー数値資源・安全なID・有限整数・未知キー/整合性を従来どおり検証します。Sessionのキーは検証済み行動順か現在予約に由来し、inspect/claimは現在ticketとの厳密一致とoffered段階を従来どおり確認します。内部投影は新しい行動許可や、入力検証を省略する要求モードではありません。
 

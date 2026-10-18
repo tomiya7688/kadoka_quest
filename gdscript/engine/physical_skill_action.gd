@@ -1,8 +1,8 @@
 # {
-#   責務: [physical_skill_action: 習得済み単体物理スキルの単一claim・MP支払い・HP適用・finish]
+#   責務: [physical_skill_action: 習得済み単体物理を最新予約で検証し、予約取得・MP支払い・HP減少・予約完了を同期実行します]
 #   フィールド: [
 #     _session: 資源とticketの所有者（RefCounted）
-#     _context: 開始時の独立情報（Dictionary）
+#     _context: 開始時に独立コピーした個体別習得/許可装備とID別スキル定義索引（Dictionary）
 #   ]
 # }
 extends RefCounted
@@ -16,7 +16,7 @@ var _context: Dictionary = {}
 
 # {
 #   責務: [_init: 適用先のSessionを保持する]
-#   処理: [1: 依存先を設定する]
+#   処理: [1: HPMPと予約を所有するSessionの参照だけを設定し、資源をActionへ移しません]
 #   引数: [session: 戦闘資源とticketの所有者（RefCounted）]
 #   戻り値: [result: なし（void）]
 # }
@@ -26,16 +26,16 @@ func _init(session: RefCounted) -> void:
 
 
 # {
-#   責務: [start: 新鮮なSessionと一致する独立情報を一度だけ準備する]
+#   責務: [start: ラウンド間のSessionと満資源snapshotが一致する開始情報だけを、一度だけ保持します]
 #   処理: [
-#     1: 初期化時点と入力を検証する
-#     2: Sessionとの一致後だけ情報を保持する
+#     1: 未設定/ラウンド間を確認し、共用Contextへ満資源・習得・許可装備の検証を委譲します
+#     2: 正規化snapshotとSessionの数値が一致した場合だけ、独立した習得/定義索引を保持します
 #   ]
 #   引数: [
-#     teams: 再構築済み両陣営（Variant）
-#     skills: 正規スキル一覧（Variant）
+#     teams: 満資源snapshot・skill_ids・許可装備equipmentを持つallies/enemies（Variant）
+#     skills: schema_version=1とskills配列を持つ正規/MODスキル一覧（Variant）
 #   ]
-#   戻り値: [result: 初期化結果（Dictionary）]
+#   戻り値: [result: 設定成功scope、またはSession/保持情報を変更しない理由付き拒否（Dictionary）]
 # }
 func start(teams: Variant, skills: Variant) -> Dictionary:
 	# 定義差替えや減った資源の初期化を拒否する。
@@ -59,7 +59,7 @@ func start(teams: Variant, skills: Variant) -> Dictionary:
 #     2: 単一claimを取得し実行不可なら取消する
 #     3: MP支払い・HP適用・finishを同期実行する
 #   ]
-#   引数: [request: ticket・敵対象・スキルID・乱数（Variant）]
+#   引数: [request: ticket/敵target/skill_id/critical_roll/varianceだけを持つ行動要求（Variant）]
 #   戻り値: [result: 適用結果とSessionコピーまたは拒否（Dictionary）]
 # }
 func resolve(request: Variant) -> Dictionary:
@@ -90,12 +90,12 @@ func resolve(request: Variant) -> Dictionary:
 # {
 #   責務: [_validate: 行動権と資源を消費せず習得・対象・MP・数値を検証する]
 #   処理: [
-#     1: 厳密要求とofferedを確認する
-#     2: 習得・定義・装備と敵対象を確認する
-#     3: 最新資源を予測し、取消では乱数妥当性だけを確認する
+#     1: 五キー要求と現在提示中の予約ticketが一致することを確認します
+#     2: 開始時の習得・定義・許可装備と、指定した敵参加者の存在を確認します
+#     3: 行動可能なら最新HPMP/guardの物理結果を予測し、行動不能なら乱数の妥当性だけを確認します
 #   ]
-#   引数: [request: plain行動要求（Variant）]
-#   戻り値: [result: numbersまたは拒否（Dictionary）]
+#   引数: [request: ticket/target/skill_id/critical_roll/varianceを要求する通常物理の辞書（Variant）]
+#   戻り値: [result: 実行前のnumbers、取消の検証成功、または予約/資源を保持した拒否（Dictionary）]
 # }
 func _validate(request: Variant) -> Dictionary:
 	# 威力・guard・MP・装備・習得の上書きを要求から受け付けない。
@@ -146,13 +146,13 @@ func _validate(request: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_member: 最新snapshotから指定IDを取り出す]
-#   処理: [1: 参加チームのIDを確認する]
+#   責務: [_member: Sessionから取得した最新数値snapshot列から、指定した個体IDの辞書を取り出します]
+#   処理: [1: 最大四体のidentity.idを照合し、該当個体または不在の空辞書を返します]
 #   引数: [
-#     team: 最大4体のチーム（Array）
-#     id: 対象ID（String）
+#     team: Sessionから読み取った指定陣営の最大四体の数値コピー列（Array）
+#     id: 最新数値を取得する戦闘個体ID（String）
 #   ]
-#   戻り値: [result: 個体または空辞書（Dictionary）]
+#   戻り値: [result: 指定個体の数値コピー、または不在を示す空辞書（Dictionary）]
 # }
 func _member(team: Array, id: String) -> Dictionary:
 	# 保有全個体でなく、最大4体の戦闘参加チームだけを走査する。
@@ -163,10 +163,10 @@ func _member(team: Array, id: String) -> Dictionary:
 
 
 # {
-#   責務: [_reject: 行動未適用を判別可能な理由で返す]
-#   処理: [1: plainな失敗結果を作る]
-#   引数: [reason: 呼出元が扱う理由（String）]
-#   戻り値: [result: ok=falseの辞書（Dictionary）]
+#   責務: [_reject: 通常物理の要求検証または内部更新の失敗を、理由付き辞書として返します]
+#   処理: [1: ok=falseと具体的なreasonを返し、取得済み予約や適用済み資源は巻き戻しません]
+#   引数: [reason: 開始/要求/予測または予約取得後の更新を拒否した理由（String）]
+#   戻り値: [result: ok=false/reasonの辞書。予約取得前の拒否は資源を消費しません（Dictionary）]
 # }
 func _reject(reason: String) -> Dictionary:
 	# 不正要求を通常攻撃フォールバックで成功扱いにしない。

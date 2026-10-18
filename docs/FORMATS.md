@@ -493,13 +493,13 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 [予約付き状態付与契約](GDScript予約付き状態付与契約.md)のSession.apply_status_application(ticket, target, request)は、現在取得済みの厳密round/slot/actorと最新生存を確認し、effectと任意resistance_level/rollだけを所有状態へ渡します。対象は生存する味方/敵/本人で、スキルの対象制限や消費MPを代用しません。外部一覧/古い予測/未知要求は拒否し、数値資源・防御倍率・予約段階を変更しません。
 
-内部claimed_status_updatesは正常な付与判定を一予約一回に制限します。IDなし/重複/確率0/無効/不成立も使用済みとなり、二回目はstatus_application_already_appliedです。不正要求は使用済みにせず、入力を修正して再試行できます。既存治療と付与は各一回の独立制限です。実結果はcombatant_status_apply、数値Session七キー/個体六キー、保存JSON/schemaを維持します。付与付き攻撃行動・耐性再構築・継続効果・保存・AI・画面は未接続です。
+内部claimed_status_updatesは正常な付与判定を一予約一回に制限します。IDなし/重複/確率0/無効/不成立も使用済みとなり、二回目はstatus_application_already_appliedです。不正要求は使用済みにせず、入力を修正して再試行できます。既存治療と付与は各一回の独立制限です。実結果はcombatant_status_apply、数値Session七キー/個体六キー、保存JSON/schemaを維持します。種族状態耐性を保持した専用単体物理行動は予約付き付与へ接続しました。魔法の状態付与・継続効果・保存・AI・画面は未接続です。
 
 ### GDScriptの付与付き単体物理予測（保存形式変更なし）
 
 [付与付き物理予測](GDScript状態付与付き物理予測契約.md)のprepareは対応physical定義のstatus_effect辞書を必須にし、従来物理と付与の検証を共用します。prepare_quote/quote_damageは既存物理の数値へstatus_effectsと任意status_resistance_level、結果予測だけの任意status_rollを追加します。defenseは現在状態の補正済み値で、契約は状態から能力を再構築しません。
 
-結果はscope:status_physical_skill_preparationまたはstatus_physical_skill_quoteとphysical/status/status_eligibleです。実dealtが正で残HPも正のときだけ付与を予測し、致死/ダメージなしは確率0・roll不要で一覧を保持します。指定済み不正rollと不正/未知条件は部分成功なしで拒否します。正規スキルの付与定義はなく、独立MOD形式で検証します。従来入口の拒否、数値/保存JSON/schemaを維持し、実行/予約・能力補正・魔法/全体・AI・画面は未接続です。状態耐性の種族再構築と実行準備は専用契約へ接続しました。
+結果はscope:status_physical_skill_preparationまたはstatus_physical_skill_quoteとphysical/status/status_eligibleです。実dealtが正で残HPも正のときだけ付与を予測し、致死/ダメージなしは確率0・roll不要で一覧を保持します。指定済み不正rollと不正/未知条件は部分成功なしで拒否します。正規スキルの付与定義はなく、独立MOD形式で検証します。種族状態耐性の再構築・実行準備と、状態補正済み防御で予約/資源を更新する専用行動へ接続しました。従来入口の拒否と数値/保存JSON/schemaを維持し、魔法の付与/全体攻撃・AI・画面は未接続です。
 
 
 
@@ -509,7 +509,7 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 Builderのstatus_resistancesは属性resistancesと独立し、Pythonと同じく装備の属性resistance_stepsや＋選択を状態耐性へ加えません。未知の文字列耐性名は保持して既存付与契約へ渡します。数値snapshot六キー/Session七キー、正規データと保存JSON/schemaは維持します。初期状態の検証/コピーは治療準備と共用します。
 
-専用selectは習得済みの付与付きphysical定義と選択IDの装備補正だけを返し、通常物理入口の付与拒否を維持します。準備/選択はHPMP・状態・予約・保存を実更新せず、専用開始とSession/Applicationの非消費検査へ接続しました。実攻撃・状態能力補正・AI・画面は未接続です。
+専用selectは習得済みの付与付きphysical定義と選択IDの装備補正だけを返し、通常物理入口の付与拒否を維持します。準備/選択はHPMP・状態・予約・保存を実更新せず、専用開始とSession/Applicationの非消費検査・専用実行へ接続しました。AI・画面は未接続です。
 
 
 ### GDScriptの付与付き物理の非消費検査（保存形式変更なし）
@@ -524,4 +524,10 @@ inspect_status_physical_skillの要求はticket/target/skill_idの三キーだ�
 
 [状態能力値補正契約](GDScript状態能力値補正契約.md)のquote_statsは、補正前のdefense/speed・明示status_effects・任意speed_multiplierを受け取ります。成功結果はok/scope:status_stat_quote/defense/speed、失敗結果はok=false/reasonだけです。出血は防御力と素早さへ0.9倍を一度だけ適用し、素早さは一時倍率を先に掛けてから最後に整数化します。下限は防御0・素早さ1です。入力形式・精度上限・拒否・検証方法は専用契約を参照してください。
 
-補正契約は保存JSON/schemaや数値Session形式を変更しません。HPMP・状態・個体AIを保持または更新せず、Session/攻撃実行/行動順/画面への接続も含みません。開発者は補正済み値を補正前の値として再入力しないでください。
+補正契約は保存JSON/schemaや数値Session形式を変更しません。補正契約自身はHPMP・状態・個体AIを保持または更新せず、補正済み防御は付与付き物理の専用実行へ接続しました。状態補正済み行動順・ほかの攻撃入口・画面は未接続です。開発者は補正済み値を補正前の値として再入力しないでください。
+
+### GDScriptの付与付き単体物理行動（保存形式変更なし）
+
+[専用行動契約](GDScript状態付与付き物理行動契約.md)のresolve_status_physical_skillは、ticket/敵target/skill_id/critical_roll/varianceと任意status_rollだけを要求します。専用行動は現在offered・習得/許可装備・最新HPMP/状態/guardを読み直し、出血補正済み防御の予測成功後に予約取得→MP消費→ダメージ→生存対象への一件付与→予約完了を実行します。通常物理入口の付与拒否は維持します。
+
+実行成功はscope:explicit_status_physical_skill_onlyと、実spent_mp/dealt・独立numbers/applied_status/session/statusesを返します。致死攻撃は付与せず、行動不能は資源を使わず取消します。不正/不足は予約取得前に拒否し、取得済み/完了済みの再送は追加更新しません。予約取得後の予期せぬ内部失敗はaction_consumed=trueを返し、適用済み資源の巻き戻しを保証しません。開発者は消費済み予約を再実行せず、専用契約の復旧案内を確認してください。新しい保存ファイルやJSONキーは追加しません。

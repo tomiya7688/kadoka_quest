@@ -91,20 +91,29 @@ func inspect(request: Variant) -> Dictionary:
 		return selected
 	if actor["side"] == target["side"]:
 		return _reject("target_not_enemy")
-	var teams: Dictionary = _session.snapshot()["teams"]
-	var defender := _member(teams[target["side"]], target["id"])
-	if defender.is_empty():
+	if not _context["members"][target["side"]].has(target["id"]):
 		return _reject("target_missing")
+	var eligibility: Dictionary = inspected["eligibility"]
+	var attacker: Dictionary
+	var defender: Dictionary
 	# 行動不能者の検査をMP不足へ置き換えず、取消自体もこの読取入口では行いません。
-	if inspected["eligibility"]["can_act"]:
-		if not defender["alive"]:
+	if eligibility["can_act"]:
+		# inspect_ticketが既に複製した最新の生存者を再利用し、全八体と行動順を重複コピーしません。
+		attacker = _member(eligibility["friends"], actor["id"])
+		defender = _member(eligibility["foes"], target["id"])
+		if defender.is_empty():
 			return _reject("target_not_alive")
 		var cost: Dictionary = _session.mp_cost(actor, selected["skill"]["mp_cost"])
 		if not cost["ok"]:
 			return cost
 		if not cost["affordable"]:
 			return _reject("insufficient_mp")
-	return _read_current(request, selected, inspected["eligibility"], teams, defender)
+	else:
+		# 生存者投影に含まれない死亡/逃走個体も、取消用検査では最新の実資源を返します。
+		var teams: Dictionary = _session.snapshot()["teams"]
+		attacker = _member(teams[actor["side"]], actor["id"])
+		defender = _member(teams[target["side"]], target["id"])
+	return _read_current(request, selected, eligibility, attacker, defender)
 
 
 # {
@@ -114,12 +123,12 @@ func inspect(request: Variant) -> Dictionary:
 #     request: 形式検証済みのticket/target/skill_id要求（Dictionary）
 #     selected: 独立した専用定義と装備威力補正（Dictionary）
 #     eligibility: Sessionが返した現在の生存/逃走/敵存在の検査結果（Dictionary）
-#     teams: Sessionの最新数値snapshotコピー（Dictionary）
-#     defender: teams内の対象数値コピー（Dictionary）
+#     attacker: Sessionの最新生存投影、または取消時の数値snapshotから取った行動者コピー（Dictionary）
+#     defender: Sessionの最新生存投影、または取消時の数値snapshotから取った対象コピー（Dictionary）
 #   ]
 #   戻り値: [result: 非消費検査結果。ダメージ/付与確率や行動完了は返しません（Dictionary）]
 # }
-func _read_current(request: Dictionary, selected: Dictionary, eligibility: Dictionary, teams: Dictionary, defender: Dictionary) -> Dictionary:
+func _read_current(request: Dictionary, selected: Dictionary, eligibility: Dictionary, attacker: Dictionary, defender: Dictionary) -> Dictionary:
 	var actor: Dictionary = request["ticket"]["actor"]
 	var target: Dictionary = request["target"]
 	var actor_status: Dictionary = _session.status(actor)
@@ -131,10 +140,10 @@ func _read_current(request: Dictionary, selected: Dictionary, eligibility: Dicti
 	var guarded: Dictionary = _session.guard(target)
 	if not guarded["ok"]:
 		return guarded
-	# 生の能力値を実効能力値や最終予測と誤認させず、状態補正/付与判定は実装済みとしません。
+	# 検査結果は状態補正前の能力値です。専用Actionが実行直前に状態補正/付与予測を行います。
 	return {"ok": true, "scope": SCOPE, "ticket": request["ticket"].duplicate(true),
 		"eligibility": eligibility, "skill": selected["skill"], "equipment": selected["equipment"],
-		"actor_resources": _member(teams[actor["side"]], actor["id"]), "target_resources": defender,
+		"actor_resources": attacker, "target_resources": defender,
 		"actor_status": actor_status["snapshot"], "target_status": target_status["snapshot"],
 		"target_status_resistances": _context["members"][target["side"]][target["id"]]["status_resistances"].duplicate(),
 		"target_guard": guarded["guard"], "stats_scope": "before_status_modifiers"}

@@ -61,7 +61,7 @@ class StatusPhysicalPreflightBoundaryTests(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         application = (root / "application/battle_session_application.gd").read_text(encoding="utf-8")
         self.assertIn("_status_physical.inspect(request)", application)
-        self.assertNotIn("func resolve_status_physical_skill", application)
+        self.assertIn("_status_physical.resolve(request)", application)
 
 
 # {

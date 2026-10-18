@@ -14,9 +14,9 @@ const QUOTE_FIELDS := ["attack", "defense", "target_hp", "current_mp", "attack_m
 # {
 #   責務: [prepare: 正規スキル一覧から要求IDの一意なMP付き物理定義を取り出す]
 #   処理: [
-#     1: schemaと要求IDを確認する
-#     2: 要求IDの重複・欠損を検出する
-#     3: 選んだ定義だけを検証する
+#     1: スキル一覧のschema_version=1と空でない文字列の要求IDを確認します
+#     2: 要求IDに一致する定義を集め、欠落や二件以上の重複を拒否します
+#     3: 一意に選んだ定義の対応キー・数値を検証し、独立したコピーを返します
 #   ]
 #   引数: [
 #     document: 正規skills JSONに相当する入力（Variant）
@@ -88,8 +88,8 @@ static func quote_damage(definition: Variant, request: Variant) -> Dictionary:
 #     2: Python互換の威力・会心倍率・MP整数を検証する
 #     3: 副作用のない定義の写しを返す
 #   ]
-#   引数: [definition: 検証対象（Variant）]
-#   戻り値: [result: skillまたは理由付き拒否（Dictionary）]
+#   引数: [definition: 正の消費MPを持つ単体physicalのスキル定義（Variant）]
+#   戻り値: [result: 正規化した独立skill、または不正/未対応を示す理由付き拒否（Dictionary）]
 # }
 static func _validate_definition(definition: Variant) -> Dictionary:
 	# 未対応効果はfalseや空でも拒否し、通常攻撃と基本防御の入口を分ける。
@@ -121,8 +121,8 @@ static func _validate_definition(definition: Variant) -> Dictionary:
 # {
 #   責務: [_validate_quote: 予測要求の未知キーと現在MPの正規整数を検証する]
 #   処理: [1: 未対応の入力と不正なMPを拒否する]
-#   引数: [request: 予測要求（Variant）]
-#   戻り値: [result: current_mpまたは拒否理由（Dictionary）]
+#   引数: [request: 現在HPMP・能力値・物理乱数・装備数値を持つダメージ予測要求（Variant）]
+#   戻り値: [result: 検証済み整数current_mp、または未知キー/不正MPを示す拒否（Dictionary）]
 # }
 static func _validate_quote(request: Variant) -> Dictionary:
 	# 学習済みAI・装備JSON・状態効果をこの数値要求に混在させない。
@@ -140,8 +140,8 @@ static func _validate_quote(request: Variant) -> Dictionary:
 
 
 # {
-#   責務: [_reject: 予測を成功扱いにせず、plainな拒否理由を返す]
-#   処理: [1: reasonと必要な補足を含む拒否結果を作る]
+#   責務: [_reject: 物理定義/数値予測の失敗を、JSON互換の理由付き辞書として返します]
+#   処理: [1: ok=falseとreason、数値検査から渡された補足messageを返します]
 #   引数: [
 #     reason: 呼出元が判別する拒否理由（String）
 #     message: 数値検査の補足（String）

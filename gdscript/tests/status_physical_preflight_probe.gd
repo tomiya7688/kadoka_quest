@@ -1,9 +1,11 @@
 # {
-#   責務: [status_physical_preflight_probe: 専用開始と付与付き物理の非消費検査・拒否/再試行/独立性を観測します]
+#   責務: [status_physical_preflight_probe: 専用開始と付与付き物理の検査/実行・拒否/再試行/独立性を観測します]
 #   フィールド: []
 # }
 extends RefCounted
 const Preflight = preload("res://engine/status_physical_skill_preflight.gd")
+const Action = preload("res://engine/status_physical_skill_action.gd")
+const Failure = preload("res://tests/status_physical_failure_session.gd")
 const Session = preload("res://engine/battle_session.gd")
 const Application = preload("res://application/battle_session_application.gd")
 const Repository = preload("res://data/content_repository.gd")
@@ -11,43 +13,51 @@ const Physical = preload("res://engine/physical_skill_action.gd")
 const Shared = preload("res://tests/session_status_probe.gd")
 const StartProbe = preload("res://tests/cure_heal_action_probe.gd")
 const Inputs = preload("res://tests/status_physical_context_probe.gd")
+const ActionBenchmark = preload("res://tests/status_physical_action_benchmark.gd")
 
 
 # {
-#   責務: [run: 付与付き物理のケース観測または八体/千定義の非消費検査性能を担当へ渡します]
+#   責務: [run: 付与付き物理のケース観測、または八体/千定義の非消費検査/実行性能を専用担当へ渡します]
 #   処理: [1: performance指定は計測へ、ケース配列は一件ずつ独立観測へ委譲します]
 #   引数: [payload: ケース配列または反復回数を持つ専用要求（Dictionary）]
-#   戻り値: [result: ケース結果列または性能/固定入力/非消費の観測（Dictionary）]
+#   戻り値: [result: ケース結果列、または指定区分の性能/固定入力/保持確認の観測（Dictionary）]
 # }
 static func run(payload: Dictionary) -> Dictionary:
 	# 固定性能入力と個別の不正/再試行ケースを混ぜず、それぞれ独立に観測します。
 	if payload.get("performance", false):
+		if payload.get("status_physical_action", false):
+			return ActionBenchmark.new().measure(payload)
 		return _measure(payload)
 	var results: Array = []
 	for request: Dictionary in payload.get("cases", []):
-		results.append(_case(request))
+		results.append(_case(request, payload.get("status_physical_action", false)))
 	return {"results": results}
 
 
 # {
 #   責務: [_case: 専用コピーで戦闘と検査を設定し、各操作前後の資源/状態/guardと返却独立性を記録します]
 #   処理: [1: 専用/従来の開始を共用プローブへ委譲し、検査/明示操作後に返却ネストを編集して正本を再照合します]
-#   引数: [request: teams/skills/initial_statuses/order、任意joined/records/project_rootとstepsの専用条件（Dictionary）]
+#   引数: [
+#     request: teams/skills/initial_statuses/order、任意joined/records/project_rootとstepsの専用条件（Dictionary）
+#     with_action: trueなら非消費検査と共用の開始情報を持つ付与付き行動を観測します（bool）
+#   ]
 #   戻り値: [result: 開始/設定/操作観測・最終状態・原本保持（Dictionary）]
 # }
-static func _case(request: Dictionary) -> Dictionary:
+static func _case(request: Dictionary, with_action: bool = false) -> Dictionary:
 	# 元要求とコピーを分離し、ケース間や実セーブへ状態変更を伝播させません。
 	var before := JSON.stringify(request)
 	var input := request.duplicate(true)
 	var joined: bool = input.get("joined", false)
 	var session: RefCounted = Application.new(Repository.new(input["project_root"])) if joined else Session.new()
+	if input.has("fail_at") and not joined:
+		session = Failure.new(input["fail_at"])
 	var started := StartProbe._start(session, input, joined)
 	var preflight: RefCounted
 	var ordinary: RefCounted
 	var configured: Dictionary = {}
 	# Applicationは専用開始が設定を所有し、純粋Sessionだけがプローブで検査を構築します。
 	if not joined:
-		preflight = Preflight.new(session)
+		preflight = Action.new(session) if with_action else Preflight.new(session)
 		ordinary = Physical.new(session)
 		if started["ok"]:
 			ordinary.start(input["teams"], input["skills"])
@@ -60,7 +70,9 @@ static func _case(request: Dictionary) -> Dictionary:
 		var numeric: Dictionary = session.snapshot()
 		var statuses: Dictionary = session.statuses()
 		var guards: Dictionary = session.effects()
+		var request_before := JSON.stringify(step)
 		var value := _step(session, preflight, ordinary, step, input, joined)
+		var request_preserved := request_before == JSON.stringify(step)
 		var original := value.duplicate(true)
 		var after: Dictionary = session.snapshot()
 		var states_after: Dictionary = session.statuses()
@@ -73,20 +85,24 @@ static func _case(request: Dictionary) -> Dictionary:
 			value["actor_resources"]["stats"]["attack"] = -999
 			value["eligibility"]["can_act"] = false
 		steps.append({"result": original, "numeric": after, "statuses": states_after, "guards": guards_after,
+			"request_preserved": request_preserved,
 			"unchanged": numeric == after and statuses == states_after and guards == guards_after,
 			"independent": after == session.snapshot() and states_after == session.statuses() and guards_after == session.effects()})
 	var initial_result := started.duplicate(true)
 	Shared._mutate(started)
-	return {"started": initial_result, "configured": configured, "steps": steps, "numeric": session.snapshot(),
+	var result := {"started": initial_result, "configured": configured, "steps": steps, "numeric": session.snapshot(),
 		"statuses": session.statuses(), "input_preserved": before == JSON.stringify(request)}
+	if input.has("fail_at"):
+		result["calls"] = session.calls.duplicate()
+	return result
 
 
 # {
-#   責務: [_step: 検査/設定と専用資源・状態操作を実APIへ渡し、非JSON値は観測コピーだけへ注入します]
+#   責務: [_step: 検査/行動/設定と専用資源・状態操作を実APIへ渡し、非JSON値は観測コピーだけへ注入します]
 #   処理: [1: 現在予約を既定値にして専用検査へ委譲し、その他の操作を共用Session観測へ渡します]
 #   引数: [
 #     session: 観測先のSessionまたはApplication（RefCounted）
-#     preflight: 純粋Sessionの非消費検査、Applicationではnull（RefCounted）
+#     preflight: 純粋Sessionの非消費検査または専用行動、Applicationではnull（RefCounted）
 #     ordinary: 従来物理行動、Applicationではnull（RefCounted）
 #     step: 操作名と個別要求/不正値条件（Dictionary）
 #     input: ケースの独立開始入力（Dictionary）
@@ -110,14 +126,21 @@ static func _step(session: RefCounted, preflight: RefCounted, ordinary: RefCount
 						member["status_resistances"].clear()
 						member["equipment"].clear()
 			return {"ok": true}
-		"inspect", "ordinary_action":
+		"inspect", "ordinary_action", "action":
 			var request: Variant = step.get("request", {"ticket": ticket, "target": step.get("target"), "skill_id": step.get("skill_id", "mod_status_hit")})
+			if step["operation"] == "action" and not step.has("request"):
+				request["critical_roll"] = step.get("critical_roll", 0.5)
+				request["variance"] = step.get("variance", 1.0)
+				if step.has("status_roll"):
+					request["status_roll"] = step["status_roll"]
 			for field in step.get("extra", {}):
 				request[field] = step["extra"][field]
 			if step.has("special"):
 				request[step["special"]["field"]] = RefCounted.new() if step["special"]["value"] == "object" else NAN
 			if step["operation"] == "ordinary_action":
 				return session.resolve_physical_skill(request) if joined else ordinary.resolve(request)
+			if step["operation"] == "action":
+				return session.resolve_status_physical_skill(request) if joined else preflight.resolve(request)
 			return session.inspect_status_physical_skill(request) if joined else preflight.inspect(request)
 	# 純粋Sessionの資源/状態の変更は共用プローブへ渡し、製品の内部フィールドを直接編集しません。
 	return Shared._execute(session, null, step, input)

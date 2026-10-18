@@ -74,12 +74,21 @@ static func _is_json_value(value: Variant, depth: int = 0) -> bool:
 	# 未知キーの情報も返却できる値に限定し、非JSON値を隠して成功と扱いません。
 	if value is Array:
 		for child in value:
+			# 文字列の検証は型と深さだけなので、子ごとの再帰呼出を省きます。
+			if child is String and depth < MAX_JSON_DEPTH:
+				continue
 			if not _is_json_value(child, depth + 1):
 				return false
 		return true
 	if value is Dictionary:
 		for key in value:
-			if not key is String or not _is_json_value(value[key], depth + 1):
+			if not key is String:
+				return false
+			# 未知MOD定義のid/kind等も保持し、深さ上限を満たす文字列だけは直接受理します。
+			var child: Variant = value[key]
+			if child is String and depth < MAX_JSON_DEPTH:
+				continue
+			if not _is_json_value(child, depth + 1):
 				return false
 		return true
 	return false

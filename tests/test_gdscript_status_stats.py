@@ -181,14 +181,17 @@ class StatusStatQuoteTests(unittest.TestCase):
             self.assertFalse(observed["result"]["ok"])
             self.assertEqual(set(observed["result"]), {"ok", "reason"})
             self.assertTrue(observed["input_preserved"])
-        nested = "leaf"
-        for _ in range(30):
-            nested = [nested]
-        accepted = self.case([{"id": "bleeding", "metadata": nested}])
-        rejected = self.case([{"id": "bleeding", "metadata": [nested]}])
-        results = self.observe({"cases": [accepted, rejected]})["results"]
-        self.assertTrue(results[0]["result"]["ok"])
-        self.assertEqual(results[1]["result"], {"ok": False, "reason": "invalid_status_effects"})
+        depth_cases = []
+        for container in (list, dict):
+            nested = "leaf"
+            for _ in range(30):
+                nested = [nested] if container is list else {"child": nested}
+            depth_cases += [self.case([{"id": "bleeding", "metadata": nested}]),
+                            self.case([{"id": "bleeding", "metadata": [nested] if container is list else {"child": nested}}])]
+        results = self.observe({"cases": depth_cases})["results"]
+        for offset in (0, 2):
+            self.assertTrue(results[offset]["result"]["ok"])
+            self.assertEqual(results[offset + 1]["result"], {"ok": False, "reason": "invalid_status_effects"})
 
     # {
     #   責務: [test_benchmark_checks_fixed_success_inputs_and_timing: 実Godotの性能観測だけが通り、偽の成功や拒否/原本変更が通らないことを確認します]

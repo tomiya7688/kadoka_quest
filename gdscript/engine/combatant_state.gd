@@ -56,7 +56,8 @@ func start(identity: Variant, stats: Variant) -> Dictionary:
 func snapshot() -> Dictionary:
 	if not _initialized:
 		return {}
-	return {"identity": _identity.duplicate(true), "stats": _stats.duplicate(true),
+	# startがidentityを三文字列、statsを六整数だけで再構築するため、浅い複製でも内部参照を公開しません。
+	return {"identity": _identity.duplicate(), "stats": _stats.duplicate(),
 		"hp": _hp, "mp": _mp, "fled": _fled, "alive": alive()}
 
 
