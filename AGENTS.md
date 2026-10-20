@@ -1,6 +1,6 @@
 # Kadoka Quest agent router
 
-Read this file and the assigned Issue first. Do not read the whole repository up front.
+Read this file, the [developer rules index](docs/開発者向け/README.md), and the assigned Issue first. Read all three mandatory rules linked by that index. Do not read the whole repository up front.
 Use [Issue priority policy](docs/ワークフロー/Issue優先度方針.md): P0 is emergency-only; normal priority starts at P1.
 During active migration, prefer gdscript P1 units; read [migration units](docs/ワークフロー/GDScript移行実装単位.md) to skip locally implemented work.
 
@@ -43,29 +43,15 @@ For headless UI tests set `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`, and 
 - `ui/` owns pygame rendering/input adaptation; renderers do not decide gameplay outcomes.
 - Player and Developer entry points stay separated. Developer tooling must not leak into the Player launcher/build.
 - Preserve direct JSON/editor-to-runtime formats. When a data contract changes, update `docs/FORMATS.md`.
-- Follow [coding/review standards](コーディング規約.md) and `docs/CODING_RULES.md`. Read local レビュー基準.md when present (ignored; absent in clean clones).
-- Use JSON-like Comment Outs for all code declarations, including private/nested code and tests/tools. See `docs/COMMENT_RULES.md`; keep comments aligned with implementation. Validate staged sources with `python tools/comment-check/script/check_comments.py`.
+- Follow [coding/review standards](docs/開発者向け/コーディング規約.md), [responsibility boundaries](docs/開発者向け/CODING_RULES.md), and [declaration comments](docs/開発者向け/COMMENT_RULES.md). Their canonical text is separated from game specifications under `docs/開発者向け/`.
+- Read optional local instructions through `docs/開発者向け/ローカル専用/README.md` when present; local overrides still control mandatory local reading. Never publish ignored local rule text. Clean clones do not require local-only files.
+- Validate all tracked declaration comments with `python tools/comment-check/script/check_comments.py`; stage only the current task's new files before this check.
 
 Machine-checkable boundaries belong in tests/CI rather than duplicated prose. Run `python tools/project-integrity/script/check_project_rules.py` when that tool exists on the working branch.
 
-For architecture/responsibility changes, install and run the latest UPD checker from `tomiya7688/upd-commander-base-design`:
+For architecture/responsibility changes, follow the latest-UPD installation and blocking-error rules in [responsibility boundaries](docs/開発者向け/CODING_RULES.md#upd-commander-checker). Report checker-side improvements upstream instead of creating a private fork, subject to public-write authorization.
 
-```text
-python -m pip install --no-cache-dir --upgrade --force-reinstall -r tools/upd-commander/requirements.txt
-python tools/upd-commander/script/check.py
-```
-
-UPD errors are blocking. Warnings and attentions are migration guidance and remain non-blocking. `--advisory` may be used only for temporary investigation, not as a completion substitute.
-
-When UPD checker usage reveals a checker-side improvement, missing rule, false positive, reporting problem, or CI integration need, create an Issue in `tomiya7688/upd-commander-base-design` instead of implementing a private Kadoka-only fork.
-
-When adding or changing routing/Commander/Messenger/Service layers or another runtime hot path, run and extend the Kadoka Quest performance checker as needed:
-
-```text
-python tools/performance-check/script/check_runtime_performance.py
-```
-
-The performance checker is a Kadoka Quest local development tool. Grow its benchmark coverage alongside the game (for example field update, battle resolution, or data conversion) when those paths become performance-sensitive. Do not add checker or benchmark imports to Player runtime code. Performance-motivated UPD exceptions must be local, rule-specific, and include a reason.
+For routing/layer or runtime-hot-path changes, run and extend the [runtime performance guard](docs/開発者向け/CODING_RULES.md#実行速度の保護). Keep development checkers out of Player runtime; any necessary performance exception must remain local, rule-specific, and justified.
 
 ## Routing
 

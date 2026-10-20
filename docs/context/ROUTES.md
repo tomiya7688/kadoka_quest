@@ -18,7 +18,7 @@ Start with the matching row in `docs/CODEMAP.md` for the implementation/test/spe
 | Map / block / monster editors | matching `apps/*_editor.py` | `ui/pixel_editor.py`, `ui/pixel_operations.py`, related data module |
 | Developer environment / build | `developer/workflow.py`, `developer/build_core.py` | `developer/distribution_smoke.py`, `.github/workflows/windows-distribution.yml` |
 | Player / Developer launcher split | `apps/launcher_config.py`, root `launcher.py` / `developer_launcher.py` | distribution boundary tests |
-| Architecture / responsibility split | `docs/CODING_RULES.md`, affected module | `docs/*責務分離機能説明書.md`, compact class diagram |
+| Architecture / responsibility split | `docs/開発者向け/CODING_RULES.md`, affected module | `docs/*責務分離機能説明書.md`, compact class diagram |
 | Context / tooling | `docs/context/WORKFLOW.md`, `tools/README.md` | only the specific `tools/<name>/script/` implementation |
 | CI / project integrity | relevant `.github/workflows/*.yml` | `developer/project_validator.py`, `tools/project-integrity/` when present |
 

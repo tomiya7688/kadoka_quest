@@ -2,6 +2,8 @@
 
 Use the smallest context that can complete the assigned task. Accuracy comes before context reduction.
 
+Read the [developer rules index](../開発者向け/README.md) and its mandatory coding, responsibility, and comment rules before implementation. Keep their text in the linked canonical documents rather than copying it into AGENTS or game specifications.
+
 ## Start and stop conditions
 
 1. If no Issue is explicitly assigned, run `tools/task-workflow/script/start_task.bat` and use the single Issue it returns.

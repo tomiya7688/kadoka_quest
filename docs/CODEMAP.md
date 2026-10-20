@@ -28,7 +28,8 @@
 | Developer / 配布 | `developer/{workflow,build_core,distribution_smoke}.py`, `apps/developer_launcher.py` | `test_developer_workflow.py`, `test_distribution_process.py`, `test_distribution_paths.py` | `docs/Developer環境説明書.md` | PlayerとDeveloperの起動・ビルドを分離する。 |
 | 開発補助 / コンテキスト | `tools/remote-context/script/sync_remote_context.py`, `tools/affected-tests/script/affected_tests.py`, `tools/import-map/script/python_import_map.py` | `test_remote_context.py`, `test_context_tools.py`, `test_context_router.py` | `tools/README.md`, `docs/context/WORKFLOW.md` | 要約は探索の案内。実装とIssueを正とする。 |
 | Issue優先度 / 作業選択 | `tools/task-workflow/script/start_task.bat` | `test_task_priority.py`, `test_context_router.py` | `docs/ワークフロー/{ワークフロー,Issue優先度方針,GDScript移行実装単位}.md`, `tools/README.md` | P0は緊急専用、P1内はgdscript優先。候補のみ返し、依存/ローカル実装済み判断は本文とコードへ戻る。 |
-| CI / 整合性 | `tools/project-integrity/script/check_project_rules.py`, `developer/project_validator.py`, `.github/workflows/python-app.yml` | `test_project_integrity.py`, `test_data_validator.py` | `docs/CODING_RULES.md` | 機械検証の規則を仕様本文へ複写しない。 |
+| 開発規約 / 文書の入口 | `AGENTS.md`、`docs/開発者向け/README.md`、`tools/project-integrity/script/check_project_rules.py` | `test_context_router.py`、`test_project_integrity.py` | `docs/開発者向け/{コーディング規約,CODING_RULES,COMMENT_RULES}.md` | 共有規約の正本をゲーム仕様から分離し、旧パスは移転案内だけを保持します。ローカル専用規約はGit除外を保ち、公開cloneの必須パスへ追加しません。 |
+| CI / 整合性 | `tools/project-integrity/script/check_project_rules.py`, `developer/project_validator.py`, `.github/workflows/python-app.yml` | `test_project_integrity.py`, `test_data_validator.py` | `docs/開発者向け/CODING_RULES.md` | 機械検証の規則を仕様本文へ複写しない。 |
 | E2E期待動作 / 未対応一覧 | `tools/e2e-catalog/script/check_e2e_catalog.py`, `tests/e2e/{harness,runtime_driver,launcher_driver,render_observation}.py` | `test_e2e_catalog.py`, `tests/e2e/{test_harness,test_field_journeys}.py` | `docs/testing/E2E_EXPECTATIONS.md`, `tests/e2e/README.md` | #201は一時セーブ・RNG/clock固定、#202は本番launcher/field/event/save/load（P01～P12）。次は #203/#204。参照チェックは実行成功の代替ではない。 |
 
 ## 敵の表示・逃走・報酬・出現Lv
@@ -99,7 +100,7 @@
 
 ## 更新ルール
 
-コメント規約/全コード網羅: `tools/comment-check/script/check_comments.py` → `tests/test_comment_contract.py` → `docs/COMMENT_RULES.md`。AST/宣言の静的検査だけでゲームをimportせず、自然言語の正確性を保証しない。内部コメント、JSON/config、匿名式をJSON-like宣言へ変換しない。
+コメント規約/全コード網羅: `tools/comment-check/script/check_comments.py` → `tests/test_comment_contract.py` → `docs/開発者向け/COMMENT_RULES.md`。宣言コメントcheckerはAST/宣言だけを静的検査し、ゲームをimportしません。宣言コメントcheckerの成功は自然言語の正確性を保証しません。開発者と実装AIは、内部コメント、JSON/config、匿名式をJSON-like宣言へ変換しないでください。
 
 - シンボルを絞るときだけ `docs/generated/REPO_MAP.md` の該当ファイル名を検索する。公開APIと引数の索引であり、詳細は対象コードを読む。
 - `src/` の公開クラス・関数・メソッドを変更したら `python tools/code-docs/script/generate_repo_map.py` で再生成する。CIの `--check` が更新漏れを検出する。生成文書は手修正しない。

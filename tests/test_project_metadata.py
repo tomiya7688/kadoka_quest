@@ -78,12 +78,13 @@ class ProjectMetadataTests(unittest.TestCase):
         self.assertIn("label: 移植境界（必要な場合のみ）", template)
 
     # {
-    #   責務: [test_codemap_indexes_each_required_task_area: 検証: codemap indexes each required task area]
-    #   処理: [1: 検証: codemap indexes each required task area]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_codemap_indexes_each_required_task_area: CODEMAPが戦闘・フィールド・保存・UI等の主要領域を案内することを確認します]
+    #   処理: [1: 必須領域の名前と索引の更新ルール見出しを照合します]
+    #   引数: [self: CODEMAPの探索案内を検査するテストケース]
+    #   戻り値: [result: なし（None）。必須領域の案内が欠けるとassertionで失敗します]
     # }
     def test_codemap_indexes_each_required_task_area(self) -> None:
+        # 規約の入口を追加しても、ゲーム実装を探す既存の領域一覧が残ることを確認します。
         codemap = (REPOSITORY_ROOT / "docs" / "CODEMAP.md").read_text(encoding="utf-8")
 
         for area in (
@@ -101,12 +102,13 @@ class ProjectMetadataTests(unittest.TestCase):
         self.assertIn("## 更新ルール", codemap)
 
     # {
-    #   責務: [test_agents_declares_context_budget_and_routes_to_codemap: 検証: agents declares context budget and routes to codemap]
-    #   処理: [1: 検証: agents declares context budget and routes to codemap]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [test_agents_declares_context_budget_and_routes_to_codemap: AGENTSが読込量の方針とCODEMAPへの入口を保持することを確認します]
+    #   処理: [1: コンテキスト方針の見出し・探索先・既定で読まない対象の記載を照合します]
+    #   引数: [self: AGENTSの探索案内を検査するテストケース]
+    #   戻り値: [result: なし（None）。必要な探索方針の欠落はassertionで失敗します]
     # }
     def test_agents_declares_context_budget_and_routes_to_codemap(self) -> None:
+        # 開発規約を別文書へ移しても、作業対象の探索と読込量の制限を維持することを確認します。
         agents = (REPOSITORY_ROOT / "AGENTS.md").read_text(encoding="utf-8")
 
         self.assertIn("## Context Budget", agents)
