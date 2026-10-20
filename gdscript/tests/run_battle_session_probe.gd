@@ -189,18 +189,29 @@ func _mutate(value: Variant) -> void:
 # {
 #   責務: [_performance: 初期化済み八体Sessionの予約提示から終了までを反復計測します]
 #   処理: [1: 開始構築を計測外に置き、事前実行後の複数サンプルから中央値を返します]
-#   引数: [payload: iterations/samples/warmupの反復条件（Dictionary）]
-#   戻り値: [result: 一行動段階の中央値・反復条件と参加数八体（Dictionary）]
+#   引数: [payload: iterations/samples/warmupと任意status_roundの反復条件（Dictionary）]
+#   戻り値: [result: 一行動段階の中央値・反復条件と参加数八体。状態付き計測は入力/状態/最終Sessionも返します（Dictionary）]
 # }
 func _performance(payload: Dictionary) -> Dictionary:
+	# 八体の固定資源と陣営別の状態を用意し、利用者の保存先や正規データを計測入力へ使いません。
 	var input := _benchmark_input()
 	var session = Session.new()
-	session.start(input["allies"], input["enemies"])
+	var statuses := {"allies": {}, "enemies": {}}
+	for side in Order.SIDES:
+		for member: Dictionary in input[side]:
+			statuses[side][member["identity"]["id"]] = ["bleeding", {"id": "bleeding"}, "poison",
+				{"id": "mod", "metadata": {"deck": [1, {"kept": true}]}}] if side == "allies" else ["poison", "sleep", "Bleeding"]
+	# 状態付き区分でも毎ラウンドの開始・予約取得・完了は同じ公開APIだけを通します。
+	var initial: Dictionary = session.start_with_statuses(input["allies"], input["enemies"], statuses) if payload.get("status_round", false) else session.start(input["allies"], input["enemies"])
+	assert(initial["ok"])
+	var before := JSON.stringify([input, statuses])
 	var iterations := int(payload.get("iterations", 20000))
 	var samples := int(payload.get("samples", 7))
 	var warmup := int(payload.get("warmup", 2000))
+	# 本計測前にも実行段階を進め、初回だけの実行準備コストを所要時間へ混ぜません。
 	for index in warmup:
 		_stage(session, input["shuffle_order"])
+	# ラウンド計画を八段階ごとに含む一段階の時間を測り、サンプル中央値で環境の揺れを抑えます。
 	var timings: Array = []
 	for sample in samples:
 		var started := Time.get_ticks_usec()
@@ -208,8 +219,13 @@ func _performance(payload: Dictionary) -> Dictionary:
 			_stage(session, input["shuffle_order"])
 		timings.append(float(Time.get_ticks_usec() - started) / iterations)
 	timings.sort()
-	return {"microseconds": timings[timings.size() / 2], "iterations": iterations, "samples": samples,
+	var result := {"microseconds": timings[timings.size() / 2], "iterations": iterations, "samples": samples,
 		"warmup": warmup, "actors": 8}
+	if payload.get("status_round", false):
+		# 計測条件や正常な順序の欠落を検出できるよう、固定入力と最終所有状態を独立して観測します。
+		result.merge({"input": input, "initial_statuses": statuses, "session": session.snapshot(),
+			"statuses": session.statuses(), "input_preserved": before == JSON.stringify([input, statuses])})
+	return result
 
 
 # {
@@ -223,7 +239,8 @@ func _performance(payload: Dictionary) -> Dictionary:
 # }
 func _stage(session: RefCounted, shuffle_order: Array) -> void:
 	if session.snapshot()["phase"] != "round_active":
-		session.begin_round(shuffle_order)
+		# 計測は正常なラウンド開始だけを対象とし、高速な開始拒否を成功時間へ混ぜません。
+		assert(session.begin_round(shuffle_order)["ok"])
 	var offered: Dictionary = session.next_actor()
 	var ticket: Dictionary = offered["pending"]["ticket"]
 	var claimed: Dictionary = session.claim(ticket)

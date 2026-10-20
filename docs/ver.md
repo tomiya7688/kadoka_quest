@@ -16,6 +16,25 @@
 
 ```
 
+# 121. 状態付きSessionのラウンド開始へ最新状態の速度補正を接続
+
+移行計画の次項目として、状態付きSessionのbegin_roundを純粋な状態補正行動順へ接続しました。リモートを取得し、ahead105/behind0・未取り込み差分なし・P0なしを確認しました。公開GDScript P1のローカル実装済み項目は繰り返しません。白黒GUI、利用者の未コミット変更、実セーブは変更しません。
+
+Sessionは各ラウンド開始時の所有資源・最新状態と全参加者の一時倍率1を純粋順序契約へ渡し、全成功後だけround/order/cursorを更新します。出血の付与/治療は次ラウンドへ反映し、途中の順序と予約を上書きしません。補正前stats.speedを保持するため、出血補正は累積しません。従来startの基礎順序と最低速度1、数値snapshot六キー・Session七キー・保存JSON/schemaは維持します。Applicationの状態付き初回開始も、補正済みラウンドを含む全成功後だけ候補を公開します。開発者の呼出方法・拒否理由・再検証方法は[状態補正行動順契約](GDScript状態補正行動順契約.md#sessionの状態付きラウンド開始)を参照してください。
+
+集中検証は62件・782サブテストが成功しました（153.24秒）。状態六種・速度境界・明示順二種の48通りを実Pythonと照合し、三ラウンドの付与/治療後再計算・途中順固定・八体/空陣営/死亡/逃走・不正開始の全状態保持・Applicationの全成功後公開を確認します。全体検証で見つかった前回の「Session未接続」という古い境界テストは、Sessionから純粋契約への一方向依存を確認する検査へ更新しました。純粋契約のI/O・UI・乱数・状態所有禁止は維持します。
+
+最終のヘッドレス全テストは1282件・24293サブテストが成功しました（1601.48秒、26分41秒）。検証にはPython3.14.7/pygame-ce2.5.8とGodot4.7.2、実セーブと分離した保存先を使用しました。個体/AI/items/party/stateの保存ダミーは各起動前後でbyte不変を確認し、最終検証前に採取した変更ソース・利用者変更11ファイルのSHA256も検証後の実ファイルと一致しました。今回の専用venvは作業用ワークスペースに作り、消失した前回の一時venvや利用者のPython環境は変更しません。2026年10月20日の作業再開時にもリモート未取り込み差分なしとソース不変性を再確認しました。
+
+標準性能は20000段階・7サンプル・2000段階事前実行で、状態付きSessionの一行動段階が中央値322.57us、従来Sessionが262.75usでした（上限はいずれも2000us）。状態付き区分は八段階ごとの最新状態補正ラウンド開始を含み、固定入力・最終順序/round/cursor・数値資源/状態・反復条件・原本保持を独立期待値へ照合します。性能検査はJSONの真偽値と数値の偽一致も拒否します。計測値はラウンド開始単独の時間や描画FPSではありません。既存runtimeの13項目も全て成功し、野生24枠生成912.44us・二体追跡142.30us・野生移動358.69usは従来上限以内でした。重いテストと標準性能測定は重ねず、閾値や検査条件は緩めていません。
+
+追跡Python289ファイルのPython3.10構文とblocking flake8、420ファイル/3426宣言のコメント検査、project rules、差分検査が成功しました。最新UPD checkerの取得コミットは12aeedf675102d27fb2107427aff274dc78662d6で、最終結果はエラー0・警告19・注意107です。警告/注意は非blockingの移行情報として保持し、ignoreや閾値は変更しません。仕様・CODEMAPに残っていた実装済み付与付き物理の未接続表記も、実装へ合わせて最小修正しました。ver.mdの0節と過去の全履歴はbyte単位で保持します。
+
+一時速度倍率の付与/保持/期限、ほかの攻撃入口の補正、継続効果・AI・戦闘画面は未接続です。実GUI操作・配布export・リモートCIも未検証です。push・PR・Issueの公開操作は行いません。
+
+変更したファイル: gdscript/engine/battle_session.gd、gdscript/application/battle_session_application.gd、gdscript/tests/run_battle_session_probe.gd、status_physical_preflight_probe.gd、tests/test_gdscript_session_status_application.py、test_gdscript_status_physical_action.py、test_gdscript_status_turn_order.py、tools/performance-check/script/check_gdscript_battle_session.py、docs/CODEMAP.md、FORMATS.md、GDScript戦闘Session契約.md、GDScript戦闘Session状態保持契約.md、GDScript状態補正行動順契約.md、ワークフロー/GDScript移行実装単位.md、ver.md。
+追加したファイル: tests/test_gdscript_status_session_round.py。
+
 # 120. GDScriptへ状態補正済み行動順の純粋契約を追加
 
 移行計画の次項目として、全参加者の最新状態・補正前速度・明示一時倍率から行動順を求めるstatus_turn_orderを追加しました。開始時にリモートを取得し、ahead104/behind0・取り込み差分なし・P0なしを確認しました。公開GDScript P1のローカル実装済み項目は繰り返しません。白黒GUI、利用者の未コミット変更、実セーブは維持します。

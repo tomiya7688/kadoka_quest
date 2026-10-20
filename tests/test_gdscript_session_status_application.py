@@ -277,6 +277,8 @@ class SessionStatusApplicationTests(unittest.TestCase):
         update = {"operation": "apply_status", "actor": target, "request": {"effect": {"id": "bleeding", "chance": 1}, "roll": 0}}
         cure = {"operation": "apply_cure", "actor": target, "request": {"cure_chance": 1, "roll": 0}}
         case = reserved_case(["poison"])
+        # 次ラウンドでも味方本人が先に治療できるよう、出血後も敵より速い基礎速度を明示します。
+        case["snapshots"]["allies"][0]["stats"]["speed"] = 20
         order = case["steps"][0]["order"]
         case["steps"] += [update, cure, update, cure, {"operation": "defend", "value": 0.5}, {"operation": "finish"},
                           {"operation": "next"}, {"operation": "claim"}, {"operation": "finish"},

@@ -19,6 +19,7 @@ extends RefCounted
 const State = preload("res://engine/combatant_state.gd")
 const Eligibility = preload("res://engine/actor_eligibility_projection.gd")
 const Order = preload("res://engine/turn_order.gd")
+const StatusOrder = preload("res://engine/status_turn_order.gd")
 const StatNumbers = preload("res://engine/stat_numbers.gd")
 const Statuses = preload("res://engine/battle_status_state.gd")
 const StatusUpdates = preload("res://engine/claimed_status_updates.gd")
@@ -219,23 +220,25 @@ func snapshot() -> Dictionary:
 
 
 # {
-#   責務: [begin_round: 現在資源を保持し、生存者だけの明示順と基本速度に基づくラウンド順序を固定します]
+#   責務: [begin_round: 現在資源を保持し、状態付き開始では最新状態の補正速度、従来開始では基本速度でラウンド順序を固定します]
 #   処理: [
-#     1: 開始可能なphaseと参加者/順序の契約を検証する
-#     2: 新しいroundとcursorを設定する。敵なし停止は終端処理へ委譲してguardを解除する
+#     1: 開始可能な戦闘段階を確認し、所有資源と最新状態による順序の計算を担当契約へ委譲します
+#     2: 計画成功後だけラウンドとカーソルを更新し、敵なし停止時は終端処理で物理防御倍率を解除します
 #   ]
 #   引数: [shuffle_order: 陣営sideと個体idで表す全参加者の並べ替え候補列。敏捷性が同じ参加者の順を決めます（Variant）]
 #   戻り値: [result: plan/session/stopまたは理由付き拒否。勝敗処理ではない]
 # }
 func begin_round(shuffle_order: Variant) -> Dictionary:
+	# Sessionは進行中の順序や予約を上書きしないよう、計算前にラウンド開始可能性を確認します。
 	if _phase == "not_started":
 		return _failure("not_initialized")
 	if _phase not in ["between_rounds", "round_finished"]:
 		return _failure("round_not_available")
 	var teams := _snapshots()
-	var planned := Order.plan(teams["allies"], teams["enemies"], shuffle_order)
+	var planned := _plan_round(teams, shuffle_order)
 	if not planned["ok"]:
 		return planned
+	# Sessionは計画全体が成功するまでラウンド・順序・資源・状態を変更しません。
 	_round += 1
 	_order = planned["order"].duplicate(true)
 	_cursor = 0
@@ -243,6 +246,28 @@ func begin_round(shuffle_order: Variant) -> Dictionary:
 	if not _both_sides_alive():
 		_end_round("stopped")
 	return {"ok": true, "plan": planned, "session": snapshot(), "stop": _phase == "stopped"}
+
+
+# {
+#   責務: [_plan_round: 所有状態の有無に応じて基礎順序または状態補正順序へ委譲し、Session自体を変更しません]
+#   処理: [1: 従来開始は基礎順序へ渡し、状態付き開始は全員の最新状態と一時倍率なしの明示1を状態順序へ渡します]
+#   引数: [
+#     teams: Sessionが所有する現在HPMP・生死と補正前能力値の独立コピー（Dictionary）
+#     shuffle_order: 生存者全員のside/idを一度ずつ含む同速時の明示順（Variant）
+#   ]
+#   戻り値: [result: 完全な順序計画または非変更の拒否。状態付き計画は全員の実効速度も返します（Dictionary）]
+# }
+func _plan_round(teams: Dictionary, shuffle_order: Variant) -> Dictionary:
+	# 従来開始は最新状態を持たないため、最低速度1を含む元の基礎順序契約へ直接委譲します。
+	if _statuses == null:
+		return Order.plan(teams["allies"], teams["enemies"], shuffle_order)
+	# 一時速度倍率の所有は未移植のため、全参加者に「倍率なし」の1を明示し、呼出元から倍率を受け取りません。
+	var multipliers := {"allies": {}, "enemies": {}}
+	for side in Order.SIDES:
+		for member: Dictionary in teams[side]:
+			multipliers[side][member["identity"]["id"]] = 1.0
+	return StatusOrder.plan({"allies": teams["allies"], "enemies": teams["enemies"],
+		"statuses": _statuses.snapshot()["teams"], "speed_multipliers": multipliers, "shuffle_order": shuffle_order})
 
 
 # {

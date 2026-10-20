@@ -12,7 +12,7 @@ startは新規戦闘だけです。hp/mpがstats最大値と一致し、fled=fal
 
 ## ラウンドと候補のプロトコル
 
-1. `begin_round(shuffle_order)` はbetween_rounds/round_finishedからのみ実行可能。現在生存者の明示順列を#228へ渡し、stable速度順を固定します。不正順序でround/cursorを進めません。進行中/pending/停止後の開始は `round_not_available`。
+1. `begin_round(shuffle_order)` はbetween_rounds/round_finishedからのみ実行できます。従来startでは基礎順序契約、状態付きstart_with_statusesでは[最新状態によるラウンド開始](GDScript状態補正行動順契約.md#sessionの状態付きラウンド開始)へ生存者の明示順を渡し、速度順を固定します。不正順序ではround/cursorを進めません。進行中・予約保持中・停止後の開始は `round_not_available` で拒否します。
 2. `next_actor()` は予定順に最新生存を確認し、死亡/逃走者をskippedへ加えて飛ばします。敵がいなければstopped。生存候補があればstage:offeredのpendingを予約します。取得は実行開始ではなく、常にcan_execute=falseです。重複取得は同じpendingを返し、二重に進めません。
 3. `claim(ticket)` はofferedに対して一度だけ最新生存を再確認します。成功時だけstage:claimed、can_execute=trueと最新friends/foesを返します。死亡/逃走/敵なしなら予約を消費しcan_execute=false、次またはstoppedへ進みます。重複claimは `already_claimed`。実際の行動解決は後続が同じ同期呼出経路で行い、claim後の非同期状態変更/並列解決は保証しません。
 4. `finish(ticket)` はclaimedだけを完了し、pendingを消しcursorを一度だけ進めます。未claimは `pending_not_claimed`、二重完了や古いticketは `ticket_not_pending`。これは行動の効果/命中を計算する操作ではありません。

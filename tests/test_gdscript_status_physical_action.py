@@ -129,6 +129,8 @@ class StatusPhysicalActionTests(StatusActionFixture, unittest.TestCase):
             {"operation": "apply_cure", "actor": TARGET, "request": {"cure_chance": 1, "roll": 0}},
             {"operation": "finish"}, {"operation": "next"}, action()])
         case["initial_statuses"]["enemies"]["same"] = ["bleeding"]
+        # 敵が先に自身を治療するシナリオを保つため、出血補正後も味方を上回る速度を設定します。
+        case["teams"]["enemies"][0]["snapshot"]["stats"]["speed"] = 20
         observed = self.observe({"cases": [case]})["results"][0]
         self.assertTrue(observed["steps"][2]["result"]["cured"])
         self.assertEqual(observed["steps"][-1]["result"]["dealt"], 79)

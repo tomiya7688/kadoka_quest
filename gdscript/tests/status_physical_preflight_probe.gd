@@ -114,6 +114,9 @@ static func _step(session: RefCounted, preflight: RefCounted, ordinary: RefCount
 	var pending: Variant = session.snapshot()["pending"]
 	var ticket: Variant = step.get("ticket", pending["ticket"] if pending is Dictionary else null)
 	match step["operation"]:
+		"defend_action":
+			# Applicationの公開行動を使って実ラウンドを完了し、非公開Sessionの予約APIを迂回しません。
+			return session.resolve_basic_defend({"ticket": ticket, "skill_id": "defend"})
 		"start": return StartProbe._start(session, step.get("input", input), joined)
 		"configure": return preflight.start(step.get("teams", input["teams"]), step.get("skills", input["skills"]), step.get("initial_statuses", input["initial_statuses"]))
 		"input_edit":

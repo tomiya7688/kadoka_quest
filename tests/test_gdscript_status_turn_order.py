@@ -17,18 +17,18 @@ import test_gdscript_turn_order as turn
 
 
 # {
-#   責務: [StatusTurnBoundaryTests: 状態補正済み順序をI/O・UI・乱数生成・資源更新・Sessionから分離します]
+#   責務: [StatusTurnBoundaryTests: 状態補正順序の純粋性を守り、Sessionから純粋契約への一方向依存を確認します]
 #   フィールド: []
 # }
 class StatusTurnBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_pure_contract_reuses_stats_and_order_without_session_connection: 補正式と安定ソートを共用し、実戦闘への接続や状態所有を追加しないことを確認します]
-    #   処理: [1: 新契約の依存とSession/Application/UIによる未使用を静的に確認します]
+    #   責務: [test_pure_contract_reuses_stats_and_order_with_one_way_session_connection: 純粋計算は状態を所有せず、Sessionだけが保持状態を渡す依存方向を確認します]
+    #   処理: [1: 共用計算への委譲と禁止依存を検査し、Session接続とApplicationによる直接計算の未追加を確認します]
     #   引数: [self: 純粋計算の依存境界を検査するテストケース]
     #   戻り値: [result: なし（None）]
     # }
-    def test_pure_contract_reuses_stats_and_order_without_session_connection(self):
-        # 数値処理の複製や未実装のSession接続が、純粋な順序計算へ混入していないか確認します。
+    def test_pure_contract_reuses_stats_and_order_with_one_way_session_connection(self):
+        # 順序計算はSessionから呼ばれても、状態所有やSessionへの逆依存を持たないことを確認します。
         source = (godot.ROOT / "gdscript/engine/status_turn_order.gd").read_text(encoding="utf-8")
         self.assertIn("Stats.quote_stats(", source)
         self.assertIn("Order.plan(", source)
@@ -36,8 +36,14 @@ class StatusTurnBoundaryTests(unittest.TestCase):
                           "res://data/", "res://ui/", "res://application/", "battle_session", "sort_custom(",
                           ".pay_mp(", ".take_damage(", ".learn(", "0.9"):
             self.assertNotIn(forbidden, source)
-        for relative in ("engine/battle_session.gd", "application/battle_session_application.gd"):
-            self.assertNotIn("status_turn_order", (godot.ROOT / "gdscript" / relative).read_text(encoding="utf-8"))
+        # 最新保持状態を純粋契約へ渡す責務はSessionへ置き、Applicationへ補正式を持ち込みません。
+        session = (godot.ROOT / "gdscript/engine/battle_session.gd").read_text(encoding="utf-8")
+        self.assertIn('preload("res://engine/status_turn_order.gd")', session)
+        self.assertIn("StatusOrder.plan(", session)
+        self.assertIn('_statuses.snapshot()["teams"]', session)
+        application = (godot.ROOT / "gdscript/application/battle_session_application.gd").read_text(encoding="utf-8")
+        self.assertNotIn("status_turn_order", application)
+        self.assertNotIn("quote_stats(", application)
 
 
 # {

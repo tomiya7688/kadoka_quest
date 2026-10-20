@@ -181,7 +181,7 @@ func _start(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_s
 
 
 # {
-#   責務: [begin_round: 戦闘資源を保持した次のラウンドの開始をbattle_session.gdの戦闘状態へ委譲します]
+#   責務: [begin_round: 所有資源を保持した次ラウンドの開始をSessionへ委譲し、状態付き開始では最新状態の速度補正を使います]
 #   処理: [1: battle_session.gdの戦闘状態へ参加者の並べ替え候補列を渡し、行動順計画または拒否結果を返します]
 #   引数: [shuffle_order: 陣営sideと個体idで表す全参加者の並べ替え候補列。敏捷性が同じ参加者の順を決めます（Variant）]
 #   戻り値: [result: battle_session.gdの戦闘状態が返す計画・状態・停止判定、または開始を拒否した理由を含む結果（Dictionary）]

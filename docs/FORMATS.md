@@ -475,13 +475,13 @@ resolve_magic_skillは厳密な{ticket,target,skill_id,variance}だけを受け�
 
 [状態付与予測契約](GDScript状態付与予測契約.md)のquote_applicationはeffect/status_effectsと任意resistance_level/rollを受け、重複防止・状態耐性倍率・明示判定から一件付与後の独立resulting_status_effectsを返します。prepare_applicationはrollを受けず、成功率と判定要否を返します。新規IDの前後空白だけを正規化し、成立時の候補からchanceを除き、display_name/removableの省略値を補います。付与予測は未知MOD IDとJSON互換拡張情報を保持しますが、拡張効果を実行しません。
 
-付与予測のscopeはstatus_apply_quoteです。IDなし・重複・確率0以下・無効耐性ではroll不要、正の確率では1でもroll必須です。付与予測は指定済み不正roll・未知要求を拒否します。現在一覧の形式検査は治療と共用し、原本・実状態・数値snapshot・保存JSON/schemaは変更しません。状態所有者/参加者集合/取得済みSession予約への実更新は専用入口へ接続しました。付与付き攻撃行動・継続効果・AI・画面は未接続です。
+付与予測のscopeはstatus_apply_quoteです。IDなし・重複・確率0以下・無効耐性ではroll不要、正の確率では1でもroll必須です。付与予測は指定済み不正roll・未知要求を拒否します。現在一覧の形式検査は治療と共用し、原本・実状態・数値snapshot・保存JSON/schemaは変更しません。状態所有者・参加者集合・取得済みSession予約への実更新と、付与付き単体物理行動は専用入口へ接続しました。継続効果・AI・画面は未接続です。
 
 ### GDScriptの個体状態所有者による一件付与（保存形式変更なし）
 
 [戦闘状態一覧契約](GDScript戦闘状態一覧契約.md#最新一覧への一件付与)のprepare_applicationはeffectと任意resistance_levelだけを受け、最新一覧で判定値の要否を返します。quote_application/applyは任意rollも受け、外部一覧/古い予測の持ち込みを拒否します。実付与applyはscope:combatant_status_applyで一件追加後の独立resulting_status_effectsを返し、成立した新規候補だけを別コピーして所有一覧へ追加します。同IDは重ねず、予測/不成立/拒否で状態を変更しません。治療後は同IDを再付与できます。
 
-個体状態所有者の付与は数値snapshot六キーと保存JSON/schemaを変更しません。個体状態所有者はHP/MP・生死・逃走・行動予約・スキル条件・耐性再構築を持たず、Session予約の付与接続は専用入口で扱います。付与付き行動・継続効果・保存・AI・画面は未接続です。
+個体状態所有者の付与は数値snapshot六キーと保存JSON/schemaを変更しません。個体状態所有者はHP/MP・生死・逃走・行動予約・スキル条件・耐性再構築を持たず、Session予約の付与接続は専用入口で扱います。付与付き単体物理行動は状態所有者へ接続し、継続効果・保存・AI・画面は未接続です。
 
 ### GDScriptの参加者状態集合への一件付与（保存形式変更なし）
 
@@ -524,13 +524,13 @@ inspect_status_physical_skillの要求はticket/target/skill_idの三キーだ�
 
 [状態能力値補正契約](GDScript状態能力値補正契約.md)のquote_statsは、補正前のdefense/speed・明示status_effects・任意speed_multiplierを受け取ります。成功結果はok/scope:status_stat_quote/defense/speed、失敗結果はok=false/reasonだけです。出血は防御力と素早さへ0.9倍を一度だけ適用し、素早さは一時倍率を先に掛けてから最後に整数化します。下限は防御0・素早さ1です。入力形式・精度上限・拒否・検証方法は専用契約を参照してください。
 
-補正契約は保存JSON/schemaや数値Session形式を変更しません。補正契約自身はHPMP・状態・個体AIを保持または更新せず、補正済み防御は付与付き物理の専用実行、補正済み速度は純粋な状態補正行動順へ接続しました。状態補正済み順序のSession接続・ほかの攻撃入口・画面は未接続です。開発者は補正済み値を補正前の値として再入力しないでください。
+補正契約は保存JSON/schemaや数値Session形式を変更しません。補正契約自身はHPMP・状態・個体AIを保持または更新せず、補正済み防御は付与付き物理の専用実行、補正済み速度は純粋な状態補正行動順と状態付きSessionのラウンド開始へ接続しました。ほかの攻撃入口と画面は未接続です。開発者は補正済み値を補正前の値として再入力しないでください。
 
 ### GDScriptの状態補正済み行動順（実行時だけ）
 
 [状態補正行動順契約](GDScript状態補正行動順契約.md)のplanは、allies/enemiesの厳密な六キー数値snapshot列、全参加者のstatuses、全参加者のspeed_multipliers、生存者だけのshuffle_orderという五キー要求を受け取ります。状態/倍率は各陣営の全IDに過不足なく対応する二辞書で、死亡/逃走者も省略できません。倍率なしは1、状態なしは空配列を明示してください。数値snapshotへ状態や倍率を埋め込む形式は受理しません。
 
-状態順序の成功結果はok/scope:status_turn_orderと、生存者のinitial/order・全参加者のspeedsです。出血0.9倍と一時倍率を共用計算し、同速は明示順を保持します。不正時は理由と必要なfield/side/id等だけを返し、部分的な順序/速度を返しません。入力・資源・状態・倍率・保存形式を変更せず、Sessionのラウンド開始・倍率期限・AI・画面は未接続です。開発者は具体的な入力、拒否理由、再検証方法を専用契約で確認してください。
+状態順序の成功結果はok/scope:status_turn_orderと、生存者のinitial/order・全参加者のspeedsです。出血0.9倍と一時倍率を共用計算し、同速は明示順を保持します。不正時は理由と必要なfield/side/id等だけを返し、部分的な順序/速度を返しません。純粋契約は入力・資源・状態・倍率・保存形式を変更しません。状態付きSessionのbegin_roundは全員の倍率1と最新保持状態で純粋契約を呼び、全成功後だけ順序とラウンドを更新します。途中の状態更新は次ラウンドにだけ反映し、従来startの基礎順序・数値/保存形式は維持します。倍率保持/期限・AI・画面は未接続です。開発者は具体的な入力、拒否理由、再検証方法を専用契約で確認してください。
 
 ### GDScriptの付与付き単体物理行動（保存形式変更なし）
 

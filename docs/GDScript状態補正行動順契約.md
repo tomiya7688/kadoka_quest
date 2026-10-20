@@ -4,7 +4,7 @@
 
 基礎速度だけの行動順では、出血や一時速度倍率による順序の変化を再現できません。`engine/status_turn_order.gd` は、最新状態と明示された一時倍率から実効速度を求め、生存者の順序を計算します。補正式は[状態能力値補正](GDScript状態能力値補正契約.md)、同速時の安定順序は[基礎行動順](GDScript行動順契約.md)へ委譲します。
 
-状態補正行動順の契約は開発者向けの純粋APIで、画面操作ではありません。状態補正行動順の契約はHP/MP・状態・一時倍率・行動予約を保持または更新せず、I/O・乱数生成・AIを行いません。状態補正済み順序のSessionラウンド開始、倍率の保持/期限、継続効果、AI、戦闘画面への接続は未実装です。状態補正行動順の追加では、従来の基礎順序API、数値snapshot六キー、Session七キー、保存JSON/schema、Pythonのゲーム動作と白黒GUIを変更しません。
+状態補正行動順の契約は開発者向けの純粋APIで、画面操作ではありません。状態補正行動順の契約はHP/MP・状態・一時倍率・行動予約を保持または更新せず、I/O・乱数生成・AIを行いません。状態付きSessionのラウンド開始は、一時倍率なしの明示1で本契約へ接続しました。倍率の保持と期限管理、継続効果、AI、戦闘画面への接続は未実装です。状態補正行動順の追加では、従来の基礎順序API、数値snapshot六キー、Session七キー、保存JSON/schema、Pythonのゲーム動作と白黒GUIを変更しません。
 
 ## 開発者の呼び出し方法
 
@@ -58,6 +58,29 @@
 要求型不正は `invalid_status_turn_request`、五キー集合不一致は `invalid_status_turn_fields`、対応辞書の型/陣営不正は `invalid_turn_map`、参加者ID集合の不一致は `turn_context_mismatch` です。状態/倍率の不正と途中精度超過は状態能力値契約の理由へ `side/id` を加えて返します。数値参加者と明示順の不正は基礎順序契約の理由を保持します。開発者は拒否対象の入力を修正して再計算してください。拒否でも元の資源・状態・倍率・明示順は変更しません。
 
 状態補正行動順の契約は各呼び出しの入力から再計算し、速度や状態をキャッシュしません。状態順序の検証と補正は状態/拡張情報の総要素数に対して線形、安定整列は参加者数の二乗です。状態順序の参加者は最大八体で、探索やコピーを所有モンスター全件へ広げません。
+
+## Sessionの状態付きラウンド開始
+
+状態異常を付与または治療した戦闘では、開始時の状態だけで計算すると次ラウンドの速度が古いままになります。`engine/battle_session.gd` は、状態付き開始で保持した最新一覧をラウンド開始のたびに読み、`status_turn_order.plan` へ委譲します。Session自身は補正式や整列を実装しません。Sessionは各陣営最大四体だけを対象にし、保有個体全件を走査しません。
+
+開発者は新規Sessionへ `start_with_statuses(allies, enemies, initial_statuses)` を呼び、成功後に `begin_round(shuffle_order)` を呼んでください。Sessionは全参加者の補正前能力値・現在資源・最新状態と、全員の一時速度倍率1を純粋契約へ渡します。倍率1は「一時補正なし」の明示値で、省略値の推測ではありません。Sessionは外部の倍率要求を受け取らず、一時倍率の保持や期限を追加しません。
+
+状態付きラウンド開始の成功結果は `ok/plan/session/stop` です。`plan` は純粋契約の `scope:status_turn_order/initial/order/speeds` を含みます。Sessionは補正前の `stats.speed` を書き換えず、計算済み速度を次ラウンドへ再乗算しません。状態なしの従来 `start` は基礎順序APIと元の結果形式を維持し、元から存在する最低速度1も維持します。
+
+Sessionは計画が全て成功した後だけroundを増やし、orderを独立コピーし、cursorを0へ戻します。Sessionはラウンド途中の状態付与・治療でorderを再整列せず、次の開始時だけ最新状態を反映します。同速は呼出元の明示順を維持します。Sessionは死亡・逃走者をorderから除外しますが、全参加者の状態と実効速度の対応は省略しません。片側の生存者がいなければ、正常計画後にstoppedへ進み、物理防御倍率を解除します。stoppedは勝敗や報酬の確定ではありません。
+
+Sessionは未開始を `not_initialized`、進行中・offered/claimed予約保持中・停止後を `round_not_available` で拒否します。Sessionは開始可能な段階の不正明示順や計画拒否でもround/cursor/order/pending・資源・状態・物理防御倍率を変更しません。開発者は不正入力を修正して再試行してください。進行中の場合は現在ラウンドを公開の行動APIで完了してから次ラウンドを開始してください。
+
+`application/battle_session_application.gd` の `start_with_statuses` は、保存レコードの再構築・状態保持・各行動の設定・状態補正済み初回ラウンドが全て成功した後だけ候補Sessionを公開します。Applicationの `begin_round` も同じ所有Sessionへ委譲します。準備結果 `preparation` の順序は状態を適用する前の準備情報で、実際の初回順序は返却 `session.order` を読んでください。Applicationの従来 `start` は状態未設定と基礎順序を維持します。Applicationは予約のclaim/finishを公開せず、開発者は公開の行動解決APIを使用してください。
+
+開発者は次の集中検証と性能検査を、後述のPython/Godot設定後に実行してください。
+
+```powershell
+& '<Pythonの実行ファイル>' -m pytest tests/test_gdscript_status_session_round.py tests/test_gdscript_session_status.py tests/test_gdscript_session_status_application.py tests/test_gdscript_status_physical_action.py tests/test_gdscript_battle_session.py -q
+& '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_battle_session.py --with-statuses
+```
+
+状態付きSessionの集中検証は初回の実Python順序比較、付与/治療後の次回再計算、途中順序固定、補正の非累積、同IDの陣営分離、八体/空陣営/死亡/逃走、拒否時の全状態保持とApplicationの全成功後公開を確認します。性能区分 `--with-statuses` は同IDの八体とネスト付き状態・重複出血を使い、next→claim→0ダメージ/0MP→finishを反復します。性能検査は正常な状態補正ラウンド開始を八段階ごとに含め、標準20000段階・7サンプル・2000段階事前実行で一段階中央値2000us以内を要求します。性能検査は固定入力・最終順序/round/cursor・数値資源/状態・反復条件・原本保持を独立期待値へ照合し、高速な拒否や欠落結果を成功にしません。開始構築・I/O・AI・描画は計測外で、この段階の中央値をラウンド開始単独の時間とは扱いません。Godot未設定・診断・不一致・性能超過の扱いと実GUI/export/CIの未検証境界は、本書の検証方法に従います。
 
 ## 検証方法と証拠の限界
 
