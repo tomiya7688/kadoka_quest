@@ -12,6 +12,7 @@
 #     _statuses: 専用開始でだけ保持するbattle_status_state。従来開始と未開始ではnullです（RefCounted）
 #     _speeds: 専用開始でだけ保持する参加者別の速度所有者集合（RefCounted）
 #     _status_updates: 取得済み予約の治療/付与を種類別一回に制限する内部所有者（RefCounted）
+#     _speed_update: 取得済み予約の速度付与を一回に制限する内部所有者（RefCounted）
 #   ]
 # }
 extends RefCounted
@@ -24,6 +25,7 @@ const StatusOrder = preload("res://engine/status_turn_order.gd")
 const StatNumbers = preload("res://engine/stat_numbers.gd")
 const Statuses = preload("res://engine/battle_status_state.gd")
 const Speeds = preload("res://engine/battle_speed_state.gd")
+const SpeedUpdate = preload("res://engine/claimed_speed_update.gd")
 const StatusUpdates = preload("res://engine/claimed_status_updates.gd")
 var _teams: Dictionary = {"allies": [], "enemies": []}
 var _by_id: Dictionary = {"allies": {}, "enemies": {}}
@@ -36,6 +38,7 @@ var _guards: Dictionary = {"allies": {}, "enemies": {}}
 var _statuses: RefCounted
 var _speeds: RefCounted
 var _status_updates: RefCounted
+var _speed_update: RefCounted
 
 
 # {
@@ -130,6 +133,7 @@ func _commit_start(prepared: Dictionary, statuses: RefCounted, speeds: RefCounte
 	_speeds = speeds
 	# 全成功した開始候補にだけ、独立した種類別の一回判定記録を構築します。
 	_status_updates = StatusUpdates.new(_by_id, statuses)
+	_speed_update = SpeedUpdate.new(_by_id, speeds)
 	for side in Order.SIDES:
 		for id: String in _by_id[side]:
 			_guards[side][id] = 1.0
@@ -201,10 +205,10 @@ func status(key: Variant) -> Dictionary:
 # }
 func apply_status_cure(ticket: Variant, target: Variant, request: Variant) -> Dictionary:
 	# Sessionだけが現在の予約を照合し、対象/一覧更新と再判定防止は専用所有者へ委譲します。
-	var checked := _check_claimed_status_ticket(ticket)
+	var checked := _check_claimed_update_ticket(ticket)
 	if not checked["ok"]:
 		return checked
-	return _status_updates.cure(ticket, target, request,
+	return _status_updates.cure(_pending["ticket"], target, request,
 		_by_id[ticket["actor"]["side"]][ticket["actor"]["id"]].alive() and _both_sides_alive())
 
 
@@ -220,21 +224,41 @@ func apply_status_cure(ticket: Variant, target: Variant, request: Variant) -> Di
 # }
 func apply_status_application(ticket: Variant, target: Variant, request: Variant) -> Dictionary:
 	# HPMP・防御倍率・予約段階を変更せず、付与の一回判定だけを最新所有一覧へ接続します。
-	var checked := _check_claimed_status_ticket(ticket)
+	var checked := _check_claimed_update_ticket(ticket)
 	if not checked["ok"]:
 		return checked
-	return _status_updates.apply(ticket, target, request,
+	return _status_updates.apply(_pending["ticket"], target, request,
 		_by_id[ticket["actor"]["side"]][ticket["actor"]["id"]].alive() and _both_sides_alive())
 
 
 # {
-#   責務: [_check_claimed_status_ticket: 治療/付与に共通の現在予約との厳密一致と取得済み段階を確認します]
+#   責務: [apply_speed_multiplier: 現在取得済みの予約から、生存対象の速度強化を一回だけ委譲します]
+#   処理: [1: 現在予約と取得段階を照合し、最新生存・対象検査・速度更新と一回記録を専用所有者へ渡します]
+#   引数: [
+#     ticket: 現在round/slot/actorに一致する取得済み行動票（Variant）
+#     target: 生存する味方/敵/本人のside/id。スキル対象制限は上位行動の責務です（Variant）
+#     request: 必須multiplierと任意durationだけの倍率/期間選択済み要求（Variant）
+#   ]
+#   戻り値: [result: combatant_speed_applyの独立結果、または速度/資源/予約を保持した拒否（Dictionary）]
+# }
+func apply_speed_multiplier(ticket: Variant, target: Variant, request: Variant) -> Dictionary:
+	# この低水準APIはclaim/finishやMP支払いを代用せず、速度の更新だけを担当へ委譲します。
+	var checked := _check_claimed_update_ticket(ticket)
+	if not checked["ok"]:
+		return checked
+	return _speed_update.apply(_pending["ticket"], target, request,
+		_by_id[ticket["actor"]["side"]][ticket["actor"]["id"]].alive() and _both_sides_alive())
+
+
+# {
+#   責務: [_check_claimed_update_ticket: 治療/状態付与/速度付与に共通の現在予約と取得済み段階を確認します]
 #   処理: [1: 既存の行動票検査が成功した後だけ、claimed段階を要求します]
-#   引数: [ticket: 状態更新を要求する現在の行動予約識別子（Variant）]
+#   引数: [ticket: 状態または速度の更新を要求する現在の行動予約識別子（Variant）]
 #   戻り値: [result: ok=true、または未開始/不正/古い/未取得の予約を示す非破壊的拒否（Dictionary）]
 # }
-func _check_claimed_status_ticket(ticket: Variant) -> Dictionary:
-	# 提示中の行動票を状態更新権として扱わず、取得/完了自体は既存APIへ任せます。
+func _check_claimed_update_ticket(ticket: Variant) -> Dictionary:
+	# 照合成功後の一回記録には_pendingの整数票を使い、JSONのfloat票との辞書比較差による再送を防ぎます。
+	# 提示中の行動票を状態/速度の更新権として扱わず、取得/完了自体は既存APIへ任せます。
 	var checked := _check_ticket(ticket)
 	if not checked["ok"]:
 		return checked

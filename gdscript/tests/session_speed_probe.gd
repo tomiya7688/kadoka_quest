@@ -53,6 +53,10 @@ static func _case(request: Dictionary) -> Dictionary:
 		var step_before := JSON.stringify(step)
 		var result: Dictionary
 		match step["operation"]:
+			"edit_step_ticket":
+				_mutate(input["steps"][int(step["index"])]["ticket"])
+				result = {"ok": true}
+			"speed_apply": result = _apply_speed(owner, step, mode)
 			"start": result = _start(owner, step.get("input", input), mode)
 			"speed": result = owner.read(step.get("actor")) if mode == "collection" else owner.speed(step.get("actor"))
 			"speeds": result = owner.snapshot() if mode == "collection" else owner.speeds()
@@ -100,6 +104,35 @@ static func _start(owner: RefCounted, input: Dictionary, mode: String) -> Dictio
 	if input.get("legacy", false):
 		return owner.start(teams.get("allies"), teams.get("enemies"))
 	return owner.start_with_statuses(teams.get("allies"), teams.get("enemies"), input.get("initial_statuses"), multipliers)
+
+
+# {
+#   責務: [_apply_speed: コピー要求を速度集合または取得済み予約付きSessionの実APIへ渡します]
+#   処理: [1: 不正native値は要求コピーだけへ注入し、指定対象と現在票を製品APIへ渡します]
+#   引数: [
+#     owner: 実行する速度集合またはSession（RefCounted）
+#     step: target/requestと任意ticket/update_special/special_fieldの観測条件（Dictionary）
+#     mode: collection/session/applicationの区分。Applicationの低水準操作は拒否します（String）
+#   ]
+#   戻り値: [result: 実付与結果またはApplication低水準操作の観測側拒否（Dictionary）]
+# }
+static func _apply_speed(owner: RefCounted, step: Dictionary, mode: String) -> Dictionary:
+	# 乱数や生存状態をプローブ側で補完せず、native不正値だけを専用コピーへ作ります。
+	var request: Variant = step.get("request")
+	if step.has("update_special"):
+		request = request.duplicate(true)
+		var value: Variant = NAN
+		match step["update_special"]:
+			"inf": value = INF
+			"object": value = RefCounted.new()
+		request[step.get("special_field", "multiplier")] = value
+	if mode == "collection":
+		return owner.apply_multiplier(step.get("target"), request)
+	if mode == "application":
+		return {"ok": false, "reason": "low_level_session_required"}
+	var pending: Variant = owner.snapshot()["pending"]
+	var ticket: Variant = step.get("ticket", pending["ticket"] if pending is Dictionary else null)
+	return owner.apply_speed_multiplier(ticket, step.get("target"), request)
 
 
 # {

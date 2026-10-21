@@ -6,6 +6,7 @@ extends SceneTree
 
 const Probe = preload("res://tests/speed_multiplier_probe.gd")
 const SessionProbe = preload("res://tests/session_speed_probe.gd")
+const ClaimedBenchmark = preload("res://tests/claimed_speed_benchmark.gd")
 const Benchmark = preload("res://tests/speed_multiplier_benchmark.gd")
 
 
@@ -26,7 +27,9 @@ func _initialize() -> void:
 		quit(2)
 		return
 	var result: Dictionary
-	if payload.get("session_speed", false):
+	if payload.get("claimed_speed", false):
+		result = ClaimedBenchmark.new().measure(payload)
+	elif payload.get("session_speed", false):
 		result = SessionProbe.run(payload)
 	elif payload.get("performance", false):
 		result = Benchmark.run(payload)

@@ -1,5 +1,5 @@
 # {
-#   責務: [battle_speed_state: 両陣営の参加者ごとに速度所有者を保持し、速度状態と行動順用倍率を独立読取へ分離します]
+#   責務: [battle_speed_state: 両陣営の参加者ごとに速度所有者を保持し、独立読取と指定個体への速度付与を委譲します]
 #   フィールド: [
 #     _by_id: 陣営と個体IDで検索する速度所有者。外部へ公開しません（Dictionary）
 #     _initialized: 全参加者の速度初期化が成功済みかどうか（bool）
@@ -123,10 +123,37 @@ func multipliers() -> Dictionary:
 # }
 func read(key: Variant) -> Dictionary:
 	# 同じIDが両陣営にあっても、陣営索引を先に選び別々の所有者を読み取ります。
+	var checked := _check_key(key)
+	return checked if not checked["ok"] else {"ok": true, "snapshot": _by_id[key["side"]][key["id"]].snapshot()}
+
+
+# {
+#   責務: [apply_multiplier: 指定参加者の最新倍率・期間・復元先の更新を個体速度所有者へ委譲します]
+#   処理: [1: 初期化と厳密side/idを共用検査し、倍率要求を指定個体へそのまま渡します]
+#   引数: [
+#     key: 更新する参加者のside/idだけを持つキー（Variant）
+#     request: multiplierと任意durationだけの正規化/期間選択済み要求（Variant）
+#   ]
+#   戻り値: [result: 個体速度所有者の独立結果、または全参加者を保持した拒否（Dictionary）]
+# }
+func apply_multiplier(key: Variant, request: Variant) -> Dictionary:
+	# 集合は倍率・期間の最大値規則を再実装せず、他の参加者や数値資源を変更しません。
+	var checked := _check_key(key)
+	return checked if not checked["ok"] else _by_id[key["side"]][key["id"]].apply_multiplier(request)
+
+
+# {
+#   責務: [_check_key: 個別速度読取と付与に共通の初期化・参加者キー・存在を確認します]
+#   処理: [1: 開始済みか確認してから、厳密side/idと指定所有者の存在を検査します]
+#   引数: [key: 速度所有者を検索する候補キー（Variant）]
+#   戻り値: [result: ok=true、または未開始/不正/不在を示す拒否（Dictionary）]
+# }
+func _check_key(key: Variant) -> Dictionary:
+	# 陣営別の索引を使い、同IDの別陣営や無関係な参加者を走査しません。
 	if not _initialized:
 		return {"ok": false, "reason": "not_initialized"}
 	if not Order.valid_key(key):
 		return {"ok": false, "reason": "invalid_actor_key"}
 	if not _by_id[key["side"]].has(key["id"]):
 		return {"ok": false, "reason": "actor_missing"}
-	return {"ok": true, "snapshot": _by_id[key["side"]][key["id"]].snapshot()}
+	return {"ok": true}

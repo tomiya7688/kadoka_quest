@@ -1,5 +1,7 @@
 # Project tooling
 
+取得済み予約による速度実付与の性能は `python tools/performance-check/script/check_gdscript_speed_update.py` で確認します。開発者はKADOKA_GODOT_EXECUTABLEへGodotを設定してリポジトリルートで実行してください。標準20000段階・7サンプル・2000段階事前実行で、八行動ごとの新規八体構築・予約取得・実付与・再送拒否・全保持確認・完了を含む一段階中央値3000us以内を要求します。固定入力/最終倍率と期間/全正常件数を独立照合し、no-opや高速拒否だけでは合格にしません。起動/I/O・MP消費・AI・描画・保存は計測外で、Godot未指定は終了コード2の未検証です。[予約付き速度強化契約](../docs/GDScript予約付き速度強化契約.md)に呼出条件と未接続範囲を記載しています。
+
 参加者速度を保持するSessionの性能は `python tools/performance-check/script/check_gdscript_battle_session.py --with-speeds` で確認します。開発者は使えるGodotをKADOKA_GODOT_EXECUTABLEへ設定してリポジトリルートで実行してください。標準20000段階・7サンプル・2000段階事前実行で、状態と倍率2/0.75を持つ八体の正常ラウンド計画を八段階ごとに含め、一段階中央値2000us以内と固定入力/最終資源/状態/速度/実順序を要求します。高速拒否は合格にせず、初期構築・I/O・AI・描画は計測外、Godot未指定は終了コード2の未検証です。[Session速度保持契約](../docs/GDScript戦闘Session速度保持契約.md)に初期条件・読取・未接続範囲を記載しています。
 
 一時速度強化の保持性能は `python tools/performance-check/script/check_gdscript_speed_state.py` で検査します。開発者はリポジトリルートでKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定して実行してください。専用検査は新しい一所有者の開始・三付与・三回経過の七操作を、標準20000回・7サンプル・2000回事前実行で反復し、全中間状態・全反復件数と中央値3000us以内を照合します。高速な拒否や更新欠落は合格にせず、Godot未指定は終了コード2の未検証です。Session・行動・AI・描画・起動/I/O・保存は計測しません。開発者は入出力と未接続範囲を[一時速度強化保持契約](../docs/GDScript一時速度強化保持契約.md)で確認してください。
