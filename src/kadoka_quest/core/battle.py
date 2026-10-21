@@ -237,10 +237,12 @@ class BattleEngine:
     #   戻り値: [result: 継続ターン数。指定なしやTypeError/ValueErrorならNone（int | None）]
     # }
     def _buff_duration(self, skill: dict[str, Any]) -> int | None:
+        # 期間の欠落を無期限として扱い、速度所有者へは抽選後の正整数またはNoneを渡します。
         raw = skill.get("duration")
         if raw is None:
             return None
         try:
+            # 範囲指定の上下限を補正してから抽選し、期間付き強化を最低一ラウンド残します。
             if isinstance(raw, (list, tuple)) and len(raw) >= 2:
                 low = max(1, int(raw[0]))
                 high = max(low, int(raw[1]))
@@ -250,15 +252,18 @@ class BattleEngine:
             return None
 
     # {
-    #   責務: [_apply_multiplier: multiplierを適用する]
-    #   処理: [1: multiplierを適用する]
-    #   引数: [
-    #     target: 対象（Combatant）
-    #     attribute: attribute（str）
-    #     multiplier: multiplier（float）
-    #     duration: 継続時間（int | None）
+    #   責務: [_apply_multiplier: 戦闘個体の一時倍率と残り期間をそれぞれ最大値で更新し、期限切れの復元先を保持します]
+    #   処理: [
+    #     1: 期間なしの強化なら現在倍率と既存の復元先を大きい値へ更新します
+    #     2: 期間付き強化の初回だけ現倍率を復元先へ保存し、残り期間と現倍率をそれぞれ大きい値へ更新します
     #   ]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   引数: [
+    #     target: 一時倍率と期限用辞書を持つ戦闘個体（Combatant）
+    #     attribute: 更新するspeed_multiplierまたはattack_multiplierの属性名（str）
+    #     multiplier: 現在値と比較して大きい方を残す倍率（float）
+    #     duration: 呼出側が正規化した継続ターン数。Noneは期間なしです（int | None）
+    #   ]
+    #   戻り値: [result: なし（None）。指定した倍率と期限用辞書だけを更新します]
     # }
     @staticmethod
     def _apply_multiplier(
@@ -268,6 +273,7 @@ class BattleEngine:
         duration: int | None,
     ) -> None:
         current = float(getattr(target, attribute))
+        # 強化中に期間なしの倍率が付いた場合も、期限切れ後にその倍率を失わないよう復元先を更新します。
         if duration is None:
             setattr(target, attribute, max(current, multiplier))
             if attribute in target.timed_buff_baselines:
@@ -277,6 +283,7 @@ class BattleEngine:
                 )
             return
 
+        # 再付与で復元先を現在の強化値へ置き換えず、期間と倍率だけを独立して延長します。
         if attribute not in target.timed_buff_turns:
             target.timed_buff_baselines[attribute] = current
         target.timed_buff_turns[attribute] = max(
@@ -286,13 +293,14 @@ class BattleEngine:
         setattr(target, attribute, max(current, multiplier))
 
     # {
-    #   責務: [_tick_timed_buffs: timed・buffsを時間経過を反映する]
-    #   処理: [1: timed・buffsを時間経過を反映する]
-    #   引数: [target: 対象（Combatant）]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [_tick_timed_buffs: 戦闘個体の期間付き倍率を一ラウンド減らし、期限切れした倍率を保存済みの値へ戻します]
+    #   処理: [1: 全ての有期限属性の残り期間を一減らし、0以下なら倍率を復元して期限と復元先を除きます]
+    #   引数: [target: 期限付きの速度/攻撃倍率と復元先を所有する戦闘個体（Combatant）]
+    #   戻り値: [result: なし（None）。期間なしの倍率・HP/MP・状態異常は変更しません]
     # }
     @staticmethod
     def _tick_timed_buffs(target: Combatant) -> None:
+        # 生死に関係なくラウンド末尾から呼ばれ、辞書キーの削除が走査へ影響しないよう列をコピーします。
         for attribute in list(target.timed_buff_turns):
             remaining = target.timed_buff_turns[attribute] - 1
             if remaining > 0:
@@ -303,27 +311,28 @@ class BattleEngine:
             del target.timed_buff_turns[attribute]
 
     # {
-    #   責務: [_is_single_target_attack: single・対象・攻撃を該当するか判定する]
-    #   処理: [1: single・対象・攻撃を該当するか判定する]
-    #   引数: [skill: スキル（dict[str, Any]）]
-    #   戻り値: [result: single・対象・攻撃を該当するか判定するための結果（bool）]
+    #   責務: [_is_single_target_attack: スキルの範囲指定が、かばう対象にできる単体形式か判定します]
+    #   処理: [1: 全体指定フラグと既知の複数対象名を除外し、対象指定の省略はsingleとして扱います]
+    #   引数: [skill: aoe/target_all/all_targetsとtargetを任意で持つスキル定義（dict[str, Any]）]
+    #   戻り値: [result: 全体指定フラグが偽でtargetが複数対象名でなければTrueです（bool）]
     # }
     @staticmethod
     def _is_single_target_attack(skill: dict[str, Any]) -> bool:
+        # 攻撃種別ではなく対象範囲だけを判定し、全体攻撃を一体の身代わりへ集約しないようにします。
         if bool(skill.get("aoe")) or bool(skill.get("target_all")) or bool(skill.get("all_targets")):
             return False
         return str(skill.get("target", "single")) not in MULTI_TARGET_MARKERS
 
     # {
-    #   責務: [_resolve_attack_target: 攻撃・対象を解決する]
-    #   処理: [1: 攻撃・対象を解決する]
+    #   責務: [_resolve_attack_target: 単体攻撃の対象を、生存してかばっている別個体へ必要な場合だけ差し替えます]
+    #   処理: [1: 全体対象は変更せず、単体対象は防御側の順に身代わり候補を探し、成立時だけログを追加します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     intended: intended（Combatant）
-    #     defenders: defenders（list[Combatant]）
-    #     skill: スキル（dict[str, Any]）
+    #     self: 身代わり成立の戦闘ログを所有するBattleEngine
+    #     intended: 攻撃で選ばれた元の対象個体（Combatant）
+    #     defenders: 身代わり候補を探索する防御側の並び（list[Combatant]）
+    #     skill: 対象範囲を判定する攻撃スキル定義（dict[str, Any]）
     #   ]
-    #   戻り値: [result: 攻撃・対象を解決するための結果（Combatant）]
+    #   戻り値: [result: 元の対象、または最初に見つかった生存中でprotect_allyが真の別個体（Combatant）]
     # }
     def _resolve_attack_target(
         self,
@@ -331,6 +340,7 @@ class BattleEngine:
         defenders: list[Combatant],
         skill: dict[str, Any],
     ) -> Combatant:
+        # 全体攻撃は身代わりに変えず、単体攻撃だけで元の対象以外の保護者を探します。
         if not self._is_single_target_attack(skill):
             return intended
         protector = next(

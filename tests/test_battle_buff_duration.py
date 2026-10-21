@@ -1,5 +1,5 @@
 # {
-#   責務: [test_battle_buff_duration: test・戦闘・buff・継続時間の公開機能・宣言を定義する]
+#   責務: [test_battle_buff_duration: 一時強化の継続期間・再付与・期限切れと元倍率への復元をPython正本で検査します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -42,46 +42,49 @@ ATTACK = {
 
 
 # {
-#   責務: [SequenceRng: sequence・乱数供給元の状態と振る舞いを担当する]
-#   フィールド: [durations: durations]
+#   責務: [SequenceRng: 継続ターン数の返却順を保持し、範囲指定の抽選を再現可能な値へ固定します]
+#   フィールド: [durations: randintで先頭から一件ずつ使う継続ターン数の独立した列（list[int]）]
 # }
 class SequenceRng:
     # {
-    #   責務: [__init__: sequence・乱数供給元が利用する初期状態と依存を設定する]
-    #   処理: [1: sequence・乱数供給元が利用する初期状態と依存を設定する]
+    #   責務: [__init__: 継続ターン数の指定列を、元の列と共有しないようコピーして保持します]
+    #   処理: [1: randintで消費する専用のリストを作ります]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     durations: durations（list[int]）
+    #     self: 抽選用ターン数の返却順を所有するSequenceRng
+    #     durations: テストで返したい継続ターン数の列（list[int]）
     #   ]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   戻り値: [result: なし（None）。呼出側のdurationsは変更しません]
     # }
     def __init__(self, durations: list[int]) -> None:
+        # 乱数スタブで要素を消費しても、呼出側の期待値用リストを変更しないようにします。
         self.durations = list(durations)
 
     # {
-    #   責務: [randint: sequence・乱数供給元のrandintを求める]
-    #   処理: [1: sequence・乱数供給元のrandintを求める]
+    #   責務: [randint: 保存した次の継続ターン数を一件消費し、要求された上下限内であることを確認します]
+    #   処理: [1: 先頭の値を取り出し、範囲外ならAssertionError、範囲内なら値を返します]
     #   引数: [
-    #     self: 処理対象インスタンス
-    #     low: low（int）
-    #     high: high（int）
+    #     self: 次の返却ターン数を保持するSequenceRng
+    #     low: 許可する継続ターン数の下限を含む値（int）
+    #     high: 許可する継続ターン数の上限を含む値（int）
     #   ]
-    #   戻り値: [result: 値（int）]
+    #   戻り値: [result: low以上high以下の次のターン数（int）。空列ならIndexErrorです]
     # }
     def randint(self, low: int, high: int) -> int:
+        # 期間抽選の範囲変更を、固定値の不正としてテストで検出できるようにします。
         value = self.durations.pop(0)
         if not low <= value <= high:
             raise AssertionError(f"duration {value} outside {low}..{high}")
         return value
 
     # {
-    #   責務: [random: sequence・乱数供給元の乱数を求める]
-    #   処理: [1: sequence・乱数供給元の乱数を求める]
+    #   責務: [random: 戦闘テストの確率入力を境界値1.0へ固定します]
+    #   処理: [1: 状態を消費せず、毎回同じ小数値を返します]
     #   引数: []
-    #   戻り値: [result: sequence・乱数供給元の乱数を求めるための結果（float）]
+    #   戻り値: [result: 常に1.0（float）。通常の乱数分布を再現するものではありません]
     # }
     @staticmethod
     def random() -> float:
+        # 継続期間以外の確率入力も固定し、テスト実行ごとの揺らぎをなくします。
         return 1.0
 
     # {

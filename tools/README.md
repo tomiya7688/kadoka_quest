@@ -1,5 +1,7 @@
 # Project tooling
 
+一時速度強化の保持性能は `python tools/performance-check/script/check_gdscript_speed_state.py` で検査します。開発者はリポジトリルートでKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定して実行してください。専用検査は新しい一所有者の開始・三付与・三回経過の七操作を、標準20000回・7サンプル・2000回事前実行で反復し、全中間状態・全反復件数と中央値3000us以内を照合します。高速な拒否や更新欠落は合格にせず、Godot未指定は終了コード2の未検証です。Session・行動・AI・描画・起動/I/O・保存は計測しません。開発者は入出力と未接続範囲を[一時速度強化保持契約](../docs/GDScript一時速度強化保持契約.md)で確認してください。
+
 治療付き回復の実適用性能はcheck_gdscript_status_cure.py --cure-actionで確認します。開発者はリポジトリルートでKADOKA_GODOT_EXECUTABLEにGodotを設定し、指定Pythonから実行してください。標準20000回・7サンプル・2000回事前実行で、八行動ごとの新規構築を含む一行動中央値3000us以内と、全行動の実HP1回復/MP6消費/毒解除・固定八体の最終資源/状態・原本保持が成功条件です。総行動数は八の倍数が必要です。AI・描画・I/O・実セーブは計測しません。[実治療契約](../docs/GDScript治療付き回復行動契約.md)を確認してください。
 
 治療付き回復の準備済み定義選択は、リポジトリルートでKADOKA_GODOT_EXECUTABLEを指定して`python tools/performance-check/script/check_gdscript_status_cure.py --cure-context`を実行してください。八体/千件の準備済み索引からの選択だけを標準20000回・7サンプル・2000回事前実行で測り、中央値3000us以内・正常定義・参加数/索引数・入力/準備保持を確認します。初期状態検証/索引構築・起動/I/O・実更新・Session・描画・AIは計測しません。Godot未指定は終了コード2の未検証です。入力・境界・再試行方法は[準備契約](../docs/GDScript治療付き回復準備契約.md)を参照してください。
