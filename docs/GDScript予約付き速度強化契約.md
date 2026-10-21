@@ -6,7 +6,7 @@
 
 Sessionは現在予約との厳密一致とclaimed段階を確認し、内部所有者claimed_speed_updateへ正規の予約票を渡します。内部所有者は対象の最新生存と使用済み予約を確認し、倍率・期間・復元先の更新をbattle_speed_stateから[個体速度所有者](GDScript一時速度強化保持契約.md)へ委譲します。速度の最大値規則・数値検証・実効速度の計算をSessionや一回記録の所有者へ複写しません。
 
-本契約は低水準の戦闘処理APIで、ゲーム画面に新しい操作は追加しません。スキル定義・習得・許可装備・MP支払い・友軍対象制限・期間範囲の正規化/抽選は上位行動の責務です。ピオラ行動、Applicationの速度スキル入口、ラウンド終端の一回期間経過、AI・画面は未接続です。Session.snapshot七キーと個体の数値snapshot六キー、保存JSON/schema、Pythonゲーム処理は変更しません。
+本契約は低水準の戦闘処理APIで、ゲーム画面に新しい操作は追加しません。スキル定義・習得・許可装備・MP支払い・友軍対象制限・期間範囲の正規化/抽選は上位行動の責務です。[ラウンド終端の一回期間経過](GDScript速度強化ラウンド終端契約.md)は接続し、ピオラ行動・Applicationの速度スキル入口・AI・画面は未接続です。Session.snapshot七キーと個体の数値snapshot六キー、保存JSON/schema、Pythonゲーム処理は変更しません。
 
 ## 開発者の呼び出し方法
 
@@ -14,16 +14,18 @@ Sessionは現在予約との厳密一致とclaimed段階を確認し、内部所
 
 ```gdscript
 var ticket = session.next_actor()["pending"]["ticket"]
-assert(session.claim(ticket)["can_execute"])
+var claimed = session.claim(ticket)
+assert(claimed["can_execute"])
 var before = session.snapshot()
 var target = {"side": "allies", "id": "same"}
 var applied = session.apply_speed_multiplier(ticket, target, {"multiplier": 1.5, "duration": 3})
 assert(applied["ok"])
 assert(applied["snapshot"]["speed_multiplier"] >= 1.5)
 assert(session.snapshot() == before)
-assert(session.apply_speed_multiplier(ticket, {"side": "enemies", "id": "same"},
-    {"multiplier": 2.0})["reason"] == "speed_multiplier_already_applied")
-assert(session.finish(ticket)["ok"])
+var repeated = session.apply_speed_multiplier(ticket, {"side": "enemies", "id": "same"}, {"multiplier": 2.0})
+assert(repeated["reason"] == "speed_multiplier_already_applied")
+var finished = session.finish(ticket)
+assert(finished["ok"])
 ```
 
 Sessionは速度を付与しただけではHP/MP・物理防御倍率・状態一覧・予約段階を変更しません。開発者は上位行動の全処理が成功してからfinish(ticket)を呼んでください。この例はMP消費や友軍対象を確認するスキル行動の実装を代用しません。
@@ -52,7 +54,7 @@ Sessionは未開始をnot_initialized、不正なticket形式/番号をinvalid_t
 
 成功はok=true/scope=combatant_speed_apply/snapshotの独立辞書です。返却snapshotはspeed_multiplier/remaining_turns/baseline_multiplierの三キーです。要求や返却値の編集は、所有速度と使用済み記録へ伝播しません。処理は同期的で、複数スレッドの同時更新には対応しません。
 
-速度の更新は現在ラウンドの固定orderを再整列せず、次のbegin_roundだけが最新所有倍率を使います。補正前stats.speedは書き換えません。今回のSession終端は残り期間を減らさないため、期間付き強化はfinishや次ラウンド開始だけでは失効しません。期限経過の未接続を、一体の速度所有者の期限テストの成功で代用しません。
+速度の更新は現在ラウンドの固定orderを再整列せず、次のbegin_roundだけが最新所有倍率を使います。補正前stats.speedは書き換えません。Sessionは正常終了または途中停止の終端で全員の残り期間を一回だけ進め、期限切れなら復元先へ戻します。途中のfinish・読取・不正要求・終端後再送は期間を減らしません。期間一の付与は、先頭/末尾のどちらで行っても付与ラウンドの終端で切れます。
 
 倍率だけが精度内でも、基礎速度との積が上限を超える場合は次の行動順計画が拒否します。低水準付与入口は行動順計画まで実行せず、上位行動の予測/対応範囲の検証を代用しません。
 
@@ -67,9 +69,9 @@ $env:PYTHONPATH = 'src'
 & '<Pythonの実行ファイル>' tools/performance-check/script/check_gdscript_speed_update.py
 ```
 
-集中検証は、実Pythonの倍率更新との全中間状態一致、弱い再付与・期間なし・同IDの陣営分離・八体、予約段階/最新生存/旧票/不正/native値、拒否後再試行、no-opの一回消費、入力票編集後の保持、JSON票と内部票の混在再送、治療/状態付与との共存、現在順固定・次回反映・期間未減算を確認します。
+集中検証は、実Pythonの倍率更新との全中間状態一致、弱い再付与・期間なし・同IDの陣営分離・八体、予約段階/最新生存/旧票/不正/native値、拒否後再試行、no-opの一回消費、入力票編集後の保持、JSON票と内部票の混在再送、治療/状態付与との共存、現在順固定・次回反映・終端だけの期間経過を確認します。
 
-性能検査は同IDの両陣営各四体を使い、八行動ごとに初期倍率1.2のSessionと初回順序を新規構築します。一段階はnext→claim→別陣営の同IDへ倍率1.5/期間3の実付与→別対象への再送拒否→独立読取/全保持確認→finishです。固定八体の最終倍率1.5/残り3/復元先1.2、資源・状態・防御・実順序・最後の成功/再送拒否・全反復確認件数・原本保持を独立期待値へ照合します。更新済み対象へのno-opや拒否だけの高速経路は通しません。
+性能検査は同IDの両陣営各四体を使い、八行動ごとに初期倍率1.2のSessionと初回順序を新規構築します。一段階はnext→claim→別陣営の同IDへ倍率1.5/期間一の実付与→別対象への再送拒否→独立読取/全保持確認→finishです。終端前の各段階を固定入力から追跡し、終端で八体全員が倍率1.2/残り0/復元先1.2へ戻ることと、資源・状態・防御・実順序・最後の成功/再送拒否・全反復確認件数・原本保持を独立期待値へ照合します。更新済み対象へのno-opや拒否だけの高速経路、早期減算、期限復元漏れは通しません。
 
 標準20000段階・7サンプル・2000段階事前実行で一段階中央値3000us以内を要求します。iterationsとwarmupは八の倍数です。初期構築と保持確認は計測に含みますが、起動/I/O・MP支払い・AI・描画・保存は含みません。Godot未指定のskip/終了コード2は未検証です。解析/実行診断・期待値不一致・上限超過は失敗です。開発者は原因を修正して再検証してください。
 

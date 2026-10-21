@@ -282,7 +282,7 @@ func snapshot() -> Dictionary:
 #   責務: [begin_round: 現在資源を保持し、状態付き開始では最新状態の補正速度、従来開始では基本速度でラウンド順序を固定します]
 #   処理: [
 #     1: 開始可能な戦闘段階を確認し、所有資源と最新状態による順序の計算を担当契約へ委譲します
-#     2: 計画成功後だけラウンドとカーソルを更新し、敵なし停止時は終端処理で物理防御倍率を解除します
+#     2: 計画成功後だけラウンドとカーソルを更新し、敵なし停止時は防御解除と速度期間の終端処理へ委譲します
 #   ]
 #   引数: [shuffle_order: 陣営sideと個体idで表す全参加者の並べ替え候補列。敏捷性が同じ参加者の順を決めます（Variant）]
 #   戻り値: [result: plan/session/stopまたは理由付き拒否。勝敗処理ではない]
@@ -330,7 +330,7 @@ func _plan_round(teams: Dictionary, shuffle_order: Variant) -> Dictionary:
 #   責務: [next_actor: 死亡/逃走者を飛ばし、次の行動候補をoffered段階で提示します。提示だけでは実行権を与えません]
 #   処理: [
 #     1: pendingがあれば同じコピーを返し新しい行動権を与えない
-#     2: 最新生存を確認して候補を予約する。敵なし/末尾なら全guardを解除する
+#     2: 最新生存を確認して候補を予約し、敵なし/末尾なら防御解除と速度期間の終端処理へ委譲します
 #   ]
 #   引数: []
 #   戻り値: [result: offered/pending/終端結果。取得だけではcan_execute=false（Dictionary）]
@@ -404,7 +404,7 @@ func claim(ticket: Variant) -> Dictionary:
 
 
 # {
-#   責務: [finish: 取得済みの現在行動票を一回だけ完了し、末尾/敵なしで物理防御倍率を1へ戻します]
+#   責務: [finish: 取得済みの現在行動票を一回だけ完了し、末尾/敵なしなら物理防御解除と速度期間の経過へ委譲します]
 #   処理: [
 #     1: 同じticketがclaimedであることを確認する
 #     2: pendingを消費しcursorを進め終端判定へ委譲する
@@ -653,13 +653,22 @@ func _update_phase() -> void:
 
 
 # {
-#   責務: [_end_round: HPとMPを保持し、全個体のラウンド限定防御倍率を1へ戻します]
-#   処理: [1: HPとMPを保持し、全個体のラウンド限定防御倍率を1へ戻します]
+#   責務: [_end_round: 進行中のラウンドを一度だけ閉じ、全員の速度期間経過と防御解除を行います]
+#   処理: [
+#     1: round_activeから指定終端段階へ切り替え、同じラウンドの再経過を防ぎます
+#     2: 速度集合へ全員の一回経過を委譲し、全個体の物理防御倍率を1へ戻します
+#   ]
 #   引数: [phase: round_finishedまたはstopped（String）]
-#   戻り値: [result: なし（void）。指定段階を設定し、全個体のラウンド限定防御倍率を1へ戻します]
+#   戻り値: [result: なし（void）。HP/MP・状態一覧・固定順を保持し、速度期間と物理防御倍率だけを更新します]
 # }
 func _end_round(phase: String) -> void:
+	# 末尾・途中停止・取消が同じ終端へ集まっても、終了済みラウンドを二回進めません。
+	if _phase != "round_active":
+		return
 	_phase = phase
+	if _speeds != null:
+		_speeds.elapse_round()
+	# 生死や逃走で所有者を取り除かず、全参加者のラウンド限定防御を解除します。
 	for side in Order.SIDES:
 		for id: String in _guards[side]:
 			_guards[side][id] = 1.0

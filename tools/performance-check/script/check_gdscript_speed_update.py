@@ -1,6 +1,6 @@
-"""取得済み予約による八体の速度実付与を、固定結果と3000us上限で検査します。"""
+"""八体の速度実付与と終端での期限復元を、固定結果と3000us上限で検査します。"""
 # {
-#   責務: [check_gdscript_speed_update: 専用一時要求で速度実付与を測り、固定八体・全実更新数・再送拒否を照合します]
+#   責務: [check_gdscript_speed_update: 速度実付与と終端復元を測り、固定八体・全更新数・再送拒否を照合します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -43,14 +43,14 @@ def valid_result(result: dict, request: dict) -> bool:
                 "hp": 100, "mp": 100, "alive": True, "fled": False})
             statuses[side][identifier] = []
             multipliers[side][identifier] = 1.2
-            states[side][identifier] = {"speed_multiplier": 1.5, "remaining_turns": 3, "baseline_multiplier": 1.2}
+            states[side][identifier] = {"speed_multiplier": 1.2, "remaining_turns": 0, "baseline_multiplier": 1.2}
             guards[side][identifier] = 1.0
             order.append({"side": side, "id": identifier})
     numeric = {"phase": "round_finished", "round": 1, "cursor": 8, "order": order, "pending": None,
                "teams": snapshots, "scope": "base_battle_cursor"}
-    last_state = {"speed_multiplier": 1.5, "remaining_turns": 3, "baseline_multiplier": 1.2}
+    last_state = {"speed_multiplier": 1.5, "remaining_turns": 1, "baseline_multiplier": 1.2}
     expected = {"actors": 8, "original_source": {"snapshots": snapshots, "statuses": statuses,
-        "multipliers": multipliers, "request": {"multiplier": 1.5, "duration": 3}}, "original_order": order,
+        "multipliers": multipliers, "request": {"multiplier": 1.5, "duration": 1}}, "original_order": order,
         "numeric": numeric, "statuses": {"teams": statuses, "scope": "battle_status_only"},
         "speeds": {"teams": states, "scope": "battle_speed_only"}, "guards": {"teams": guards, "scope": "basic_guard_only"},
         "last": {"applied": {"ok": True, "scope": "combatant_speed_apply", "snapshot": last_state},
@@ -103,7 +103,7 @@ def main() -> int:
             passed = valid_result(result, request)
             print(f"{'OK' if passed else 'FAIL'} Godot claimed speed update "
                   f"{result.get('microseconds', -1):.2f}us <= 3000us "
-                  f"[{args.iterations} iterations, {args.samples} samples, {args.warmup} warmup; real update per actor]")
+                  f"[{args.iterations} iterations, {args.samples} samples, {args.warmup} warmup; real update and terminal expiry]")
             return 0 if passed else 1
     print("FAIL: missing Godot claimed speed result")
     return 1

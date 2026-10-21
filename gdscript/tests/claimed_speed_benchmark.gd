@@ -1,5 +1,5 @@
 # {
-#   責務: [claimed_speed_benchmark: 八行動ごとに新規Sessionを構築し、速度実付与・再送拒否・完了を測定します]
+#   責務: [claimed_speed_benchmark: 八行動ごとの新規Sessionで、速度実付与・再送拒否・終端復元を測定します]
 #   フィールド: [
 #     _source: 固定八体の数値/状態/初期倍率と期間付き付与要求（Dictionary）
 #     _order: 同速度八体の明示順（Array）
@@ -7,17 +7,19 @@
 #     _position: 現在の八行動バッチで完了した件数（int）
 #     _completed: 実付与と全状態保持を確認した累積件数（int）
 #     _last: 最後の実付与/再送拒否/読取/完了の独立結果（Dictionary）
+#     _expected: 固定入力だけから構築する現在バッチの期待速度。製品状態から逆算しません（Dictionary）
 #   ]
 # }
 extends RefCounted
 const Session = preload("res://engine/battle_session.gd")
 var _source := {"snapshots": {"allies": [], "enemies": []}, "statuses": {"allies": {}, "enemies": {}},
-	"multipliers": {"allies": {}, "enemies": {}}, "request": {"multiplier": 1.5, "duration": 3}}
+	"multipliers": {"allies": {}, "enemies": {}}, "request": {"multiplier": 1.5, "duration": 1}}
 var _order: Array = []
 var _session: RefCounted
 var _position := 8
 var _completed := 0
 var _last: Dictionary = {}
+var _expected: Dictionary = {}
 
 
 # {
@@ -70,11 +72,11 @@ func measure(payload: Dictionary) -> Dictionary:
 
 
 # {
-#   責務: [_stage: 新規予約で一体の倍率を1.2から1.5へ更新し、同予約の再送拒否と全保持を確認します]
+#   責務: [_stage: 一体の速度を1.5へ実更新し、再送拒否・終端前保持・八体の期限復元を確認します]
 #   処理: [
 #     1: 八行動ごとに新規Sessionと初回順序を構築します
 #     2: 取得済み票で反対陣営の同IDへ実付与し、別対象への再送拒否と独立読取を照合します
-#     3: 正常に完了した実更新だけを累積件数へ加算します
+#     3: 末尾のfinishでは八体の倍率1.2への復元を照合し、正常完了した実更新だけを累積します
 #   ]
 #   引数: []
 #   戻り値: [result: なし（void）。確認できた段階だけをcompletedに数えます]
@@ -86,6 +88,7 @@ func _stage() -> void:
 		assert(_session.start_with_statuses(_source["snapshots"]["allies"], _source["snapshots"]["enemies"],
 			_source["statuses"], _source["multipliers"])["ok"])
 		assert(_session.begin_round(_order)["ok"])
+		_expected = _baseline_speeds()
 		_position = 0
 	var offered: Dictionary = _session.next_actor()
 	var ticket: Dictionary = offered["pending"]["ticket"]
@@ -94,8 +97,9 @@ func _stage() -> void:
 	var numeric: Dictionary = _session.snapshot()
 	var guards: Dictionary = _session.effects()
 	var statuses: Dictionary = _session.statuses()
-	var expected: Dictionary = _session.speeds()
-	expected["teams"][target["side"]][target["id"]] = {"speed_multiplier": 1.5, "remaining_turns": 3, "baseline_multiplier": 1.2}
+	# 先行段階で誤って期間が減っていても期待値へ取り込まず、固定原本からの追跡値と照合します。
+	_expected["teams"][target["side"]][target["id"]] = {"speed_multiplier": 1.5, "remaining_turns": 1, "baseline_multiplier": 1.2}
+	var expected: Dictionary = _expected
 	var applied: Dictionary = _session.apply_speed_multiplier(ticket, target, _source["request"])
 	var repeated: Dictionary = _session.apply_speed_multiplier(ticket, ticket["actor"], _source["request"])
 	var single: Dictionary = _session.speed(target)
@@ -104,9 +108,26 @@ func _stage() -> void:
 		and single == {"ok": true, "snapshot": expected["teams"][target["side"]][target["id"]]} \
 		and expected == _session.speeds() and numeric == _session.snapshot() \
 		and guards == _session.effects() and statuses == _session.statuses()
-	# finishは予約だけを進め、今回未接続の期間減算を成功条件へ紛れ込ませません。
+	# 最後のfinishだけが全員を期限切れにし、途中のfinishは期間を進めません。
 	var finished: Dictionary = _session.finish(ticket)
+	if _position == 7:
+		verified = verified and _session.speeds() == _baseline_speeds()
 	_last = {"applied": applied, "repeated": repeated, "single": single, "finished": finished}
 	if verified and finished["ok"]:
 		_completed += 1
 	_position += 1
+
+
+# {
+#   責務: [_baseline_speeds: 固定八体の初期倍率1.2・残り0・復元先1.2を独立した期待値にします]
+#   処理: [1: 固定入力の陣営/IDだけを使い、開始時と期限切れ時に一致すべき速度辞書を構築します]
+#   引数: []
+#   戻り値: [result: 製品の読取結果から独立したbattle_speed_onlyの期待辞書（Dictionary）]
+# }
+func _baseline_speeds() -> Dictionary:
+	# 製品snapshotとの自己一致で早期失効や復元漏れを見逃さないため、値は固定仕様から作ります。
+	var teams := {"allies": {}, "enemies": {}}
+	for side in ["allies", "enemies"]:
+		for index in 4:
+			teams[side]["member_" + str(index)] = {"speed_multiplier": 1.2, "remaining_turns": 0, "baseline_multiplier": 1.2}
+	return {"teams": teams, "scope": "battle_speed_only"}

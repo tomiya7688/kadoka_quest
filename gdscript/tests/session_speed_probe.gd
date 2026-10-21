@@ -1,5 +1,5 @@
 # {
-#   責務: [session_speed_probe: 参加者速度集合・Session・Applicationの開始と独立読取・行動順を保存なしで観測します]
+#   責務: [session_speed_probe: 速度集合とSessionの開始・付与・終端経過・独立読取・順序を保存なしで観測します]
 #   フィールド: []
 # }
 extends RefCounted
@@ -53,6 +53,8 @@ static func _case(request: Dictionary) -> Dictionary:
 		var step_before := JSON.stringify(step)
 		var result: Dictionary
 		match step["operation"]:
+			"elapse":
+				result = owner.elapse_round() if mode == "collection" else {"ok": false, "reason": "collection_only"}
 			"edit_step_ticket":
 				_mutate(input["steps"][int(step["index"])]["ticket"])
 				result = {"ok": true}

@@ -396,12 +396,16 @@ class BattleEngine:
         self._attack(defender, attacker, counter_skill, allow_counter=False)
 
     # {
-    #   責務: [_check_end: endを検査する]
-    #   処理: [1: endを検査する]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    #   責務: [_check_end: 両陣営の最新生存から勝利・全敵逃走・敗北を判定し、成立した結果とログを保持します]
+    #   処理: [
+    #     1: 敵の生存者がいなければ、全敵逃走と勝利を区別して結果とログを更新します
+    #     2: 敵に生存者がいる場合だけ味方の全滅を確認し、敗北を記録します
+    #   ]
+    #   引数: [self: 両陣営・戦闘結果outcome・戦闘ログを保持するBattleEngine]
+    #   戻り値: [result: なし（None）。終了条件がなければ戦闘結果とログを変更しません]
     # }
     def _check_end(self) -> None:
+        # 両陣営に生存者がいない場合も、Python版の敵側終了条件を先に判定します。
         if not self._living(self.enemies):
             if self.enemies and all(member.fled for member in self.enemies):
                 self.outcome = "enemies_fled"
@@ -414,16 +418,18 @@ class BattleEngine:
             self.log.append("パーティは戦闘不能になった。")
 
     # {
-    #   責務: [run_round: 生存個体の速度順に戦闘行動を実行しラウンド末の一時効果を解除する]
+    #   責務: [run_round: 未終了の戦闘で一ラウンドを実行し、全参加者の限定効果解除と倍率期間経過を行います]
     #   処理: [
     #     1: 生存参加者をshuffleして速度順に並べる
     #     2: 行動直前に最新生存と敵の有無を確認し行動・終了判定を進める
-    #     3: 全参加者の防御・回避・反撃等のラウンド限定状態を解除する
+    #     3: 未終了なら全参加者の継続状態効果を適用し、終了条件を再確認します
+    #     4: 死亡/逃走を含む全参加者の限定状態を解除し、行動制限と一時倍率の残り期間を減らします
     #   ]
-    #   引数: [self: 処理対象インスタンス]
-    #   戻り値: [result: 今回追加された戦闘ログ。戦闘状態も更新する]
+    #   引数: [self: 両陣営・乱数源・行動処理・ラウンド番号・戦闘結果を保持するBattleEngine]
+    #   戻り値: [result: 当該ラウンドで追加されたログの列。既に終了済みなら状態を変更せず空列を返します（list[str]）]
     # }
     def run_round(self) -> list[str]:
+        # 終了済み戦闘の再呼出ではラウンド番号と限定効果の期間を進めません。
         if self.outcome:
             return []
         start_index = len(self.log)
@@ -434,6 +440,7 @@ class BattleEngine:
         self.rng.shuffle(actors)
         actors.sort(key=lambda item: item[0].speed, reverse=True)
 
+        # 現在ラウンドの順序は固定し、行動直前だけ最新生存と敵の有無を読み直します。
         for actor, foes, friends in actors:
             if not actor.alive or not self._living(foes):
                 continue
@@ -443,11 +450,13 @@ class BattleEngine:
             if self.outcome:
                 break
 
+        # 行動中に戦闘が終わった場合、毒などの継続状態効果を追加実行しません。
         if not self.outcome:
             for member in self.allies + self.enemies:
                 self._tick_end_turn_status(member)
             self._check_end()
 
+        # 行動済みか生存中かを問わず、通常終了と途中決着の両方で限定効果を一回だけ進めます。
         for member in self.allies + self.enemies:
             member.guard = 1.0
             member.evade_physical = False

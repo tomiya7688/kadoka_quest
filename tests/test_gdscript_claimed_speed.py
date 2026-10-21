@@ -53,8 +53,8 @@ def apply_step(target=ACTOR, request=REQUEST, **options):
 # }
 class ClaimedSpeedBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_update_delegates_rules_without_io_or_implicit_expiration: 予約所有者は速度規則を委譲し、Sessionへ自動期限処理やApplicationの生更新を追加しません]
-    #   処理: [1: 新規所有者の禁止依存と、数値snapshot/上位入口/終端への未追加を静的照合します]
+    #   責務: [test_update_delegates_rules_without_io_or_implicit_expiration: 予約所有者は速度規則を委譲し、期限経過はSession終端へ分離します]
+    #   処理: [1: 予約所有者の禁止依存と、Sessionから速度集合への一か所の経過委譲・上位入口/数値snapshotの分離を照合します]
     #   引数: [self: 責務境界を確認するテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -65,7 +65,7 @@ class ClaimedSpeedBoundaryTests(unittest.TestCase):
                           "randf(", "randi(", ".pay_mp(", ".take_damage(", ".finish(", ".elapse_round(", "maxf("):
             self.assertNotIn(forbidden, source)
         self.assertIn("_speeds.apply_multiplier(target, request)", source)
-        self.assertNotIn("elapse_round(", (root / "engine/battle_session.gd").read_text(encoding="utf-8"))
+        self.assertEqual((root / "engine/battle_session.gd").read_text(encoding="utf-8").count("_speeds.elapse_round()"), 1)
         self.assertNotIn("func apply_speed_multiplier(", (root / "application/battle_session_application.gd").read_text(encoding="utf-8"))
         self.assertNotIn("speed_multiplier", (root / "engine/combatant_state.gd").read_text(encoding="utf-8"))
 
@@ -104,8 +104,8 @@ class ClaimedSpeedTests(unittest.TestCase):
 
     # {
     #   責務: [test_claimed_sequences_fix_current_order_and_use_owned_speed_next_round: 予約付き再付与は最新倍率を使い、現在順を保持して次ラウンドだけ速度を反映します]
-    #   処理: [1: 別予約で敵へ強化/弱い延長/期間なしを付与し、三ラウンドの順序と期間非減算を照合します]
-    #   引数: [self: 最新倍率・順序固定・終端未接続を検証するテストケース]
+    #   処理: [1: 別予約で敵へ強化/弱い延長/期間なしを付与し、三ラウンドの順序と終端だけの期間減算を照合します]
+    #   引数: [self: 最新倍率・現在順固定・終端経過を検証するテストケース]
     #   戻り値: [result: なし（None）]
     # }
     def test_claimed_sequences_fix_current_order_and_use_owned_speed_next_round(self):
@@ -121,7 +121,7 @@ class ClaimedSpeedTests(unittest.TestCase):
         self.assertEqual(result["state"]["numeric"]["order"], [ENEMY, ACTOR])
         expected = speed.python_trace([{"method": "start", "value": 1.2},
             {"method": "apply", "value": REQUEST}, {"method": "apply", "value": {"multiplier": 1.3, "duration": 5}},
-            {"method": "apply", "value": {"multiplier": 1.4}}])[-1]
+            {"method": "elapse"}, {"method": "apply", "value": {"multiplier": 1.4}}, {"method": "elapse"}])[-1]
         self.assertEqual(result["state"]["speeds"]["teams"]["enemies"]["same"], expected)
         self.assertEqual(result["state"]["numeric"]["teams"], case["snapshots"])
         for index in (3, 7, 12):
@@ -220,7 +220,7 @@ class ClaimedSpeedTests(unittest.TestCase):
 
     # {
     #   責務: [test_eight_independent_owners_new_rounds_and_old_tickets: 八体を別予約で一回ずつ更新し、次ラウンドの新規付与と古い票拒否を確認します]
-    #   処理: [1: 同ID両陣営の全員へ公開APIで付与して完了し、期間非減算・次回予約・旧票を照合します]
+    #   処理: [1: 同ID両陣営の全員へ公開APIで付与して完了し、終端の一回減算・次回予約・旧票を照合します]
     #   引数: [self: 最大参加者と予約寿命を検証するテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -239,7 +239,7 @@ class ClaimedSpeedTests(unittest.TestCase):
         self.assertEqual(result["steps"][40]["state"]["numeric"]["phase"], "round_finished")
         for members in result["steps"][40]["state"]["speeds"]["teams"].values():
             for state in members.values():
-                self.assertEqual(state, {"speed_multiplier": 1.5, "remaining_turns": 3, "baseline_multiplier": 1})
+                self.assertEqual(state, {"speed_multiplier": 1.5, "remaining_turns": 2, "baseline_multiplier": 1})
         self.assertEqual(result["steps"][42]["result"]["reason"], "ticket_not_pending")
         self.assertTrue(result["steps"][42]["unchanged"])
         self.assertTrue(result["steps"][-1]["result"]["ok"])
@@ -278,7 +278,7 @@ class ClaimedSpeedTests(unittest.TestCase):
             self.assertTrue(case["steps"][4]["unchanged"])
 
     # {
-    #   責務: [test_performance_validator_requires_real_updates_all_batches_and_fixed_states: 性能検査は倍率/期間の実更新と全反復、再送拒否・固定八体・有限時間を要求します]
+    #   責務: [test_performance_validator_requires_real_updates_all_batches_and_fixed_states: 性能検査は実更新・終端復元・全反復・再送拒否・有限時間を要求します]
     #   処理: [1: 実Godotの小反復を照合し、入力・速度・数値・完了数・時間の偽装と端数反復を拒否します]
     #   引数: [self: 専用要求と保存ダミーを所有するテストケース]
     #   戻り値: [result: なし（None）]
@@ -303,7 +303,10 @@ class ClaimedSpeedTests(unittest.TestCase):
                              ("microseconds", True), ("microseconds", -1), ("microseconds", 3001)):
             self.assertFalse(module.valid_result({**candidate, field: value}, request), field)
         changed = copy.deepcopy(candidate)
-        changed["speeds"]["teams"]["allies"]["member_0"]["remaining_turns"] = 0
+        changed["speeds"]["teams"]["allies"]["member_0"]["remaining_turns"] = 1
+        self.assertFalse(module.valid_result(changed, request))
+        changed = copy.deepcopy(candidate)
+        changed["speeds"]["teams"]["enemies"]["member_3"]["speed_multiplier"] = 1.5
         self.assertFalse(module.valid_result(changed, request))
         changed = copy.deepcopy(candidate)
         changed["original_source"]["request"]["duration"] = True

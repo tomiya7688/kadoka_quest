@@ -1,5 +1,5 @@
 # {
-#   責務: [battle_speed_state: 両陣営の参加者ごとに速度所有者を保持し、独立読取と指定個体への速度付与を委譲します]
+#   責務: [battle_speed_state: 参加者別の速度所有者を保持し、読取・個別付与・全員の一ラウンド経過を委譲します]
 #   フィールド: [
 #     _by_id: 陣営と個体IDで検索する速度所有者。外部へ公開しません（Dictionary）
 #     _initialized: 全参加者の速度初期化が成功済みかどうか（bool）
@@ -157,3 +157,19 @@ func _check_key(key: Variant) -> Dictionary:
 	if not _by_id[key["side"]].has(key["id"]):
 		return {"ok": false, "reason": "actor_missing"}
 	return {"ok": true}
+
+
+# {
+#   責務: [elapse_round: 初期化済みの全参加者について、速度強化の期間を一ラウンド進めます]
+#   処理: [1: 未開始を拒否し、生死・逃走に関係なく各個体速度所有者の経過APIを一回ずつ呼びます]
+#   引数: []
+#   戻り値: [result: ok=true/scope=battle_speed_elapsed、または未変更のnot_initialized（Dictionary）]
+# }
+func elapse_round() -> Dictionary:
+	# 集合は全員の初期化成功後だけ公開されます。期間と倍率の復元規則は個体所有者へ委譲します。
+	if not _initialized:
+		return {"ok": false, "reason": "not_initialized"}
+	for side in Order.SIDES:
+		for id: String in _by_id[side]:
+			_by_id[side][id].elapse_round()
+	return {"ok": true, "scope": "battle_speed_elapsed"}
