@@ -16,6 +16,27 @@
 
 ```
 
+# 124. 参加者別の所有速度をSessionの初期化・読取・行動順へ接続
+
+参加者別の速度所有者集合battle_speed_stateを追加し、状態付きSessionとApplicationへ接続しました。任意の明示初期倍率は全参加者のside/idと一致させ、省略/nullは全員1として保持します。集合・Sessionは全開始候補の成功後だけ所有者を公開し、Applicationは初回行動順を含む全成功後だけ候補Sessionを公開します。不正倍率やID欠落は部分開始せず、正常入力で再試行できます。
+
+全体speedsと個別speedの独立読取を数値資源と分離し、ラウンド開始は最新状態と所有倍率を共用の純粋行動順へ渡します。補正前stats.speed・Session七キー・個体六キーsnapshot・保存JSON・Pythonゲーム処理・白黒GUIは変更しません。従来startは状態/速度未設定と基礎順序を維持します。予約による速度付与・終端の一回期間経過・ピオラ行動・AI・画面は未接続です。
+
+作業前にリモートを取得し、ahead108/behind0・取り込み差分なし・P0なしを確認しました。公開GDScript P1の既存単位はローカル実装済みのため、移行計画の次候補を一単位進めました。Issue作成/完了・push・PR操作は行いません。
+
+最終の専用/従来境界の集中検証は8件・60サブテストが成功しました（48.54秒）。全体検証は1,300件・26,328サブテストが成功しました（2284.37秒、Python 3.14.7、Godot 4.7.2、ヘッドレス、一時保存先へ隔離）。検証前後で対象ソース・文書・利用者の保護対象25ファイルのSHA256が一致しました。実セーブと利用者の既存変更は保持しています。
+
+標準性能は20000段階・7サンプル・2000段階事前実行で、状態付きSessionの一行動段階が変更前HEADの629.52us、変更後の634.34usでした。測定差は約0.8%で、上限2000us以内でした。倍率2/0.75を保持する八体区分は617.53usで同じ上限以内でした。正常な行動順・全反復段階・資源/状態/速度保持と原本不変も独立期待値へ照合しています。性能測定と重いテストは並行せず、反復条件・上限を緩めていません。単回の観測差を性能改善や環境変動の解消とは扱いません。
+
+既存runtimeの標準性能13項目も全て成功しました。野生24枠生成は1970.08us（上限5000us）、二体追跡は286.61us（上限1000us）、野生24体移動は677.05us（上限1000us）でした。Pythonゲーム処理は変更しておらず、前回の上限付近の変動を修正したとは扱いません。
+
+最新UPD checkerをmainから再取得し（12aeedf675102d27fb2107427aff274dc78662d6）、エラー0・警告19・注意107で成功しました。宣言コメント検査は429ファイル・3,485宣言でエラー0、追跡Python292ファイルの3.10互換AST構文検査、CI向けflake8、必須パス/core境界、REPO_MAP/生成クラス図の鮮度、依存関係整合性、git diff --checkも成功しました。ver.mdの第0節と過去の全履歴は変更前とバイト単位で一致します。Python 3.10での実行確認を、AST構文検査の成功から推定しません。
+
+実GUI・配布export・リモートCIは未検証です。push・PR・Issueの公開操作は行っていません。次候補は取得済み予約からの一回速度付与で、終端の一回経過とピオラ行動は別単位として残します。
+
+変更したファイル: gdscript/engine/battle_session.gd、gdscript/application/battle_session_application.gd、gdscript/tests/{run_speed_multiplier_probe,run_battle_session_probe}.gd、tests/{test_gdscript_speed_state,test_gdscript_session_status}.py、tools/performance-check/script/check_gdscript_battle_session.py、docs/{CODEMAP,GDScript一時速度強化保持契約,GDScript状態補正行動順契約,ver}.md、docs/ワークフロー/GDScript移行実装単位.md、tools/README.md。
+追加したファイル: gdscript/engine/battle_speed_state.gdと.uid、gdscript/tests/session_speed_probe.gdと.uid、tests/test_gdscript_session_speed.py、docs/GDScript戦闘Session速度保持契約.md。
+
 # 123. 一体の一時速度強化の倍率・期間・復元先を独立保持
 
 一時速度強化の最初の独立単位として、combatant_speed_stateを追加しました。所有者は一体の倍率・残りラウンド数・期限切れ時の復元倍率だけを保持します。Python正本の速度属性と同じく、再付与時には倍率と残り期間を独立した最大値で更新し、強化中の期間なし付与は復元先も更新します。経過APIは一回につき一ラウンドを減らし、期限切れした一回だけ倍率を復元します。開始前更新・再初期化・未知要求・不正数値/期間は所有状態を変えず拒否します。

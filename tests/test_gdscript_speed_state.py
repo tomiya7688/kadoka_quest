@@ -51,12 +51,12 @@ def python_trace(operations):
 # }
 class SpeedStateBoundaryTests(unittest.TestCase):
     # {
-    #   責務: [test_owner_has_no_io_rng_numeric_resources_or_session_connection: 速度保持だけの実装を既存Sessionへ無断接続しないことを確認します]
-    #   処理: [1: 所有者の禁止依存と、Session/Application/数値資源からの新しい直接参照の未追加を検査します]
+    #   責務: [test_owner_stays_independent_and_is_owned_through_roster: 速度保持はI/OやSessionへ依存せず、Sessionは参加者集合を介して保持することを確認します]
+    #   処理: [1: 個体速度の禁止依存と直接参照の分離、Sessionから参加者速度集合への接続を検査します]
     #   引数: [self: 責務境界を検査するテストケース]
     #   戻り値: [result: なし（None）。境界違反はassertionで失敗します]
     # }
-    def test_owner_has_no_io_rng_numeric_resources_or_session_connection(self):
+    def test_owner_stays_independent_and_is_owned_through_roster(self):
         # 保持契約の完成を、スキル行動やラウンド終端への接続完了と混同しません。
         root = fixture.godot_fixture.ROOT / "gdscript"
         source = (root / "engine/combatant_speed_state.gd").read_text(encoding="utf-8")
@@ -67,6 +67,7 @@ class SpeedStateBoundaryTests(unittest.TestCase):
         for relative in ("engine/battle_session.gd", "engine/combatant_state.gd",
                          "application/battle_session_application.gd"):
             self.assertNotIn("combatant_speed_state", (root / relative).read_text(encoding="utf-8"))
+        self.assertIn("battle_speed_state.gd", (root / "engine/battle_session.gd").read_text(encoding="utf-8"))
 
 
 # {

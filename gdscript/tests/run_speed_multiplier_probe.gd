@@ -5,6 +5,7 @@
 extends SceneTree
 
 const Probe = preload("res://tests/speed_multiplier_probe.gd")
+const SessionProbe = preload("res://tests/session_speed_probe.gd")
 const Benchmark = preload("res://tests/speed_multiplier_benchmark.gd")
 
 
@@ -24,6 +25,12 @@ func _initialize() -> void:
 	if not payload is Dictionary:
 		quit(2)
 		return
-	var result: Dictionary = Benchmark.run(payload) if payload.get("performance", false) else Probe.run(payload)
+	var result: Dictionary
+	if payload.get("session_speed", false):
+		result = SessionProbe.run(payload)
+	elif payload.get("performance", false):
+		result = Benchmark.run(payload)
+	else:
+		result = Probe.run(payload)
 	print("KADOKA_SPEED_STATE_RESULT=" + Marshalls.utf8_to_base64(JSON.stringify(result)))
 	quit(0)

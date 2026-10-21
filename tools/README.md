@@ -1,5 +1,7 @@
 # Project tooling
 
+参加者速度を保持するSessionの性能は `python tools/performance-check/script/check_gdscript_battle_session.py --with-speeds` で確認します。開発者は使えるGodotをKADOKA_GODOT_EXECUTABLEへ設定してリポジトリルートで実行してください。標準20000段階・7サンプル・2000段階事前実行で、状態と倍率2/0.75を持つ八体の正常ラウンド計画を八段階ごとに含め、一段階中央値2000us以内と固定入力/最終資源/状態/速度/実順序を要求します。高速拒否は合格にせず、初期構築・I/O・AI・描画は計測外、Godot未指定は終了コード2の未検証です。[Session速度保持契約](../docs/GDScript戦闘Session速度保持契約.md)に初期条件・読取・未接続範囲を記載しています。
+
 一時速度強化の保持性能は `python tools/performance-check/script/check_gdscript_speed_state.py` で検査します。開発者はリポジトリルートでKADOKA_GODOT_EXECUTABLEへ使えるGodotを指定して実行してください。専用検査は新しい一所有者の開始・三付与・三回経過の七操作を、標準20000回・7サンプル・2000回事前実行で反復し、全中間状態・全反復件数と中央値3000us以内を照合します。高速な拒否や更新欠落は合格にせず、Godot未指定は終了コード2の未検証です。Session・行動・AI・描画・起動/I/O・保存は計測しません。開発者は入出力と未接続範囲を[一時速度強化保持契約](../docs/GDScript一時速度強化保持契約.md)で確認してください。
 
 治療付き回復の実適用性能はcheck_gdscript_status_cure.py --cure-actionで確認します。開発者はリポジトリルートでKADOKA_GODOT_EXECUTABLEにGodotを設定し、指定Pythonから実行してください。標準20000回・7サンプル・2000回事前実行で、八行動ごとの新規構築を含む一行動中央値3000us以内と、全行動の実HP1回復/MP6消費/毒解除・固定八体の最終資源/状態・原本保持が成功条件です。総行動数は八の倍数が必要です。AI・描画・I/O・実セーブは計測しません。[実治療契約](../docs/GDScript治療付き回復行動契約.md)を確認してください。

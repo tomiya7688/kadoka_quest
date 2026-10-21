@@ -1,5 +1,5 @@
 # {
-#   責務: [battle_session: 戦闘個体の資源・行動予約・物理防御と、専用開始時の状態所有者を保持します。攻撃計算や勝敗判定は行いません]
+#   責務: [battle_session: 戦闘個体の資源・行動予約・物理防御と、専用開始時の状態/速度所有者を保持します。攻撃計算や勝敗判定は行いません]
 #   フィールド: [
 #     _teams: allies/enemies別に保持する戦闘個体の資源所有者列（Dictionary）
 #     _by_id: 陣営sideと個体idから資源所有者を検索する索引（Dictionary）
@@ -10,11 +10,12 @@
 #     _pending: 現在提示中または取得済みの行動予約（Dictionary）
 #     _guards: side+id別の物理防御倍率。資源snapshotとは別に保持する（Dictionary）
 #     _statuses: 専用開始でだけ保持するbattle_status_state。従来開始と未開始ではnullです（RefCounted）
+#     _speeds: 専用開始でだけ保持する参加者別の速度所有者集合（RefCounted）
 #     _status_updates: 取得済み予約の治療/付与を種類別一回に制限する内部所有者（RefCounted）
 #   ]
 # }
 extends RefCounted
-## 数値資源・予約・状態を分離保持し、取得済み予約の一件治療/付与を状態所有者へ委譲します。回復/攻撃計算と勝敗は担当しません。
+## 数値資源・予約・状態・速度を分離保持し、取得済み予約の一件治療/付与を状態所有者へ委譲します。回復/攻撃計算と勝敗は担当しません。
 
 const State = preload("res://engine/combatant_state.gd")
 const Eligibility = preload("res://engine/actor_eligibility_projection.gd")
@@ -22,6 +23,7 @@ const Order = preload("res://engine/turn_order.gd")
 const StatusOrder = preload("res://engine/status_turn_order.gd")
 const StatNumbers = preload("res://engine/stat_numbers.gd")
 const Statuses = preload("res://engine/battle_status_state.gd")
+const Speeds = preload("res://engine/battle_speed_state.gd")
 const StatusUpdates = preload("res://engine/claimed_status_updates.gd")
 var _teams: Dictionary = {"allies": [], "enemies": []}
 var _by_id: Dictionary = {"allies": {}, "enemies": {}}
@@ -32,6 +34,7 @@ var _order: Array = []
 var _pending: Dictionary = {}
 var _guards: Dictionary = {"allies": {}, "enemies": {}}
 var _statuses: RefCounted
+var _speeds: RefCounted
 var _status_updates: RefCounted
 
 
@@ -49,20 +52,21 @@ var _status_updates: RefCounted
 # }
 func start(allies: Variant, enemies: Variant) -> Dictionary:
 	var prepared := _prepare_start(allies, enemies)
-	return prepared if not prepared["ok"] else _commit_start(prepared, null)
+	return prepared if not prepared["ok"] else _commit_start(prepared, null, null)
 
 
 # {
-#   責務: [start_with_statuses: 明示初期状態付きの新規戦闘を、数値資源と状態の両方が成功した場合だけ開始します]
-#   処理: [1: 数値開始と状態所有者を未公開のまま構築し、両方成功した場合だけSessionへ保持します]
+#   責務: [start_with_statuses: 数値資源・明示状態・初期速度倍率が全て成功した場合だけ新規戦闘を開始します]
+#   処理: [1: 数値資源・状態・速度の所有者を未公開で構築し、全て成功した場合だけSessionへ保持します]
 #   引数: [
 #     allies: 満HP/MP・未逃走の味方数値snapshot列（Variant）
 #     enemies: 満HP/MP・未逃走の敵数値snapshot列（Variant）
 #     initial_statuses: 全参加者のside/idに一致する明示初期状態。省略や暗黙空配列補完は行いません（Variant）
+#     initial_speed_multipliers: 全参加者のside/id別初期倍率。省略/nullは全員1、明示辞書の欠落は拒否します（Variant）
 #   ]
 #   戻り値: [result: 従来形式の独立した数値session、または未開始を保持した拒否（Dictionary）]
 # }
-func start_with_statuses(allies: Variant, enemies: Variant, initial_statuses: Variant) -> Dictionary:
+func start_with_statuses(allies: Variant, enemies: Variant, initial_statuses: Variant, initial_speed_multipliers: Variant = null) -> Dictionary:
 	var prepared := _prepare_start(allies, enemies)
 	if not prepared["ok"]:
 		return prepared
@@ -70,7 +74,11 @@ func start_with_statuses(allies: Variant, enemies: Variant, initial_statuses: Va
 	var initialized: Dictionary = statuses.start({"allies": allies, "enemies": enemies}, initial_statuses)
 	if not initialized["ok"]:
 		return initialized
-	return _commit_start(prepared, statuses)
+	var speeds = Speeds.new()
+	var speed_started: Dictionary = speeds.start({"allies": allies, "enemies": enemies}, initial_speed_multipliers)
+	if not speed_started["ok"]:
+		return speed_started
+	return _commit_start(prepared, statuses, speeds)
 
 
 # {
@@ -107,17 +115,19 @@ func _prepare_start(allies: Variant, enemies: Variant) -> Dictionary:
 
 # {
 #   責務: [_commit_start: 全成功した開始候補だけをSessionへ保持し、初期防御倍率と開始段階を設定します]
-#   処理: [1: 数値/状態所有者を保持し、全物理防御倍率を1にしてラウンド開始待ちへ進みます]
+#   処理: [1: 数値/状態/速度所有者を保持し、全物理防御倍率を1にしてラウンド開始待ちへ進みます]
 #   引数: [
 #     prepared: _prepare_startが作った内部専用の資源所有者/索引（Dictionary）
 #     statuses: 初期化済み状態所有者、または従来開始を示すnull（RefCounted）
+#     speeds: 初期化済み速度所有者集合、または従来開始を示すnull（RefCounted）
 #   ]
 #   戻り値: [result: ok=trueと従来の数値sessionコピー。内部所有者を返しません（Dictionary）]
 # }
-func _commit_start(prepared: Dictionary, statuses: RefCounted) -> Dictionary:
+func _commit_start(prepared: Dictionary, statuses: RefCounted, speeds: RefCounted) -> Dictionary:
 	_teams = prepared["teams"]
 	_by_id = prepared["by_id"]
 	_statuses = statuses
+	_speeds = speeds
 	# 全成功した開始候補にだけ、独立した種類別の一回判定記録を構築します。
 	_status_updates = StatusUpdates.new(_by_id, statuses)
 	for side in Order.SIDES:
@@ -135,6 +145,31 @@ func _commit_start(prepared: Dictionary, statuses: RefCounted) -> Dictionary:
 # }
 func statuses() -> Dictionary:
 	return {} if _statuses == null else _statuses.snapshot()
+
+# {
+#   責務: [speeds: 専用開始で保持する全参加者の速度状態を、数値資源とは別の独立コピーで返します]
+#   処理: [1: 速度所有者がなければ空辞書、専用開始済みなら所有者集合のコピーを返します]
+#   引数: []
+#   戻り値: [result: side/id別teamsとscope=battle_speed_only、または未設定の空辞書（Dictionary）]
+# }
+func speeds() -> Dictionary:
+	return {} if _speeds == null else _speeds.snapshot()
+
+
+# {
+#   責務: [speed: 専用開始した指定参加者の速度倍率・残り期間・復元先を独立コピーで返します]
+#   処理: [1: 未開始/未設定を拒否し、参加者キーの検証と読取を速度所有者集合へ委譲します]
+#   引数: [key: 読み取る参加者のside/idだけの辞書（Variant）]
+#   戻り値: [result: ok=true/snapshot、または未開始/未設定/不正参加者の拒否（Dictionary）]
+# }
+func speed(key: Variant) -> Dictionary:
+	if _phase == "not_started":
+		return _failure("not_initialized")
+	if _speeds == null:
+		return _failure("speed_not_configured")
+	return _speeds.read(key)
+
+
 
 
 # {
@@ -250,7 +285,7 @@ func begin_round(shuffle_order: Variant) -> Dictionary:
 
 # {
 #   責務: [_plan_round: 所有状態の有無に応じて基礎順序または状態補正順序へ委譲し、Session自体を変更しません]
-#   処理: [1: 従来開始は基礎順序へ渡し、状態付き開始は全員の最新状態と一時倍率なしの明示1を状態順序へ渡します]
+#   処理: [1: 従来開始は基礎順序へ渡し、状態付き開始は全員の最新状態と所有倍率を状態順序へ渡します]
 #   引数: [
 #     teams: Sessionが所有する現在HPMP・生死と補正前能力値の独立コピー（Dictionary）
 #     shuffle_order: 生存者全員のside/idを一度ずつ含む同速時の明示順（Variant）
@@ -261,11 +296,8 @@ func _plan_round(teams: Dictionary, shuffle_order: Variant) -> Dictionary:
 	# 従来開始は最新状態を持たないため、最低速度1を含む元の基礎順序契約へ直接委譲します。
 	if _statuses == null:
 		return Order.plan(teams["allies"], teams["enemies"], shuffle_order)
-	# 一時速度倍率の所有は未移植のため、全参加者に「倍率なし」の1を明示し、呼出元から倍率を受け取りません。
-	var multipliers := {"allies": {}, "enemies": {}}
-	for side in Order.SIDES:
-		for member: Dictionary in teams[side]:
-			multipliers[side][member["identity"]["id"]] = 1.0
+	# ラウンド要求へ外部倍率を持ち込まず、開始時に独立保持した全参加者の現在倍率を読みます。
+	var multipliers: Dictionary = _speeds.multipliers()
 	return StatusOrder.plan({"allies": teams["allies"], "enemies": teams["enemies"],
 		"statuses": _statuses.snapshot()["teams"], "speed_multipliers": multipliers, "shuffle_order": shuffle_order})
 

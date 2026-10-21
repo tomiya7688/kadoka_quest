@@ -47,10 +47,20 @@ def valid_status_round_result(result: dict, request: dict) -> bool:
     cursor = stages % 8 or 8
     session = {"phase": "round_finished" if cursor == 8 else "round_active", "round": (stages + 7) // 8,
                "cursor": cursor, "order": order, "pending": None, "teams": teams, "scope": "base_battle_cursor"}
+    # 倍率付き区分は味方2倍・敵0.75倍の保持と実順序を、計測結果から逆算せず固定値で確認します。
+    if request.get("speed_round", False):
+        session["order"] = [{"side": side, "id": str(index)} for side, index in (
+            ("allies", 2), ("allies", 1), ("enemies", 2), ("allies", 0),
+            ("allies", 3), ("enemies", 0), ("enemies", 1), ("enemies", 3))]
     duration = result.get("microseconds")
     # PythonのTrue==1による偽一致を避け、JSON上の数値・真偽値も区別して固定結果を比較します。
     expected = {"input": {**teams, "shuffle_order": initial}, "initial_statuses": statuses,
                 "statuses": {"teams": statuses, "scope": "battle_status_only"}, "session": session}
+    if request.get("speed_round", False):
+        multipliers = {side: {str(index): (2.0 if side == "allies" else 0.75) for index in range(4)} for side in teams}
+        states = {side: {identifier: {"speed_multiplier": value, "remaining_turns": 0, "baseline_multiplier": value}
+                        for identifier, value in values.items()} for side, values in multipliers.items()}
+        expected.update(initial_speed_multipliers=multipliers, speeds={"teams": states, "scope": "battle_speed_only"})
     return (type(result.get("actors")) is int and result["actors"] == 8
             and all(json.dumps(result.get(field), sort_keys=True) == json.dumps(value, sort_keys=True)
                     for field, value in expected.items()) and result.get("input_preserved") is True
@@ -71,13 +81,14 @@ def main() -> int:
     parser.add_argument("--samples", type=int, default=7)
     parser.add_argument("--warmup", type=int, default=2_000)
     parser.add_argument("--with-statuses", action="store_true", help="状態付き開始と毎ラウンドの最新状態補正を計測します")
+    parser.add_argument("--with-speeds", action="store_true", help="状態付き開始に味方2倍・敵0.75倍の所有速度を加えて計測します")
     args = parser.parse_args()
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
     if not godot:
         print("UNVERIFIED: set KADOKA_GODOT_EXECUTABLE")
         return 2
     request = {"performance": True, "iterations": max(1, args.iterations),
-               "samples": max(1, args.samples), "warmup": max(0, args.warmup), "status_round": args.with_statuses}
+               "samples": max(1, args.samples), "warmup": max(0, args.warmup), "status_round": args.with_statuses or args.with_speeds, "speed_round": args.with_speeds}
     # 計測要求だけを隔離し、個体・AI・保存データを入力や出力へ使用しません。
     with tempfile.TemporaryDirectory(prefix="kadoka-session-performance-") as directory:
         fixture = Path(directory) / "request.json"
@@ -92,11 +103,16 @@ def main() -> int:
     for line in process.stdout.splitlines():
         if line.startswith("KADOKA_SESSION_RESULT="):
             result = json.loads(base64.b64decode(line.split("=", 1)[1]))
-            passed = valid_status_round_result(result, request) if args.with_statuses else result["microseconds"] <= 2000 and result["actors"] == 8
+            passed = valid_status_round_result(result, request) if request["status_round"] else result["microseconds"] <= 2000 and result["actors"] == 8
+            owned_label = ""
+            if args.with_speeds:
+                owned_label = "latest owned statuses/speeds; "
+            elif args.with_statuses:
+                owned_label = "latest owned statuses; "
             print(f"{'OK' if passed else 'FAIL'} Godot next+claim+zero-resource+finish (8-actor session) "
                   f"{result['microseconds']:.2f}us <= 2000us "
                   f"[{int(result['iterations'])} iterations, {int(result['samples'])} samples, "
-                  f"{int(result['warmup'])} warmup; {'latest owned statuses; ' if args.with_statuses else ''}round plan amortized every 8 stages]")
+                  f"{int(result['warmup'])} warmup; {owned_label}round plan amortized every 8 stages]")
             return 0 if passed else 1
     print("FAIL: missing Godot result")
     return 1

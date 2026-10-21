@@ -3,7 +3,7 @@
 #   フィールド: [
 #     _preparation: 保存個体の戦闘用再構築と行動順計画を行うturn_preparation.gdの準備処理（RefCounted）
 #     _repository: 種族・装備・スキルなどの正規データの取得を委譲するリポジトリ（RefCounted）
-#     _session: 戦闘中のHP/MP・行動予約・物理防御と専用開始の状態を所有するbattle_session.gd（RefCounted）
+#     _session: 戦闘中のHP/MP・行動予約・物理防御と専用開始の状態/速度を所有するbattle_session.gd（RefCounted）
 #     _attack: battle_session.gdの戦闘状態へ通常攻撃の結果を反映するnormal_attack_action.gdの行動処理（RefCounted）
 #     _defend: battle_session.gdの戦闘状態へ基本ぼうぎょの倍率を反映するbasic_defend_action.gdの行動処理（RefCounted）
 #     _physical: battle_session.gdの戦闘状態へMP付き単体物理スキルの結果を反映するphysical_skill_action.gdの行動処理（RefCounted）
@@ -67,7 +67,7 @@ func _init(repository: RefCounted) -> void:
 #   戻り値: [result: 成功時は準備結果preparationと戦闘状態session、失敗時は理由reasonを含む結果（Dictionary）]
 # }
 func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Dictionary:
-	return _start(allies, enemies, shuffle_order, null, false)
+	return _start(allies, enemies, shuffle_order, null, false, null)
 
 
 # {
@@ -78,11 +78,12 @@ func start(allies: Variant, enemies: Variant, shuffle_order: Variant) -> Diction
 #     enemies: 敵の保存個体レコード列（Variant）
 #     shuffle_order: 生存参加者のside/id別明示順（Variant）
 #     initial_statuses: 全参加者について空状態も明示するside/id別状態辞書（Variant）
+#     initial_speed_multipliers: 全参加者のside/id別初期倍率。省略/nullは全員1です（Variant）
 #   ]
 #   戻り値: [result: 全成功後の準備/数値Sessionコピー、または未開始を保持した拒否（Dictionary）]
 # }
-func start_with_statuses(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_statuses: Variant) -> Dictionary:
-	return _start(allies, enemies, shuffle_order, initial_statuses, true)
+func start_with_statuses(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_statuses: Variant, initial_speed_multipliers: Variant = null) -> Dictionary:
+	return _start(allies, enemies, shuffle_order, initial_statuses, true, initial_speed_multipliers)
 
 
 # {
@@ -94,10 +95,11 @@ func start_with_statuses(allies: Variant, enemies: Variant, shuffle_order: Varia
 #     shuffle_order: 初回生存者の明示順（Variant）
 #     initial_statuses: 専用開始の明示状態、従来入口ではnull（Variant）
 #     with_statuses: 専用入口でだけtrueに固定する構築区分（bool）
+#     initial_speed_multipliers: 専用入口でSessionへ渡す初期倍率、従来入口ではnull（Variant）
 #   ]
 #   戻り値: [result: 準備と数値Session、または使用中の参照を変更しない拒否（Dictionary）]
 # }
-func _start(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_statuses: Variant, with_statuses: bool) -> Dictionary:
+func _start(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_statuses: Variant, with_statuses: bool, initial_speed_multipliers: Variant) -> Dictionary:
 	# 戦闘呼び出し処理は、既に開始した戦闘を新しい参加者で二重に初期化する要求を拒否します。
 	if _session.snapshot()["phase"] != "not_started":
 		return {"ok": false, "reason": "already_initialized"}
@@ -108,7 +110,7 @@ func _start(allies: Variant, enemies: Variant, shuffle_order: Variant, initial_s
 	var candidate = Session.new()
 	var started: Dictionary
 	if with_statuses:
-		started = candidate.start_with_statuses(_snapshots(prepared["teams"]["allies"]), _snapshots(prepared["teams"]["enemies"]), initial_statuses)
+		started = candidate.start_with_statuses(_snapshots(prepared["teams"]["allies"]), _snapshots(prepared["teams"]["enemies"]), initial_statuses, initial_speed_multipliers)
 	else:
 		started = candidate.start(_snapshots(prepared["teams"]["allies"]), _snapshots(prepared["teams"]["enemies"]))
 	if not started["ok"]:
@@ -325,6 +327,27 @@ func resolve_status_physical_skill(request: Variant) -> Dictionary:
 # }
 func statuses() -> Dictionary:
 	return _session.statuses()
+
+# {
+#   責務: [speeds: 所有Sessionの全参加者の速度状態を独立コピーとして読み取ります]
+#   処理: [1: Sessionの速度所有者集合の読取へ委譲します]
+#   引数: []
+#   戻り値: [result: side/id別teamsとscope=battle_speed_only、または未設定の空辞書（Dictionary）]
+# }
+func speeds() -> Dictionary:
+	return _session.speeds()
+
+
+# {
+#   責務: [speed: 指定参加者の速度状態の読取と参加者検証を所有Sessionへ委譲します]
+#   処理: [1: 指定side/idをSessionへ渡し、独立snapshotまたは拒否結果を返します]
+#   引数: [key: 読み取る参加者のside/idだけの辞書（Variant）]
+#   戻り値: [result: ok=true/snapshot、または未開始/未設定/不正参加者の拒否（Dictionary）]
+# }
+func speed(key: Variant) -> Dictionary:
+	return _session.speed(key)
+
+
 
 
 # {

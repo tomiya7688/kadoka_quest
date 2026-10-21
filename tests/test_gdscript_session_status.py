@@ -46,7 +46,7 @@ class SessionStatusBoundaryTests(unittest.TestCase):
                 self.assertNotIn(forbidden, source)
         application = (root / "application/battle_session_application.gd").read_text(encoding="utf-8")
         self.assertIn("func start_with_statuses(", application)
-        self.assertIn("_start(allies, enemies, shuffle_order, null, false)", application)
+        self.assertIn("_start(allies, enemies, shuffle_order, null, false, null)", application)
         self.assertNotIn("status_effects", (root / "engine/combatant_state.gd").read_text(encoding="utf-8"))
 
 

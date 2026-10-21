@@ -63,7 +63,7 @@
 
 状態異常を付与または治療した戦闘では、開始時の状態だけで計算すると次ラウンドの速度が古いままになります。`engine/battle_session.gd` は、状態付き開始で保持した最新一覧をラウンド開始のたびに読み、`status_turn_order.plan` へ委譲します。Session自身は補正式や整列を実装しません。Sessionは各陣営最大四体だけを対象にし、保有個体全件を走査しません。
 
-開発者は新規Sessionへ `start_with_statuses(allies, enemies, initial_statuses)` を呼び、成功後に `begin_round(shuffle_order)` を呼んでください。Sessionは全参加者の補正前能力値・現在資源・最新状態と、全員の一時速度倍率1を純粋契約へ渡します。倍率1は「一時補正なし」の明示値で、省略値の推測ではありません。Sessionは外部の倍率要求を受け取らず、一時倍率の保持や期限を追加しません。
+開発者は新規Sessionへ `start_with_statuses(allies, enemies, initial_statuses, initial_speed_multipliers)` を呼び、成功後に `begin_round(shuffle_order)` を呼んでください。末尾の初期倍率は省略/nullなら全員1、明示辞書なら全参加者のside/idと厳密一致する有限非負倍率です。Sessionは全参加者の補正前能力値・現在資源・最新状態と、独立保持した現在倍率を純粋契約へ渡します。ラウンド開始要求では外部倍率を受け付けません。[Session速度保持契約](GDScript戦闘Session速度保持契約.md)は初期化・読取・順序までを説明し、予約付与と終端での期間経過は未接続です。
 
 状態付きラウンド開始の成功結果は `ok/plan/session/stop` です。`plan` は純粋契約の `scope:status_turn_order/initial/order/speeds` を含みます。Sessionは補正前の `stats.speed` を書き換えず、計算済み速度を次ラウンドへ再乗算しません。状態なしの従来 `start` は基礎順序APIと元の結果形式を維持し、元から存在する最低速度1も維持します。
 

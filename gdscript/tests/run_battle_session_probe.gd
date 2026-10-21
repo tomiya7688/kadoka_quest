@@ -189,7 +189,7 @@ func _mutate(value: Variant) -> void:
 # {
 #   責務: [_performance: 初期化済み八体Sessionの予約提示から終了までを反復計測します]
 #   処理: [1: 開始構築を計測外に置き、事前実行後の複数サンプルから中央値を返します]
-#   引数: [payload: iterations/samples/warmupと任意status_roundの反復条件（Dictionary）]
+#   引数: [payload: iterations/samples/warmupと任意status_round/speed_roundの反復条件（Dictionary）]
 #   戻り値: [result: 一行動段階の中央値・反復条件と参加数八体。状態付き計測は入力/状態/最終Sessionも返します（Dictionary）]
 # }
 func _performance(payload: Dictionary) -> Dictionary:
@@ -197,14 +197,21 @@ func _performance(payload: Dictionary) -> Dictionary:
 	var input := _benchmark_input()
 	var session = Session.new()
 	var statuses := {"allies": {}, "enemies": {}}
+	var multipliers := {"allies": {}, "enemies": {}}
 	for side in Order.SIDES:
 		for member: Dictionary in input[side]:
+			multipliers[side][member["identity"]["id"]] = 2.0 if side == "allies" else 0.75
 			statuses[side][member["identity"]["id"]] = ["bleeding", {"id": "bleeding"}, "poison",
 				{"id": "mod", "metadata": {"deck": [1, {"kept": true}]}}] if side == "allies" else ["poison", "sleep", "Bleeding"]
 	# 状態付き区分でも毎ラウンドの開始・予約取得・完了は同じ公開APIだけを通します。
-	var initial: Dictionary = session.start_with_statuses(input["allies"], input["enemies"], statuses) if payload.get("status_round", false) else session.start(input["allies"], input["enemies"])
+	var initial: Dictionary
+	if payload.get("status_round", false):
+		var initial_multipliers: Variant = multipliers if payload.get("speed_round", false) else null
+		initial = session.start_with_statuses(input["allies"], input["enemies"], statuses, initial_multipliers)
+	else:
+		initial = session.start(input["allies"], input["enemies"])
 	assert(initial["ok"])
-	var before := JSON.stringify([input, statuses])
+	var before := JSON.stringify([input, statuses, multipliers])
 	var iterations := int(payload.get("iterations", 20000))
 	var samples := int(payload.get("samples", 7))
 	var warmup := int(payload.get("warmup", 2000))
@@ -224,7 +231,9 @@ func _performance(payload: Dictionary) -> Dictionary:
 	if payload.get("status_round", false):
 		# 計測条件や正常な順序の欠落を検出できるよう、固定入力と最終所有状態を独立して観測します。
 		result.merge({"input": input, "initial_statuses": statuses, "session": session.snapshot(),
-			"statuses": session.statuses(), "input_preserved": before == JSON.stringify([input, statuses])})
+			"statuses": session.statuses(), "input_preserved": before == JSON.stringify([input, statuses, multipliers])})
+		if payload.get("speed_round", false):
+			result.merge({"initial_speed_multipliers": multipliers, "speeds": session.speeds()})
 	return result
 
 
