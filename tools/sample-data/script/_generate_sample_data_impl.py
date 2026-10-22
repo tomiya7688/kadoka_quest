@@ -1,6 +1,6 @@
-"""Regenerate the bundled sample JSON. This intentionally overwrites sample data."""
+"""同梱サンプルJSONを再生成します。呼出側が指定するDATA以下を上書きします。"""
 # {
-#   責務: [_generate_sample_data_impl: Regenerate the bundled sample JSON. This intentionally overwrites sample data.]
+#   責務: [_generate_sample_data_impl: 種族・能力値・習得・地形・マップのサンプルJSONをDATA以下へ再生成します]
 #   フィールド: []
 # }
 
@@ -16,11 +16,11 @@ STATS = ("attack", "defense", "speed", "magic", "hp", "mp")
 
 
 # {
-#   責務: [write: generate・sample・データ・implを書き込む]
-#   処理: [1: generate・sample・データ・implを書き込む]
+#   責務: [write: 指定JSONをUTF-8・インデント付きで保存し、親ディレクトリを作成します]
+#   処理: [1: 指定JSONをUTF-8・インデント付きで保存し、親ディレクトリを作成します]
 #   引数: [
 #     path: パス（Path）
-#     value: 値（dict）
+#     value: JSONオブジェクトとして保存するサンプル定義（dict）
 #   ]
 #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
 # }
@@ -32,11 +32,11 @@ def write(path: Path, value: dict) -> None:
 
 
 # {
-#   責務: [level_table: generate・sample・データ・implのレベル・表を求める]
-#   処理: [1: generate・sample・データ・implのレベル・表を求める]
+#   責務: [level_table: Lv1とLv100の能力値を線形補間し、Lv1〜100の明示的な能力表を生成します]
+#   処理: [1: Lv1とLv100の能力値を線形補間し、Lv1〜100の明示的な能力表を生成します]
 #   引数: [
-#     base: base（list[int]）
-#     final: final（list[int]）
+#     base: STATS順に並べたLv1の初期能力値（list[int]）
+#     final: STATS順に並べたLv100の到達能力値（list[int]）
 #   ]
 #   戻り値: [result: 処理結果（dict[str, dict[str, int]]）]
 # }
@@ -52,12 +52,12 @@ def level_table(base: list[int], final: list[int]) -> dict[str, dict[str, int]]:
 
 
 # {
-#   責務: [plus_stages: generate・sample・データ・implの＋選択・stagesを求める]
-#   処理: [1: generate・sample・データ・implの＋選択・stagesを求める]
+#   責務: [plus_stages: 種族の強化対象から＋1〜＋10の選択肢と前提選択の連鎖を生成します]
+#   処理: [1: 種族の強化対象から＋1〜＋10の選択肢と前提選択の連鎖を生成します]
 #   引数: [
 #     species_id: 種族・識別子（str）
-#     focus: focus（tuple[str, str]）
-#     skill_id: スキル・識別子（str）
+#     focus: ＋選択で加算対象にする二つの能力名（tuple[str, str]）
+#     skill_id: 専用強化の段階で習得するスキルID（str）
 #   ]
 #   戻り値: [result: stages（list[dict]）]
 # }
@@ -128,6 +128,7 @@ SPECIES = {
         "ai": "normal",
         "skills": [(1, "attack"), (3, "defend"), (7, "body_bash"), (18, "small_heal")],
         "resistances": {"ice": "strong", "fire": "weak"},
+        "field_ai_weights": {"random": 70, "chase": 25, "idle": 5},
         "focus": ("hp", "defense"),
         "plus_skill": "body_bash",
         "scoutable": True,
@@ -167,6 +168,10 @@ SPECIES = {
         "plus_skill": "metal_burst",
         "scoutable": True,
         "xp_curve": "hard",
+        "field_ai_weights": {"random": 85, "chase": 5, "idle": 10},
+        "experience_reward": {"base": 300, "per_level": 35, "squared_divisor": 10},
+        "flee_rates": {"normal": 0.15, "metal_area": 0.60},
+        "status_resistances": {"bleeding": "immune"},
     },
     "ghost": {
         "name": "ふつうのおばけ",
@@ -180,6 +185,8 @@ SPECIES = {
         "ai": "trickster",
         "skills": [(1, "attack"), (3, "vanish"), (7, "avoid_light"), (13, "possess"), (22, "defend")],
         "resistances": {"light": "weak", "dark": "strong", "mental": "strong"},
+        "field_ai_weights": {"random": 40, "chase": 50, "idle": 10},
+        "status_resistances": {"bleeding": "immune"},
         "focus": ("magic", "speed"),
         "plus_skill": "possess",
         "scoutable": True,
@@ -195,6 +202,7 @@ SPECIES = {
         "final": [155, 125, 285, 175, 780, 680],
         "equipment": ["clothes", "staff"],
         "ai": "maru",
+        "status_resistances": {"bleeding": "immune"},
         "skills": [(1, "attack"), (1, "pick_up_maru"), (5, "vanish"), (18, "possess")],
         "resistances": {"light": "weak", "mental": "strong"},
         "focus": ("hp", "mp"),
@@ -217,6 +225,7 @@ SPECIES = {
         "final": [170, 130, 300, 185, 760, 700],
         "equipment": ["clothes", "staff"],
         "ai": "kadoka",
+        "status_resistances": {"bleeding": "immune"},
         "skills": [(1, "attack"), (1, "pick_up_kadoka"), (5, "vanish"), (18, "possess")],
         "resistances": {"light": "weak", "mental": "strong"},
         "focus": ("mp", "hp"),
@@ -302,12 +311,12 @@ BLOCKS = [
 
 
 # {
-#   責務: [bordered_tiles: generate・sample・データ・implのbordered・tilesを求める]
-#   処理: [1: generate・sample・データ・implのbordered・tilesを求める]
+#   責務: [bordered_tiles: 指定した地形で内部を埋め、外周を壁にしたタイル配列を生成します]
+#   処理: [1: 指定した地形で内部を埋め、外周を壁にしたタイル配列を生成します]
 #   引数: [
 #     width: 幅（int）
 #     height: 高さ（int）
-#     fill: fill（str）
+#     fill: 外周以外を埋めるブロックID（str）
 #   ]
 #   戻り値: [result: tiles（list[list[str]]）]
 # }
@@ -321,8 +330,8 @@ def bordered_tiles(width: int, height: int, fill: str = "grass") -> list[list[st
 
 
 # {
-#   責務: [make_starting_town: starting・townを構築する]
-#   処理: [1: starting・townを構築する]
+#   責務: [make_starting_town: 教会・牧場・はじまりの森への入口を持つ、はじまりの街のサンプルマップを生成します]
+#   処理: [1: 教会・牧場・はじまりの森への入口を持つ、はじまりの街のサンプルマップを生成します]
 #   引数: []
 #   戻り値: [result: starting・townを構築するための結果（dict）]
 # }
@@ -364,8 +373,8 @@ def make_starting_town() -> dict:
 
 
 # {
-#   責務: [make_starting_ranch: starting・ranchを構築する]
-#   処理: [1: starting・ranchを構築する]
+#   責務: [make_starting_ranch: パーティ編集と個体管理の入口を持つ牧場のサンプルマップを生成します]
+#   処理: [1: パーティ編集と個体管理の入口を持つ牧場のサンプルマップを生成します]
 #   引数: []
 #   戻り値: [result: starting・ranchを構築するための結果（dict）]
 # }
@@ -399,8 +408,8 @@ def make_starting_ranch() -> dict:
 
 
 # {
-#   責務: [make_starting_forest: starting・forestを構築する]
-#   処理: [1: starting・forestを構築する]
+#   責務: [make_starting_forest: スライムと通常おばけが出現する、はじまりの森のサンプルマップを生成します]
+#   処理: [1: スライムと通常おばけが出現する、はじまりの森のサンプルマップを生成します]
 #   引数: []
 #   戻り値: [result: starting・forestを構築するための結果（dict）]
 # }
@@ -436,7 +445,6 @@ def make_starting_forest() -> dict:
         "spawns": [
             {"species_id": "slime", "weight": 72, "min_level": 2, "max_level": 5},
             {"species_id": "ghost", "weight": 23, "min_level": 3, "max_level": 6},
-            {"species_id": "metal_slime", "weight": 5, "min_level": 5, "max_level": 8}
         ],
         "events": [
             {"id": "back_to_starting_town", "x": 0, "y": 6, "type": "transition", "target": {"map_id": "starting_town", "x": 34, "y": 14}},
@@ -448,8 +456,8 @@ def make_starting_forest() -> dict:
 
 
 # {
-#   責務: [make_fresh_forest: fresh・forestを構築する]
-#   処理: [1: fresh・forestを構築する]
+#   責務: [make_fresh_forest: 住処への岩・張り紙・村への出口を持つ新緑の森のサンプルマップを生成します]
+#   処理: [1: 住処への岩・張り紙・村への出口を持つ新緑の森のサンプルマップを生成します]
 #   引数: []
 #   戻り値: [result: fresh・forestを構築するための結果（dict）]
 # }
@@ -486,7 +494,6 @@ def make_fresh_forest() -> dict:
         "spawns": [
             {"species_id": "slime", "weight": 48, "min_level": 5, "max_level": 9},
             {"species_id": "ghost", "weight": 42, "min_level": 6, "max_level": 10},
-            {"species_id": "metal_slime", "weight": 10, "min_level": 8, "max_level": 12}
         ],
         "events": [
             {"id": "fresh_forest_sign", "x": 8, "y": 15, "type": "message", "blocking": True, "text": "東へ進むと第二の村、ロクター村。"},
@@ -499,8 +506,8 @@ def make_fresh_forest() -> dict:
 
 
 # {
-#   責務: [make_rokuta_village: rokuta・villageを構築する]
-#   処理: [1: rokuta・villageを構築する]
+#   責務: [make_rokuta_village: 教会と新緑の森への出口を持つロクター村のサンプルマップを生成します]
+#   処理: [1: 教会と新緑の森への出口を持つロクター村のサンプルマップを生成します]
 #   引数: []
 #   戻り値: [result: rokuta・villageを構築するための結果（dict）]
 # }
@@ -539,8 +546,8 @@ def make_rokuta_village() -> dict:
 
 
 # {
-#   責務: [make_ghost_home: おばけ・homeを構築する]
-#   処理: [1: おばけ・homeを構築する]
+#   責務: [make_ghost_home: 合言葉入力の泉と出入口を持つ、おばけの住処のサンプルマップを生成します]
+#   処理: [1: 合言葉入力の泉と出入口を持つ、おばけの住処のサンプルマップを生成します]
 #   引数: []
 #   戻り値: [result: おばけ・homeを構築するための結果（dict）]
 # }
@@ -569,12 +576,13 @@ def make_ghost_home() -> dict:
 
 
 # {
-#   責務: [main: generate・sample・データ・implのエントリ処理を実行する]
-#   処理: [1: generate・sample・データ・implのエントリ処理を実行する]
+#   責務: [main: サンプル定義からカタログ・マップ・種族ごとのJSONをDATA以下へ上書き保存します]
+#   処理: [1: 共通カタログとマップを保存し、種族設定から定義・Lv表・習得・＋選択を生成します]
 #   引数: []
 #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
 # }
 def main() -> None:
+    # 出力先はラッパーまたはテストが指定するDATAだけを使い、セーブデータには触れません。
     write(DATA / "skills" / "skills.json", {"schema_version": 1, "skills": SKILLS})
     write(DATA / "equipment" / "equipment.json", {"schema_version": 1, "equipment": EQUIPMENT})
     for block in BLOCKS:
@@ -602,6 +610,10 @@ def main() -> None:
             "resistances": config["resistances"],
             "defeat_message": config.get("defeat"),
         }
+        # 種族ごとの任意設定を保持し、再生成で逃走・経験値・出現AI・状態耐性を巻き戻しません。
+        for key in ("field_ai_weights", "experience_reward", "flee_rates", "status_resistances"):
+            if key in config:
+                definition[key] = config[key]
         definition["portrait_path"] = config.get("portrait_path", f"characters/{species_id}/portrait.png")
         definition["field_sprite_path"] = config.get("field_sprite_path", f"characters/{species_id}/field.png")
         definition["field_sprites"] = config.get(

@@ -1,5 +1,5 @@
 # {
-#   責務: [generate_sample_data: generate・sample・データの公開機能・宣言を定義する]
+#   責務: [generate_sample_data: サンプル生成の実装を読み込み、出力先をリポジトリのdataへ設定します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -13,8 +13,8 @@ IMPL_PATH = Path(__file__).with_name("_generate_sample_data_impl.py")
 
 
 # {
-#   責務: [main: generate・sample・データのエントリ処理を実行する]
-#   処理: [1: generate・sample・データのエントリ処理を実行する]
+#   責務: [main: 同梱サンプルJSONを再生成する実装へ、正規dataディレクトリを渡して実行します]
+#   処理: [1: 同梱サンプルJSONを再生成する実装へ、正規dataディレクトリを渡して実行します]
 #   引数: []
 #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
 # }

@@ -7,6 +7,7 @@
 
 | タスク種別 | 主実装 | 関連テスト | 仕様書・データ | 境界 |
 | --- | --- | --- | --- | --- |
+| 自動探索評価とサンプル再生成の回帰 | `game_evaluator.py`、`devtools/game_evaluator.py`、`tools/sample-data/script/_generate_sample_data_impl.py` | `test_main_sync_regressions.py`、`test_game_evaluator.py` | `docs/FORMATS.md`、`tools/sample-data/script/README.md` | 評価セーブは継承環境よりCLI指定を優先します。調査は接近と実行を区別し、戦闘はログ再生と成長保存の終了後に帰還します。生成器の検証は一時dataだけへ出力します。 |
 | Godot 速度強化スキルの純粋予測 | gdscript/engine/speed_buff_contract.gd | tests/test_gdscript_speed_buff.py、gdscript/tests/run_magic_skill_probe.gd | docs/GDScript速度強化スキル予測契約.md | 正規ピオラと互換MODの倍率・期間条件・対象方針・消費後MPを非破壊で予測します。抽選・対象選択・実MP消費・Session行動・AI・画面は未接続です。専用性能CLIはcheck_gdscript_speed_buff.pyです。 |
 | Godot 速度強化のラウンド終端 | gdscript/engine/{battle_session,battle_speed_state,combatant_speed_state}.gd | tests/test_gdscript_speed_round.py、test_gdscript_claimed_speed.py、gdscript/tests/claimed_speed_benchmark.gd | docs/GDScript速度強化ラウンド終端契約.md | 正常終了・途中停止・死亡末尾のスキップで、死亡/逃走を含む全員の期間を一回だけ進めます。期限切れは復元倍率へ戻し、再送・読取・不正要求は減算しません。性能CLIはcheck_gdscript_speed_update.pyで八体の終端復元まで確認します。ピオラ行動・AI・画面は未接続です。 |
 | Godot 取得済み予約による一回速度付与 | gdscript/engine/{battle_session,claimed_speed_update,battle_speed_state,combatant_speed_state}.gd | tests/test_gdscript_claimed_speed.py、gdscript/tests/claimed_speed_benchmark.gd | docs/GDScript予約付き速度強化契約.md | 最新の取得済み予約と生存対象を確認し、速度付与を一回だけ許可します。JSON票/内部票の型差はSessionの正規票で統一し、治療/状態付与も同じ境界を使います。性能CLIはcheck_gdscript_speed_update.pyです。終端経過へ接続しました。MP/ピオラ行動/AI/画面は未接続です。 |

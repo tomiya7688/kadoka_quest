@@ -74,6 +74,9 @@ class BattleDataLoader:
         # 状態耐性は種族だけから取得し、装備の属性耐性段階とは混ぜません。
         resistances = dict(definition.get("resistances", {}))
         status_resistances = dict(definition.get("status_resistances", {}))
+        # MOD検証の診断後でも遭遇は継続するため、逃走率の非オブジェクトは逃走なしへ退避します。
+        flee_rates = definition.get("flee_rates", {})
+        flee_rates = dict(flee_rates) if isinstance(flee_rates, dict) else {}
         if equipment:
             scale = ["weak", "normal", "strong", "immune", "absorb"]
             for element, steps in equipment.get("resistance_steps", {}).items():
@@ -88,6 +91,6 @@ class BattleDataLoader:
             resistances=resistances,
             equipment=equipment,
             status_resistances=status_resistances,
-            flee_rates=dict(definition.get("flee_rates", {})),
+            flee_rates=flee_rates,
             experience_reward=definition.get("experience_reward"),
         )

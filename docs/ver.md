@@ -16,6 +16,23 @@
 
 ```
 
+# 129. main統合レビューで見つかった評価セーブ・戦闘保存・サンプル再生成を修正
+
+PR [#253](https://github.com/tomiya7688/kadoka_quest/pull/253)の追加レビュー五件を修正しました。評価CLIは通常プレイ用のKADOKA_SAVE_DIRを継承していても、--save-dirまたはレポート隣の評価専用保存先をゲームimport前に設定します。調査イベントへ近づいただけでは試行済みにせず、調査コマンドまで候補に残します。接触遷移で移動前後の座標が同じでも、マップが変わっていれば通行不能と誤認しません。
+
+評価器は通常の戦闘tickでログ再生を進め、AI・経験値の確定保存を終えてからフィールドへ帰還します。再生待ちを戦闘ラウンドに数えず、戦闘120ラウンドと再生12000tickを独立して制限します。保存未確定・ラウンド上限・再生停止は成功ではなく停止理由を記録します。
+
+種族のflee_ratesが文字列・配列・nullなどの場合、MOD検証はspecies.flee_rates_invalidを通知し、戦闘個体生成は逃走なしへ退避します。正しいオブジェクトとMOD独自の遭遇状況名は保持します。サンプル生成器はfield_ai_weights・experience_reward・flee_rates・status_resistancesを種族定義へ引き継ぎ、二つの森へメタルスライムを再追加しません。生成器の回帰検証は一時dataへ出力し、正規JSONの不変も確認します。
+
+関連集中テスト82件が成功しました（Python 3.14.7、専用一時保存先、8.67秒）。実BattleCommandApplicationとSessionを使い、150行のログ再生後にAI・経験値を一回保存する順序を確認しています。標準runtime性能13項目は全て上限内で、野生24枠補充858.78us/5000us、二体追跡130.50us/1000us、野生24体移動343.81us/1000usでした。測定条件・閾値・失敗条件の抑制は変更していません。
+
+UPD checkerをupstream mainから再取得して通常モードで成功しました（7aea7e23fcb32ed02fc545c9300b6f9de2a3ff09、エラー0・警告19・注意107）。宣言コメントは439ファイル・3559宣言・エラー0、追跡Python299ファイルの3.10文法・重大lint・依存整合性も成功しています。3.10文法解析を3.10実行の証拠にはしません。
+
+この修正後の実Godot入りローカル全体テストとPRのCI結果は、マージ前にPR #253へ記録します。CIのGodot skip、実Godotのヘッドレス検証、実GUI、GDScript配布exportは別の証拠として扱います。実GUIとGDScript配布exportは未検証です。実セーブと既存の利用者変更は保持し、ver.mdの第0節と過去履歴は変更しません。
+
+変更したファイル: game_evaluator.py、src/kadoka_engine/data_validator.py、src/kadoka_quest/{data/battle_data,devtools/game_evaluator}.py、tests/test_game_evaluator.py、tools/sample-data/script/{generate_sample_data,_generate_sample_data_impl}.py、docs/{FORMATS,CODEMAP,ver}.md。
+追加したファイル: tests/test_main_sync_regressions.py。
+
 # 128. main同期を妨げるWindowsテスト起動と公開合言葉の識別を修正
 
 PR [#253](https://github.com/tomiya7688/kadoka_quest/pull/253)のWindows CIは、pytestが未導入のままunittestだけを起動していたため、pytestを使うテストのimportで失敗しました。Windows CIへpytestの導入を追加し、Linux側と同じpython -m pytestで全体を起動するよう修正しました。旧起動方式・依存不足・失敗無視が再導入されないことを、専用の設定テストで確認します。

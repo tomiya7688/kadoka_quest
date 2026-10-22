@@ -159,14 +159,14 @@ class DataValidator:
         return block_ids
 
     # {
-    #   責務: [_validate_species: 種族を妥当性を検査する]
-    #   処理: [1: 種族を妥当性を検査する]
+    #   責務: [_validate_species: 種族ID・耐性・逃走率の構造と、能力値・習得・＋選択の参照を検査します]
+    #   処理: [1: 種族フォルダーごとに必須JSONを読み、定義の形式とカタログ参照の問題を収集します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     skill_ids: スキル・識別子一覧（set[str]）
-    #     stat_ids: stat・識別子一覧（set[str]）
-    #     element_ids: element・識別子一覧（set[str]）
-    #     resistance_values: resistance・値一覧（set[str]）
+    #     skill_ids: 習得や＋選択から参照できるスキルIDの集合（set[str]）
+    #     stat_ids: 能力値と補正で使用できる能力名の集合（set[str]）
+    #     element_ids: 属性耐性で使用できる属性名の集合（set[str]）
+    #     resistance_values: 定義できる耐性段階の集合（set[str]）
     #   ]
     #   戻り値: [result: 種族・識別子一覧（set[str]）]
     # }
@@ -194,6 +194,9 @@ class DataValidator:
             if species_id in species_ids:
                 self._issue("species.id_duplicate", folder / "species.json", f"種族ID {species_id} が重複しています。")
             species_ids.add(species_id)
+            # dictへ変換できない逃走率を、野生遭遇時の例外になる前に利用者へ通知します。
+            if not isinstance(definition.get("flee_rates", {}), dict):
+                self._issue("species.flee_rates_invalid", folder / "species.json", "flee_rates は遭遇状況名をキーとするオブジェクトにしてください。")
             resistances = definition.get("resistances", {})
             if not isinstance(resistances, dict):
                 self._issue("species.resistances_invalid", folder / "species.json", "resistances はオブジェクトにしてください。")

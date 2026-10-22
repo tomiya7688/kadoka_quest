@@ -1,5 +1,5 @@
 # {
-#   責務: [test_game_evaluator: test・ゲーム・evaluatorの公開機能・宣言を定義する]
+#   責務: [test_game_evaluator: 小さなインメモリマップで評価器の経路選択・移動・戦闘帰還・停止理由を検査します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -18,13 +18,13 @@ from kadoka_quest.devtools.game_evaluator import GameEvaluationRunner
 
 
 # {
-#   責務: [_Repository: データ取得先の状態と振る舞いを担当する]
+#   責務: [_Repository: 評価テスト用の利用可能マップIDを返します]
 #   フィールド: []
 # }
 class _Repository:
     # {
-    #   責務: [list_maps: マップ一覧を列挙する]
-    #   処理: [1: マップ一覧を列挙する]
+    #   責務: [list_maps: 評価テストで使う二つのマップIDを返します]
+    #   処理: [1: 評価テストで使う二つのマップIDを返します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: マップ一覧を列挙するための結果（list[str]）]
     # }
@@ -33,7 +33,7 @@ class _Repository:
 
 
 # {
-#   責務: [_Runtime: 実行時の状態と振る舞いを担当する]
+#   責務: [_Runtime: 評価テストの小マップに対して移動・接触遷移・調査回数・戦闘帰還を再現します]
 #   フィールド: [game: ゲーム]
 # }
 class _Runtime:
@@ -42,7 +42,7 @@ class _Runtime:
     #   処理: [1: 実行時が利用する初期状態と依存を設定する]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     game: ゲーム（'_Game'）
+    #     game: コマンドによって変更するテスト用ゲーム状態（'_Game'）
     #   ]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -50,13 +50,13 @@ class _Runtime:
         self.game = game
 
     # {
-    #   責務: [dispatch: 実行時を配送する]
-    #   処理: [1: 実行時を配送する]
+    #   責務: [dispatch: 評価器から受け取った移動・調査・帰還コマンドを、インメモリの状態へ反映します]
+    #   処理: [1: 評価器から受け取った移動・調査・帰還コマンドを、インメモリの状態へ反映します]
     #   引数: [
     #     self: 処理対象インスタンス
-    #     target: 対象（str）
-    #     action: action（str）
-    #     payload: 要求データ（object）
+    #     target: fieldまたはbattleのコマンド受付先（str）
+    #     action: 移動開始・調査・戦闘帰還などの操作名（str）
+    #     payload: コマンドへ渡す移動方向などの入力（object）
     #   ]
     #   戻り値: [result: 実行時を配送するための結果（object）]
     # }
@@ -83,14 +83,14 @@ class _Runtime:
 
 
 # {
-#   責務: [_Game: ゲームの状態と振る舞いを担当する]
+#   責務: [_Game: 評価器の経路と停止条件を検査する、二つの小マップとゲーム状態を保持します]
 #   フィールド: [
 #     maps: マップ一覧
 #     field_session: フィールド・セッション
-#     mode: mode
-#     runtime: 実行時
+#     mode: 現在の画面名
+#     runtime: 状態変更を再現するテスト用コマンド受付
 #     repository: データ取得先
-#     interactions: interactions
+#     interactions: 調査コマンドの受信回数
 #     battle_session: 戦闘・セッション
 #   ]
 # }
@@ -121,17 +121,17 @@ class _Game:
         self.runtime = _Runtime(self)
         self.repository = _Repository()
         self.interactions = 0
-        self.battle_session = SimpleNamespace(battle=None)
+        self.battle_session = SimpleNamespace(battle=None, playback=False, finalized=True)
 
 
 # {
-#   責務: [FieldExplorerTests: フィールド・explorer・testsの状態と振る舞いを担当する]
+#   責務: [FieldExplorerTests: 評価器の経路優先度・障害物回避・訪問記録・戦闘帰還・通行不能の断念を検査します]
 #   フィールド: []
 # }
 class FieldExplorerTests(unittest.TestCase):
     # {
-    #   責務: [test_unvisited_transition_is_prioritized_over_local_event: 検証: unvisited transition is prioritized over local event]
-    #   処理: [1: 検証: unvisited transition is prioritized over local event]
+    #   責務: [test_unvisited_transition_is_prioritized_over_local_event: 未訪問マップへの接触遷移が同じマップの調査イベントより優先されることを検査します]
+    #   処理: [1: 未訪問マップへの接触遷移が同じマップの調査イベントより優先されることを検査します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -143,8 +143,8 @@ class FieldExplorerTests(unittest.TestCase):
         self.assertEqual(plan["directions"], ["right", "right"])
 
     # {
-    #   責務: [test_planner_routes_around_blocking_event: 検証: planner routes around blocking event]
-    #   処理: [1: 検証: planner routes around blocking event]
+    #   責務: [test_planner_routes_around_blocking_event: 通行を妨げる看板を避け、接触型の出口へ到達する経路を検査します]
+    #   処理: [1: 通行を妨げる看板を避け、接触型の出口へ到達する経路を検査します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -162,8 +162,8 @@ class FieldExplorerTests(unittest.TestCase):
         self.assertEqual(plan["directions"], ["front", "right", "right", "back"])
 
     # {
-    #   責務: [test_runner_visits_connected_map_and_logs_stall: 検証: runner visits connected map and logs stall]
-    #   処理: [1: 検証: runner visits connected map and logs stall]
+    #   責務: [test_runner_visits_connected_map_and_logs_stall: 遷移先への訪問を記録し、到達可能な未試行イベントがなくなると停止することを検査します]
+    #   処理: [1: 遷移先への訪問を記録し、到達可能な未試行イベントがなくなると停止することを検査します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -177,8 +177,8 @@ class FieldExplorerTests(unittest.TestCase):
         self.assertTrue(any(entry["kind"] == "stalled" for entry in report["entries"]))
 
     # {
-    #   責務: [test_runner_rejects_zero_steps: 検証: runner rejects zero steps]
-    #   処理: [1: 検証: runner rejects zero steps]
+    #   責務: [test_runner_rejects_zero_steps: 評価手数に0を指定すると処理を始めず拒否することを検査します]
+    #   処理: [1: 評価手数に0を指定すると処理を始めず拒否することを検査します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -187,8 +187,8 @@ class FieldExplorerTests(unittest.TestCase):
             GameEvaluationRunner(_Game()).run(0)
 
     # {
-    #   責務: [test_battle_result_is_recorded_before_return_clears_session: 検証: battle result is recorded before return clears session]
-    #   処理: [1: 検証: battle result is recorded before return clears session]
+    #   責務: [test_battle_result_is_recorded_before_return_clears_session: 帰還で戦闘状態を消す前の勝利結果が評価ログへ残ることを検査します]
+    #   処理: [1: 帰還で戦闘状態を消す前の勝利結果が評価ログへ残ることを検査します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -201,8 +201,8 @@ class FieldExplorerTests(unittest.TestCase):
         self.assertTrue(any(entry["kind"] == "battle_finished" and entry["outcome"] == "victory" for entry in report["entries"]))
 
     # {
-    #   責務: [test_blocked_route_is_logged_once_then_abandoned: 検証: blocked route is logged once then abandoned]
-    #   処理: [1: 検証: blocked route is logged once then abandoned]
+    #   責務: [test_blocked_route_is_logged_once_then_abandoned: 動けない経路を一回だけ記録して断念し、同じイベントを繰り返さないことを検査します]
+    #   処理: [1: 動けない経路を一回だけ記録して断念し、同じイベントを繰り返さないことを検査します]
     #   引数: [self: 処理対象インスタンス]
     #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
     # }
@@ -211,12 +211,12 @@ class FieldExplorerTests(unittest.TestCase):
         original_dispatch = game.runtime.dispatch
 
         # {
-        #   責務: [blocked_dispatch: フィールド・explorer・testsのblocked・dispatchを求める]
-        #   処理: [1: フィールド・explorer・testsのblocked・dispatchを求める]
+        #   責務: [blocked_dispatch: 移動開始だけを無効化し、通行不能のテスト条件を再現します]
+        #   処理: [1: 移動開始だけを無効化し、通行不能のテスト条件を再現します]
         #   引数: [
-        #     target: 対象（str）
-        #     action: action（str）
-        #     payload: 要求データ（object）
+        #     target: fieldまたはbattleのコマンド受付先（str）
+        #     action: 移動開始・調査・戦闘帰還などの操作名（str）
+        #     payload: コマンドへ渡す移動方向などの入力（object）
         #   ]
         #   戻り値: [result: フィールド・explorer・testsのblocked・dispatchを求めるための結果（object）]
         # }
