@@ -16,6 +16,21 @@
 
 ```
 
+# 128. main同期を妨げるWindowsテスト起動と公開合言葉の識別を修正
+
+PR [#253](https://github.com/tomiya7688/kadoka_quest/pull/253)のWindows CIは、pytestが未導入のままunittestだけを起動していたため、pytestを使うテストのimportで失敗しました。Windows CIへpytestの導入を追加し、Linux側と同じpython -m pytestで全体を起動するよう修正しました。旧起動方式・依存不足・失敗無視が再導入されないことを、専用の設定テストで確認します。
+
+CodeQLの指摘元は、tests/test_gdscript_password.pyのPASSWORD定数に置いた公開のゲーム内合言葉「へいわなすみか」でした。認証情報ではない謎の正解であることをSPRING_PUZZLE_ANSWERの名前と説明で明示しました。合言葉の値、入力・保存の形式、ゲーム処理は変更していません。CodeQLの規則除外・警告抑制・失敗の無視は追加していません。
+
+読んだ合言葉テストとGodot検証用プローブの曖昧な宣言説明を、専用領域・操作・期待結果・失敗注入の内容が分かる説明へ修正しました。Python実行ASTは定数名の置換を正規化して変更前と一致し、Godotプローブの実行行はコメント・空行以外で一致しました。
+
+集中検証は実Godotを含む13件・2032サブテスト成功です。宣言コメントは438ファイル・3548宣言・エラー0、追跡Python298ファイルの3.10文法解析・重大lint・プロジェクト境界・差分空白検査も成功しました。Python 3.14.7 / Godot 4.7.2と専用一時保存先を使用し、実セーブと既存の利用者変更は変更しません。
+
+最終の全体検証は実Godotを含むローカル全体テストと、PR #253のWindows/Linux CIを分けて確認します。PRのCIではGodot未導入によるskipがあり、実Godotの成功を代用しません。実GUIとGDScript配布exportは未検証です。
+
+変更したファイル: .github/workflows/windows-distribution.yml、tests/test_gdscript_password.py、gdscript/tests/run_password_probe.gd、docs/ver.md。
+追加したファイル: tests/test_ci_test_runner.py。
+
 # 127. ピオラと互換MODの抽選前速度強化予測
 
 速度強化スキルの純粋契約speed_buff_contractを追加しました。prepareは共用の一意な定義選択へ委譲し、quote_buffは倍率・期間条件・対象方針・消費後MPを、入力と実資源を変更せず返します。正規ピオラは速度1.5倍・期間3～6ラウンド・消費MP5です。対象方針は省略時の速度倍率最小の友軍、または明示selfだけを表し、個体の選択は行いません。

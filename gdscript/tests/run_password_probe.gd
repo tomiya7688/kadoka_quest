@@ -1,9 +1,9 @@
 # {
-#   責務: [run_password_probe: Developer-only pure operation parity and production Scene input/modal probes.]
+#   責務: [run_password_probe: 専用JSONの操作列で合言葉入力の純粋処理とフィールドSceneを検証するDeveloper専用入口です]
 #   フィールド: []
 # }
 extends SceneTree
-## Developer-only pure operation parity and production Scene input/modal probes.
+## 合言葉入力の状態・画面操作・保存失敗を、呼出側が用意した専用保存先で観測します。
 const Password = preload("res://engine/password_session.gd")
 const KEYS := {"Enter": KEY_ENTER, "KPEnter": KEY_KP_ENTER, "Escape": KEY_ESCAPE, "Backspace": KEY_BACKSPACE,
 	"F5": KEY_F5, "F9": KEY_F9, "F6": KEY_F6, "Tab": KEY_TAB, "Space": KEY_SPACE,
@@ -12,11 +12,11 @@ const Documents = preload("res://data/json_documents.gd")
 
 
 # {
-#   責務: [FaultStore: fault・保存先の状態と振る舞いを担当する]
+#   責務: [FaultStore: 仲間加入の保存失敗と保存後の外部変更を、専用保存先へ注入するテスト用Storeです]
 #   フィールド: [
-#     mode: mode（String）
-#     profile: プロファイル（String）
-#     calls: calls
+#     mode: 二体目の公開失敗または保存後の外部変更を選ぶ検証区分（String）
+#     profile: 外部変更の注入先となる専用プロフィールのパス（String）
+#     calls: create_newの呼出回数。二回目の失敗判定に使います（int）
 #   ]
 # }
 class FaultStore extends "res://data/monster_store.gd":
@@ -25,13 +25,15 @@ class FaultStore extends "res://data/monster_store.gd":
 	var calls := 0
 
 	# {
-	#   責務: [_init: run・暗号・probeが利用する初期状態と依存を設定する]
-	#   処理: [1: run・暗号・probeが利用する初期状態と依存を設定する]
-	#   引数: [
-	#     path: パス（String）
-	#     fault: fault（String）
+	#   責務: [_init: テスト用Storeの親を初期化し、専用保存先と失敗注入区分を保持します]
+	#   処理: [
+	#     1: 親Storeへ保存先を渡し、失敗注入で使うパスと区分を設定します
 	#   ]
-	#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+	#   引数: [
+	#     path: 検証専用プロフィールのパス（String）
+	#     fault: fail_secondまたはexternal_stateなどの注入区分（String）
+	#   ]
+	#   戻り値: [result: なし（void）]
 	# }
 	func _init(path: String, fault: String) -> void:
 		super(path)
@@ -39,10 +41,15 @@ class FaultStore extends "res://data/monster_store.gd":
 		mode = fault
 
 	# {
-	#   責務: [create_new: newを作成する]
-	#   処理: [1: newを作成する]
-	#   引数: [record: 個体レコード（Dictionary）]
-	#   戻り値: [result: newを作成するための結果（Dictionary）]
+	#   責務: [create_new: 通常の個体公開へ委譲し、指定された保存失敗または外部変更だけを注入します]
+	#   処理: [
+	#     1: 二回目の公開を失敗させる区分なら、書込前に失敗を返します
+	#     2: 通常公開の初回成功後に外部変更を注入する区分なら、専用stateへ目印を書きます
+	#   ]
+	#   引数: [
+	#     record: 専用保存先へ公開する個体レコード（Dictionary）
+	#   ]
+	#   戻り値: [result: 通常の公開結果または注入したwrite_failedの辞書（Dictionary）]
 	# }
 	func create_new(record: Dictionary) -> Dictionary:
 		calls += 1
@@ -57,40 +64,50 @@ class FaultStore extends "res://data/monster_store.gd":
 
 
 # {
-#   責務: [FaultService: fault・serviceの状態と振る舞いを担当する]
-#   フィールド: [mode: mode（String）]
+#   責務: [FaultService: 仲間加入Serviceへ、失敗注入用Storeを返すテスト用の依存差替えを提供します]
+#   フィールド: [
+#     mode: 構築するFaultStoreへ渡す失敗注入区分（String）
+#   ]
 # }
 class FaultService extends "res://application/ghost_acquisition.gd":
 	var mode: String
 
 	# {
-	#   責務: [_init: run・暗号・probeが利用する初期状態と依存を設定する]
-	#   処理: [1: run・暗号・probeが利用する初期状態と依存を設定する]
-	#   引数: [
-	#     field: フィールド（RefCounted）
-	#     fault: fault（String）
+	#   責務: [_init: テスト用仲間加入Serviceの親へFieldを渡し、Storeの失敗注入区分を保持します]
+	#   処理: [
+	#     1: 親Serviceを初期化し、後から作るFaultStoreの区分を保存します
 	#   ]
-	#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+	#   引数: [
+	#     field: 検証用Fieldの参照（RefCounted）
+	#     fault: FaultStoreへ渡す失敗注入区分（String）
+	#   ]
+	#   戻り値: [result: なし（void）]
 	# }
 	func _init(field: RefCounted, fault: String) -> void:
 		super(field)
 		mode = fault
 
 	# {
-	#   責務: [_monster_store: run・暗号・probeのモンスター・保存先を求める]
-	#   処理: [1: run・暗号・probeのモンスター・保存先を求める]
-	#   引数: [path: パス（String）]
-	#   戻り値: [result: run・暗号・probeのモンスター・保存先を求めるための結果（RefCounted）]
+	#   責務: [_monster_store: 仲間加入の通常Storeを、専用保存先と注入区分を持つFaultStoreへ差し替えます]
+	#   処理: [
+	#     1: 指定された専用保存先と保持する注入区分でFaultStoreを構築します
+	#   ]
+	#   引数: [
+	#     path: 検証用プロフィールのパス（String）
+	#   ]
+	#   戻り値: [result: 失敗注入に使うStoreの参照（RefCounted）]
 	# }
 	func _monster_store(path: String) -> RefCounted:
 		return FaultStore.new(path, mode)
 
 
 # {
-#   責務: [_initialize: run・暗号・probeのエントリ処理を実行する]
-#   処理: [1: run・暗号・probeのエントリ処理を実行する]
+#   責務: [_initialize: SceneTreeの初期化後に、合言葉検証の_runを遅延実行します]
+#   処理: [
+#     1: _runを遅延呼出しへ登録し、Scene生成前の初期化を終えます
+#   ]
 #   引数: []
-#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+#   戻り値: [result: なし（void）]
 # }
 func _initialize() -> void:
 	_run.call_deferred()
