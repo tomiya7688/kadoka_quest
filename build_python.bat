@@ -1,4 +1,10 @@
 @echo off
+rem {
+rem   Responsibility: [build_python: Build and smoke-test the selected distributions with PyInstaller]
+rem   Action: [1: Select Python, ensure build dependencies, then delegate build and smoke checks]
+rem   Param: [argv: Command-line arguments; fixed-target entries may ignore them]
+rem   Return: [status: Exit status set by the entry script or delegated command]
+rem }
 setlocal
 cd /d "%~dp0"
 
@@ -25,6 +31,12 @@ echo.
 echo [ok] Kadoka Quest distribution build and smoke test completed.
 exit /b 0
 
+rem {
+rem   Responsibility: [failed: Report a failed distribution build or smoke test]
+rem   Action: [1: Print the failure message and pause before exiting]
+rem   Param: []
+rem   Return: [status: Exit code 1]
+rem }
 :failed
 echo.
 echo [failed] Distribution build or smoke test failed.

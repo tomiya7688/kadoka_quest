@@ -1,21 +1,26 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+| Version | Supported |
+| --- | --- |
+| 0.1.x | Yes |
+| Earlier versions | No |
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+Kadoka Quest is an early prototype. Please update to the newest `0.1.x`
+release before reporting an issue when possible.
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-Use this section to tell people how to report a vulnerability.
+Do not post exploit details in a public Issue. Use the repository's private
+security-advisory form when it is available:
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+<https://github.com/tomiya7688/kadoka_quest/security/advisories/new>
+
+If the private form is unavailable, contact the repository owner through
+<https://github.com/tomiya7688> and include a short description, reproduction
+steps, affected version, and any proof-of-concept only in the private message.
+
+Reports are acknowledged after review. Fix timing depends on severity and the
+maintainer's availability; please do not disclose the details until a fix or a
+coordinated disclosure plan is available.

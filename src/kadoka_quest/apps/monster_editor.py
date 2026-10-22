@@ -1,3 +1,7 @@
+# {
+#   責務: [monster_editor: モンスター・editorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import copy
@@ -6,6 +10,7 @@ from pathlib import Path
 import pygame
 
 from kadoka_quest.data.repository import GameRepository, STAT_KEYS
+from kadoka_engine.data_validator import DataValidator
 from kadoka_quest.data.species_creator import SpeciesCreator
 from kadoka_quest.paths import ASSET_ROOT
 from kadoka_quest.ui.common import ACCENT, BAD, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, ScrollBar, TextField, draw_status_bar, draw_text, draw_wrapped, handle_fields, init_pygame, smoke_frames
@@ -41,7 +46,50 @@ UNDO_RECT = pygame.Rect(1073, 250, 87, 38)
 NEW_SPECIES_ID = "__new_species__"
 
 
+# {
+#   責務: [MonsterEditor: モンスター・editorの状態と振る舞いを担当する]
+#   フィールド: [
+#     repository: データ取得先
+#     asset_root: asset・基準ディレクトリ
+#     creator: creator
+#     species_ids: 種族・識別子一覧
+#     selected: 選択中
+#     list_offset: list・表示位置
+#     level: レベル
+#     definition: 定義
+#     stats_payload: 能力値・要求データ
+#     skills_payload: スキル一覧・要求データ
+#     plus_payload: ＋選択・要求データ
+#     id_field: 識別子・フィールド
+#     name_field: 名前・フィールド
+#     color_field: 色・フィールド
+#     palette_color_field: パレット・色・フィールド
+#     image_path_field: 画像・パス・フィールド
+#     color_tolerance_field: 色・tolerance・フィールド
+#     stat_fields: stat・入力項目
+#     skill_level: スキル・レベル
+#     skill_id: スキル・識別子
+#     available_skill_index: available・スキル・位置番号
+#     available_skill_offset: available・スキル・表示位置
+#     learned_skill_index: learned・スキル・位置番号
+#     learned_skill_offset: learned・スキル・表示位置
+#     status: 状態異常
+#     visual_mode: visual・mode
+#     skill_mode: スキル・mode
+#     visuals: visuals
+#   ]
+# }
 class MonsterEditor:
+    # {
+    #   責務: [__init__: モンスター・editorが利用する初期状態と依存を設定する]
+    #   処理: [1: モンスター・editorが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     repository: データ取得先（GameRepository | None）
+    #     asset_root: asset・基準ディレクトリ（Path）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, repository: GameRepository | None = None, asset_root: Path = ASSET_ROOT) -> None:
         self.repository = repository or GameRepository()
         self.asset_root = Path(asset_root)
@@ -76,14 +124,32 @@ class MonsterEditor:
         self.visuals = PixelArtEditor(self.asset_root)
         self.load_selected()
 
+    # {
+    #   責務: [species_id: モンスター・editorの種族・識別子を求める]
+    #   処理: [1: モンスター・editorの種族・識別子を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: モンスター・editorの種族・識別子を求めるための結果（str）]
+    # }
     @property
     def species_id(self) -> str:
         return self.species_ids[self.selected]
 
+    # {
+    #   責務: [creating_new: モンスター・editorのcreating・newを求める]
+    #   処理: [1: モンスター・editorのcreating・newを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: モンスター・editorのcreating・newを求めるための結果（bool）]
+    # }
     @property
     def creating_new(self) -> bool:
         return self.species_id == NEW_SPECIES_ID
 
+    # {
+    #   責務: [load_selected: 選択中を読み込む]
+    #   処理: [1: 選択中を読み込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_selected(self) -> None:
         if self.creating_new:
             self.load_new_draft()
@@ -105,6 +171,12 @@ class MonsterEditor:
         self.load_level_fields()
         self.visuals.load_species(self.definition, self.species_id)
 
+    # {
+    #   責務: [load_new_draft: new・下書きを読み込む]
+    #   処理: [1: new・下書きを読み込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_new_draft(self) -> None:
         self.definition, self.stats_payload, self.skills_payload, self.plus_payload = self.creator.build_draft()
         self.id_field.value = str(self.definition["id"])
@@ -120,6 +192,12 @@ class MonsterEditor:
         self.visuals.load_species(self.definition, str(self.definition["id"]))
         self.status = "新しい種族の編集中です。ID・名前・能力を決めて保存すると4つのJSONと画像5枚を作成します。"
 
+    # {
+    #   責務: [store_level_fields: レベル・入力項目を保持する]
+    #   処理: [1: レベル・入力項目を保持する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def store_level_fields(self) -> None:
         level_stats = self.stats_payload["levels"][str(self.level)]
         for key, field in self.stat_fields.items():
@@ -128,21 +206,51 @@ class MonsterEditor:
             except ValueError:
                 pass
 
+    # {
+    #   責務: [load_level_fields: レベル・入力項目を読み込む]
+    #   処理: [1: レベル・入力項目を読み込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load_level_fields(self) -> None:
         level_stats = self.stats_payload["levels"][str(self.level)]
         for key, field in self.stat_fields.items():
             field.value = str(level_stats[key])
 
+    # {
+    #   責務: [change_level: レベルを切り替える]
+    #   処理: [1: レベルを切り替える]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     amount: 量（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def change_level(self, amount: int) -> None:
         self.store_level_fields()
         self.level = max(1, min(100, self.level + amount))
         self.load_level_fields()
 
+    # {
+    #   責務: [cycle_ai: AIを順に切り替える]
+    #   処理: [1: AIを順に切り替える]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def cycle_ai(self) -> None:
         current = str(self.definition.get("ai_profile", "normal"))
         index = AI_PROFILES.index(current) if current in AI_PROFILES else 0
         self.definition["ai_profile"] = AI_PROFILES[(index + 1) % len(AI_PROFILES)]
 
+    # {
+    #   責務: [cycle_skill: スキルを順に切り替える]
+    #   処理: [1: スキルを順に切り替える]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     amount: 量（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def cycle_skill(self, amount: int) -> None:
         skill_ids = list(self.repository.get_skills())
         if not skill_ids:
@@ -151,12 +259,27 @@ class MonsterEditor:
         self.skill_id.value = skill_ids[self.available_skill_index]
         self.available_skill_offset = max(0, min(self.available_skill_index, len(skill_ids) - SKILL_ROWS))
 
+    # {
+    #   責務: [select_available_skill: available・スキルを選択する]
+    #   処理: [1: available・スキルを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_available_skill(self, index: int) -> None:
         skill_ids = list(self.repository.get_skills())
         if 0 <= index < len(skill_ids):
             self.available_skill_index = index
             self.skill_id.value = skill_ids[index]
 
+    # {
+    #   責務: [remove_skill: スキルを取り除く]
+    #   処理: [1: スキルを取り除く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def remove_skill(self) -> None:
         learnset = self.skills_payload.setdefault("learnset", [])
         if not learnset:
@@ -167,15 +290,39 @@ class MonsterEditor:
         self.learned_skill_index = max(0, min(self.learned_skill_index, len(learnset) - 1))
         self.status = f"Lv{removed['level']}: {removed['skill_id']} を習得表から外しました。保存で確定します。"
 
+    # {
+    #   責務: [select_species: 種族を選択する]
+    #   処理: [1: 種族を選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_species(self, index: int) -> None:
         if 0 <= index < len(self.species_ids) and index != self.selected:
             self.store_level_fields()
             self.selected = index
             self.load_selected()
 
+    # {
+    #   責務: [scroll_list: モンスター・editorのscroll・listを求める]
+    #   処理: [1: モンスター・editorのscroll・listを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     amount: 量（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def scroll_list(self, amount: int) -> None:
         self.list_offset = max(0, min(max(0, len(self.species_ids) - 10), self.list_offset + amount))
 
+    # {
+    #   責務: [add_skill: スキルを追加する]
+    #   処理: [1: スキルを追加する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def add_skill(self) -> None:
         try:
             level = max(1, min(100, int(self.skill_level.value)))
@@ -199,6 +346,12 @@ class MonsterEditor:
         self.learned_skill_offset = max(0, min(self.learned_skill_index, len(learnset) - SKILL_ROWS))
         self.status = f"Lv{level}: {skill_id} を{action}しました。保存で確定します。"
 
+    # {
+    #   責務: [save: モンスター・editorを保存する]
+    #   処理: [1: モンスター・editorを保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save(self) -> None:
         self.store_level_fields()
         was_creating = self.creating_new
@@ -241,7 +394,16 @@ class MonsterEditor:
             if was_creating
             else f"{new_id} の4ファイルを保存しました。"
         )
+        issues = DataValidator(self.repository.root).validate()
+        if issues:
+            self.status += f" 全体検証: {len(issues)}件の問題があります。"
 
+    # {
+    #   責務: [save_visuals: visualsを保存する]
+    #   処理: [1: visualsを保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save_visuals(self) -> None:
         if self.creating_new:
             self.status = "新しい種族は先に能力編集画面の保存で作成してください。作成後に画像を保存できます。"
@@ -250,6 +412,12 @@ class MonsterEditor:
         self.repository.save_species_definition(self.definition)
         self.status = "戦闘立ち絵と前後左右のドット絵を保存しました。"
 
+    # {
+    #   責務: [add_palette_color: パレット・色を追加する]
+    #   処理: [1: パレット・色を追加する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def add_palette_color(self) -> None:
         try:
             color = self.visuals.add_palette_color(self.palette_color_field.value)
@@ -259,6 +427,12 @@ class MonsterEditor:
         self.palette_color_field.value = self.visuals.color_to_hex(color)
         self.status = f"ペン色 {self.palette_color_field.value} を選択しました。"
 
+    # {
+    #   責務: [remove_palette_color: パレット・色を取り除く]
+    #   処理: [1: パレット・色を取り除く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def remove_palette_color(self) -> None:
         removed = self.visuals.brush
         if not self.visuals.remove_palette_color():
@@ -267,6 +441,12 @@ class MonsterEditor:
         self.palette_color_field.value = self.visuals.color_to_hex(self.visuals.brush)
         self.status = f"ペン色 {self.visuals.color_to_hex(removed)} を削除しました。"
 
+    # {
+    #   責務: [import_visual_image: visual・画像を取り込む]
+    #   処理: [1: visual・画像を取り込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def import_visual_image(self) -> None:
         try:
             tolerance = self.visuals.parse_tolerance(self.color_tolerance_field.value)
@@ -277,6 +457,12 @@ class MonsterEditor:
         count = self.visuals.visible_color_count()
         self.status = f"画像を64×64・基本パレット{count}色へ変換しました（変更 {changed}px）。"
 
+    # {
+    #   責務: [merge_visual_colors: visual・色一覧を結合する]
+    #   処理: [1: visual・色一覧を結合する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def merge_visual_colors(self) -> None:
         try:
             tolerance = self.visuals.parse_tolerance(self.color_tolerance_field.value)
@@ -286,15 +472,43 @@ class MonsterEditor:
         changed = self.visuals.merge_similar_colors(tolerance)
         self.status = f"近似色を{changed}ピクセル統合しました。"
 
+    # {
+    #   責務: [reduce_visual_palette: モンスター・editorのreduce・visual・パレットを求める]
+    #   処理: [1: モンスター・editorのreduce・visual・パレットを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     max_colors: max・色一覧（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def reduce_visual_palette(self, max_colors: int) -> None:
         changed, count = self.visuals.reduce_to_kadoka_colors(max_colors)
         self.status = f"Kadoka基本パレットの最大{max_colors}色へ減色しました（現在{count}色・変更{changed}px）。"
 
 
+# {
+#   責務: [draw_checker: checkerを描画する]
+#   処理: [1: checkerを描画する]
+#   引数: [
+#     screen: 描画先（pygame.Surface）
+#     rect: 表示矩形（pygame.Rect）
+#     cell: cell（int）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def draw_checker(screen: pygame.Surface, rect: pygame.Rect, cell: int = 8) -> None:
     PixelArtEditor.draw_checker(screen, rect, cell)
 
 
+# {
+#   責務: [draw_visual_editor: visual・editorを描画する]
+#   処理: [1: visual・editorを描画する]
+#   引数: [
+#     screen: 描画先（pygame.Surface）
+#     editor: editor（MonsterEditor）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def draw_visual_editor(screen: pygame.Surface, editor: MonsterEditor) -> None:
     draw_text(screen, f"見た目編集：{editor.definition.get('display_name', editor.species_id)}", (25, 22), 32, ACCENT, True)
     draw_text(screen, "ペン・塗りつぶし: 左着色/右透明 / 表示移動: ドラッグ / Ctrl+Z", (505, 32), 16, MUTED)
@@ -334,6 +548,17 @@ def draw_visual_editor(screen: pygame.Surface, editor: MonsterEditor) -> None:
     editor.color_tolerance_field.draw(screen, "色差")
 
 
+# {
+#   責務: [draw_skill_editor: スキル・editorを描画する]
+#   処理: [1: スキル・editorを描画する]
+#   引数: [
+#     screen: 描画先（pygame.Surface）
+#     editor: editor（MonsterEditor）
+#     available_scroll: available・scroll（ScrollBar）
+#     learned_scroll: learned・scroll（ScrollBar）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def draw_skill_editor(
     screen: pygame.Surface,
     editor: MonsterEditor,
@@ -386,6 +611,12 @@ def draw_skill_editor(
     editor.skill_level.draw(screen, "選択したスキルの習得レベル")
 
 
+# {
+#   責務: [main: モンスター・editorのエントリ処理を実行する]
+#   処理: [1: モンスター・editorのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     screen = init_pygame("kadoka quest - モンスターエディタ", (1200, 760))
     clock = pygame.time.Clock()
@@ -517,7 +748,7 @@ def main() -> None:
                     elif not handled and editor.visuals.tool_mode == "pan" and event.button == 1:
                         editor.visuals.begin_pan(event.pos, PIXEL_CANVAS)
                 elif event.type == pygame.MOUSEMOTION:
-                    if editor.visuals.tool_mode == "pen" and any(event.buttons):
+                    if editor.visuals.tool_mode == "pen" and (event.buttons[0] or event.buttons[2]):
                         editor.visuals.paint(event.pos, PIXEL_CANVAS, erase=bool(event.buttons[2]))
                     elif editor.visuals.tool_mode == "pan" and event.buttons[0]:
                         editor.visuals.pan_to(event.pos, PIXEL_CANVAS)

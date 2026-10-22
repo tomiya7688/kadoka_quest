@@ -1,3 +1,7 @@
+# {
+#   責務: [test_battle_resistance: test・戦闘・resistanceの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -32,12 +36,36 @@ DRAIN_SKILL = {
 }
 
 
+# {
+#   責務: [FixedRng: fixed・乱数供給元の状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class FixedRng:
+    # {
+    #   責務: [uniform: fixed・乱数供給元のuniformを求める]
+    #   処理: [1: fixed・乱数供給元のuniformを求める]
+    #   引数: [
+    #     _low: low（float）
+    #     _high: high（float）
+    #   ]
+    #   戻り値: [result: fixed・乱数供給元のuniformを求めるための結果（float）]
+    # }
     @staticmethod
     def uniform(_low: float, _high: float) -> float:
         return 1.0
 
 
+# {
+#   責務: [make_combatant: 戦闘個体を構築する]
+#   処理: [1: 戦闘個体を構築する]
+#   引数: [
+#     name: 名前（str）
+#     hp: HP（int）
+#     mp: MP（int）
+#     resistances: resistances（dict[str, str] | None）
+#   ]
+#   戻り値: [result: 戦闘個体（Combatant）]
+# }
 def make_combatant(
     name: str,
     *,
@@ -60,6 +88,12 @@ def make_combatant(
     return combatant
 
 
+# {
+#   責務: [make_engine: ルール処理を構築する]
+#   処理: [1: ルール処理を構築する]
+#   引数: []
+#   戻り値: [result: ルール処理（BattleEngine）]
+# }
 def make_engine() -> BattleEngine:
     engine = BattleEngine.__new__(BattleEngine)
     engine.rng = FixedRng()
@@ -68,7 +102,17 @@ def make_engine() -> BattleEngine:
     return engine
 
 
+# {
+#   責務: [ResistanceResolutionTests: resistance・resolution・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class ResistanceResolutionTests(unittest.TestCase):
+    # {
+    #   責務: [test_immune_attribute_takes_zero_damage: 検証: immune attribute takes zero damage]
+    #   処理: [1: 検証: immune attribute takes zero damage]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_immune_attribute_takes_zero_damage(self) -> None:
         engine = make_engine()
         actor = make_combatant("actor")
@@ -80,6 +124,12 @@ class ResistanceResolutionTests(unittest.TestCase):
         self.assertEqual(reward, 0.0)
         self.assertTrue(any("効かなかった" in line for line in engine.log))
 
+    # {
+    #   責務: [test_absorb_attribute_recovers_hp_and_respects_max_hp: 検証: absorb attribute recovers hp and respects max hp]
+    #   処理: [1: 検証: absorb attribute recovers hp and respects max hp]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_absorb_attribute_recovers_hp_and_respects_max_hp(self) -> None:
         engine = make_engine()
         actor = make_combatant("actor")
@@ -96,6 +146,12 @@ class ResistanceResolutionTests(unittest.TestCase):
         self.assertEqual(capped_target.hp, 100)
         self.assertEqual(capped_reward, -0.05)
 
+    # {
+    #   責務: [test_weak_normal_and_strong_keep_existing_damage_multipliers: 検証: weak normal and strong keep existing damage multipliers]
+    #   処理: [1: 検証: weak normal and strong keep existing damage multipliers]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_weak_normal_and_strong_keep_existing_damage_multipliers(self) -> None:
         expected_damage = {"strong": 12, "normal": 20, "weak": 28}
 
@@ -109,6 +165,12 @@ class ResistanceResolutionTests(unittest.TestCase):
 
                 self.assertEqual(target.hp, 100 - damage)
 
+    # {
+    #   責務: [test_mental_immune_blocks_drain_mp_damage_and_mp_drain: 検証: mental immune blocks drain mp damage and mp drain]
+    #   処理: [1: 検証: mental immune blocks drain mp damage and mp drain]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_mental_immune_blocks_drain_mp_damage_and_mp_drain(self) -> None:
         engine = make_engine()
         actor = make_combatant("actor", mp=3)

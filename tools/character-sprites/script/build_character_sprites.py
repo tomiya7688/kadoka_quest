@@ -4,6 +4,10 @@ The source sheets are deliberately kept outside the distributed project. This
 script turns each five-view sheet into openly editable PNG files and preserves
 the supplied Maru/Kadoka portraits as their battle artwork.
 """
+# {
+#   責務: [build_character_sprites: Build the bundled <=64 px monster sprites from generated source sheets.]
+#   フィールド: []
+# }
 
 from __future__ import annotations
 
@@ -29,6 +33,12 @@ SHEETS = {
 }
 
 
+# {
+#   責務: [remove_connected_light_background: connected・light・backgroundを取り除く]
+#   処理: [1: connected・light・backgroundを取り除く]
+#   引数: [surface: 描画面（pygame.Surface）]
+#   戻り値: [result: 処理結果（pygame.Surface）]
+# }
 def remove_connected_light_background(surface: pygame.Surface) -> pygame.Surface:
     result = surface.convert_alpha()
     width, height = result.get_size()
@@ -58,6 +68,16 @@ def remove_connected_light_background(surface: pygame.Surface) -> pygame.Surface
     return result
 
 
+# {
+#   責務: [fit_to_canvas: to・キャンバスを表示範囲へ合わせる]
+#   処理: [1: to・キャンバスを表示範囲へ合わせる]
+#   引数: [
+#     source: 元データ（pygame.Surface）
+#     canvas_size: キャンバス・大きさ（int）
+#     content_size: content・大きさ（int）
+#   ]
+#   戻り値: [result: キャンバス（pygame.Surface）]
+# }
 def fit_to_canvas(source: pygame.Surface, canvas_size: int = 64, content_size: int = 60) -> pygame.Surface:
     source = source.convert_alpha()
     bounds = source.get_bounding_rect(min_alpha=8)
@@ -71,6 +91,15 @@ def fit_to_canvas(source: pygame.Surface, canvas_size: int = 64, content_size: i
     return canvas
 
 
+# {
+#   責務: [split_sheet: build・キャラクター・spritesのsplit・sheetを求める]
+#   処理: [1: build・キャラクター・spritesのsplit・sheetを求める]
+#   引数: [
+#     species_id: 種族・識別子（str）
+#     sheet_path: sheet・パス（Path）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def split_sheet(species_id: str, sheet_path: Path) -> None:
     sheet = pygame.image.load(str(sheet_path))
     if species_id == "maru" and not (sheet.get_flags() & pygame.SRCALPHA):
@@ -87,12 +116,27 @@ def split_sheet(species_id: str, sheet_path: Path) -> None:
     shutil.copyfile(destination / "field_front.png", destination / "field.png")
 
 
+# {
+#   責務: [preserve_portrait: build・キャラクター・spritesのpreserve・portraitを求める]
+#   処理: [1: build・キャラクター・spritesのpreserve・portraitを求める]
+#   引数: [
+#     source_path: 元データ・パス（Path）
+#     species_id: 種族・識別子（str）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def preserve_portrait(source_path: Path, species_id: str) -> None:
     source = pygame.image.load(str(source_path)).convert_alpha()
     portrait = pygame.transform.scale(source, (64, 64))
     pygame.image.save(portrait, str(CHARACTERS / species_id / "portrait.png"))
 
 
+# {
+#   責務: [resize_existing_kadoka_fields: existing・kadoka・入力項目をサイズを変更する]
+#   処理: [1: existing・kadoka・入力項目をサイズを変更する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def resize_existing_kadoka_fields() -> None:
     destination = CHARACTERS / "kadoka"
     loaded = {
@@ -104,6 +148,12 @@ def resize_existing_kadoka_fields() -> None:
     shutil.copyfile(destination / "field_front.png", destination / "field.png")
 
 
+# {
+#   責務: [main: build・キャラクター・spritesのエントリ処理を実行する]
+#   処理: [1: build・キャラクター・spritesのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("sheet_root", type=Path, help="Folder containing the named five-view sheets")

@@ -1,6 +1,12 @@
+# {
+#   責務: [sync_remote_context: Kadoka QuestのリモートGit履歴を取得し、作業前に確認する未取り込みコミットと差分の要約を表示します]
+#   フィールド: [REPO_ROOT: Gitコマンドを実行するKadoka Questのリポジトリ直下のパス]
+# }
 from __future__ import annotations
 
 import argparse
+import os
+from shutil import which
 import subprocess
 import sys
 from pathlib import Path
@@ -9,11 +15,40 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
+# {
+#   責務: [git_executable: リモート差分の取得に使うGit実行ファイルを環境変数またはPATHから選びます]
+#   処理: [1: KADOKA_GIT_EXECUTABLEを優先し、未指定ならPATHのgitを探し、見つからなければ設定を促す例外を送出します]
+#   引数: []
+#   戻り値: [result: Git起動に使う実行ファイルのパスまたはコマンド名（str）]
+# }
+def git_executable() -> str:
+    # Git実行ファイルの選択処理は、環境変数KADOKA_GIT_EXECUTABLEが指定されていればPATHにあるGitより優先します。
+    configured = os.environ.get("KADOKA_GIT_EXECUTABLE", "")
+    if configured:
+        return configured
+    discovered = which("git")
+    if discovered:
+        return discovered
+    raise RuntimeError("Git was not found. Set KADOKA_GIT_EXECUTABLE to git.exe.")
+
+
+# {
+#   責務: [run_git: Kadoka Questのリポジトリ直下で指定したGitコマンドを実行し、標準出力をUTF-8として取得します]
+#   処理: [1: Gitの標準出力と標準エラーを取得し、checkがtrueの場合は終了コードの失敗を例外へ変換します]
+#   引数: [
+#     check: Gitの終了コードが0以外ならRuntimeErrorを送出するかの指定（bool）
+#     args: Gitへ渡すサブコマンドとオプションの可変長引数（str）
+#   ]
+#   戻り値: [result: 前後の空白を除いたGitの標準出力。checkがfalseの場合は失敗時も標準出力を返します（str）]
+# }
 def run_git(*args: str, check: bool = True) -> str:
+    # Gitコマンドの実行処理は、日本語を含む差分をWindowsのコンソール文字コードに依存せず読み取ります。
     result = subprocess.run(
-        ["git", *args],
+        [git_executable(), *args],
         cwd=REPO_ROOT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -22,7 +57,18 @@ def run_git(*args: str, check: bool = True) -> str:
     return result.stdout.strip()
 
 
+# {
+#   責務: [compact_diff: 指定したGit参照間の差分を、作業判断用の行数上限付き要約へ整えます]
+#   処理: [1: 前後各1行の文脈を含むGit差分を取得し、上限を超える本文行を省いて省略行数を末尾へ追加します]
+#   引数: [
+#     base: 要約するGit差分の比較元のコミットまたは参照名（str）
+#     head: 要約するGit差分の比較先のコミットまたは参照名（str）
+#     max_lines: 要約へ残すGit差分本文の最大行数。省略行数の案内行は上限に含めません（int）
+#   ]
+#   戻り値: [result: 全差分または行数上限で切り詰めた差分と省略行数の案内（str）]
+# }
 def compact_diff(base: str, head: str, max_lines: int) -> str:
+    # Git差分の要約処理は、外部diffプログラムや色付き表示を使わず、一定の差分形式を取得します。
     diff = run_git(
         "diff",
         "--unified=1",
@@ -37,7 +83,20 @@ def compact_diff(base: str, head: str, max_lines: int) -> str:
     return "\n".join(lines[:max_lines] + [f"... ({omitted} diff lines omitted)"])
 
 
+# {
+#   責務: [main: 指定したリモートブランチを取得してローカルとの差分を表示し、明示指定時だけ安全条件を満たすfast-forward更新を行います]
+#   処理: [
+#     1: CLIの比較先と表示上限を読み取り、リモートブランチをfetchします
+#     2: ローカルとリモートの差分コミット数・変更ファイル・差分要約を表示します
+#     3: --update指定時だけ、未コミット変更とローカル独自コミットがない場合にfast-forwardします
+#   ]
+#   引数: []
+#   戻り値: [result: 比較または更新の成功時は0、安全条件で更新を拒否した場合は2。Git失敗はRuntimeErrorとして呼び出し元へ伝えます（int）]
+# }
 def main() -> int:
+    # リモート差分要約CLIは、日本語のパスを表示できるように標準出力をUTF-8にそろえます。
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
         description="Fetch remote changes and print a compact implementation context."
     )
@@ -51,6 +110,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    # リモート差分要約CLIは、比較前にリモート追跡参照を更新し、古い取得結果を最新の差分として扱わないようにします。
     remote_ref = f"{args.remote}/{args.branch}"
     run_git("fetch", "--prune", args.remote, args.branch)
 
@@ -58,6 +118,7 @@ def main() -> int:
     remote = run_git("rev-parse", remote_ref)
     base = run_git("merge-base", local, remote)
 
+    # リモート差分要約CLIは、比較するコミットと共通祖先を表示し、差分の基準を利用者が確認できるようにします。
     print("# Remote context")
     print(f"local:  {local[:12]}")
     print(f"remote: {remote[:12]} ({remote_ref})")
@@ -67,6 +128,7 @@ def main() -> int:
         print("status: up to date")
         return 0
 
+    # リモート差分要約CLIは、未取り込み履歴と共通祖先からのリモート差分を、作業判断用に要約します。
     behind = run_git("rev-list", "--count", f"{local}..{remote}")
     ahead = run_git("rev-list", "--count", f"{remote}..{local}")
     print(f"status: ahead {ahead}, behind {behind}")
@@ -93,6 +155,7 @@ def main() -> int:
     compact = compact_diff(base, remote, max(20, args.max_diff_lines))
     print(compact or "(none)")
 
+    # リモート差分要約CLIは、比較だけの実行では作業ブランチを変更せず、明示更新でも利用者の変更や独自履歴を保護します。
     if args.update:
         dirty = run_git("status", "--porcelain")
         if dirty:
@@ -108,6 +171,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # リモート差分要約CLIは、Git取得や比較の失敗を標準エラーへ表示し、終了コード1として通知します。
     try:
         raise SystemExit(main())
     except RuntimeError as exc:

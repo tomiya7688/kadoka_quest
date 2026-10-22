@@ -1,3 +1,7 @@
+# {
+#   責務: [python-app: Pythonの品質・構造・パッケージをCIで検証する]
+#   フィールド: [jobs: テストとproject/package integrityの検証ジョブ]
+# }
 name: Python quality
 
 on:
@@ -83,6 +87,8 @@ jobs:
       - name: Check architecture rules and generated docs
         run: |
           python tools/project-integrity/script/check_project_rules.py
+          python tools/comment-check/script/check_comments.py
+          python tools/code-docs/script/generate_repo_map.py --check
           python tools/upd-commander/script/check.py
           python tools/code-docs/script/generate_class_diagram.py --source src/kadoka_quest/application --output docs/generated/application_class_diagram.mmd --check
 

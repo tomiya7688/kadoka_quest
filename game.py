@@ -1,3 +1,7 @@
+# {
+#   責務: [game: Entry point for launching the game.]
+#   フィールド: []
+# }
 from pathlib import Path
 import sys
 

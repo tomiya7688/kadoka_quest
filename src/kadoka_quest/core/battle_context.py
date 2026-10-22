@@ -1,6 +1,25 @@
+# {
+#   責務: [battle_context: 戦闘・判断用コンテキストの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 
+# {
+#   責務: [describe_battle_context: 戦闘・判断用コンテキストを説明用の値を構成する]
+#   処理: [1: 戦闘・判断用コンテキストを説明用の値を構成する]
+#   引数: [
+#     hp_ratio: HP・ratio（float）
+#     ally_missing_hp_ratio: 味方・missing・HP・ratio（float）
+#     mp_ratio: MP・ratio（float）
+#     living_allies: living・味方（int）
+#     living_enemies: living・敵（int）
+#     lowest_enemy_hp_ratio: lowest・敵・HP・ratio（float）
+#     actor_level: 行動個体・レベル（int）
+#     highest_enemy_level: highest・敵・レベル（int）
+#   ]
+#   戻り値: [result: 戦闘・判断用コンテキストを説明用の値を構成するための結果（tuple[str, ...]）]
+# }
 def describe_battle_context(
     hp_ratio: float,
     ally_missing_hp_ratio: float,

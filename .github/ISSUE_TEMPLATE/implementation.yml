@@ -1,0 +1,77 @@
+name: 実装タスク
+description: Codex が追加探索なしで着手できる、短い実装依頼
+title: "[Area] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        最低限は「目的・対象・変更しない範囲・受け入れ条件・検証」です。既存挙動などは必要な場合だけ記入してください。
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 目的
+      description: この変更で達成したいプレイヤーまたは開発上の結果。
+      placeholder: 例: 牧場から個体のAI傾向を確認できるようにする。
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 対象
+      description: 対象画面、データ、機能、または既存の関連Issueを短く指定する。
+      placeholder: 例: 個体管理画面、個体AIの保存JSON、AI機能説明書。
+    validations:
+      required: true
+  - type: textarea
+    id: related_specs
+    attributes:
+      label: 関連仕様（必要な場合のみ）
+      description: 読むべき仕様書、Issue、データ契約だけを列挙する。
+      placeholder: "例: docs/AI機能説明書.md、#41"
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: 既存挙動（必要な場合のみ）
+      description: 変更判断に必要な現在の挙動だけを書く。
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: 期待挙動（必要な場合のみ）
+      description: 完成時の操作と結果を、確認できる粒度で書く。
+  - type: textarea
+    id: data_contract
+    attributes:
+      label: データ契約（必要な場合のみ）
+      description: JSONキー、保存先、互換性など、実装上必要な契約だけを書く。
+  - type: textarea
+    id: portability_boundary
+    attributes:
+      label: 移植境界（必要な場合のみ）
+      description: pygame依存の有無や kadoka_engine との境界を指定する。
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: 変更しない範囲
+      description: 今回扱わない機能・データ・画面を明記する。
+      placeholder: 例: セーブ形式の変更、既存セーブの自動変換は行わない。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件
+      description: 完了判定をチェックリストで記載する。
+      placeholder: |
+        - [ ] 条件1
+        - [ ] 条件2
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: 検証
+      description: 実行するテスト、手動確認、期待結果を記載する。
+      placeholder: 例: 関連単体テストとヘッドレス全テストを実行する。
+    validations:
+      required: true

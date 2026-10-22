@@ -1,3 +1,7 @@
+# {
+#   責務: [block_editor: ブロック・editorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import pygame
@@ -9,7 +13,7 @@ from kadoka_quest.ui.common import (
     Button, ScrollBar, TextField, draw_status_bar, draw_text, handle_fields,
     init_pygame, smoke_frames,
 )
-from kadoka_quest.ui.pixel_editor import PixelArtEditor
+from kadoka_quest.ui.pixel_editor import CANVAS_SIZES, PixelArtEditor
 
 
 PIXEL_CANVAS = pygame.Rect(300, 170, 448, 448)
@@ -23,9 +27,39 @@ TOOL_RECTS = {
 }
 TOOL_LABELS = {"pen": "ペン", "fill": "塗る", "pan": "移動"}
 UNDO_RECT = pygame.Rect(1014, 115, 61, 40)
+CANVAS_SIZE_RECTS = {
+    size: pygame.Rect(310 + index * 48, 635, 44, 36)
+    for index, size in enumerate(CANVAS_SIZES)
+}
 
 
+# {
+#   責務: [BlockEditor: ブロック・editorの状態と振る舞いを担当する]
+#   フィールド: [
+#     repository: データ取得先
+#     blocks: ブロック定義
+#     selected: 選択中
+#     list_offset: list・表示位置
+#     visual_mode: visual・mode
+#     status: 状態異常
+#     id_field: 識別子・フィールド
+#     name_field: 名前・フィールド
+#     appearance_field: 見た目・フィールド
+#     palette_color_field: パレット・色・フィールド
+#     image_path_field: 画像・パス・フィールド
+#     color_tolerance_field: 色・tolerance・フィールド
+#     appearance_type: 見た目・type
+#     flags: flags
+#     visuals: visuals
+#   ]
+# }
 class BlockEditor:
+    # {
+    #   責務: [__init__: ブロック・editorが利用する初期状態と依存を設定する]
+    #   処理: [1: ブロック・editorが利用する初期状態と依存を設定する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self) -> None:
         self.repository = GameRepository()
         self.blocks: list[dict] = []
@@ -48,12 +82,27 @@ class BlockEditor:
         self.visuals = PixelArtEditor(ASSET_ROOT)
         self.refresh()
 
+    # {
+    #   責務: [refresh: ブロック・editorを更新内容を読み直す]
+    #   処理: [1: ブロック・editorを更新内容を読み直す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def refresh(self) -> None:
         self.blocks = self.repository.list_blocks()
         if self.blocks:
             self.selected = max(0, min(self.selected, len(self.blocks) - 1))
             self.load(self.blocks[self.selected])
 
+    # {
+    #   責務: [load: ブロック・editorを読み込む]
+    #   処理: [1: ブロック・editorを読み込む]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     block: ブロック（dict）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def load(self, block: dict) -> None:
         self.id_field.value = str(block.get("id", ""))
         self.name_field.value = str(block.get("display_name", ""))
@@ -63,6 +112,12 @@ class BlockEditor:
         for key in self.flags:
             self.flags[key] = bool(block.get(key, False))
 
+    # {
+    #   責務: [new: ブロック・editorを新規作成する]
+    #   処理: [1: ブロック・editorを新規作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def new(self) -> None:
         index = 1
         existing = {str(block.get("id")) for block in self.blocks}
@@ -75,6 +130,12 @@ class BlockEditor:
         })
         self.status = "新規ブロック。保存すると data/blocks に追加されます。"
 
+    # {
+    #   責務: [payload: ブロック・editorの要求データを求める]
+    #   処理: [1: ブロック・editorの要求データを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: ブロック・editorの要求データを求めるための結果（dict）]
+    # }
     def payload(self) -> dict:
         return {
             "schema_version": 1,
@@ -84,6 +145,12 @@ class BlockEditor:
             "appearance": {"type": self.appearance_type, "value": self.appearance_field.value.strip()},
         }
 
+    # {
+    #   責務: [save: ブロック・editorを保存する]
+    #   処理: [1: ブロック・editorを保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save(self) -> None:
         block = self.payload()
         try:
@@ -94,6 +161,12 @@ class BlockEditor:
         except (OSError, ValueError, KeyError) as exc:
             self.status = f"保存できません: {exc}"
 
+    # {
+    #   責務: [_color: ブロック・editorの色を求める]
+    #   処理: [1: ブロック・editorの色を求める]
+    #   引数: [value: 値（str）]
+    #   戻り値: [result: ブロック・editorの色を求めるための結果（tuple[int, int, int]）]
+    # }
     @staticmethod
     def _color(value: str) -> tuple[int, int, int]:
         try:
@@ -102,6 +175,12 @@ class BlockEditor:
         except ValueError:
             return 128, 128, 128
 
+    # {
+    #   責務: [open_visual_editor: visual・editorを開く]
+    #   処理: [1: visual・editorを開く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def open_visual_editor(self) -> None:
         block_id = self.id_field.value.strip() or "new_block"
         current_color = self._color(self.appearance_field.value) if self.appearance_type == "color" else (128, 128, 128)
@@ -114,13 +193,46 @@ class BlockEditor:
         self.visual_mode = True
         self.status = "モンスターエディタと同じドットエディターでブロック画像を編集しています。"
 
+    # {
+    #   責務: [save_visual: visualを保存する]
+    #   処理: [1: visualを保存する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def save_visual(self) -> None:
         self.visuals.save_images()
         self.appearance_type = "path"
         self.appearance_field.value = self.visuals.paths["appearance"]
         self.save()
-        self.status = f"64×64 PNG と {self.id_field.value}.json を保存しました。"
+        size = self.visuals.logical_size
+        self.status = f"{size}×{size} PNG と {self.id_field.value}.json を保存しました。"
 
+    # {
+    #   責務: [set_canvas_size: キャンバス・大きさを設定する]
+    #   処理: [1: キャンバス・大きさを設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     size: 大きさ（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
+    def set_canvas_size(self, size: int) -> None:
+        try:
+            changed = self.visuals.resize_canvas(size)
+        except ValueError as error:
+            self.status = str(error)
+            return
+        self.status = (
+            f"{size}×{size}へ変更しました。保存で確定、Ctrl+Zで元に戻せます。"
+            if changed else f"キャンバスはすでに{size}×{size}です。"
+        )
+
+    # {
+    #   責務: [add_palette_color: パレット・色を追加する]
+    #   処理: [1: パレット・色を追加する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def add_palette_color(self) -> None:
         try:
             color = self.visuals.add_palette_color(self.palette_color_field.value)
@@ -130,6 +242,12 @@ class BlockEditor:
         self.palette_color_field.value = self.visuals.color_to_hex(color)
         self.status = f"ペン色 {self.palette_color_field.value} を選択しました。"
 
+    # {
+    #   責務: [remove_palette_color: パレット・色を取り除く]
+    #   処理: [1: パレット・色を取り除く]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def remove_palette_color(self) -> None:
         removed = self.visuals.brush
         if not self.visuals.remove_palette_color():
@@ -138,6 +256,12 @@ class BlockEditor:
         self.palette_color_field.value = self.visuals.color_to_hex(self.visuals.brush)
         self.status = f"ペン色 {self.visuals.color_to_hex(removed)} を削除しました。"
 
+    # {
+    #   責務: [import_visual_image: visual・画像を取り込む]
+    #   処理: [1: visual・画像を取り込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def import_visual_image(self) -> None:
         try:
             tolerance = self.visuals.parse_tolerance(self.color_tolerance_field.value)
@@ -146,8 +270,15 @@ class BlockEditor:
             self.status = str(error)
             return
         count = self.visuals.visible_color_count()
-        self.status = f"画像を64×64・基本パレット{count}色へ変換しました（変更 {changed}px）。"
+        size = self.visuals.logical_size
+        self.status = f"画像を{size}×{size}・基本パレット{count}色へ変換しました（変更 {changed}px）。"
 
+    # {
+    #   責務: [merge_visual_colors: visual・色一覧を結合する]
+    #   処理: [1: visual・色一覧を結合する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def merge_visual_colors(self) -> None:
         try:
             tolerance = self.visuals.parse_tolerance(self.color_tolerance_field.value)
@@ -157,14 +288,41 @@ class BlockEditor:
         changed = self.visuals.merge_similar_colors(tolerance)
         self.status = f"近似色を{changed}ピクセル統合しました。"
 
+    # {
+    #   責務: [reduce_visual_palette: ブロック・editorのreduce・visual・パレットを求める]
+    #   処理: [1: ブロック・editorのreduce・visual・パレットを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     max_colors: max・色一覧（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def reduce_visual_palette(self, max_colors: int) -> None:
         changed, count = self.visuals.reduce_to_kadoka_colors(max_colors)
         self.status = f"Kadoka基本パレットの最大{max_colors}色へ減色しました（現在{count}色・変更{changed}px）。"
 
+    # {
+    #   責務: [scroll_list: ブロック・editorのscroll・listを求める]
+    #   処理: [1: ブロック・editorのscroll・listを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     amount: 量（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def scroll_list(self, amount: int) -> None:
         self.list_offset = max(0, min(max(0, len(self.blocks) - 10), self.list_offset + amount))
 
 
+# {
+#   責務: [draw_visual_editor: visual・editorを描画する]
+#   処理: [1: visual・editorを描画する]
+#   引数: [
+#     screen: 描画先（pygame.Surface）
+#     editor: editor（BlockEditor）
+#   ]
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def draw_visual_editor(screen: pygame.Surface, editor: BlockEditor) -> None:
     draw_text(screen, f"ブロック見た目編集：{editor.name_field.value}", (28, 25), 32, ACCENT, True)
     draw_text(screen, "ペン・塗りつぶし: 左着色/右透明 / 表示移動: ドラッグ / Ctrl+Z", (430, 37), 16, MUTED)
@@ -185,13 +343,21 @@ def draw_visual_editor(screen: pygame.Surface, editor: BlockEditor) -> None:
     editor.palette_color_field.draw(screen, "追加する色")
     draw_text(screen, "基本パレットへ減色", (790, 465), 15, MUTED, True)
     draw_text(screen, f"現在 {editor.visuals.visible_color_count()}色", (790, 520), 15, TEXT, True)
-    draw_text(screen, f"64×64px / 表示 {editor.visuals.zoom_percent}%", (790, 550), 17, ACCENT, True)
+    size = editor.visuals.logical_size
+    draw_text(screen, f"{size}×{size}px / 表示 {editor.visuals.zoom_percent}%", (790, 550), 17, ACCENT, True)
+    draw_text(screen, "キャンバス", (210, 645), 15, MUTED, True)
     draw_text(screen, "保存先", (790, 582), 15, MUTED, True)
     draw_text(screen, editor.appearance_field.value, (790, 607), 13, TEXT)
     editor.image_path_field.draw(screen, "読み込む画像パス")
     editor.color_tolerance_field.draw(screen, "色差")
 
 
+# {
+#   責務: [main: ブロック・editorのエントリ処理を実行する]
+#   処理: [1: ブロック・editorのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     screen = init_pygame("kadoka quest - ブロックエディタ", (1100, 760))
     clock = pygame.time.Clock()
@@ -219,6 +385,10 @@ def main() -> None:
         Button(pygame.Rect(790, 480, 85, 34), "3色", lambda: editor.reduce_visual_palette(3)),
         Button(pygame.Rect(882, 480, 85, 34), "4色", lambda: editor.reduce_visual_palette(4)),
         Button(pygame.Rect(974, 480, 85, 34), "5色", lambda: editor.reduce_visual_palette(5)),
+        *[
+            Button(rect, str(size), lambda size=size: editor.set_canvas_size(size))
+            for size, rect in CANVAS_SIZE_RECTS.items()
+        ],
     ]
     flag_rects = {
         "player_walkable": pygame.Rect(350, 380, 175, 42),

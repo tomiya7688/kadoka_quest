@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "kadoka_quest",
+  "display_name": "kadoka quest",
+  "validation": {
+    "stat_ids": ["attack", "defense", "speed", "magic", "hp", "mp"],
+    "skill_kinds": ["physical", "magic", "heal", "defend", "buff", "evade", "drain_mp", "field", "random"],
+    "equipment_categories": ["sword", "clothes", "staff"],
+    "element_ids": [
+      "fire", "light", "thunder", "wood", "dark", "earth", "water", "ice", "wind",
+      "poison", "paralysis", "sleep", "confusion", "bind", "curse", "hex",
+      "mental", "metal", "arcane"
+    ],
+    "resistance_values": ["weak", "normal", "strong", "immune", "absorb"]
+  }
+}

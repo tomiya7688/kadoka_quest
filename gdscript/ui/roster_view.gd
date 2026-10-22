@@ -1,0 +1,175 @@
+# {
+#   責務: [roster_view: Read-only projection and explicit editor entry. No persistence or AI decisions.]
+#   フィールド: [
+#     edit_button: edit・button（Button）
+#     heading: heading（Label）
+#     scrolling: scrolling（ScrollContainer）
+#     body: body（Label）
+#   ]
+# }
+extends PanelContainer
+## Read-only projection and explicit editor entry. No persistence or AI decisions.
+
+signal edit_requested
+signal close_requested
+const Style = preload("res://ui/pixel_theme.gd")
+var edit_button: Button
+
+var heading: Label
+var scrolling: ScrollContainer
+var body: Label
+
+
+# {
+#   責務: [_ready: 所有個体台帳・表示のエントリ処理を実行する]
+#   処理: [1: 所有個体台帳・表示のエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
+func _ready() -> void:
+	# 全体と台帳本文をスクロール可能にし、多数の個体でも操作を隠しません。
+	var column := Style.modal_column(self)
+	heading = Label.new()
+	column.add_child(heading)
+	var help := Label.new()
+	help.text = "↑↓ / PageUp・Down  スクロール    E  編成    Esc  閉じる"
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(help)
+	var actions := HBoxContainer.new()
+	column.add_child(actions)
+	edit_button = Style.button("パーティを編成する")
+	edit_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	edit_button.pressed.connect(func(): edit_requested.emit())
+	actions.add_child(edit_button)
+	var close_button := Style.button("探索へ戻る")
+	close_button.pressed.connect(func(): close_requested.emit())
+	actions.add_child(close_button)
+	Style.cycle_focus([edit_button, close_button])
+	scrolling = ScrollContainer.new()
+	scrolling.custom_minimum_size.y = 220
+	scrolling.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scrolling.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scrolling.focus_mode = Control.FOCUS_NONE
+	column.add_child(scrolling)
+	body = Label.new()
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_constant_override("line_spacing", 6)
+	scrolling.add_child(body)
+
+
+# {
+#   責務: [show_snapshot: 所有個体台帳・表示のshow・独立した状態の写しを求める]
+#   処理: [1: 所有個体台帳・表示のshow・独立した状態の写しを求める]
+#   引数: [snapshot: 独立した状態の写し（Dictionary）]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
+func show_snapshot(snapshot: Dictionary) -> void:
+	var records: Dictionary = snapshot.get("records", {})
+	heading.text = "パーティ・保有個体（%d体）" % records.size()
+	var lines: PackedStringArray = ["現在パーティ（最大4枠）"]
+	for index in 4:
+		var entry: Dictionary = snapshot.get("party", [])[index] if index < snapshot.get("party", []).size() else {}
+		var record: Variant = entry.get("record")
+		var text := "空き枠"
+		if record is Dictionary:
+			text = _record_summary(record)
+		elif entry.get("id") != null:
+			text = "読込不可: " + str(entry["id"])
+		lines.append("%d. %s" % [index + 1, text])
+	lines.append("\n保有個体 / 個体編集はGodot版では未対応です。")
+	for id: String in records:
+		var record: Dictionary = records[id]
+		var ai: Dictionary = record["ai"]
+		lines.append(_record_summary(record) + "\n  ID: " + id)
+		lines.append(_progression_summary(record.get("progression", {})))
+		lines.append("  装備: %s / AI: %s・%s / 戦闘経験: %s回\n" % [
+			str(record["monster"].get("equipment_id")) if record["monster"].get("equipment_id") != null else "なし",
+			str(ai.get("profile", "normal")),
+			str(ai.get("tactic", "balanced")), str(ai.get("battles", 0)),
+		])
+	if records.is_empty():
+		lines.append("初めての冒険では、メニューの「冒険を保存する」で初期仲間を作成します。" if snapshot.get("new_profile", false)
+			else "このセーブに読込可能な個体はありません。既存セーブへ初期仲間は自動追加しません。")
+	for warning in snapshot.get("warnings", []):
+		lines.append("注意: " + str(warning))
+	body.text = "\n".join(lines)
+	scrolling.set_deferred("scroll_vertical", 0)
+
+
+# {
+#   責務: [_record_summary: 所有個体台帳・表示の個体レコード・summaryを求める]
+#   処理: [1: 所有個体台帳・表示の個体レコード・summaryを求める]
+#   引数: [record: 個体レコード（Dictionary）]
+#   戻り値: [result: 所有個体台帳・表示の個体レコード・summaryを求めるための結果（String）]
+# }
+static func _record_summary(record: Dictionary) -> String:
+	var monster: Dictionary = record["monster"]
+	return "%s（%s） Lv.%d / ＋%d" % [monster["name"], record["species"].get("display_name", monster["species_id"]),
+		int(monster.get("level", 1)), monster.get("plus_choices", []).size()]
+
+
+# {
+#   責務: [_progression_summary: 所有個体台帳・表示のprogression・summaryを求める]
+#   処理: [1: 所有個体台帳・表示のprogression・summaryを求める]
+#   引数: [progression: progression（Dictionary）]
+#   戻り値: [result: 所有個体台帳・表示のprogression・summaryを求めるための結果（String）]
+# }
+static func _progression_summary(progression: Dictionary) -> String:
+	if not progression.get("ok", false):
+		return "  基礎能力値/習得スキル: 読込不可（完成能力値ではありません）"
+	var lines: PackedStringArray = ["  基礎能力値（＋/装備補正前）: " + _stats_text(progression["stats"]),
+		"  Lv習得スキルID（＋追加前）: " + _skill_text(progression["skill_ids"])]
+	var modified: Dictionary = progression.get("modifiers", {})
+	if not modified.get("ok", false):
+		lines.append("  補正後能力値: 読込不可（基礎値を補正後の代用にしません）: " + str(modified.get("message", "未構築")))
+	else:
+		lines.append("  補正後能力値（＋/装備）: " + _stats_text(modified["stats"]))
+		lines.append("  使用可能スキルID（Lv習得＋＋追加）: " + _skill_text(modified["skill_ids"]))
+		for note in modified.get("warnings", []):
+			lines.append("  注意: " + str(note))
+	return "\n".join(lines)
+
+
+# {
+#   責務: [_stats_text: 所有個体台帳・表示の能力値・文字列を求める]
+#   処理: [1: 所有個体台帳・表示の能力値・文字列を求める]
+#   引数: [stats: 能力値（Dictionary）]
+#   戻り値: [result: 所有個体台帳・表示の能力値・文字列を求めるための結果（String）]
+# }
+static func _stats_text(stats: Dictionary) -> String:
+	return "HP %d / MP %d / 攻 %d / 防 %d / 速 %d / 魔 %d" % [
+		stats["hp"], stats["mp"], stats["attack"], stats["defense"], stats["speed"], stats["magic"]]
+
+
+# {
+#   責務: [_skill_text: 所有個体台帳・表示のスキル・文字列を求める]
+#   処理: [1: 所有個体台帳・表示のスキル・文字列を求める]
+#   引数: [ids: 識別子一覧（Array）]
+#   戻り値: [result: 所有個体台帳・表示のスキル・文字列を求めるための結果（String）]
+# }
+static func _skill_text(ids: Array) -> String:
+	var skills: PackedStringArray = []
+	for id in ids:
+		skills.append(str(id))
+	return ", ".join(skills) if not skills.is_empty() else "なし"
+
+
+# {
+#   責務: [handle_key: キーを入力を処理する]
+#   処理: [1: キーを入力を処理する]
+#   引数: [key: キー（int）]
+#   戻り値: [result: 台帳のスクロール操作を受け取った場合だけtrue]
+# }
+func handle_key(key: int) -> bool:
+	# TabとEnterはGodotの操作部品へ渡し、台帳のボタンもキーボードで押せます。
+	var bar := scrolling.get_v_scroll_bar()
+	match key:
+		KEY_UP: scrolling.scroll_vertical -= 32
+		KEY_DOWN: scrolling.scroll_vertical += 32
+		KEY_PAGEUP: scrolling.scroll_vertical -= int(bar.page)
+		KEY_PAGEDOWN: scrolling.scroll_vertical += int(bar.page)
+		KEY_HOME: scrolling.scroll_vertical = 0
+		KEY_END: scrolling.scroll_vertical = int(bar.max_value - bar.page)
+		_: return false
+	return true

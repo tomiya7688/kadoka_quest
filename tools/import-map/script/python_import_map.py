@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# {
+#   責務: [python_import_map: python・import・マップの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import argparse
@@ -7,6 +11,12 @@ import json
 from pathlib import Path
 
 
+# {
+#   責務: [imports: python・import・マップのimportsを求める]
+#   処理: [1: python・import・マップのimportsを求める]
+#   引数: [path: パス（Path）]
+#   戻り値: [result: python・import・マップのimportsを求めるための結果（list[str]）]
+# }
 def imports(path: Path) -> list[str]:
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -22,6 +32,12 @@ def imports(path: Path) -> list[str]:
     return sorted(result)
 
 
+# {
+#   責務: [main: python・import・マップのエントリ処理を実行する]
+#   処理: [1: python・import・マップのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: python・import・マップのエントリ処理を実行するための結果（int）]
+# }
 def main() -> int:
     parser = argparse.ArgumentParser(description="Emit a compact Python file/import index as JSON.")
     parser.add_argument("root", nargs="?", type=Path, default=Path("src/kadoka_quest"))

@@ -1,3 +1,7 @@
+# {
+#   責務: [map_editor: マップ・editorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from pathlib import Path
 import sys
 

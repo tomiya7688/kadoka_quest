@@ -1,3 +1,7 @@
+# {
+#   責務: [windows-distribution: WindowsのCIで全ソーステストとPlayer/Developer配布物の生成・smoke検証を実行します]
+#   フィールド: [jobs: Windows上でのテスト・配布物生成・smoke検証を行うジョブ]
+# }
 name: Windows distribution
 
 on:
@@ -32,14 +36,16 @@ jobs:
             requirements-build.txt
 
       - name: Install dependencies
-        run: python -m pip install -r requirements-build.txt
+        run: |
+          python -m pip install -r requirements-build.txt
+          python -m pip install pytest
 
       - name: Run source tests
         env:
           SDL_VIDEODRIVER: dummy
           SDL_AUDIODRIVER: dummy
           PYGAME_HIDE_SUPPORT_PROMPT: "1"
-        run: python -m unittest discover -s tests -v
+        run: python -m pytest
 
       - name: Build Player and Developer distributions
         run: python tools/build/build.py --clean --targets all

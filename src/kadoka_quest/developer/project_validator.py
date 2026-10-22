@@ -1,3 +1,7 @@
+# {
+#   責務: [project_validator: project・検証処理の公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,32 +13,77 @@ from kadoka_quest.data.repository import GameRepository, STAT_KEYS
 from kadoka_quest.paths import ASSET_ROOT, DATA_ROOT
 
 
+# {
+#   責務: [ValidationMessage: validation・messageの状態と振る舞いを担当する]
+#   フィールド: [
+#     level: レベル（str）
+#     location: location（str）
+#     message: message（str）
+#   ]
+# }
 @dataclass(frozen=True)
 class ValidationMessage:
     level: str
     location: str
     message: str
 
+    # {
+    #   責務: [compact: validation・messageのcompactを求める]
+    #   処理: [1: validation・messageのcompactを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: validation・messageのcompactを求めるための結果（str）]
+    # }
     def compact(self) -> str:
         return f"[{self.level}] {self.location}: {self.message}"
 
 
+# {
+#   責務: [ValidationReport: validation・reportの状態と振る舞いを担当する]
+#   フィールド: [messages: messages（tuple[ValidationMessage, ...]）]
+# }
 @dataclass(frozen=True)
 class ValidationReport:
     messages: tuple[ValidationMessage, ...]
 
+    # {
+    #   責務: [errors: validation・reportのerrorsを求める]
+    #   処理: [1: validation・reportのerrorsを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: validation・reportのerrorsを求めるための結果（tuple[ValidationMessage, ...]）]
+    # }
     @property
     def errors(self) -> tuple[ValidationMessage, ...]:
         return tuple(item for item in self.messages if item.level == "ERROR")
 
+    # {
+    #   責務: [warnings: validation・reportのwarningsを求める]
+    #   処理: [1: validation・reportのwarningsを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: validation・reportのwarningsを求めるための結果（tuple[ValidationMessage, ...]）]
+    # }
     @property
     def warnings(self) -> tuple[ValidationMessage, ...]:
         return tuple(item for item in self.messages if item.level == "WARN")
 
+    # {
+    #   責務: [ok: validation・reportのokを求める]
+    #   処理: [1: validation・reportのokを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: validation・reportのokを求めるための結果（bool）]
+    # }
     @property
     def ok(self) -> bool:
         return not self.errors
 
+    # {
+    #   責務: [summary: validation・reportのsummaryを求める]
+    #   処理: [1: validation・reportのsummaryを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     detail_limit: detail・limit（int）
+    #   ]
+    #   戻り値: [result: validation・reportのsummaryを求めるための結果（str）]
+    # }
     def summary(self, *, detail_limit: int = 3) -> str:
         state = "OK" if self.ok else "FAILED"
         head = f"Data validation {state}: {len(self.errors)} error(s), {len(self.warnings)} warning(s)"
@@ -42,27 +91,78 @@ class ValidationReport:
         return head if not details else head + " / " + " | ".join(details)
 
 
+# {
+#   責務: [ProjectValidator: Validate the canonical Player data/assets without depending on pygame UI.]
+#   フィールド: [
+#     data_root: データ・基準ディレクトリ
+#     asset_root: asset・基準ディレクトリ
+#     repository: データ取得先
+#     _messages: messages
+#   ]
+# }
 class ProjectValidator:
     """Validate the canonical Player data/assets without depending on pygame UI."""
 
+    # {
+    #   責務: [__init__: project・検証処理が利用する初期状態と依存を設定する]
+    #   処理: [1: project・検証処理が利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     data_root: データ・基準ディレクトリ（Path | None）
+    #     asset_root: asset・基準ディレクトリ（Path | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self, data_root: Path | None = None, asset_root: Path | None = None) -> None:
         self.data_root = Path(data_root or DATA_ROOT)
         self.asset_root = Path(asset_root or ASSET_ROOT)
         self.repository = GameRepository(self.data_root)
         self._messages: list[ValidationMessage] = []
 
+    # {
+    #   責務: [validate: project・検証処理を妥当性を検査する]
+    #   処理: [1: project・検証処理を妥当性を検査する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: project・検証処理を妥当性を検査するための結果（ValidationReport）]
+    # }
     def validate(self) -> ValidationReport:
         self._messages = []
         self._validate_json_files()
         self._validate_catalogs()
         return ValidationReport(tuple(self._messages))
 
+    # {
+    #   責務: [_error: project・検証処理のerrorを求める]
+    #   処理: [1: project・検証処理のerrorを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     location: location（str）
+    #     message: message（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _error(self, location: str, message: str) -> None:
         self._messages.append(ValidationMessage("ERROR", location, message))
 
+    # {
+    #   責務: [_warn: project・検証処理のwarnを求める]
+    #   処理: [1: project・検証処理のwarnを求める]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     location: location（str）
+    #     message: message（str）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _warn(self, location: str, message: str) -> None:
         self._messages.append(ValidationMessage("WARN", location, message))
 
+    # {
+    #   責務: [_validate_json_files: JSON・filesを妥当性を検査する]
+    #   処理: [1: JSON・filesを妥当性を検査する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_json_files(self) -> None:
         if not self.data_root.is_dir():
             self._error("data", f"missing data directory: {self.data_root}")
@@ -77,6 +177,12 @@ class ProjectValidator:
             except (OSError, ValueError, TypeError) as exc:
                 self._error(str(path.relative_to(self.data_root)), f"invalid JSON: {exc}")
 
+    # {
+    #   責務: [_validate_catalogs: catalogsを妥当性を検査する]
+    #   処理: [1: catalogsを妥当性を検査する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_catalogs(self) -> None:
         try:
             blocks = self.repository.list_blocks()
@@ -102,6 +208,18 @@ class ProjectValidator:
         for species_id in species_ids:
             self._validate_species(species_id, set(skills))
 
+    # {
+    #   責務: [_validate_map: マップを妥当性を検査する]
+    #   処理: [1: マップを妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     map_id: マップ・識別子（str）
+    #     block_ids: ブロック・識別子一覧（set[str]）
+    #     species_ids: 種族・識別子一覧（set[str]）
+    #     map_ids: マップ・識別子一覧（set[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_map(
         self,
         map_id: str,
@@ -150,6 +268,16 @@ class ProjectValidator:
             if target and target not in map_ids:
                 self._error(f"{location}/events[{index}]", f"unknown target map: {target}")
 
+    # {
+    #   責務: [_validate_species: 種族を妥当性を検査する]
+    #   処理: [1: 種族を妥当性を検査する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species_id: 種族・識別子（str）
+    #     skill_ids: スキル・識別子一覧（set[str]）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _validate_species(self, species_id: str, skill_ids: set[str]) -> None:
         location = f"species/{species_id}"
         try:
@@ -197,6 +325,12 @@ class ProjectValidator:
             if not (self.asset_root / relative).is_file():
                 self._error(location, f"missing asset: {relative}")
 
+    # {
+    #   責務: [_iter_dicts: project・検証処理のiter・dictsを求める]
+    #   処理: [1: project・検証処理のiter・dictsを求める]
+    #   引数: [value: 値（object）]
+    #   戻り値: [result: project・検証処理のiter・dictsを求めるための結果（Iterable[dict]）]
+    # }
     @staticmethod
     def _iter_dicts(value: object) -> Iterable[dict]:
         if not isinstance(value, list):

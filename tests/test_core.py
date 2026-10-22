@@ -1,3 +1,7 @@
+# {
+#   責務: [test_core: test・coreの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import copy
@@ -62,13 +66,32 @@ from kadoka_quest.ui.runtime_input_adapter import RuntimeInputAdapter
 from kadoka_quest.ui.runtime_mouse_adapter import RuntimeMouseAdapter
 
 
+# {
+#   責務: [JsonIoTests: JSON・io・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class JsonIoTests(unittest.TestCase):
+    # {
+    #   責務: [test_write_json_retries_a_temporary_windows_access_denial: 検証: write json retries a temporary windows access denial]
+    #   処理: [1: 検証: write json retries a temporary windows access denial]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_write_json_retries_a_temporary_windows_access_denial(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "state.json"
             original_replace = os.replace
             attempts = 0
 
+            # {
+            #   責務: [temporarily_locked: JSON・io・testsのtemporarily・lockedを求める]
+            #   処理: [1: JSON・io・testsのtemporarily・lockedを求める]
+            #   引数: [
+            #     source: 元データ（Path）
+            #     target: 対象（Path）
+            #   ]
+            #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+            # }
             def temporarily_locked(source: Path, target: Path) -> None:
                 nonlocal attempts
                 attempts += 1
@@ -86,6 +109,12 @@ class JsonIoTests(unittest.TestCase):
             self.assertEqual(sleep.call_count, 2)
             self.assertEqual(list(Path(temporary).glob("*.tmp")), [])
 
+    # {
+    #   責務: [test_write_json_keeps_the_previous_save_when_replacement_stays_locked: 検証: write json keeps the previous save when replacement stays locked]
+    #   処理: [1: 検証: write json keeps the previous save when replacement stays locked]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_write_json_keeps_the_previous_save_when_replacement_stays_locked(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "state.json"
@@ -100,7 +129,17 @@ class JsonIoTests(unittest.TestCase):
             self.assertEqual(list(Path(temporary).glob("*.tmp")), [])
 
 
+# {
+#   責務: [CommandApplicationTests: コマンド・application・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class CommandApplicationTests(unittest.TestCase):
+    # {
+    #   責務: [test_command_bus_routes_one_target_and_rejects_unknown_or_duplicate_targets: 検証: command bus routes one target and rejects unknown or duplicate targets]
+    #   処理: [1: 検証: command bus routes one target and rejects unknown or duplicate targets]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_command_bus_routes_one_target_and_rejects_unknown_or_duplicate_targets(self) -> None:
         handler = mock.Mock()
         handler.handle.return_value = "handled"
@@ -115,6 +154,12 @@ class CommandApplicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             bus.dispatch(AppCommand("missing", "noop"))
 
+    # {
+    #   責務: [test_runtime_applications_receive_plain_semantic_commands: 検証: runtime applications receive plain semantic commands]
+    #   処理: [1: 検証: runtime applications receive plain semantic commands]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runtime_applications_receive_plain_semantic_commands(self) -> None:
         session = SimpleNamespace(
             selected_party=0,
@@ -146,6 +191,12 @@ class CommandApplicationTests(unittest.TestCase):
         bus.dispatch(AppCommand("password", "append", {"character": "へ"}))
         session.append_password.assert_called_once_with("へ")
 
+    # {
+    #   責務: [test_runtime_command_applications_do_not_depend_on_pygame: 検証: runtime command applications do not depend on pygame]
+    #   処理: [1: 検証: runtime command applications do not depend on pygame]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runtime_command_applications_do_not_depend_on_pygame(self) -> None:
         for relative in (
             "src/kadoka_quest/application/app_command.py",
@@ -164,6 +215,12 @@ class CommandApplicationTests(unittest.TestCase):
         ):
             self.assertNotIn("import pygame", (PROJECT_ROOT / relative).read_text(encoding="utf-8"))
 
+    # {
+    #   責務: [test_battle_session_owns_selection_playback_auto_and_end_context: 検証: battle session owns selection playback auto and end context]
+    #   処理: [1: 検証: battle session owns selection playback auto and end context]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_battle_session_owns_selection_playback_auto_and_end_context(self) -> None:
         ally = SimpleNamespace(name="まる", record=SimpleNamespace(monster_id="ally"))
         enemy = SimpleNamespace(name="スライム", record=SimpleNamespace(monster_id="enemy"))
@@ -195,6 +252,12 @@ class CommandApplicationTests(unittest.TestCase):
             {"outcome": "victory", "simulation": True, "fixed_mob_id": "boss"},
         )
 
+    # {
+    #   責務: [test_game_exposes_battle_state_only_as_battle_session_compatibility_properties: 検証: game exposes battle state only as battle session compatibility properties]
+    #   処理: [1: 検証: game exposes battle state only as battle session compatibility properties]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_game_exposes_battle_state_only_as_battle_session_compatibility_properties(self) -> None:
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("self.battle_session = BattleSession()", source)
@@ -206,6 +269,12 @@ class CommandApplicationTests(unittest.TestCase):
         ):
             self.assertNotIn(assignment, source)
 
+    # {
+    #   責務: [test_field_party_session_owns_selection_and_preset_cycle_cursors: 検証: field party session owns selection and preset cycle cursors]
+    #   処理: [1: 検証: field party session owns selection and preset cycle cursors]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_field_party_session_owns_selection_and_preset_cycle_cursors(self) -> None:
         session = FieldPartySession()
 
@@ -218,6 +287,12 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertEqual(session.next_preset(["one", "two"]), "one")
         self.assertIsNone(session.next_preset([]))
 
+    # {
+    #   責務: [test_game_delegates_field_party_cursor_state_to_session: 検証: game delegates field party cursor state to session]
+    #   処理: [1: 検証: game delegates field party cursor state to session]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_game_delegates_field_party_cursor_state_to_session(self) -> None:
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("self.field_party_session = FieldPartySession()", source)
@@ -226,6 +301,12 @@ class CommandApplicationTests(unittest.TestCase):
         field_app_source = (PROJECT_ROOT / "src/kadoka_quest/apps/field_command_app.py").read_text(encoding="utf-8")
         self.assertNotIn("self.session.selected_party =", field_app_source)
 
+    # {
+    #   責務: [test_field_party_service_coordinates_presets_tactics_and_ai_reset: 検証: field party service coordinates presets tactics and ai reset]
+    #   処理: [1: 検証: field party service coordinates presets tactics and ai reset]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_field_party_service_coordinates_presets_tactics_and_ai_reset(self) -> None:
         selected = MonsterRecord(
             {"id": "monster_a", "species_id": "slime", "name": "スラA", "level": 4},
@@ -259,6 +340,12 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertIn("AIのみリセット", service.reset_selected_ai([selected]))
         monsters.reset_ai.assert_called_once_with("monster_a")
 
+    # {
+    #   責務: [test_field_party_service_keeps_state_when_no_party_or_preset_exists: 検証: field party service keeps state when no party or preset exists]
+    #   処理: [1: 検証: field party service keeps state when no party or preset exists]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_field_party_service_keeps_state_when_no_party_or_preset_exists(self) -> None:
         parties = mock.Mock()
         parties.list_presets.return_value = []
@@ -270,6 +357,12 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertIsNone(service.cycle_tactic([]))
         self.assertIsNone(service.reset_selected_ai([]))
 
+    # {
+    #   責務: [test_game_delegates_field_party_persistence_and_ai_operations_to_service: 検証: game delegates field party persistence and ai operations to service]
+    #   処理: [1: 検証: game delegates field party persistence and ai operations to service]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_game_delegates_field_party_persistence_and_ai_operations_to_service(self) -> None:
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("self.field_party_service = FieldPartyService(", source)
@@ -278,6 +371,12 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertNotIn("self.parties.save(name", source)
         self.assertNotIn("self.monsters.set_tactic", source)
 
+    # {
+    #   責務: [test_monster_import_service_scans_acquisition_and_builds_non_learning_simulation: 検証: monster import service scans acquisition and builds non learning simulation]
+    #   処理: [1: 検証: monster import service scans acquisition and builds non learning simulation]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_monster_import_service_scans_acquisition_and_builds_non_learning_simulation(self) -> None:
         monsters = mock.Mock()
         monsters.acquire_from_scan.return_value = (2, 1)
@@ -299,6 +398,12 @@ class CommandApplicationTests(unittest.TestCase):
         monsters.discover_external.assert_called_once_with(import_root / "simulation")
         battle_factory.assert_called_once_with(repository, [ally], [enemy], rng, learning_enabled=False)
 
+    # {
+    #   責務: [test_monster_import_service_reports_empty_or_invalid_simulation_without_starting: 検証: monster import service reports empty or invalid simulation without starting]
+    #   処理: [1: 検証: monster import service reports empty or invalid simulation without starting]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_monster_import_service_reports_empty_or_invalid_simulation_without_starting(self) -> None:
         monsters = mock.Mock()
         monsters.discover_external.return_value = []
@@ -316,6 +421,12 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertIsNone(battle)
         self.assertEqual(message, "模擬戦個体を読めません: bad monster")
 
+    # {
+    #   責務: [test_game_delegates_external_monster_workflows_to_import_service: 検証: game delegates external monster workflows to import service]
+    #   処理: [1: 検証: game delegates external monster workflows to import service]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_game_delegates_external_monster_workflows_to_import_service(self) -> None:
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("self.monster_import_service = MonsterImportService(", source)
@@ -324,6 +435,12 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertNotIn("self.monsters.discover_external", source)
         self.assertNotIn("self.monsters.acquire_from_scan", source)
 
+    # {
+    #   責務: [test_password_session_owns_input_limit_validation_and_reset: 検証: password session owns input limit validation and reset]
+    #   処理: [1: 検証: password session owns input limit validation and reset]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_password_session_owns_input_limit_validation_and_reset(self) -> None:
         session = PasswordSession("へいわ", "へいわな")
 
@@ -348,12 +465,24 @@ class CommandApplicationTests(unittest.TestCase):
         session.cancel()
         self.assertEqual((session.input_text, session.message, session.active), ("", "", False))
 
+    # {
+    #   責務: [test_game_exposes_password_state_as_password_session_compatibility_properties: 検証: game exposes password state as password session compatibility properties]
+    #   処理: [1: 検証: game exposes password state as password session compatibility properties]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_game_exposes_password_state_as_password_session_compatibility_properties(self) -> None:
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("self.password_session = PasswordSession(PASSWORD, KANA_KEYS)", source)
         self.assertNotIn('self.password_input = ""', source)
         self.assertNotIn('self.password_message = ""', source)
 
+    # {
+    #   責務: [test_manager_process_service_prevents_duplicates_and_consumes_exit_once: 検証: manager process service prevents duplicates and consumes exit once]
+    #   処理: [1: 検証: manager process service prevents duplicates and consumes exit once]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_manager_process_service_prevents_duplicates_and_consumes_exit_once(self) -> None:
         process = mock.Mock()
         process.poll.return_value = None
@@ -370,12 +499,24 @@ class CommandApplicationTests(unittest.TestCase):
         self.assertIsNone(service.process)
         self.assertFalse(service.consume_closed())
 
+    # {
+    #   責務: [test_game_delegates_manager_process_lifecycle_to_service: 検証: game delegates manager process lifecycle to service]
+    #   処理: [1: 検証: game delegates manager process lifecycle to service]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_game_delegates_manager_process_lifecycle_to_service(self) -> None:
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn('self.manager_tool = ManagerProcessService(PROJECT_ROOT / "manage.py")', source)
         self.assertIn("self.manager_tool.consume_closed()", source)
         self.assertNotIn("subprocess.Popen", source)
 
+    # {
+    #   責務: [test_runtime_orchestrator_owns_modes_and_routes_cross_app_effects: 検証: runtime orchestrator owns modes and routes cross app effects]
+    #   処理: [1: 検証: runtime orchestrator owns modes and routes cross app effects]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runtime_orchestrator_owns_modes_and_routes_cross_app_effects(self) -> None:
         session = SimpleNamespace(
             status="",
@@ -409,6 +550,12 @@ class CommandApplicationTests(unittest.TestCase):
         runtime.dispatch("manager", "refresh")
         session.refresh_manager_if_closed.assert_called_once_with()
 
+    # {
+    #   責務: [test_field_effect_payload_never_contains_runtime_objects: 検証: field effect payload never contains runtime objects]
+    #   処理: [1: 検証: field effect payload never contains runtime objects]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_field_effect_payload_never_contains_runtime_objects(self) -> None:
         npc = {
             "id": "guide",
@@ -428,10 +575,26 @@ class CommandApplicationTests(unittest.TestCase):
         )
 
 
+# {
+#   責務: [DataFormatTests: データ・format・testsの状態と振る舞いを担当する]
+#   フィールド: [repository: データ取得先]
+# }
 class DataFormatTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.repository = GameRepository(PROJECT_ROOT / "data")
 
+    # {
+    #   責務: [test_required_sample_species_and_full_level_tables_exist: 検証: required sample species and full level tables exist]
+    #   処理: [1: 検証: required sample species and full level tables exist]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_required_sample_species_and_full_level_tables_exist(self) -> None:
         required = {"slime", "ball_slime", "metal_slime", "ghost", "maru", "kadoka", "dice_slime"}
         self.assertTrue(required.issubset(set(self.repository.list_species_ids())))
@@ -441,6 +604,12 @@ class DataFormatTests(unittest.TestCase):
             self.assertEqual(set(bundle.stats["levels"]["100"]), set(STAT_KEYS))
             self.assertEqual(len(bundle.plus["stages"]), 10)
 
+    # {
+    #   責務: [test_hero_uses_square_pixel_art_on_exact_64_pixel_canvases: 検証: hero uses square pixel art on exact 64 pixel canvases]
+    #   処理: [1: 検証: hero uses square pixel art on exact 64 pixel canvases]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_hero_uses_square_pixel_art_on_exact_64_pixel_canvases(self) -> None:
         definition = self.repository.get_species("hero").definition
         paths = [definition["portrait_path"], *definition["field_sprites"].values()]
@@ -449,12 +618,24 @@ class DataFormatTests(unittest.TestCase):
             image = pygame.image.load(str(PROJECT_ROOT / "assets" / relative))
             self.assertEqual(image.get_size(), (64, 64))
 
+    # {
+    #   責務: [test_blocks_split_all_three_rules: 検証: blocks split all three rules]
+    #   処理: [1: 検証: blocks split all three rules]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_blocks_split_all_three_rules(self) -> None:
         for block in self.repository.list_blocks():
             self.assertIsInstance(block["player_walkable"], bool)
             self.assertIsInstance(block["enemy_spawnable"], bool)
             self.assertIsInstance(block["enemy_walkable"], bool)
             self.assertIn(block["appearance"]["type"], {"color", "path"})
+    # {
+    #   責務: [test_map_references_known_blocks_and_species: 検証: map references known blocks and species]
+    #   処理: [1: 検証: map references known blocks and species]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_map_references_known_blocks_and_species(self) -> None:
         block_ids = {item["id"] for item in self.repository.list_blocks()}
         species_ids = set(self.repository.list_species_ids())
@@ -469,6 +650,12 @@ class DataFormatTests(unittest.TestCase):
             transitions = [item for item in map_data["events"] if item.get("type") == "transition"]
             self.assertTrue(all(item.get("activation") in {"step", "interact"} for item in transitions))
 
+    # {
+    #   責務: [test_equipment_owns_species_restrictions: 検証: equipment owns species restrictions]
+    #   処理: [1: 検証: equipment owns species restrictions]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_equipment_owns_species_restrictions(self) -> None:
         species_ids = set(self.repository.list_species_ids())
         for species_id in species_ids:
@@ -477,6 +664,12 @@ class DataFormatTests(unittest.TestCase):
             self.assertIn("allowed_species_ids", equipment)
             self.assertTrue(set(equipment["allowed_species_ids"]).issubset(species_ids))
 
+    # {
+    #   責務: [test_ghost_home_entrance_is_only_in_fresh_forest_side_path: 検証: ghost home entrance is only in fresh forest side path]
+    #   処理: [1: 検証: ghost home entrance is only in fresh forest side path]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_ghost_home_entrance_is_only_in_fresh_forest_side_path(self) -> None:
         greenwood = self.repository.get_map("greenwood")
         fresh = self.repository.get_map("fresh_forest")
@@ -487,6 +680,12 @@ class DataFormatTests(unittest.TestCase):
         self.assertTrue(any(item["id"] == "ghost_home_note" for item in fresh["events"]))
         self.assertTrue(any(item["type"] == "church" for item in self.repository.get_map("rokuta_village")["events"]))
 
+    # {
+    #   責務: [test_starting_town_precedes_forest_and_contains_ranch_management: 検証: starting town precedes forest and contains ranch management]
+    #   処理: [1: 検証: starting town precedes forest and contains ranch management]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_starting_town_precedes_forest_and_contains_ranch_management(self) -> None:
         town = self.repository.get_map("starting_town")
         ranch = self.repository.get_map("starting_ranch")
@@ -498,6 +697,12 @@ class DataFormatTests(unittest.TestCase):
         self.assertEqual(manager["type"], "open_manager")
         self.assertTrue(manager["blocking"])
 
+    # {
+    #   責務: [test_main_roads_are_three_tiles_wide_and_signs_block: 検証: main roads are three tiles wide and signs block]
+    #   処理: [1: 検証: main roads are three tiles wide and signs block]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_main_roads_are_three_tiles_wide_and_signs_block(self) -> None:
         checks = (("starting_town", 14, 20), ("greenwood", 6, 12), ("fresh_forest", 15, 12), ("rokuta_village", 12, 20))
         for map_id, center_y, x in checks:
@@ -508,6 +713,12 @@ class DataFormatTests(unittest.TestCase):
             self.assertTrue(signs)
             self.assertTrue(all(event.get("blocking") for event in signs))
 
+    # {
+    #   責務: [test_ghost_home_password_is_at_the_water_spring_and_art_exists: 検証: ghost home password is at the water spring and art exists]
+    #   処理: [1: 検証: ghost home password is at the water spring and art exists]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_ghost_home_password_is_at_the_water_spring_and_art_exists(self) -> None:
         home = self.repository.get_map("ghost_home")
         self.assertEqual(home["block_color_overrides"]["safe"], "#101B3A")
@@ -534,6 +745,12 @@ class DataFormatTests(unittest.TestCase):
                 self.assertGreaterEqual(bounds.width / max(1, bounds.height), 0.75)
                 self.assertGreater(sum(image.get_at((x, y)).a >= 128 for y in range(image.get_height()) for x in range(image.get_width())), 1000)
 
+    # {
+    #   責務: [test_ghost_home_fixed_mobs_have_editable_dialogue_decks_and_ai: 検証: ghost home fixed mobs have editable dialogue decks and ai]
+    #   処理: [1: 検証: ghost home fixed mobs have editable dialogue decks and ai]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_ghost_home_fixed_mobs_have_editable_dialogue_decks_and_ai(self) -> None:
         fixed_mobs = self.repository.get_map("ghost_home")["fixed_mobs"]
         self.assertEqual({item["species_id"] for item in fixed_mobs}, {"maru", "kadoka"})
@@ -546,6 +763,12 @@ class DataFormatTests(unittest.TestCase):
             self.assertIn("despawn_after_interaction", item)
             self.assertIn("respawn_on_map_enter", item)
 
+    # {
+    #   責務: [test_maru_left_is_a_transparent_mirror_without_a_white_backdrop: 検証: maru left is a transparent mirror without a white backdrop]
+    #   処理: [1: 検証: maru left is a transparent mirror without a white backdrop]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_maru_left_is_a_transparent_mirror_without_a_white_backdrop(self) -> None:
         definition = self.repository.get_species("maru").definition
         front = pygame.image.load(str(PROJECT_ROOT / "assets" / definition["field_sprites"]["front"]))
@@ -561,7 +784,17 @@ class DataFormatTests(unittest.TestCase):
         self.assertEqual(pygame.image.tobytes(left, "RGBA"), pygame.image.tobytes(mirrored, "RGBA"))
 
 
+# {
+#   責務: [UiWidgetTests: ui・widget・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class UiWidgetTests(unittest.TestCase):
+    # {
+    #   責務: [test_runtime_input_adapter_translates_field_battle_and_password_keys: 検証: runtime input adapter translates field battle and password keys]
+    #   処理: [1: 検証: runtime input adapter translates field battle and password keys]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runtime_input_adapter_translates_field_battle_and_password_keys(self) -> None:
         adapter = RuntimeInputAdapter({pygame.K_RIGHT: "right"})
 
@@ -584,6 +817,12 @@ class UiWidgetTests(unittest.TestCase):
         password = adapter.translate(SimpleNamespace(type=pygame.KEYDOWN, key=pygame.K_h, unicode="へ"), "password", 300)
         self.assertEqual(password[0]["payload"], {"character": "へ"})
 
+    # {
+    #   責務: [test_runtime_input_adapter_handles_escape_and_quit_without_direct_actions: 検証: runtime input adapter handles escape and quit without direct actions]
+    #   処理: [1: 検証: runtime input adapter handles escape and quit without direct actions]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runtime_input_adapter_handles_escape_and_quit_without_direct_actions(self) -> None:
         adapter = RuntimeInputAdapter({})
         escape = SimpleNamespace(type=pygame.KEYDOWN, key=pygame.K_ESCAPE)
@@ -596,6 +835,12 @@ class UiWidgetTests(unittest.TestCase):
         self.assertIn("input_adapter.translate(", source)
         self.assertNotIn("event.key == pygame.K_ESCAPE", source)
 
+    # {
+    #   責務: [test_runtime_mouse_adapter_translates_password_and_battle_clicks: 検証: runtime mouse adapter translates password and battle clicks]
+    #   処理: [1: 検証: runtime mouse adapter translates password and battle clicks]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runtime_mouse_adapter_translates_password_and_battle_clicks(self) -> None:
         adapter = RuntimeMouseAdapter(
             [("へ", pygame.Rect(10, 10, 20, 20))],
@@ -611,16 +856,30 @@ class UiWidgetTests(unittest.TestCase):
         self.assertEqual(append[0], {"kind": "command", "target": "password", "action": "append", "payload": {"character": "へ"}})
         self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(45, 15)), "password")[0]["action"], "backspace")
         fight = adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(15, 55)), "battle")
-        self.assertEqual(fight[0]["payload"], {"command": "fight"})
+        self.assertEqual(fight[0]["action"], "selection.set")
+        self.assertEqual(fight[0]["payload"], {"index": 0})
+        self.assertEqual(fight[1]["payload"], {"command": "fight"})
         self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=1, pos=(15, 55)), "battle", battle_enabled=False), [])
         self.assertEqual(adapter.translate(SimpleNamespace(type=pygame.MOUSEBUTTONDOWN, button=3, pos=(15, 55)), "battle"), [])
 
+    # {
+    #   責務: [test_game_delegates_screen_hit_testing_to_runtime_mouse_adapter: 検証: game delegates screen hit testing to runtime mouse adapter]
+    #   処理: [1: 検証: game delegates screen hit testing to runtime mouse adapter]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_game_delegates_screen_hit_testing_to_runtime_mouse_adapter(self) -> None:
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("mouse_adapter.translate(", source)
         self.assertNotIn("button.handle(event)", source)
         self.assertNotIn("erase.collidepoint(event.pos)", source)
 
+    # {
+    #   責務: [test_character_image_provider_crops_scales_and_caches_pixel_art: 検証: character image provider crops scales and caches pixel art]
+    #   処理: [1: 検証: character image provider crops scales and caches pixel art]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_character_image_provider_crops_scales_and_caches_pixel_art(self) -> None:
         pygame.display.init()
         if pygame.display.get_surface() is None:
@@ -652,12 +911,24 @@ class UiWidgetTests(unittest.TestCase):
             provider.clear()
             self.assertEqual(provider.cache, {})
 
+    # {
+    #   責務: [test_game_delegates_character_loading_and_cache_to_image_provider: 検証: game delegates character loading and cache to image provider]
+    #   処理: [1: 検証: game delegates character loading and cache to image provider]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_game_delegates_character_loading_and_cache_to_image_provider(self) -> None:
         source = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         self.assertIn("self.character_images = CharacterImageProvider(self.repository, ASSET_ROOT)", source)
         self.assertIn("return self.character_images.get(species_id, kind, size)", source)
         self.assertNotIn("self.image_cache:", source)
 
+    # {
+    #   責務: [test_shared_pixel_palette_adds_selects_and_safely_removes_colors: 検証: shared pixel palette adds selects and safely removes colors]
+    #   処理: [1: 検証: shared pixel palette adds selects and safely removes colors]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_shared_pixel_palette_adds_selects_and_safely_removes_colors(self) -> None:
         editor = PixelArtEditor(PROJECT_ROOT / "assets")
         original_count = len(editor.palette)
@@ -681,6 +952,12 @@ class UiWidgetTests(unittest.TestCase):
         self.assertFalse(editor.remove_palette_color())
         self.assertIn(transparent, editor.palette)
 
+    # {
+    #   責務: [test_monster_and_block_editors_use_the_same_editable_palette_api: 検証: monster and block editors use the same editable palette api]
+    #   処理: [1: 検証: monster and block editors use the same editable palette api]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_monster_and_block_editors_use_the_same_editable_palette_api(self) -> None:
         for owner in (MonsterEditor(), BlockEditor()):
             with self.subTest(editor=type(owner).__name__):
@@ -691,6 +968,12 @@ class UiWidgetTests(unittest.TestCase):
                 owner.remove_palette_color()
                 self.assertNotIn((101, 67, 33, 255), owner.visuals.palette)
 
+    # {
+    #   責務: [test_shared_pixel_fill_stops_at_outlines_and_is_undoable: 検証: shared pixel fill stops at outlines and is undoable]
+    #   処理: [1: 検証: shared pixel fill stops at outlines and is undoable]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_shared_pixel_fill_stops_at_outlines_and_is_undoable(self) -> None:
         editor = PixelArtEditor(PROJECT_ROOT / "assets")
         editor.set_targets((PixelTarget("front", "正面", "unused.png", 8),))
@@ -710,6 +993,12 @@ class UiWidgetTests(unittest.TestCase):
         self.assertTrue(editor.undo())
         self.assertEqual(tuple(editor.images["front"].get_at((3, 3))), (255, 255, 255, 255))
 
+    # {
+    #   責務: [test_shared_pixel_editor_merges_near_colors_with_configurable_tolerance: 検証: shared pixel editor merges near colors with configurable tolerance]
+    #   処理: [1: 検証: shared pixel editor merges near colors with configurable tolerance]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_shared_pixel_editor_merges_near_colors_with_configurable_tolerance(self) -> None:
         editor = PixelArtEditor(PROJECT_ROOT / "assets")
         editor.set_targets((PixelTarget("front", "正面", "unused.png", 4),))
@@ -728,6 +1017,12 @@ class UiWidgetTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             editor.parse_tolerance("256")
 
+    # {
+    #   責務: [test_shared_pixel_editor_imports_with_nearest_downscale_and_color_reduction: 検証: shared pixel editor imports with nearest downscale and color reduction]
+    #   処理: [1: 検証: shared pixel editor imports with nearest downscale and color reduction]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_shared_pixel_editor_imports_with_nearest_downscale_and_color_reduction(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -750,6 +1045,12 @@ class UiWidgetTests(unittest.TestCase):
             self.assertTrue(editor.undo())
             self.assertEqual(editor.images["front"].get_at((0, 24)).a, 0)
 
+    # {
+    #   責務: [test_monster_editor_lists_new_first_and_creates_complete_species: 検証: monster editor lists new first and creates complete species]
+    #   処理: [1: 検証: monster editor lists new first and creates complete species]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_monster_editor_lists_new_first_and_creates_complete_species(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -792,6 +1093,12 @@ class UiWidgetTests(unittest.TestCase):
             editor.save()
             self.assertIn("already exists", editor.status)
 
+    # {
+    #   責務: [test_shared_pixel_editor_accepts_different_targets_and_zooms: 検証: shared pixel editor accepts different targets and zooms]
+    #   処理: [1: 検証: shared pixel editor accepts different targets and zooms]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_shared_pixel_editor_accepts_different_targets_and_zooms(self) -> None:
         editor = PixelArtEditor(PROJECT_ROOT / "assets")
         editor.set_targets((PixelTarget("front", "正面", "characters/slime/field_front.png"),))
@@ -805,6 +1112,12 @@ class UiWidgetTests(unittest.TestCase):
         self.assertEqual(set(editor.targets), {"appearance"})
         self.assertEqual(editor.logical_size, 64)
 
+    # {
+    #   責務: [test_shared_pixel_editor_ctrl_z_history_restores_a_whole_stroke: 検証: shared pixel editor ctrl z history restores a whole stroke]
+    #   処理: [1: 検証: shared pixel editor ctrl z history restores a whole stroke]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_shared_pixel_editor_ctrl_z_history_restores_a_whole_stroke(self) -> None:
         editor = PixelArtEditor(PROJECT_ROOT / "assets")
         editor.set_targets((PixelTarget("front", "正面", "characters/slime/field_front.png"),))
@@ -823,6 +1136,57 @@ class UiWidgetTests(unittest.TestCase):
         self.assertEqual(editor.images["front"].get_at((2, 2)).a, 0)
         self.assertFalse(editor.undo())
 
+    # {
+    #   責務: [test_shared_pixel_editor_interpolates_fast_pointer_motion: 検証: shared pixel editor interpolates fast pointer motion]
+    #   処理: [1: 検証: shared pixel editor interpolates fast pointer motion]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
+    def test_shared_pixel_editor_interpolates_fast_pointer_motion(self) -> None:
+        editor = PixelArtEditor(PROJECT_ROOT / "assets")
+        editor.set_targets((PixelTarget("front", "正面", "characters/slime/field_front.png"),))
+        editor.images["front"] = pygame.Surface((64, 64), pygame.SRCALPHA)
+        canvas = pygame.Rect(0, 0, 640, 640)
+
+        self.assertTrue(editor.begin_stroke())
+        self.assertTrue(editor.paint((15, 15), canvas))
+        self.assertTrue(editor.paint((85, 15), canvas))
+        editor.end_stroke()
+
+        for x in range(1, 9):
+            self.assertGreater(editor.images["front"].get_at((x, 1)).a, 0)
+        self.assertTrue(editor.undo())
+        for x in range(1, 9):
+            self.assertEqual(editor.images["front"].get_at((x, 1)).a, 0)
+
+    # {
+    #   責務: [test_shared_pixel_editor_does_not_bridge_across_canvas_exit: 検証: shared pixel editor does not bridge across canvas exit]
+    #   処理: [1: 検証: shared pixel editor does not bridge across canvas exit]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
+    def test_shared_pixel_editor_does_not_bridge_across_canvas_exit(self) -> None:
+        editor = PixelArtEditor(PROJECT_ROOT / "assets")
+        editor.set_targets((PixelTarget("front", "正面", "characters/slime/field_front.png"),))
+        editor.images["front"] = pygame.Surface((64, 64), pygame.SRCALPHA)
+        canvas = pygame.Rect(0, 0, 640, 640)
+
+        editor.begin_stroke()
+        editor.paint((15, 15), canvas)
+        self.assertFalse(editor.paint((-10, -10), canvas))
+        editor.paint((85, 15), canvas)
+        editor.end_stroke()
+
+        self.assertGreater(editor.images["front"].get_at((1, 1)).a, 0)
+        self.assertGreater(editor.images["front"].get_at((8, 1)).a, 0)
+        self.assertEqual(editor.images["front"].get_at((4, 1)).a, 0)
+
+    # {
+    #   責務: [test_shared_pixel_editor_pan_mode_moves_and_clamps_zoomed_view: 検証: shared pixel editor pan mode moves and clamps zoomed view]
+    #   処理: [1: 検証: shared pixel editor pan mode moves and clamps zoomed view]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_shared_pixel_editor_pan_mode_moves_and_clamps_zoomed_view(self) -> None:
         editor = PixelArtEditor(PROJECT_ROOT / "assets")
         editor.set_targets((PixelTarget("front", "正面", "characters/slime/field_front.png"),))
@@ -844,6 +1208,12 @@ class UiWidgetTests(unittest.TestCase):
         self.assertEqual(editor.pan_offset, pygame.Vector2())
         self.assertEqual(editor.image_rect(canvas), canvas)
 
+    # {
+    #   責務: [test_text_field_click_keeps_only_one_field_active: 検証: text field click keeps only one field active]
+    #   処理: [1: 検証: text field click keeps only one field active]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_text_field_click_keeps_only_one_field_active(self) -> None:
         first = TextField(pygame.Rect(0, 0, 100, 30))
         second = TextField(pygame.Rect(120, 0, 100, 30))
@@ -854,6 +1224,12 @@ class UiWidgetTests(unittest.TestCase):
         self.assertFalse(first.active)
         self.assertTrue(second.active)
 
+    # {
+    #   責務: [test_scrollbars_support_vertical_and_horizontal_overflow: 検証: scrollbars support vertical and horizontal overflow]
+    #   処理: [1: 検証: scrollbars support vertical and horizontal overflow]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_scrollbars_support_vertical_and_horizontal_overflow(self) -> None:
         vertical = ScrollBar(pygame.Rect(0, 0, 12, 200), "vertical", total=100, page=10)
         vertical.handle(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=(6, 180)))
@@ -865,6 +1241,12 @@ class UiWidgetTests(unittest.TestCase):
         horizontal.handle(pygame.event.Event(pygame.MOUSEBUTTONUP, button=1, pos=(180, 6)))
         self.assertGreater(horizontal.value, 0)
 
+    # {
+    #   責務: [test_map_editor_selects_maps_from_list_and_edits_both_transition_conditions: 検証: map editor selects maps from list and edits both transition conditions]
+    #   処理: [1: 検証: map editor selects maps from list and edits both transition conditions]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_map_editor_selects_maps_from_list_and_edits_both_transition_conditions(self) -> None:
         editor = MapEditor()
         self.assertEqual(set(editor.map_names), set(editor.repository.list_maps()))
@@ -886,6 +1268,12 @@ class UiWidgetTests(unittest.TestCase):
         self.assertEqual(editor.current_transition["target"]["map_id"], "ghost_home")
         self.assertFalse(editor.select_map(editor.map_ids.index("greenwood")))
 
+    # {
+    #   責務: [test_map_editor_places_and_configures_fixed_mobs_without_replacing_tiles: 検証: map editor places and configures fixed mobs without replacing tiles]
+    #   処理: [1: 検証: map editor places and configures fixed mobs without replacing tiles]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_map_editor_places_and_configures_fixed_mobs_without_replacing_tiles(self) -> None:
         editor = MapEditor()
         self.assertTrue(editor.select_map(editor.map_ids.index("greenwood")))
@@ -907,6 +1295,12 @@ class UiWidgetTests(unittest.TestCase):
         self.assertEqual(editor.current_fixed_mob["move_chance"], 35)
         self.assertEqual(len(editor.current_fixed_mob["dialogue"]), 3)
 
+    # {
+    #   責務: [test_repository_creates_a_mod_friendly_map_from_selected_block: 検証: repository creates a mod friendly map from selected block]
+    #   処理: [1: 検証: repository creates a mod friendly map from selected block]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_repository_creates_a_mod_friendly_map_from_selected_block(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -927,6 +1321,12 @@ class UiWidgetTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 repository.create_map("test_field", "重複", 12, 8, "grass")
 
+    # {
+    #   責務: [test_map_editor_round_trips_maps_and_presets_with_the_same_document_format: 検証: map editor round trips maps and presets with the same document format]
+    #   処理: [1: 検証: map editor round trips maps and presets with the same document format]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_map_editor_round_trips_maps_and_presets_with_the_same_document_format(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -972,22 +1372,55 @@ class UiWidgetTests(unittest.TestCase):
                 presets.save_from_map("forest_base", "重複", source)
 
 
+# {
+#   責務: [FolderAndPartyTests: フォルダ・and・パーティ・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     root: 基準ディレクトリ
+#     repository: データ取得先
+#     monsters: モンスター一覧
+#   ]
+# }
 class FolderAndPartyTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.repository = GameRepository(PROJECT_ROOT / "data")
         self.monsters = MonsterStore(self.root / "owned", self.repository)
 
+    # {
+    #   責務: [tearDown: 検証用fixtureと一時的な変更を後始末する]
+    #   処理: [1: 検証用fixtureと一時的な変更を後始末する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
+    # {
+    #   責務: [test_instances_do_not_duplicate_species_stats: 検証: instances do not duplicate species stats]
+    #   処理: [1: 検証: instances do not duplicate species stats]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_instances_do_not_duplicate_species_stats(self) -> None:
         record = self.monsters.create("ball_slime", "ぽん", 12)
         self.assertEqual(set(record.monster), {"schema_version", "id", "species_id", "name", "level", "experience", "plus_choices", "equipment_id", "source"})
         self.assertNotIn("attack", record.monster)
         self.assertEqual(calculate_stats(self.repository, record), self.repository.stats_at("ball_slime", 12))
 
+    # {
+    #   責務: [test_equipment_uses_multipliers_and_one_slot: 検証: equipment uses multipliers and one slot]
+    #   処理: [1: 検証: equipment uses multipliers and one slot]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_equipment_uses_multipliers_and_one_slot(self) -> None:
         record = self.monsters.create("slime", level=30)
         base = calculate_stats(self.repository, record)
@@ -996,6 +1429,12 @@ class FolderAndPartyTests(unittest.TestCase):
         self.assertEqual(equipped["speed"], round(base["speed"] * 0.8))
         self.assertEqual(equipped["attack"], base["attack"])
 
+    # {
+    #   責務: [test_species_not_listed_by_equipment_cannot_use_it: 検証: species not listed by equipment cannot use it]
+    #   処理: [1: 検証: species not listed by equipment cannot use it]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_species_not_listed_by_equipment_cannot_use_it(self) -> None:
         record = self.monsters.create("ghost", level=30)
         base = calculate_stats(self.repository, record)
@@ -1005,6 +1444,12 @@ class FolderAndPartyTests(unittest.TestCase):
         battle = BattleEngine(self.repository, [record], [enemy], rng=random.Random(1))
         self.assertIsNone(battle.allies[0].equipment)
 
+    # {
+    #   責務: [test_ai_reset_keeps_individual_progression: 検証: ai reset keeps individual progression]
+    #   処理: [1: 検証: ai reset keeps individual progression]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_ai_reset_keeps_individual_progression(self) -> None:
         record = self.monsters.create("ghost", "経験豊富なおばけ", 77)
         record.monster["plus_choices"] = ["ghost_plus_1_magic"]
@@ -1017,6 +1462,12 @@ class FolderAndPartyTests(unittest.TestCase):
         self.assertEqual(reset.ai["action_preferences"], {})
         self.assertEqual(reset.ai["context_preferences"], {})
 
+    # {
+    #   責務: [test_rescan_acquires_missing_folder_and_skips_duplicate: 検証: rescan acquires missing folder and skips duplicate]
+    #   処理: [1: 検証: rescan acquires missing folder and skips duplicate]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_rescan_acquires_missing_folder_and_skips_duplicate(self) -> None:
         external = self.root / "external" / "friend_monster"
         write_json(external / "monster.json", {
@@ -1035,6 +1486,12 @@ class FolderAndPartyTests(unittest.TestCase):
         self.assertEqual(self.monsters.acquire_from_scan(self.root / "external"), (0, 1))
         self.assertEqual(self.monsters.get("friend_001").name, "友達スライム")
 
+    # {
+    #   責務: [test_party_missing_id_becomes_empty_and_presets_are_unlimited_files: 検証: party missing id becomes empty and presets are unlimited files]
+    #   処理: [1: 検証: party missing id becomes empty and presets are unlimited files]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_party_missing_id_becomes_empty_and_presets_are_unlimited_files(self) -> None:
         first = self.monsters.create("slime")
         parties = PartyStore(self.root / "parties")
@@ -1046,7 +1503,17 @@ class FolderAndPartyTests(unittest.TestCase):
         self.assertIsNone(loaded[1])
 
 
+# {
+#   責務: [DeveloperMonsterCreatorTests: developer・モンスター・creator・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class DeveloperMonsterCreatorTests(unittest.TestCase):
+    # {
+    #   責務: [test_creator_previews_and_writes_existing_individual_format_to_all_targets: 検証: creator previews and writes existing individual format to all targets]
+    #   処理: [1: 検証: creator previews and writes existing individual format to all targets]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_creator_previews_and_writes_existing_individual_format_to_all_targets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -1076,14 +1543,39 @@ class DeveloperMonsterCreatorTests(unittest.TestCase):
                 creator.create("ghost", 42, "重複", "owned", "developer_owned")
 
 
+# {
+#   責務: [SaveDataTests: 保存・データ・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     root: 基準ディレクトリ
+#   ]
+# }
 class SaveDataTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
 
+    # {
+    #   責務: [tearDown: 検証用fixtureと一時的な変更を後始末する]
+    #   処理: [1: 検証用fixtureと一時的な変更を後始末する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
+    # {
+    #   責務: [test_named_save_contains_monsters_ai_items_and_can_be_copied_and_loaded: 検証: named save contains monsters ai items and can be copied and loaded]
+    #   処理: [1: 検証: named save contains monsters ai items and can be copied and loaded]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_named_save_contains_monsters_ai_items_and_can_be_copied_and_loaded(self) -> None:
         manager = SaveDataManager(self.root / "savedata")
         profile = manager.create("冒険その1")
@@ -1104,7 +1596,17 @@ class SaveDataTests(unittest.TestCase):
         self.assertTrue((copy_path / "monsters" / record.monster_id / "monster.json").is_file())
 
 
+# {
+#   責務: [ContextLearningTests: 判断用コンテキスト・学習・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class ContextLearningTests(unittest.TestCase):
+    # {
+    #   責務: [test_context_tags_describe_health_resources_numbers_and_target_state: 検証: context tags describe health resources numbers and target state]
+    #   処理: [1: 検証: context tags describe health resources numbers and target state]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_context_tags_describe_health_resources_numbers_and_target_state(self) -> None:
         self.assertEqual(
             describe_battle_context(0.2, 0.8, 0.1, 1, 3, 0.25, 10, 20),
@@ -1115,6 +1617,12 @@ class ContextLearningTests(unittest.TestCase):
             ("self:healthy", "allies:stable", "mp:ready", "numbers:advantage", "target:healthy", "threat:weaker"),
         )
 
+    # {
+    #   責務: [test_context_preferences_change_action_choice_without_state_combinations: 検証: context preferences change action choice without state combinations]
+    #   処理: [1: 検証: context preferences change action choice without state combinations]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_context_preferences_change_action_choice_without_state_combinations(self) -> None:
         ai = default_ai()
         skills = [
@@ -1134,6 +1642,12 @@ class ContextLearningTests(unittest.TestCase):
         self.assertEqual(critical["id"], "first")
         self.assertEqual(healthy["id"], "second")
 
+    # {
+    #   責務: [test_context_learning_is_sparse_clamped_and_counts_each_tag_once: 検証: context learning is sparse clamped and counts each tag once]
+    #   処理: [1: 検証: context learning is sparse clamped and counts each tag once]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_context_learning_is_sparse_clamped_and_counts_each_tag_once(self) -> None:
         ai = default_ai()
         tags = ("self:hurt", "numbers:even", "self:hurt")
@@ -1147,15 +1661,41 @@ class ContextLearningTests(unittest.TestCase):
         self.assertEqual(set(ai["context_preferences"]), {"self:hurt", "numbers:even"})
 
 
+# {
+#   責務: [BattleTests: 戦闘・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     repository: データ取得先
+#     monsters: モンスター一覧
+#   ]
+# }
 class BattleTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.repository = GameRepository(PROJECT_ROOT / "data")
         self.monsters = MonsterStore(Path(self.temporary.name) / "owned", self.repository)
 
+    # {
+    #   責務: [tearDown: 検証用fixtureと一時的な変更を後始末する]
+    #   処理: [1: 検証用fixtureと一時的な変更を後始末する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
+    # {
+    #   責務: [test_fight_command_uses_ai_for_every_member: 検証: fight command uses ai for every member]
+    #   処理: [1: 検証: fight command uses ai for every member]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_fight_command_uses_ai_for_every_member(self) -> None:
         hero = self.monsters.create("hero", level=10)
         ball = self.monsters.create("ball_slime", level=10)
@@ -1168,6 +1708,12 @@ class BattleTests(unittest.TestCase):
         self.assertTrue(any(contexts for contexts in learned_contexts))
         self.assertTrue(all(len(contexts) <= 6 for contexts in learned_contexts))
 
+    # {
+    #   責務: [test_engine_delegates_data_inference_and_learning_to_injected_responsibilities: 検証: engine delegates data inference and learning to injected responsibilities]
+    #   処理: [1: 検証: engine delegates data inference and learning to injected responsibilities]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_engine_delegates_data_inference_and_learning_to_injected_responsibilities(self) -> None:
         ally = self.monsters.create("hero", level=10)
         enemy = self.monsters.create("slime", level=8)
@@ -1209,6 +1755,12 @@ class BattleTests(unittest.TestCase):
         simulation.run_round()
         learning.learn.assert_not_called()
 
+    # {
+    #   責務: [test_battle_modules_keep_screen_data_inference_and_learning_boundaries: 検証: battle modules keep screen data inference and learning boundaries]
+    #   処理: [1: 検証: battle modules keep screen data inference and learning boundaries]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_battle_modules_keep_screen_data_inference_and_learning_boundaries(self) -> None:
         engine_source = (PROJECT_ROOT / "src/kadoka_quest/core/battle.py").read_text(encoding="utf-8")
         renderer_source = (PROJECT_ROOT / "src/kadoka_quest/ui/battle_renderer.py").read_text(encoding="utf-8")
@@ -1218,6 +1770,12 @@ class BattleTests(unittest.TestCase):
         self.assertNotIn("run_round", renderer_source)
         self.assertNotIn(".learn(", renderer_source)
 
+    # {
+    #   責務: [test_simulation_battle_never_updates_ai: 検証: simulation battle never updates ai]
+    #   処理: [1: 検証: simulation battle never updates ai]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_simulation_battle_never_updates_ai(self) -> None:
         ally = self.monsters.create("metal_slime", level=20)
         enemy = self.monsters.create("ghost", level=20)
@@ -1232,6 +1790,12 @@ class BattleTests(unittest.TestCase):
         self.assertEqual(ally.ai, before_ally)
         self.assertEqual(enemy.ai, before_enemy)
 
+    # {
+    #   責務: [test_guard_reduces_only_physical_damage: 検証: guard reduces only physical damage]
+    #   処理: [1: 検証: guard reduces only physical damage]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_guard_reduces_only_physical_damage(self) -> None:
         ally = self.monsters.create("ghost", level=100)
         enemy = self.monsters.create("hero", level=100)
@@ -1259,6 +1823,12 @@ class BattleTests(unittest.TestCase):
         guarded_magic_damage = engine._attack(actor, target, weaken)
         self.assertEqual(guarded_magic_damage, magic_damage)
 
+    # {
+    #   責務: [test_normal_attack_critical_is_one_in_sixteen_and_ignores_defense: 検証: normal attack critical is one in sixteen and ignores defense]
+    #   処理: [1: 検証: normal attack critical is one in sixteen and ignores defense]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_normal_attack_critical_is_one_in_sixteen_and_ignores_defense(self) -> None:
         ally = self.monsters.create("ghost", level=100)
         enemy = self.monsters.create("hero", level=100)
@@ -1291,9 +1861,24 @@ class BattleTests(unittest.TestCase):
         self.assertEqual(round(noncritical_damage * target.stats["hp"]), 1)
         self.assertFalse(any("会心" in line for line in engine.log))
 
+    # {
+    #   責務: [test_physical_evade_wording_is_specific_to_species_and_skill: 検証: physical evade wording is specific to species and skill]
+    #   処理: [1: 検証: physical evade wording is specific to species and skill]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_physical_evade_wording_is_specific_to_species_and_skill(self) -> None:
         attack_record = self.monsters.create("hero", level=30)
 
+        # {
+        #   責務: [evade_log: 戦闘・testsのevade・ログを求める]
+        #   処理: [1: 戦闘・testsのevade・ログを求める]
+        #   引数: [
+        #     species_id: 種族・識別子（str）
+        #     source: 元データ（str）
+        #   ]
+        #   戻り値: [result: 戦闘・testsのevade・ログを求めるための結果（str）]
+        # }
         def evade_log(species_id: str, source: str) -> str:
             target_record = self.monsters.create(species_id, level=30)
             engine = BattleEngine(
@@ -1318,6 +1903,12 @@ class BattleTests(unittest.TestCase):
         self.assertIn("かわした", generic_log)
         self.assertNotIn("すり抜けた", generic_log)
 
+    # {
+    #   責務: [test_bundled_external_folder_is_simulation_ready: 検証: bundled external folder is simulation ready]
+    #   処理: [1: 検証: bundled external folder is simulation ready]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_bundled_external_folder_is_simulation_ready(self) -> None:
         imported = self.monsters.discover_external(PROJECT_ROOT / "examples" / "simulation_party")
         self.assertEqual([record.monster_id for record in imported], ["guest_dice_slime_001"])
@@ -1327,7 +1918,21 @@ class BattleTests(unittest.TestCase):
         self.assertGreaterEqual(engine.round_number, 1)
 
 
+# {
+#   責務: [FieldEngineTests: フィールド・ルール処理・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     map_data: マップ・データ
+#     blocks: ブロック定義
+#     engine: ルール処理
+#   ]
+# }
 class FieldEngineTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.map_data = {
             "id": "field_engine_test",
@@ -1357,11 +1962,23 @@ class FieldEngineTests(unittest.TestCase):
         }
         self.engine = FieldEngine(self.map_data, self.blocks)
 
+    # {
+    #   責務: [test_core_module_has_no_pygame_or_repository_dependency: 検証: core module has no pygame or repository dependency]
+    #   処理: [1: 検証: core module has no pygame or repository dependency]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_core_module_has_no_pygame_or_repository_dependency(self) -> None:
         source = (PROJECT_ROOT / "src" / "kadoka_quest" / "core" / "field_engine.py").read_text(encoding="utf-8")
         self.assertNotIn("import pygame", source)
         self.assertNotIn("kadoka_quest.data", source)
 
+    # {
+    #   責務: [test_move_result_is_plain_data_and_does_not_mutate_position: 検証: move result is plain data and does not mutate position]
+    #   処理: [1: 検証: move result is plain data and does not mutate position]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_move_result_is_plain_data_and_does_not_mutate_position(self) -> None:
         result = self.engine.resolve_player_move(0, 1, 1, 0, "front", [], [])
         self.assertEqual(result, {
@@ -1373,6 +1990,12 @@ class FieldEngineTests(unittest.TestCase):
             "block_id": "floor",
         })
 
+    # {
+    #   責務: [test_move_result_distinguishes_characters_events_and_tiles: 検証: move result distinguishes characters events and tiles]
+    #   処理: [1: 検証: move result distinguishes characters events and tiles]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_move_result_distinguishes_characters_events_and_tiles(self) -> None:
         visible = [{"id": "villager", "x": 1, "y": 1}]
         hidden = [{"id": "enemy", "x": 1, "y": 1}]
@@ -1393,6 +2016,12 @@ class FieldEngineTests(unittest.TestCase):
             "blocked_tile",
         )
 
+    # {
+    #   責務: [test_event_direction_and_line_of_sight_queries_are_portable: 検証: event direction and line of sight queries are portable]
+    #   処理: [1: 検証: event direction and line of sight queries are portable]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_event_direction_and_line_of_sight_queries_are_portable(self) -> None:
         self.assertEqual(self.engine.front_position(1, 1, "back"), (1, 0))
         self.assertEqual(self.engine.nearby_event(1, 1)["id"], "sign")
@@ -1401,7 +2030,21 @@ class FieldEngineTests(unittest.TestCase):
         self.assertFalse(self.engine.has_clear_axis_path((3, 0), (3, 2), "enemy_walkable"))
 
 
+# {
+#   責務: [FieldActorControllerTests: フィールド・行動個体・controller・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     map_data: マップ・データ
+#     blocks: ブロック定義
+#     field: フィールド
+#   ]
+# }
 class FieldActorControllerTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.map_data = {
             "id": "actor_test",
@@ -1432,6 +2075,12 @@ class FieldActorControllerTests(unittest.TestCase):
         }
         self.field = FieldEngine(self.map_data, self.blocks)
 
+    # {
+    #   責務: [test_fixed_mob_controller_owns_runtime_state_and_dialogue_deck: 検証: fixed mob controller owns runtime state and dialogue deck]
+    #   処理: [1: 検証: fixed mob controller owns runtime state and dialogue deck]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_fixed_mob_controller_owns_runtime_state_and_dialogue_deck(self) -> None:
         controller = FixedMobController(self.field, random.Random(3))
         controller.reset(
@@ -1449,6 +2098,12 @@ class FieldActorControllerTests(unittest.TestCase):
         self.assertEqual(npc["name"], "GHOST")
         self.assertNotEqual(controller.next_dialogue(npc), controller.next_dialogue(npc))
 
+    # {
+    #   責務: [test_hidden_enemy_controller_excludes_starter_and_owns_timers: 検証: hidden enemy controller excludes starter and owns timers]
+    #   処理: [1: 検証: hidden enemy controller excludes starter and owns timers]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_hidden_enemy_controller_excludes_starter_and_owns_timers(self) -> None:
         controller = HiddenEnemyController(self.field, random.Random(4), 320, 950, 8)
         controller.set_world(self.map_data, self.blocks)
@@ -1458,6 +2113,12 @@ class FieldActorControllerTests(unittest.TestCase):
         self.assertEqual({item["spawn"]["species_id"] for item in controller.monsters}, {"slime"})
         self.assertTrue(all(item["next_move_tick"] == 1050 for item in controller.monsters))
 
+    # {
+    #   責務: [test_actor_controllers_are_portable_and_runtime_delegates_to_them: 検証: actor controllers are portable and runtime delegates to them]
+    #   処理: [1: 検証: actor controllers are portable and runtime delegates to them]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_actor_controllers_are_portable_and_runtime_delegates_to_them(self) -> None:
         for relative in (
             "src/kadoka_quest/core/fixed_mob_controller.py",
@@ -1471,7 +2132,17 @@ class FieldActorControllerTests(unittest.TestCase):
         self.assertIn("self.hidden_enemies.update(", runtime)
 
 
+# {
+#   責務: [FieldSessionSeparationTests: フィールド・セッション・separation・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class FieldSessionSeparationTests(unittest.TestCase):
+    # {
+    #   責務: [test_player_controller_owns_grid_position_facing_and_repeat_state: 検証: player controller owns grid position facing and repeat state]
+    #   処理: [1: 検証: player controller owns grid position facing and repeat state]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_player_controller_owns_grid_position_facing_and_repeat_state(self) -> None:
         map_data = {
             "width": 3,
@@ -1493,6 +2164,12 @@ class FieldSessionSeparationTests(unittest.TestCase):
         self.assertEqual(player.repeated_vector(1280), (1, 0))
         self.assertEqual(player.next_move_tick, 1370)
 
+    # {
+    #   責務: [test_event_application_emits_one_plain_effect_for_cross_app_work: 検証: event application emits one plain effect for cross app work]
+    #   処理: [1: 検証: event application emits one plain effect for cross app work]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_event_application_emits_one_plain_effect_for_cross_app_work(self) -> None:
         events = FieldEventApplication()
         npc = {
@@ -1516,6 +2193,12 @@ class FieldSessionSeparationTests(unittest.TestCase):
         self.assertEqual(church["kind"], "register_church")
         self.assertEqual(church["revive"]["map_id"], "town")
 
+    # {
+    #   責務: [test_field_data_and_progress_own_loading_clamping_and_persistence: 検証: field data and progress own loading clamping and persistence]
+    #   処理: [1: 検証: field data and progress own loading clamping and persistence]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_field_data_and_progress_own_loading_clamping_and_persistence(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repository = GameRepository(PROJECT_ROOT / "data")
@@ -1534,6 +2217,12 @@ class FieldSessionSeparationTests(unittest.TestCase):
             self.assertEqual(states.load()["revive_point"]["map_id"], "town")
             self.assertEqual(states.load()["inventory"]["orange"], 1)
 
+    # {
+    #   責務: [test_runtime_delegates_all_four_field_session_responsibilities: 検証: runtime delegates all four field session responsibilities]
+    #   処理: [1: 検証: runtime delegates all four field session responsibilities]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_runtime_delegates_all_four_field_session_responsibilities(self) -> None:
         runtime = (PROJECT_ROOT / "src/kadoka_quest/apps/game.py").read_text(encoding="utf-8")
         for call in (
@@ -1550,7 +2239,17 @@ class FieldSessionSeparationTests(unittest.TestCase):
             self.assertNotIn("import pygame", (PROJECT_ROOT / relative).read_text(encoding="utf-8"))
 
 
+# {
+#   責務: [GridMovementTests: マス・移動・testsの状態と振る舞いを担当する]
+#   フィールド: []
+# }
 class GridMovementTests(unittest.TestCase):
+    # {
+    #   責務: [test_grid_movement_interpolates_and_can_retarget_without_a_visual_jump: 検証: grid movement interpolates and can retarget without a visual jump]
+    #   処理: [1: 検証: grid movement interpolates and can retarget without a visual jump]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_grid_movement_interpolates_and_can_retarget_without_a_visual_jump(self) -> None:
         movement = GridMovement(2, 3, duration_ms=120)
         movement.move_to(3, 3, 1000)
@@ -1565,6 +2264,12 @@ class GridMovementTests(unittest.TestCase):
         self.assertEqual(movement.position(1180), (4.0, 3.0))
         self.assertFalse(movement.moving)
 
+    # {
+    #   責務: [test_snap_is_used_for_non_walking_position_changes: 検証: snap is used for non walking position changes]
+    #   処理: [1: 検証: snap is used for non walking position changes]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_snap_is_used_for_non_walking_position_changes(self) -> None:
         movement = GridMovement(1, 1)
         movement.move_to(2, 1, 100)
@@ -1573,7 +2278,24 @@ class GridMovementTests(unittest.TestCase):
         self.assertFalse(movement.moving)
 
 
+# {
+#   責務: [FieldFlowTests: フィールド・進行・testsの状態と振る舞いを担当する]
+#   フィールド: [
+#     temporary: temporary
+#     repository: データ取得先
+#     monsters: モンスター一覧
+#     states: states
+#     parties: parties
+#     game: ゲーム
+#   ]
+# }
 class FieldFlowTests(unittest.TestCase):
+    # {
+    #   責務: [setUp: 検証に必要な専用fixtureと依存を準備する]
+    #   処理: [1: 検証に必要な専用fixtureと依存を準備する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         root = Path(self.temporary.name)
@@ -1583,13 +2305,31 @@ class FieldFlowTests(unittest.TestCase):
         self.parties = PartyStore(root / "parties")
         self.game = KadokaQuest(self.repository, self.monsters, self.states, self.parties, random.Random(11))
 
+    # {
+    #   責務: [tearDown: 検証用fixtureと一時的な変更を後始末する]
+    #   処理: [1: 検証用fixtureと一時的な変更を後始末する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
+    # {
+    #   責務: [test_new_game_starts_in_starting_town: 検証: new game starts in starting town]
+    #   処理: [1: 検証: new game starts in starting town]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_new_game_starts_in_starting_town(self) -> None:
         self.assertEqual(self.game.map_data["id"], "starting_town")
         self.assertEqual((self.game.player_x, self.game.player_y), (18, 14))
 
+    # {
+    #   責務: [test_field_events_do_not_cover_the_underlying_block_color: 検証: field events do not cover the underlying block color]
+    #   処理: [1: 検証: field events do not cover the underlying block color]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_field_events_do_not_cover_the_underlying_block_color(self) -> None:
         self.game.map_data = {
             "id": "event_render_test",
@@ -1608,13 +2348,19 @@ class FieldFlowTests(unittest.TestCase):
         pygame.font.init()
         screen = pygame.Surface((1200, 720))
 
-        draw_field(screen, self.game)
+        draw_field(screen, self.game.field_session, self.game.character_images, self.game.party(), self.game.field_party_session.selected_index)
 
         grass = pygame.Color("#4E9F3D")
         for x, y in ((2, 0), (2, 1)):
             pixel = screen.get_at((FIELD_RECT.x + x * TILE + TILE // 2, FIELD_RECT.y + y * TILE + TILE // 2))
             self.assertEqual(pixel, grass)
 
+    # {
+    #   責務: [test_hidden_monsters_are_not_ball_slimes_and_collision_starts_battle: 検証: hidden monsters are not ball slimes and collision starts battle]
+    #   処理: [1: 検証: hidden monsters are not ball slimes and collision starts battle]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_hidden_monsters_are_not_ball_slimes_and_collision_starts_battle(self) -> None:
         self.game.change_map("greenwood", 6, 6)
         self.assertTrue(self.game.hidden_monsters)
@@ -1627,21 +2373,33 @@ class FieldFlowTests(unittest.TestCase):
         self.assertTrue(self.game.check_hidden_collision())
         self.assertEqual(self.game.mode, "battle")
 
+    # {
+    #   責務: [test_field_mobs_use_timers_and_chasers_move_faster_than_wanderers: 検証: field mobs use timers and chasers move faster than wanderers]
+    #   処理: [1: 検証: field mobs use timers and chasers move faster than wanderers]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_field_mobs_use_timers_and_chasers_move_faster_than_wanderers(self) -> None:
         self.game.change_map("greenwood", 6, 6)
         spawn = {"species_id": "slime", "min_level": 1, "max_level": 1}
-        chaser = {"x": 9, "y": 6, "spawn": spawn, "next_move_tick": 1000}
+        chaser = {"x": 9, "y": 6, "spawn": spawn, "ai": "chase", "next_move_tick": 1000}
         self.game.hidden_monsters = [chaser]
         self.assertFalse(self.game.update_field_mobs(999))
         self.assertTrue(self.game.update_field_mobs(1000))
         self.assertTrue(chaser["sees_player"])
         self.assertEqual(chaser["next_move_tick"], 1320)
-        wanderer = {"x": 9, "y": 8, "spawn": spawn, "next_move_tick": 2000}
+        wanderer = {"x": 9, "y": 8, "spawn": spawn, "ai": "random", "next_move_tick": 2000}
         self.game.hidden_monsters = [wanderer]
         self.game.update_field_mobs(2000)
         self.assertFalse(wanderer["sees_player"])
         self.assertEqual(wanderer["next_move_tick"], 2950)
 
+    # {
+    #   責務: [test_holding_a_move_key_repeats_after_a_short_delay: 検証: holding a move key repeats after a short delay]
+    #   処理: [1: 検証: holding a move key repeats after a short delay]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_holding_a_move_key_repeats_after_a_short_delay(self) -> None:
         self.game.change_map("greenwood", 9, 6)
         self.game.hidden_monsters = []
@@ -1653,6 +2411,12 @@ class FieldFlowTests(unittest.TestCase):
         self.game.stop_held_move(pygame.K_RIGHT)
         self.assertFalse(self.game.update_held_move(1270))
 
+    # {
+    #   責務: [test_player_logic_stays_on_grid_while_display_position_moves_smoothly: 検証: player logic stays on grid while display position moves smoothly]
+    #   処理: [1: 検証: player logic stays on grid while display position moves smoothly]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_player_logic_stays_on_grid_while_display_position_moves_smoothly(self) -> None:
         self.game.change_map("greenwood", 9, 6)
         self.game.hidden_monsters = []
@@ -1669,6 +2433,12 @@ class FieldFlowTests(unittest.TestCase):
         self.game.change_map("starting_town", 18, 14)
         self.assertEqual(self.game.player_movement.position(1121), (18.0, 14.0))
 
+    # {
+    #   責務: [test_battle_selection_and_auto_battle_run_with_keyboard_facing_methods: 検証: battle selection and auto battle run with keyboard facing methods]
+    #   処理: [1: 検証: battle selection and auto battle run with keyboard facing methods]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_battle_selection_and_auto_battle_run_with_keyboard_facing_methods(self) -> None:
         self.game.change_map("greenwood", 6, 6)
         self.game.start_wild_battle({"species_id": "slime", "min_level": 1, "max_level": 1})
@@ -1680,6 +2450,12 @@ class FieldFlowTests(unittest.TestCase):
         self.assertGreaterEqual(self.game.battle.round_number, 1)
         self.assertTrue(self.game.battle_playback)
 
+    # {
+    #   責務: [test_battle_actions_are_revealed_one_at_a_time_before_next_command: 検証: battle actions are revealed one at a time before next command]
+    #   処理: [1: 検証: battle actions are revealed one at a time before next command]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_battle_actions_are_revealed_one_at_a_time_before_next_command(self) -> None:
         self.game.change_map("greenwood", 6, 6)
         self.game.start_wild_battle({"species_id": "slime", "min_level": 5, "max_level": 5})
@@ -1703,18 +2479,36 @@ class FieldFlowTests(unittest.TestCase):
         self.assertTrue(saw_focused_actor)
         self.assertEqual(self.game.battle_visible_log_count, len(battle.log))
 
+    # {
+    #   責務: [test_detailed_critical_log_uses_the_short_battle_delay: 検証: detailed critical log uses the short battle delay]
+    #   処理: [1: 検証: detailed critical log uses the short battle delay]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_detailed_critical_log_uses_the_short_battle_delay(self) -> None:
         self.assertEqual(
             self.game.battle_log_delay("会心！相手の防御力を無視した！"),
             self.game.battle_log_delay("会心！"),
         )
 
+    # {
+    #   責務: [test_sign_cannot_be_walked_through: 検証: sign cannot be walked through]
+    #   処理: [1: 検証: sign cannot be walked through]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_sign_cannot_be_walked_through(self) -> None:
         self.game.change_map("starting_town", 24, 14)
         self.game.move(1, 0)
         self.assertEqual((self.game.player_x, self.game.player_y), (24, 14))
         self.assertIn("通り抜けられません", self.game.status)
 
+    # {
+    #   責務: [test_rock_interaction_enters_ghost_home_directly: 検証: rock interaction enters ghost home directly]
+    #   処理: [1: 検証: rock interaction enters ghost home directly]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_rock_interaction_enters_ghost_home_directly(self) -> None:
         self.game.change_map("fresh_forest", 22, 26)
         self.game.move(0, 1)
@@ -1723,6 +2517,12 @@ class FieldFlowTests(unittest.TestCase):
         self.game.interact()
         self.assertEqual(self.game.map_data["id"], "ghost_home")
 
+    # {
+    #   責務: [test_home_ghosts_wander_even_before_acquisition: 検証: home ghosts wander even before acquisition]
+    #   処理: [1: 検証: home ghosts wander even before acquisition]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_home_ghosts_wander_even_before_acquisition(self) -> None:
         self.game.change_map("ghost_home", 2, 9)
         self.assertEqual({npc["species_id"] for npc in self.game.home_npcs}, {"maru", "kadoka"})
@@ -1739,6 +2539,12 @@ class FieldFlowTests(unittest.TestCase):
         self.assertEqual(len(positions), len(set(positions)))
         self.assertNotIn((self.game.player_x, self.game.player_y), positions)
 
+    # {
+    #   責務: [test_visible_fixed_mob_keeps_grid_collision_while_its_sprite_interpolates: 検証: visible fixed mob keeps grid collision while its sprite interpolates]
+    #   処理: [1: 検証: visible fixed mob keeps grid collision while its sprite interpolates]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_visible_fixed_mob_keeps_grid_collision_while_its_sprite_interpolates(self) -> None:
         self.game.change_map("ghost_home", 2, 9)
         maru = next(npc for npc in self.game.home_npcs if npc["species_id"] == "maru")
@@ -1756,6 +2562,12 @@ class FieldFlowTests(unittest.TestCase):
         self.assertNotEqual(middle, tuple(float(value) for value in target))
         self.assertEqual(maru["_movement"].position(2180), tuple(float(value) for value in target))
 
+    # {
+    #   責務: [test_player_and_home_npcs_cannot_share_a_tile: 検証: player and home npcs cannot share a tile]
+    #   処理: [1: 検証: player and home npcs cannot share a tile]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_player_and_home_npcs_cannot_share_a_tile(self) -> None:
         self.game.change_map("ghost_home", 9, 7)
         maru = next(npc for npc in self.game.home_npcs if npc["species_id"] == "maru")
@@ -1764,6 +2576,12 @@ class FieldFlowTests(unittest.TestCase):
         self.assertEqual((self.game.player_x, self.game.player_y), (9, 7))
         self.assertIn("キャラクター", self.game.status)
 
+    # {
+    #   責務: [test_fixed_mob_dialogue_deck_does_not_repeat_and_facing_player_pauses_movement: 検証: fixed mob dialogue deck does not repeat and facing player pauses movement]
+    #   処理: [1: 検証: fixed mob dialogue deck does not repeat and facing player pauses movement]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_fixed_mob_dialogue_deck_does_not_repeat_and_facing_player_pauses_movement(self) -> None:
         self.game.change_map("ghost_home", 9, 7)
         self.game.player_direction = "right"
@@ -1778,6 +2596,12 @@ class FieldFlowTests(unittest.TestCase):
         self.assertFalse(self.game.move_home_npc(maru))
         self.assertEqual((maru["x"], maru["y"]), before)
 
+    # {
+    #   責務: [test_non_respawning_fixed_mob_stays_gone_after_talking: 検証: non respawning fixed mob stays gone after talking]
+    #   処理: [1: 検証: non respawning fixed mob stays gone after talking]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_non_respawning_fixed_mob_stays_gone_after_talking(self) -> None:
         self.game.change_map("ghost_home", 5, 5)
         self.game.player_direction = "right"
@@ -1795,6 +2619,12 @@ class FieldFlowTests(unittest.TestCase):
         self.game.reset_home_npcs()
         self.assertIsNone(next((npc for npc in self.game.home_npcs if npc["id"] == "one_time_boss"), None))
 
+    # {
+    #   責務: [test_fixed_boss_starts_battle_and_can_disappear_after_victory: 検証: fixed boss starts battle and can disappear after victory]
+    #   処理: [1: 検証: fixed boss starts battle and can disappear after victory]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_fixed_boss_starts_battle_and_can_disappear_after_victory(self) -> None:
         self.game.change_map("ghost_home", 5, 5)
         self.game.player_direction = "right"
@@ -1814,6 +2644,12 @@ class FieldFlowTests(unittest.TestCase):
         self.game.return_to_field()
         self.assertIsNone(next((npc for npc in self.game.home_npcs if npc["id"] == "test_boss"), None))
 
+    # {
+    #   責務: [test_seven_character_spring_password_acquires_maru_and_kadoka: 検証: seven character spring password acquires maru and kadoka]
+    #   処理: [1: 検証: seven character spring password acquires maru and kadoka]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_seven_character_spring_password_acquires_maru_and_kadoka(self) -> None:
         self.game.change_map("ghost_home", 17, 8)
         self.game.interact()
@@ -1826,6 +2662,12 @@ class FieldFlowTests(unittest.TestCase):
         species = {record.species_id for record in self.monsters.list_records()}
         self.assertTrue({"maru", "kadoka"}.issubset(species))
 
+    # {
+    #   責務: [test_defeat_revives_at_saved_church: 検証: defeat revives at saved church]
+    #   処理: [1: 検証: defeat revives at saved church]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_defeat_revives_at_saved_church(self) -> None:
         self.game.state["revive_point"] = {"map_id": "rokuta_village", "x": 14, "y": 10, "name": "ロクター教会"}
         self.game.battle = SimpleNamespace(outcome="defeat")
@@ -1836,6 +2678,12 @@ class FieldFlowTests(unittest.TestCase):
         self.assertEqual((self.game.player_x, self.game.player_y), (14, 10))
         self.assertIn("ロクター教会から復活", self.game.status)
 
+    # {
+    #   責務: [test_rokuta_church_updates_revival_point: 検証: rokuta church updates revival point]
+    #   処理: [1: 検証: rokuta church updates revival point]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def test_rokuta_church_updates_revival_point(self) -> None:
         self.game.change_map("rokuta_village", 14, 9)
         self.game.interact()

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "midgame_field",
+  "display_name": "中盤の通常域（メタル1%）",
+  "width": 12,
+  "height": 10,
+  "tile_size": 32,
+  "start": {"x": 5, "y": 8},
+  "tiles": [
+    ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+    ["wall", "grass", "grass", "grass", "path", "path", "path", "grass", "grass", "grass", "grass", "wall"],
+    ["wall", "grass", "grass", "grass", "path", "path", "path", "grass", "grass", "grass", "grass", "wall"],
+    ["wall", "grass", "grass", "grass", "path", "path", "path", "grass", "grass", "grass", "grass", "wall"],
+    ["wall", "grass", "grass", "grass", "path", "path", "path", "grass", "grass", "grass", "grass", "wall"],
+    ["wall", "grass", "grass", "grass", "path", "path", "path", "grass", "grass", "grass", "grass", "wall"],
+    ["wall", "grass", "grass", "grass", "path", "path", "path", "grass", "grass", "grass", "grass", "wall"],
+    ["wall", "grass", "grass", "grass", "path", "path", "path", "grass", "grass", "grass", "grass", "wall"],
+    ["wall", "grass", "grass", "grass", "path", "path", "path", "grass", "grass", "grass", "grass", "wall"],
+    ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+  ],
+  "spawns": [
+    {"species_id": "slime", "weight": 60, "min_level": 20, "max_level": 25},
+    {"species_id": "ghost", "weight": 39, "min_level": 20, "max_level": 25},
+    {"species_id": "metal_slime", "weight": 1, "min_level": 20, "max_level": 25}
+  ],
+  "fixed_mobs": [],
+  "events": []
+}

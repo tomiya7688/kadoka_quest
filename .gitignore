@@ -1,4 +1,5 @@
 .venv/
+venv_3135/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -13,3 +14,13 @@ imports/acquire/*/
 !imports/acquire/.gitkeep
 imports/simulation/*/
 !imports/simulation/.gitkeep
+
+# 移動前のローカル文書も、再配置されても誤って公開しないよう除外を維持します。
+/レビュー基準.md
+
+# ローカルの指示読込入口と旧配置の追加規約はGit管理から除外します。
+/AGENTS.override.md
+/docs/ローカルAI規約/
+
+# 開発者向け文書のうち、ローカル専用の追加規約と調査だけを公開対象から除外します。
+/docs/開発者向け/ローカル専用/

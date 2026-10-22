@@ -1,12 +1,29 @@
+# {
+#   責務: [battle_inference: 戦闘・inferenceの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import random
 from typing import Any, Iterable
 
 
+# {
+#   責務: [BattleInference: Selects one battle action without mutating learned AI data.]
+#   フィールド: []
+# }
 class BattleInference:
     """Selects one battle action without mutating learned AI data."""
 
+    # {
+    #   責務: [_tactic_bonus: 戦闘・inferenceのtactic・bonusを求める]
+    #   処理: [1: 戦闘・inferenceのtactic・bonusを求める]
+    #   引数: [
+    #     tactic: tactic（str）
+    #     kind: 種別（str）
+    #   ]
+    #   戻り値: [result: 戦闘・inferenceのtactic・bonusを求めるための結果（float）]
+    # }
     @staticmethod
     def _tactic_bonus(tactic: str, kind: str) -> float:
         table = {
@@ -17,6 +34,21 @@ class BattleInference:
         }
         return float(table.get(tactic, {}).get(kind, 0.0))
 
+    # {
+    #   責務: [choose: 戦闘・inferenceを選択する]
+    #   処理: [1: 戦闘・inferenceを選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     ai: AI（dict[str, Any]）
+    #     skills: スキル一覧（Iterable[dict[str, Any]]）
+    #     hp_ratio: HP・ratio（float）
+    #     ally_missing_hp_ratio: 味方・missing・HP・ratio（float）
+    #     mp_ratio: MP・ratio（float）
+    #     rng: 乱数供給元（random.Random）
+    #     context_tags: 判断用コンテキスト・tags（Iterable[str]）
+    #   ]
+    #   戻り値: [result: 戦闘・inferenceを選択するための結果（dict[str, Any] | None）]
+    # }
     def choose(
         self,
         ai: dict[str, Any],

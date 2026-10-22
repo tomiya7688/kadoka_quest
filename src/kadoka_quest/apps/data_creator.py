@@ -1,3 +1,7 @@
+# {
+#   責務: [data_creator: データ・creatorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import pygame
@@ -15,7 +19,34 @@ TARGET_LABELS = {
 }
 
 
+# {
+#   責務: [DataCreatorApp: データ・creator・appの状態と振る舞いを担当する]
+#   フィールド: [
+#     repository: データ取得先
+#     creator: creator
+#     species_ids: 種族・識別子一覧
+#     selected_species: 選択中・種族
+#     species_offset: 種族・表示位置
+#     target_index: 対象・位置番号
+#     name_field: 名前・フィールド
+#     level_field: レベル・フィールド
+#     id_field: 識別子・フィールド
+#     status: 状態異常
+#     target_button: 対象・button
+#     create_button: create・button
+#   ]
+# }
 class DataCreatorApp:
+    # {
+    #   責務: [__init__: データ・creator・appが利用する初期状態と依存を設定する]
+    #   処理: [1: データ・creator・appが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     repository: データ取得先（GameRepository | None）
+    #     creator: creator（DeveloperMonsterCreator | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(
         self,
         repository: GameRepository | None = None,
@@ -37,28 +68,67 @@ class DataCreatorApp:
         if self.species_ids:
             self._use_species_defaults()
 
+    # {
+    #   責務: [fields: データ・creator・appの入力項目を求める]
+    #   処理: [1: データ・creator・appの入力項目を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: データ・creator・appの入力項目を求めるための結果（list[TextField]）]
+    # }
     @property
     def fields(self) -> list[TextField]:
         return [self.name_field, self.level_field, self.id_field]
 
+    # {
+    #   責務: [selected_species_id: データ・creator・appの選択中・種族・識別子を求める]
+    #   処理: [1: データ・creator・appの選択中・種族・識別子を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: データ・creator・appの選択中・種族・識別子を求めるための結果（str）]
+    # }
     @property
     def selected_species_id(self) -> str:
         return self.species_ids[self.selected_species]
 
+    # {
+    #   責務: [selected_target: データ・creator・appの選択中・対象を求める]
+    #   処理: [1: データ・creator・appの選択中・対象を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: データ・creator・appの選択中・対象を求めるための結果（str）]
+    # }
     @property
     def selected_target(self) -> str:
         return self.creator.TARGETS[self.target_index]
 
+    # {
+    #   責務: [select_species: 種族を選択する]
+    #   処理: [1: 種族を選択する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     index: 位置番号（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def select_species(self, index: int) -> None:
         if not 0 <= index < len(self.species_ids):
             return
         self.selected_species = index
         self._use_species_defaults()
 
+    # {
+    #   責務: [cycle_target: 対象を順に切り替える]
+    #   処理: [1: 対象を順に切り替える]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def cycle_target(self) -> None:
         self.target_index = (self.target_index + 1) % len(self.creator.TARGETS)
         self._refresh_target_label()
 
+    # {
+    #   責務: [preview: データ・creator・appをプレビューする]
+    #   処理: [1: データ・creator・appをプレビューする]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: データ・creator・appをプレビューするための結果（dict | None）]
+    # }
     def preview(self) -> dict | None:
         if not self.species_ids:
             return None
@@ -67,6 +137,12 @@ class DataCreatorApp:
         except (KeyError, TypeError, ValueError, OSError):
             return None
 
+    # {
+    #   責務: [create_monster: モンスターを作成する]
+    #   処理: [1: モンスターを作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: モンスターを作成するための結果（bool）]
+    # }
     def create_monster(self) -> bool:
         if not self.species_ids:
             self.status = "利用できるモンスター種族がありません。"
@@ -86,14 +162,32 @@ class DataCreatorApp:
         self.status = f"{record.name} Lv{record.level} を作成しました: {path}"
         return True
 
+    # {
+    #   責務: [_use_species_defaults: 種族・defaultsを使用する]
+    #   処理: [1: 種族・defaultsを使用する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _use_species_defaults(self) -> None:
         bundle = self.repository.get_species(self.selected_species_id)
         self.name_field.value = str(bundle.definition.get("display_name", self.selected_species_id))
 
+    # {
+    #   責務: [_refresh_target_label: 対象・表示名を更新内容を読み直す]
+    #   処理: [1: 対象・表示名を更新内容を読み直す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def _refresh_target_label(self) -> None:
         self.target_button.label = f"生成先: {TARGET_LABELS[self.selected_target]}"
 
 
+# {
+#   責務: [main: データ・creatorのエントリ処理を実行する]
+#   処理: [1: データ・creatorのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     screen = init_pygame("kadoka quest - データクリエイター", (1100, 720))
     clock = pygame.time.Clock()

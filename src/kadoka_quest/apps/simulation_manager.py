@@ -1,3 +1,7 @@
+# {
+#   責務: [simulation_manager: simulation・managerの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 import pygame
@@ -8,9 +12,30 @@ from kadoka_quest.paths import IMPORT_ROOT, SAVE_ROOT
 from kadoka_quest.ui.common import ACCENT, BG, GOOD, MUTED, PANEL, PANEL_ALT, SELECTED, TEXT, WARN, Button, draw_text, draw_wrapped, init_pygame, smoke_frames
 
 
+# {
+#   責務: [SimulationManager: Player-facing manager for simulation-only opponents.]
+#   フィールド: [
+#     repository: データ取得先
+#     roster: 所有個体台帳
+#     records: 個体レコード一覧
+#     selected: 選択中
+#     offset: 表示位置
+#     opponents: opponents
+#     species_ids: 種族・識別子一覧
+#     species_index: 種族・位置番号
+#     level: レベル
+#     status: 状態異常
+#   ]
+# }
 class SimulationManager:
     """Player-facing manager for simulation-only opponents."""
 
+    # {
+    #   責務: [__init__: simulation・managerが利用する初期状態と依存を設定する]
+    #   処理: [1: simulation・managerが利用する初期状態と依存を設定する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(self) -> None:
         self.repository = GameRepository()
         self.roster = SimulationRosterService(
@@ -28,6 +53,12 @@ class SimulationManager:
         self.status = "模擬戦専用個体を準備し、相手パーティを1〜4体で編成してください。"
         self.refresh()
 
+    # {
+    #   責務: [refresh: simulation・managerを更新内容を読み直す]
+    #   処理: [1: simulation・managerを更新内容を読み直す]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def refresh(self) -> None:
         current = self.selected_record.monster_id if self.selected_record else None
         self.records = self.roster.list_records()
@@ -41,23 +72,59 @@ class SimulationManager:
         elif self.selected >= self.offset + 10:
             self.offset = max(0, self.selected - 9)
 
+    # {
+    #   責務: [selected_record: simulation・managerの選択中・個体レコードを求める]
+    #   処理: [1: simulation・managerの選択中・個体レコードを求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: simulation・managerの選択中・個体レコードを求めるための結果（型注釈なし）]
+    # }
     @property
     def selected_record(self):
         return self.records[self.selected] if self.records and self.selected < len(self.records) else None
 
+    # {
+    #   責務: [selected_species_id: simulation・managerの選択中・種族・識別子を求める]
+    #   処理: [1: simulation・managerの選択中・種族・識別子を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: simulation・managerの選択中・種族・識別子を求めるための結果（str）]
+    # }
     @property
     def selected_species_id(self) -> str:
         if not self.species_ids:
             raise RuntimeError("種族データがありません。")
         return self.species_ids[self.species_index % len(self.species_ids)]
 
+    # {
+    #   責務: [cycle_species: 種族を順に切り替える]
+    #   処理: [1: 種族を順に切り替える]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     amount: 量（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def cycle_species(self, amount: int) -> None:
         if self.species_ids:
             self.species_index = (self.species_index + amount) % len(self.species_ids)
 
+    # {
+    #   責務: [change_level: レベルを切り替える]
+    #   処理: [1: レベルを切り替える]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     amount: 量（int）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def change_level(self, amount: int) -> None:
         self.level = max(1, min(100, self.level + int(amount)))
 
+    # {
+    #   責務: [create_opponent: opponentを作成する]
+    #   処理: [1: opponentを作成する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def create_opponent(self) -> None:
         try:
             record = self.roster.create(self.selected_species_id, level=self.level)
@@ -69,6 +136,12 @@ class SimulationManager:
         self.refresh()
         self.status = f"{record.name} Lv{record.level} を模擬戦専用個体として作成しました。"
 
+    # {
+    #   責務: [import_external: externalを取り込む]
+    #   処理: [1: externalを取り込む]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def import_external(self) -> None:
         try:
             added, skipped = self.roster.import_external()
@@ -78,6 +151,12 @@ class SimulationManager:
         self.refresh()
         self.status = f"imports/simulation から {added}体を取込、{skipped}件をスキップしました。"
 
+    # {
+    #   責務: [delete_selected: 選択中を削除する]
+    #   処理: [1: 選択中を削除する]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def delete_selected(self) -> None:
         record = self.selected_record
         if record is None:
@@ -87,6 +166,12 @@ class SimulationManager:
         self.status = f"{record.name} を模擬戦専用ロスターから削除しました。"
         self.refresh()
 
+    # {
+    #   責務: [toggle_selected: 選択中を切り替える]
+    #   処理: [1: 選択中を切り替える]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def toggle_selected(self) -> None:
         record = self.selected_record
         if record is None:
@@ -101,6 +186,12 @@ class SimulationManager:
         self.opponents.append(record.monster_id)
         self.status = f"{record.name} を相手パーティへ追加しました。"
 
+    # {
+    #   責務: [request_battle: simulation・managerの要求・戦闘を求める]
+    #   処理: [1: simulation・managerの要求・戦闘を求める]
+    #   引数: [self: 処理対象インスタンス]
+    #   戻り値: [result: simulation・managerの要求・戦闘を求めるための結果（bool）]
+    # }
     def request_battle(self) -> bool:
         try:
             self.roster.request_battle(self.opponents)
@@ -111,6 +202,12 @@ class SimulationManager:
         return True
 
 
+# {
+#   責務: [main: simulation・managerのエントリ処理を実行する]
+#   処理: [1: simulation・managerのエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+# }
 def main() -> None:
     screen = init_pygame("kadoka quest - 模擬戦受付", (1100, 720))
     clock = pygame.time.Clock()
@@ -119,10 +216,22 @@ def main() -> None:
     smoke = smoke_frames()
     frames = 0
 
+    # {
+    #   責務: [close: simulation・managerを閉じる]
+    #   処理: [1: simulation・managerを閉じる]
+    #   引数: []
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def close() -> None:
         nonlocal running
         running = False
 
+    # {
+    #   責務: [start: simulation・managerを開始する]
+    #   処理: [1: simulation・managerを開始する]
+    #   引数: []
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def start() -> None:
         nonlocal running
         if manager.request_battle():

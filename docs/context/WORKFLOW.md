@@ -2,9 +2,13 @@
 
 Use the smallest context that can complete the assigned task. Accuracy comes before context reduction.
 
+Read the [developer rules index](../開発者向け/README.md) and its mandatory coding, responsibility, and comment rules before implementation. Keep their text in the linked canonical documents rather than copying it into AGENTS or game specifications.
+
 ## Start and stop conditions
 
 1. If no Issue is explicitly assigned, run `tools/task-workflow/script/start_task.bat` and use the single Issue it returns.
+   Follow the [Issue priority policy](../ワークフロー/Issue優先度方針.md): P0 is reserved for emergencies; normal work uses P1 through P4. Check dependencies before implementing the returned candidate.
+   During active GDScript migration, prefer gdscript-tagged P1 units and consult [migration units](../ワークフロー/GDScript移行実装単位.md) before repeating locally implemented work.
 2. Extract the task's **Goal / Required / Acceptance** from the Issue before broad exploration.
 3. Run `python tools/remote-context/script/sync_remote_context.py` before implementation to fetch and summarize remote changes.
 4. Read the selected Issue and only its Read scope / related routing information.
@@ -43,3 +47,14 @@ Use these compact outputs to narrow the working set. Do not load their complete 
 5. Report any materially relevant area not checked as **Unverified** instead of continuing open-ended exploration merely for reassurance.
 
 Keep development utilities under `tools/<tool-name>/script/`; tool-specific config/support files stay inside that tool directory.
+
+## User-visible expectations
+
+For user-observable changes, update the matching Given / When / Then row in
+`docs/testing/E2E_EXPECTATIONS.md`, including persistence/reload expectations.
+Use its stable scenario ID in the corresponding source E2E. If the harness or
+scenario is not implemented, leave the row `missing` with a reason; do not relabel
+unit/integration/smoke evidence as E2E coverage. Run
+`python tools/e2e-catalog/script/check_e2e_catalog.py` after catalog/test-reference
+changes. It checks references only; executing E2E is separate. CI/quality command
+integration remains Issue #205 after the harness and scenarios exist.

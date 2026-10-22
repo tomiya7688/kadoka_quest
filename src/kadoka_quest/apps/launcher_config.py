@@ -1,3 +1,7 @@
+# {
+#   責務: [launcher_config: launcher・configの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 

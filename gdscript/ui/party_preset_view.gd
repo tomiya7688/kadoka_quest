@@ -1,0 +1,164 @@
+# {
+#   責務: [party_preset_view: Preset list/name input and semantic signals only; no files or party mutation.]
+#   フィールド: [
+#     listing: listing（ItemList）
+#     name_input: 名前・入力（LineEdit）
+#     heading: heading（Label）
+#     message: message（Label）
+#     buttons: buttons（Dictionary）
+#   ]
+# }
+extends PanelContainer
+## Preset list/name input and semantic signals only; no files or party mutation.
+
+signal save_requested(name: String)
+signal load_requested(filename: String)
+signal refresh_requested
+signal back_requested
+const Style = preload("res://ui/pixel_theme.gd")
+var listing: ItemList
+var name_input: LineEdit
+var heading: Label
+var message: Label
+var buttons: Dictionary = {}
+
+
+# {
+#   責務: [_ready: パーティ・プリセット・表示のエントリ処理を実行する]
+#   処理: [1: パーティ・プリセット・表示のエントリ処理を実行する]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
+func _ready() -> void:
+	# 一覧と名前入力を同じピクセルテーマへ揃え、内容超過時は全体をスクロールします。
+	var column := Style.modal_column(self)
+	heading = Label.new()
+	column.add_child(heading)
+	var help := Label.new()
+	help.text = "一覧でEnterを押すと、選択したプリセットを編成の下書きへ読み込みます。\nTab  移動 / ↑↓・PageUp/Down  選択 / Esc  編成へ戻る"
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(help)
+	listing = ItemList.new()
+	listing.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	listing.custom_minimum_size.y = 136
+	listing.allow_search = false
+	listing.wraparound_items = false
+	listing.item_activated.connect(func(_index: int): request_load())
+	column.add_child(listing)
+	name_input = LineEdit.new()
+	name_input.placeholder_text = "新しいプリセット名（同名も別ファイルへ追加）"
+	name_input.keep_editing_on_text_submit = true
+	name_input.text_submitted.connect(func(_text: String): save_requested.emit(name_input.text))
+	column.add_child(name_input)
+	var actions := HBoxContainer.new()
+	column.add_child(actions)
+	_button(actions, "save", "下書きを追加保存", func(): save_requested.emit(name_input.text))
+	_button(actions, "load", "選択を下書きへ読込", request_load)
+	_button(actions, "refresh", "一覧更新", func(): refresh_requested.emit())
+	_button(actions, "back", "編成へ戻る", func(): back_requested.emit())
+	message = Label.new()
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(message)
+	var order: Array[Control] = [listing, name_input, buttons["save"], buttons["load"], buttons["refresh"], buttons["back"]]
+	Style.cycle_focus(order)
+
+
+# {
+#   責務: [_button: パーティ・プリセット・表示のbuttonを求める]
+#   処理: [1: パーティ・プリセット・表示のbuttonを求める]
+#   引数: [
+#     parent: parent（Control）
+#     id: 識別子（String）
+#     text: 文字列（String）
+#     callback: コールバック（Callable）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
+func _button(parent: Control, id: String, text: String, callback: Callable) -> void:
+	var button := Style.button(text)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(callback)
+	parent.add_child(button)
+	buttons[id] = button
+
+
+# {
+#   責務: [show_catalog: パーティ・プリセット・表示のshow・catalogを求める]
+#   処理: [1: パーティ・プリセット・表示のshow・catalogを求める]
+#   引数: [
+#     catalog: catalog（Dictionary）
+#     focus_list: focus・list（bool）
+#     prefer: prefer（String）
+#   ]
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
+func show_catalog(catalog: Dictionary, focus_list: bool = false, prefer: String = "") -> void:
+	var selected := listing.get_selected_items()
+	var previous: String = prefer
+	if previous.is_empty() and not selected.is_empty():
+		previous = listing.get_item_metadata(selected[0])
+	listing.clear()
+	if not catalog["ok"]:
+		heading.text = "保存パーティのプリセット"
+		message.text = "一覧読込失敗: " + str(catalog["message"])
+		if focus_list:
+			listing.grab_focus.call_deferred()
+		return
+	heading.text = "保存パーティのプリセット（%d件 / 上限なし）" % catalog["entries"].size()
+	var selected_index := 0
+	for entry: Dictionary in catalog["entries"]:
+		var members: PackedStringArray = []
+		for id in entry["members"]:
+			members.append(str(id) if id != null else "空き")
+		var index := listing.add_item(str(entry["name"]).replace("\n", " ") + " — " + " / ".join(members))
+		listing.set_item_metadata(index, entry["filename"])
+		listing.set_item_tooltip(index, str(entry["name"]) + "\n" + entry["filename"] + "\n" + " / ".join(members))
+		if entry["filename"] == previous:
+			selected_index = index
+	if listing.item_count > 0:
+		listing.select(selected_index)
+		listing.ensure_current_is_visible()
+	message.text = "読込は下書きだけを置換します。現在パーティへの反映は編成画面の保存で行います。"
+	if not catalog["warnings"].is_empty():
+		message.text = "注意%d件: %s" % [catalog["warnings"].size(), str(catalog["warnings"][0])]
+	if focus_list:
+		listing.grab_focus.call_deferred()
+
+
+# {
+#   責務: [request_load: パーティ・プリセット・表示の要求・loadを求める]
+#   処理: [1: パーティ・プリセット・表示の要求・loadを求める]
+#   引数: []
+#   戻り値: [result: なし（void）。必要な状態更新は処理内で行う]
+# }
+func request_load() -> void:
+	var selected := listing.get_selected_items()
+	if selected.is_empty():
+		message.text = "読込するプリセットを選択してください。"
+		return
+	load_requested.emit(str(listing.get_item_metadata(selected[0])))
+
+
+# {
+#   責務: [handle_navigation: navigationを入力を処理する]
+#   処理: [1: navigationを入力を処理する]
+#   引数: [key: キー（int）]
+#   戻り値: [result: navigationを入力を処理するための結果（bool）]
+# }
+func handle_navigation(key: int) -> bool:
+	if not listing.has_focus():
+		return false  # Home/End and Page keys must not steal the name field's caret.
+	if listing.item_count == 0:
+		return true
+	var selected := listing.get_selected_items()
+	var index := selected[0] if not selected.is_empty() else 0
+	var page := maxi(1, int(listing.size.y / maxf(1, listing.get_item_rect(0).size.y)))
+	match key:
+		KEY_HOME: index = 0
+		KEY_END: index = listing.item_count - 1
+		KEY_PAGEUP: index -= page
+		KEY_PAGEDOWN: index += page
+		_: return false
+	listing.select(clampi(index, 0, listing.item_count - 1))
+	listing.ensure_current_is_visible()
+	return true

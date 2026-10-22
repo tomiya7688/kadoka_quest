@@ -1,3 +1,7 @@
+# {
+#   責務: [developer_monster_creator: developer・モンスター・creatorの公開機能・宣言を定義する]
+#   フィールド: []
+# }
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,9 +13,27 @@ from kadoka_quest.data.repository import GameRepository
 from kadoka_quest.paths import IMPORT_ROOT, SAVE_ROOT
 
 
+# {
+#   責務: [DeveloperMonsterCreator: developer・モンスター・creatorの状態と振る舞いを担当する]
+#   フィールド: [
+#     TARGETS: 対象一覧
+#     repository: データ取得先
+#     output_roots: output・roots
+#   ]
+# }
 class DeveloperMonsterCreator:
     TARGETS = ("owned", "acquire", "simulation")
 
+    # {
+    #   責務: [__init__: developer・モンスター・creatorが利用する初期状態と依存を設定する]
+    #   処理: [1: developer・モンスター・creatorが利用する初期状態と依存を設定する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     repository: データ取得先（GameRepository | None）
+    #     output_roots: output・roots（dict[str, Path] | None）
+    #   ]
+    #   戻り値: [result: なし（None）。状態更新や検証は処理内で行う]
+    # }
     def __init__(
         self,
         repository: GameRepository | None = None,
@@ -24,6 +46,16 @@ class DeveloperMonsterCreator:
             "simulation": IMPORT_ROOT / "simulation",
         }
 
+    # {
+    #   責務: [preview: developer・モンスター・creatorをプレビューする]
+    #   処理: [1: developer・モンスター・creatorをプレビューする]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species_id: 種族・識別子（str）
+    #     level: レベル（int）
+    #   ]
+    #   戻り値: [result: developer・モンスター・creatorをプレビューするための結果（dict[str, Any]）]
+    # }
     def preview(self, species_id: str, level: int) -> dict[str, Any]:
         level = self._validate_level(level)
         bundle = self.repository.get_species(species_id)
@@ -35,6 +67,19 @@ class DeveloperMonsterCreator:
             "skill_ids": self.repository.skill_ids_at(species_id, level),
         }
 
+    # {
+    #   責務: [create: developer・モンスター・creatorを作成する]
+    #   処理: [1: developer・モンスター・creatorを作成する]
+    #   引数: [
+    #     self: 処理対象インスタンス
+    #     species_id: 種族・識別子（str）
+    #     level: レベル（int）
+    #     name: 名前（str）
+    #     target: 対象（str）
+    #     monster_id: モンスター・識別子（str | None）
+    #   ]
+    #   戻り値: [result: developer・モンスター・creatorを作成するための結果（tuple[MonsterRecord, Path]）]
+    # }
     def create(
         self,
         species_id: str,
@@ -61,6 +106,12 @@ class DeveloperMonsterCreator:
         )
         return record, store.root / record.monster_id
 
+    # {
+    #   責務: [_validate_level: レベルを妥当性を検査する]
+    #   処理: [1: レベルを妥当性を検査する]
+    #   引数: [level: レベル（int）]
+    #   戻り値: [result: レベル（int）]
+    # }
     @staticmethod
     def _validate_level(level: int) -> int:
         level = int(level)
@@ -68,6 +119,12 @@ class DeveloperMonsterCreator:
             raise ValueError("Level must be between 1 and 100")
         return level
 
+    # {
+    #   責務: [_validate_optional_id: optional・識別子を妥当性を検査する]
+    #   処理: [1: optional・識別子を妥当性を検査する]
+    #   引数: [monster_id: モンスター・識別子（str | None）]
+    #   戻り値: [result: optional・識別子を妥当性を検査するための結果（str | None）]
+    # }
     @staticmethod
     def _validate_optional_id(monster_id: str | None) -> str | None:
         value = str(monster_id or "").strip()
