@@ -8,11 +8,15 @@ During active migration, prefer gdscript P1 units; read [migration units](docs/�
 
 1. Extract **Goal / Required / Acceptance** from the Issue.
 2. Read the matching row in `docs/CODEMAP.md` for implementation, focused tests, and specification. Use `docs/context/ROUTES.md` only for additional routing when needed.
-3. Run `python tools/remote-context/script/sync_remote_context.py` when local work may be behind remote Chat/Codex changes.
+3. Run `python tools/remote-context/script/sync_remote_context.py` at task start and before every commit/push.
 4. Search or use compact indexes before opening additional full files.
 5. Stop exploring once the required change, constraints, and validation are clear.
 
 `README.md`, `docs/FORMATS.md`, generated diagrams, and broad architecture docs are not default reading. Open them only when the route or task requires them. Generated/index files are navigation aids, never source-of-truth replacements.
+
+## Co-development
+
+The user, Codex, Claude Code, Copilot, and ChatGPT work concurrently; follow [the task workflow](docs/ワークフロー/ワークフロー.md). Skip units already in an active remote branch or open PR. Branch from latest `origin/main` with an author prefix (`codex/`, `claude/`, `copilot/`, `kadoka/`). `CLAUDE.md`, `.github/copilot-instructions.md`, and the `kadoka-task` skill only route here.
 
 ## Project basics
 
@@ -61,7 +65,7 @@ For context-efficient implementation workflow details, read `docs/context/WORKFL
 
 Useful compact helpers:
 
-- remote changes: `tools/remote-context/script/sync_remote_context.py`
+- remote changes and active branches: `tools/remote-context/script/sync_remote_context.py`
 - likely tests: `tools/affected-tests/script/affected_tests.py`
 - dependency ambiguity: `tools/import-map/script/python_import_map.py`
 - compact class diagram: `tools/code-docs/script/generate_class_diagram.py`

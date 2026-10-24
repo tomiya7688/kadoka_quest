@@ -30,7 +30,7 @@ definitions are omitted. Paths are sorted; timestamps and absolute paths are not
 embedded. Search only the relevant file section after reading CODEMAP. Tests:
 `python -m pytest tests/test_repo_map.py`.
 
-- `remote-context`: fetches and summarizes remote changes for Chat/Codex workflows.
+- `remote-context`: fetches all remote branches, summarizes changes from main, and lists recent unmerged remote branches so concurrent contributors (user, Codex, Claude Code, Copilot, ChatGPT) avoid duplicate work. Use `--active-days` / `--max-branches` to widen the list. Tests: `tests/test_remote_context.py`.
 - `affected-tests`: maps changed files to likely focused tests and signals when broader validation is safer.
 - `import-map`: emits a compact JSON index of Python files and imports for dependency-routing questions.
 - `character-sprites`: builds bundled character sprites from source sheets.
