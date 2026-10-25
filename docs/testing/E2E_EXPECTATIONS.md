@@ -50,6 +50,19 @@ python tools/e2e-catalog/script/check_e2e_catalog.py --missing
 | KQ-P29 | セーブ全体復元 | 位置/教会/編成/アイテム/進行フラグ/個体AI/プリセットが変化した状態 | 保存、runtimeとStoreを作り直し同名セーブをロード | state.json、items/items.json、monsters/*/monster.json・ai.json、parties/*.jsonの指定値が一致し、補間中の小数座標を保存しない | yes | - | missing | 全永続化対象の独立再生成ケース未対応。#202/#204 |
 | KQ-P30 | 模擬戦施設 | 自分と対戦登録個体、AI/経験値の事前snapshot | 受付を開いて相手を選び、閉じて勝利/敗北、reload | requestを1回消費し模擬戦を開始する。双方のAIと経験値/通常報酬は変化せず、敗北でも教会へ移動しない | yes | - | missing | 受付→request→戦闘→終了→reload未対応。#203、依存の明示化は#214 |
 
+## Godot版 / ゲーム操作
+
+Godot版のE2Eは `tests/e2e/godot_harness.py` が実行します。harnessは実行ごとに新しいGodotプロセスを `--headless --fixed-fps 60` で起動し、`gdscript/tests/e2e_driver.gd` がproject.godotのrun/main_sceneを本番と同じ方法で開きます。driverは `Input.parse_input_event` でキーと確定文字を送り、画面の状態を読み取るだけで、ゲーム状態を直接書き換えません。再起動は同じ専用保存先で新しいGodotプロセスを起動する操作です。Godotが未設定の環境では各テストがskipになり、skipを成功として扱いません。
+
+| ID | 機能/画面 | Given | When | Then | Persistence | E2E | Status | 理由/次の担当 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| KQ-G01 | Godot起動（セーブなし） | 空の専用保存先 | 起動画面を開き、Enterでセーブ名入力へ進み、Escで戻る | タイトル画面で「つづきから」が無効、「はじめから」に選択がある。Escで最初の枠へ戻り、保存先を作らない | no | `tests/e2e/test_godot_title_journeys.py::test_godot_launch_without_saves_offers_only_new_game` | covered | Godot版タイトル（#191） |
+| KQ-G02 | Godot新規開始・保存・再起動 | 空の専用保存先 | はじめからで「冒険A」を入力して開始し、右へ長押し、メニューから保存、再起動してつづきからで選ぶ | はじまりの街から始まり、state.jsonが移動後の地図・座標・向きになる。再起動後のフィールドが保存した位置と向きから始まる | yes | `tests/e2e/test_godot_title_journeys.py::test_godot_new_game_save_and_restart_resumes_position` | covered | Godot版タイトル（#191） |
+| KQ-G03 | Godot複数セーブの選択 | 位置の違う「冒険2」「冒険10」を保存済み | 再起動してつづきからの一覧で二番目を選ぶ | 一覧が冒険2・冒険10の自然順で、冒険10の位置から始まる。どちらのセーブのファイルも変わらない | yes | `tests/e2e/test_godot_title_journeys.py::test_godot_continue_selects_one_of_several_saves` | covered | Godot版タイトル（#191） |
+| KQ-G04 | Godot同名セーブの拒否 | 「冒険A」を保存済み | 再起動してはじめからで同じ「冒険A」を入力して決定し、Escで戻る | タイトル画面のセーブ名入力に留まり、同じ名前の理由を表示する。Escで最初の枠へ戻り、保存先のファイルは変わらない | no | `tests/e2e/test_godot_title_journeys.py::test_godot_new_game_rejects_existing_save_name` | covered | Godot版タイトル（#191） |
+| KQ-G05 | Godot牧場台帳・編成 | 所有個体が2体以上の保存済みセーブ | フィールドのメニューからなかま・パーティを開き、編成を変えて保存、再起動 | 台帳と編成画面に所有個体を表示し、保存した編成を再起動後も復元する | yes | - | missing | 既存のGodot画面probeはあるが、起動画面からの実入力E2E未対応。Godot E2E harnessで追加する |
+| KQ-G06 | Godot湧き場の暗号入力 | 湧き場の前にいる保存済みセーブ | 調べて暗号画面を開き、仮想かなで7文字を入力して確定、保存して再起動 | 一致したときだけ仲間が増え、再起動後も所有している。取消では保存データを変えない | yes | - | missing | 既存のGodot暗号probeはあるが、起動画面からの実入力E2E未対応。Godot E2E harnessで追加する |
+
 ## Developer / 制作操作
 
 編集・ビルド用fixtureは隔離したプロジェクト複製を使い、本物のdata/assetsを書き換えない。

@@ -15,7 +15,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 HEADER = ("ID", "機能/画面", "Given", "When", "Then", "Persistence", "E2E", "Status", "理由/次の担当")
 STATUSES = ("covered", "missing", "intentionally-not-e2e")
-ID_PATTERN = re.compile(r"KQ-[PDX][0-9]{2}")
+# P: Python版Player、G: Godot版Player、D: Developer、X: 意図的な除外のシナリオです。
+ID_PATTERN = re.compile(r"KQ-[PGDX][0-9]{2}")
 
 
 # {

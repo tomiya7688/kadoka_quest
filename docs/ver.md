@@ -16,7 +16,7 @@
 
 ```
 
-# 132. Godot版のタイトル画面とセーブ選択を追加
+# 132. Godot版のタイトル画面とセーブ選択、Godot版E2E実行基盤を追加
 
 Issue #77とタイトル画面の子Issue #191の方針に沿って、Godot版にタイトル画面を追加しました。ver#117の時点で、Godot版はタイトル画面がなく、起動するとセーブ名defaultのフィールドから始まっていました。利用者は、保存済みの冒険を選んで再開することも、新しいセーブ名で始めることもできませんでした。番号はPR #256の#130とCodexの作業中の#131を避けて#132にしました。
 
@@ -26,14 +26,14 @@ Godot版の起動画面はgdscript/scenes/title.tscnです。タイトル画面�
 
 title_view.gdは表示と選択のシグナルだけを担当し、保存やセーブ名の検査を行いません。title_application.gdは、セーブ名を保存先の規則で検査し、40文字超の名前と、保存先に同じ名前のフォルダがある名前を拒否してから、フィールド画面へセーブ名を渡して切り替えます。state.jsonのないフォルダも拒否するのは、残っている個体や所持品を新しい冒険へ混ぜないためです。Windowsでは大文字小文字だけが違う名前も同じフォルダとして拒否します。切替は一度だけ行い、同じフレームの二回目の要求ではフィールドを二つ作りません。新しいセーブのフォルダは、フィールドで最初に保存したときに作られます。環境変数KADOKA_GDSCRIPT_SAVE_NAMEを指定した起動では、従来の自動実行と検査のため、タイトル画面を表示せずにフィールドから始めます。保存先の既定値user://savedataは、field_save_store.gdのconfigured_rootへまとめ、タイトル画面とフィールド画面が同じ保存先を使うようにしました。
 
-Godot版にはE2Eの実行基盤がないため、docs/testing/E2E_EXPECTATIONS.md（Python版Playerの操作カタログ）へ行を追加していません。タイトルの実Godotプローブは、本番のtitle.tscnを起動してフィールド画面へ切り替わるまでを確認しますが、実際のウィンドウでのキー操作を含むE2Eではありません。
+Godot版のE2E実行基盤を新しく作りました。tests/e2e/godot_harness.pyは、実行ごとに新しいGodotプロセスを--headless --fixed-fps 60で起動し、同じ専用保存先を再起動の間で引き継ぎます。gdscript/tests/e2e_driver.gdは、project.godotのrun/main_sceneを本番と同じ方法で開き、Input.parse_input_eventでキーと確定文字を送り、画面の状態を読み取るだけで記録します。driverは保存・移動・画面切替のメソッドを直接呼ばず、未知の操作や到達しない画面を操作番号付きの失敗にします。E2Eカタログへ「Godot版 / ゲーム操作」の節を追加し、KQ-G01〜G04（セーブなしの起動、新規開始・保存・再起動、複数セーブの選択、同名セーブの拒否）をtests/e2e/test_godot_title_journeys.pyでcoveredにしました。既存のGodot画面のうち、牧場台帳・編成（KQ-G05）と湧き場の暗号入力（KQ-G06）は、起動画面からの実入力E2Eがないためmissingとして登録しました。カタログ検査はG始まりのIDを受け付けるようにしました。CIにはGodotがないため、CIではGodot版のE2Eがskipになります。CIへのGodot導入は#205の範囲です。
 
 描画用のrender_pixel_ui.gdへ、セーブなしのタイトル・セーブ名入力・保存後のセーブ一覧の三画面を追加しました。フィールドからタイトル画面へ戻る操作、セーブの別名保存・削除、Godot版の戦闘画面は未対応です。保存JSONの形式、Python版のタイトル画面、ゲーム処理は変更していません。
 
-検証結果（Python 3.14.7 / pygame-ce 2.5.8 / Godot 4.7.2、専用の一時保存先とpytest一時領域）: 自己レビューで見つけた四件（再開拒否の理由が一覧の読み直しで消える、二回目の切替要求でフィールドを二つ作れる、state.jsonのない同名フォルダを新しい冒険へ取り込む、保存先の既定値の重複）を修正し、プローブへ回帰確認を追加しました。タイトルの集中テスト3件は、実Godotで既存セーブの再開・新規開始・不正名と同名フォルダの拒否・二回目の切替の拒否・フォーカス・Esc・画面内配置・保存先の不変を確認して成功しました。既存のbootstrap16件と、白黒UIのプローブも成功しました。自己レビューの修正後、タイトル・起動・保存・教会・編成の関連63件・468サブテストが成功しました（4分50秒）。ローカル全体テストは1345件成功・3件失敗・26452サブテスト成功でした（1時間8分17秒。同じ機械で別の作業が並行していました）。失敗は、治療付き回復と状態付きSessionの少数回の時間計測（3000us上限に対して3684us）と、編成テストのGodot起動の30秒超過です。三件ともタイトル画面の変更と関係しない経路で、単独の再実行で成功しました（状態付きSessionは再実行1回目3243usで失敗し、2回目で成功）。宣言コメントは443ファイル・3590宣言・エラー0、プロジェクト規則と差分空白検査も成功しました。実OpenGLレンダラーでタイトル三画面のPNGを描画して配置を確認しました。実際のウィンドウ操作・IME・ゲームパッド・配布exportは未検証です。
+検証結果（Python 3.14.7 / pygame-ce 2.5.8 / Godot 4.7.2、専用の一時保存先とpytest一時領域）: 自己レビューで見つけた四件（再開拒否の理由が一覧の読み直しで消える、二回目の切替要求でフィールドを二つ作れる、state.jsonのない同名フォルダを新しい冒険へ取り込む、保存先の既定値の重複）を修正し、プローブへ回帰確認を追加しました。タイトルの集中テスト3件は、実Godotで既存セーブの再開・新規開始・不正名と同名フォルダの拒否・二回目の切替の拒否・フォーカス・Esc・画面内配置・保存先の不変を確認して成功しました。既存のbootstrap16件と、白黒UIのプローブも成功しました。自己レビューの修正後、タイトル・起動・保存・教会・編成の関連63件・468サブテストが成功しました（4分50秒）。Godot版のE2Eは、タイトルの4シナリオとharnessの失敗検査2件が実Godotで成功し、同じ4シナリオを2回実行して同じ結果になりました。既存のPython版E2Eを含むtests/e2eの31件も成功し、E2Eカタログはcovered16・missing27・intentionally-not-e2e1でエラーなしです。ローカル全体テストは1345件成功・3件失敗・26452サブテスト成功でした（1時間8分17秒。同じ機械で別の作業が並行していました）。失敗は、治療付き回復と状態付きSessionの少数回の時間計測（3000us上限に対して3684us）と、編成テストのGodot起動の30秒超過です。三件ともタイトル画面の変更と関係しない経路で、単独の再実行で成功しました（状態付きSessionは再実行1回目3243usで失敗し、2回目で成功）。宣言コメントは443ファイル・3590宣言・エラー0、プロジェクト規則と差分空白検査も成功しました。実OpenGLレンダラーでタイトル三画面のPNGを描画して配置を確認しました。実際のウィンドウ操作・IME・ゲームパッド・配布exportは未検証です。
 
-変更したファイル: gdscript/data/field_save_store.gd、gdscript/application/field_application.gd、gdscript/project.godot、gdscript/tests/render_pixel_ui.gd、tests/test_gdscript_bootstrap.py、docs/{GAME_GUI,CODEMAP,ver}.md。
-追加したファイル: gdscript/application/title_application.gd、gdscript/ui/title_view.gd、gdscript/scenes/title.tscn、gdscript/tests/run_title_probe.gd、tests/test_gdscript_title.py（各.gd.uidを含む）。
+変更したファイル: gdscript/data/field_save_store.gd、gdscript/application/field_application.gd、gdscript/project.godot、gdscript/tests/render_pixel_ui.gd、tests/{test_gdscript_bootstrap,test_e2e_catalog}.py、tests/e2e/README.md、tools/e2e-catalog/script/check_e2e_catalog.py、docs/{GAME_GUI,CODEMAP,ver}.md、docs/testing/E2E_EXPECTATIONS.md。
+追加したファイル: gdscript/application/title_application.gd、gdscript/ui/title_view.gd、gdscript/scenes/title.tscn、gdscript/tests/{run_title_probe,e2e_driver}.gd、tests/test_gdscript_title.py、tests/e2e/{godot_harness,test_godot_title_journeys,test_godot_harness}.py（各.gd.uidを含む）。
 
 # 129. main統合レビューで見つかった評価セーブ・戦闘保存・サンプル再生成を修正
 
