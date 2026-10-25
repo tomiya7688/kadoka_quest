@@ -6,7 +6,20 @@ extends RefCounted
 ## Named folders/state JSON. Never writes existing monsters, AI, items or presets.
 
 const Documents = preload("res://data/json_documents.gd")
+const DEFAULT_ROOT := "user://savedata"
 var root: String
+
+
+# {
+#   責務: [configured_root: タイトル画面とフィールド画面が共有する保存先を、環境変数KADOKA_GDSCRIPT_SAVE_ROOTまたは既定値から選びます]
+#   処理: [1: 環境変数が空でなければその値を返し、空なら既定の保存先user://savedataを返します]
+#   引数: []
+#   戻り値: [result: 保存先のパス。user://形式または絶対パスです（String）]
+# }
+static func configured_root() -> String:
+	# 二つの画面が別々の既定値を持つと、タイトルの一覧とフィールドの保存先がずれるため一か所で決めます。
+	var configured := OS.get_environment("KADOKA_GDSCRIPT_SAVE_ROOT")
+	return DEFAULT_ROOT if configured.is_empty() else configured
 
 
 # {

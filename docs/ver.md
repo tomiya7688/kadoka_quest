@@ -24,13 +24,15 @@ Godot版の起動画面はgdscript/scenes/title.tscnです。タイトル画面�
 
 保存先のfield_save_store.gdへlist_profilesを追加しました。list_profilesは保存先直下のフォルダのうち、resolve_profileと同じ名前・リンク検査を通り、state.jsonを持つセーブだけを自然順で返します。保存先がない初回起動は空の一覧として成功し、規則に合わないフォルダは警告件数として画面下部に表示します。list_profilesはファイルを書き込みません。
 
-title_view.gdは表示と選択のシグナルだけを担当し、保存やセーブ名の検査を行いません。title_application.gdは、セーブ名を保存先の規則で検査し、40文字超・既存セーブと同じ名前を拒否してから、フィールド画面へセーブ名を渡して切り替えます。新しいセーブのフォルダは、フィールドで最初に保存したときに作られます。環境変数KADOKA_GDSCRIPT_SAVE_NAMEを指定した起動では、従来の自動実行と検査のため、タイトル画面を表示せずにフィールドから始めます。
+title_view.gdは表示と選択のシグナルだけを担当し、保存やセーブ名の検査を行いません。title_application.gdは、セーブ名を保存先の規則で検査し、40文字超の名前と、保存先に同じ名前のフォルダがある名前を拒否してから、フィールド画面へセーブ名を渡して切り替えます。state.jsonのないフォルダも拒否するのは、残っている個体や所持品を新しい冒険へ混ぜないためです。Windowsでは大文字小文字だけが違う名前も同じフォルダとして拒否します。切替は一度だけ行い、同じフレームの二回目の要求ではフィールドを二つ作りません。新しいセーブのフォルダは、フィールドで最初に保存したときに作られます。環境変数KADOKA_GDSCRIPT_SAVE_NAMEを指定した起動では、従来の自動実行と検査のため、タイトル画面を表示せずにフィールドから始めます。保存先の既定値user://savedataは、field_save_store.gdのconfigured_rootへまとめ、タイトル画面とフィールド画面が同じ保存先を使うようにしました。
+
+Godot版にはE2Eの実行基盤がないため、docs/testing/E2E_EXPECTATIONS.md（Python版Playerの操作カタログ）へ行を追加していません。タイトルの実Godotプローブは、本番のtitle.tscnを起動してフィールド画面へ切り替わるまでを確認しますが、実際のウィンドウでのキー操作を含むE2Eではありません。
 
 描画用のrender_pixel_ui.gdへ、セーブなしのタイトル・セーブ名入力・保存後のセーブ一覧の三画面を追加しました。フィールドからタイトル画面へ戻る操作、セーブの別名保存・削除、Godot版の戦闘画面は未対応です。保存JSONの形式、Python版のタイトル画面、ゲーム処理は変更していません。
 
-検証結果（Python 3.14.7 / pygame-ce 2.5.8 / Godot 4.7.2、専用の一時保存先とpytest一時領域）: タイトルの集中テスト3件は、実Godotで既存セーブの再開・新規開始・不正名と重複の拒否・フォーカス・Esc・画面内配置・保存先の不変を確認して成功しました。既存のbootstrap16件と、白黒UIのプローブも成功しました。ローカル全体テストは1345件成功・3件失敗・26452サブテスト成功でした（1時間8分17秒。同じ機械で別の作業が並行していました）。失敗は、治療付き回復と状態付きSessionの少数回の時間計測（3000us上限に対して3684us）と、編成テストのGodot起動の30秒超過です。三件ともタイトル画面の変更と関係しない経路で、単独の再実行で成功しました（状態付きSessionは再実行1回目3243usで失敗し、2回目で成功）。宣言コメントは443ファイル・3590宣言・エラー0、プロジェクト規則と差分空白検査も成功しました。実OpenGLレンダラーでタイトル三画面のPNGを描画して配置を確認しました。実際のウィンドウ操作・IME・ゲームパッド・配布exportは未検証です。
+検証結果（Python 3.14.7 / pygame-ce 2.5.8 / Godot 4.7.2、専用の一時保存先とpytest一時領域）: 自己レビューで見つけた四件（再開拒否の理由が一覧の読み直しで消える、二回目の切替要求でフィールドを二つ作れる、state.jsonのない同名フォルダを新しい冒険へ取り込む、保存先の既定値の重複）を修正し、プローブへ回帰確認を追加しました。タイトルの集中テスト3件は、実Godotで既存セーブの再開・新規開始・不正名と同名フォルダの拒否・二回目の切替の拒否・フォーカス・Esc・画面内配置・保存先の不変を確認して成功しました。既存のbootstrap16件と、白黒UIのプローブも成功しました。自己レビューの修正後、タイトル・起動・保存・教会・編成の関連63件・468サブテストが成功しました（4分50秒）。ローカル全体テストは1345件成功・3件失敗・26452サブテスト成功でした（1時間8分17秒。同じ機械で別の作業が並行していました）。失敗は、治療付き回復と状態付きSessionの少数回の時間計測（3000us上限に対して3684us）と、編成テストのGodot起動の30秒超過です。三件ともタイトル画面の変更と関係しない経路で、単独の再実行で成功しました（状態付きSessionは再実行1回目3243usで失敗し、2回目で成功）。宣言コメントは443ファイル・3590宣言・エラー0、プロジェクト規則と差分空白検査も成功しました。実OpenGLレンダラーでタイトル三画面のPNGを描画して配置を確認しました。実際のウィンドウ操作・IME・ゲームパッド・配布exportは未検証です。
 
-変更したファイル: gdscript/data/field_save_store.gd、gdscript/project.godot、gdscript/tests/render_pixel_ui.gd、tests/test_gdscript_bootstrap.py、docs/{GAME_GUI,CODEMAP,ver}.md。
+変更したファイル: gdscript/data/field_save_store.gd、gdscript/application/field_application.gd、gdscript/project.godot、gdscript/tests/render_pixel_ui.gd、tests/test_gdscript_bootstrap.py、docs/{GAME_GUI,CODEMAP,ver}.md。
 追加したファイル: gdscript/application/title_application.gd、gdscript/ui/title_view.gd、gdscript/scenes/title.tscn、gdscript/tests/run_title_probe.gd、tests/test_gdscript_title.py（各.gd.uidを含む）。
 
 # 129. main統合レビューで見つかった評価セーブ・戦闘保存・サンプル再生成を修正

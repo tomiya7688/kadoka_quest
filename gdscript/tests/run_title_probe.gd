@@ -61,8 +61,15 @@ func _run() -> void:
 	else:
 		_check(false, "検査区分continueまたはnewを指定")
 	_check(started, "タイトル画面から%sでフィールドへ切替" % mode)
+	# 同じフレームのEnterとボタン押下の重複を想定し、二回目の切替要求を拒否することを確認します。
+	_check(not title.continue_game("alpha") and not title.start_new_game("別の冒険"), "切替後の二回目の要求を拒否")
 	await process_frame
 	await process_frame
+	var field_count := 0
+	for child in root.get_children():
+		if child.name.begins_with("FieldApplication"):
+			field_count += 1
+	_check(field_count == 1, "フィールド画面は一つだけ")
 	var field: Node = current_scene
 	_check(field != null and field.name == "FieldApplication", "現在の画面がフィールド画面")
 	_check(field != null and field.get("profile_name") == expected_name, "フィールドへ選んだセーブ名を渡す")
@@ -146,7 +153,10 @@ func _check_rejections(title: Control) -> void:
 	for name in [" alpha", "", "a/b", "あ".repeat(41)]:
 		_check(not title.start_new_game(name), "不正なセーブ名「%s」を拒否" % name)
 	_check(not title.start_new_game("alpha") and title.view.message.text.contains("同じ名前"), "既存セーブ名での新規開始を拒否")
+	# state.jsonのないフォルダにも個体などが残る場合があるため、新しい冒険へ取り込まず拒否します。
+	_check(not title.start_new_game("フォルダだけ"), "state.jsonのない既存フォルダ名での新規開始を拒否")
 	_check(not title.continue_game("missing"), "一覧にないセーブでの再開を拒否")
+	_check(title.view.message.text.begins_with("この冒険は開けません"), "再開の拒否理由を一覧の読み直し後も表示")
 	_check(title.field == null, "拒否した要求ではフィールドを作らない")
 
 
