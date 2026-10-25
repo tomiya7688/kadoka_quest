@@ -2,7 +2,7 @@ config_version=5
 
 [application]
 config/name="Kadoka Quest — GDScript prototype"
-run/main_scene="res://scenes/field.tscn"
+run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]

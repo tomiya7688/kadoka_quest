@@ -65,6 +65,38 @@ func resolve_profile(name: String) -> Dictionary:
 
 
 # {
+#   責務: [list_profiles: タイトル画面の「つづきから」で選べる、保存先直下の名前付きセーブを列挙します。読み書きはしません]
+#   処理: [
+#     1: 保存先がまだない場合は、セーブなしの成功として空の一覧を返します
+#     2: 保存先直下のフォルダごとに、resolve_profileと同じ名前・リンク検査を行い、state.jsonがあるものだけを残します
+#     3: 選べないフォルダの理由を警告へ残し、名前を大文字小文字を区別しない自然順で並べて返します
+#   ]
+#   引数: []
+#   戻り値: [result: ok・セーブ名の一覧names・除外したフォルダの説明warnings、または保存先を開けない理由（Dictionary）]
+# }
+func list_profiles() -> Dictionary:
+	# 初回起動では保存先フォルダがないため、失敗ではなく「セーブなし」として扱います。
+	if not root.is_absolute_path():
+		return {"ok": false, "error": "invalid_root", "message": "保存先には絶対パスを指定してください。"}
+	if not DirAccess.dir_exists_absolute(root):
+		return {"ok": true, "names": [], "warnings": []}
+	var directory := DirAccess.open(root)
+	if directory == null:
+		return {"ok": false, "error": "read_failed", "message": "保存先を開けません: " + root}
+	var names: Array[String] = []
+	var warnings: Array[String] = []
+	# 読込時と同じ検査を通らないフォルダは、一覧へ出しても開けないため除外します。
+	for folder in directory.get_directories():
+		var profile := resolve_profile(folder)
+		if not profile["ok"] or profile["name"] != folder:
+			warnings.append("%s: %s" % [folder, profile.get("message", "セーブ名は40文字以内にしてください。")])
+		elif FileAccess.file_exists(profile["path"].path_join("state.json")):
+			names.append(folder)
+	names.sort_custom(func(left: String, right: String): return left.naturalnocasecmp_to(right) < 0)
+	return {"ok": true, "names": names, "warnings": warnings}
+
+
+# {
 #   責務: [load_profile: プロファイルを読み込む]
 #   処理: [1: プロファイルを読み込む]
 #   引数: [name: 名前（String）]

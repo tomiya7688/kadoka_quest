@@ -86,11 +86,12 @@ class GDScriptLayoutTests(unittest.TestCase):
     def test_language_boundaries_and_launchable_scene_exist(self) -> None:
         for relative in (
             "python/README.md", "unity/README.md", "gdscript/README.md",
-            "gdscript/project.godot", "gdscript/scenes/field.tscn",
+            "gdscript/project.godot", "gdscript/scenes/field.tscn", "gdscript/scenes/title.tscn",
         ):
             self.assertTrue((ROOT / relative).is_file(), relative)
+        # 起動はタイトル画面から始まり、タイトル画面がセーブ名を決めてからフィールド画面へ切り替えます。
         settings = (ROOT / "gdscript/project.godot").read_text(encoding="utf-8")
-        self.assertIn('run/main_scene="res://scenes/field.tscn"', settings)
+        self.assertIn('run/main_scene="res://scenes/title.tscn"', settings)
 
     # {
     #   責務: [test_rules_do_not_access_files_input_or_rendering: 検証: rules do not access files input or rendering]
