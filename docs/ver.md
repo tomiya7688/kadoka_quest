@@ -30,7 +30,9 @@ tests/test_local_ci.pyは、CIのワークフローの検査コマンドのう�
 
 Pythonの整形には、固定版のRuff 0.15.22を導入しました（tools/format/requirements.txt、設定はpyproject.tomlの[tool.ruff]で、行の上限はCIのflake8の報告と同じ127文字）。tools/format/script/format_changed.pyは、比較元（Pull Requestの対象ブランチ、既定はorigin/main）との共通祖先から作業ツリーまでに新しく追加されたPythonファイルだけを整形し、--checkでは書き換えずに整形漏れを報告します。既存ファイルを丸ごと整形すると、他の作業者が編集中の行まで書き換えるため対象にしません。比較元が見つからない場合は、対象なしの成功ではなく終了コード2で失敗します。CIのproject-integrityジョブとローカルCIは同じ--checkを実行します。このブランチで追加した9件のPythonファイルを整形しました。GDScriptのformatterは未導入で、残件です。
 
-検証結果はローカルCIの完了後に追記します。
+CIでGodotのテストを実行すると、既存の二つのテスト（test_gdscript_cure_heal_actionとtest_gdscript_session_statusの性能検証器のテスト）が、20〜80反復の少数回の実測を3000us上限ごと検証器へ渡していたため、機械の負荷で失敗していました（ローカルで3449us・8614us）。ほかの性能テストと同じく、実測の時間は有限の非負値だけを確かめ、検証器の内容の確認には上限内の合成時間を使うように直しました。3000us上限は標準の性能CLIが判定し、検証器が3001usと-1usを拒否する確認は維持しています。
+
+検証結果（Windows、Python 3.14.7 / Godot 4.7.2、作業フォルダ・一時領域はEドライブ）: ローカルCIで、flake8・Godotのimport・整形確認・プロジェクト規則・宣言コメント（452ファイル・3645宣言・エラー0）・REPO_MAP・UPD checker・クラス図・runtime性能・Player検証・パッケージのbuild/twine/導入/importが成功しました。Godot必須の全体pytestは1362件成功・3件失敗・skip 0件でした（56分25秒）。失敗は上記の性能テスト2件と、Python版E2Eのworkerの30秒上限超過1件で、いずれも負荷による時間超過です。性能テスト2件は修正後に単独で成功し、E2Eの1件は単独の再実行で成功しました。CIのtestジョブのPython 3.10と、Windows distribution workflowは、ローカルCIでは実行していません。
 
 変更したファイル: .github/workflows/python-app.yml、pyproject.toml、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
 追加したファイル: tests/{conftest,test_local_ci,test_format_changed}.py、tools/local-ci/script/run_local_ci.py、tools/format/{requirements.txt,script/format_changed.py}。
