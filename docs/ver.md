@@ -16,7 +16,7 @@
 
 ```
 
-# 133. CIへ固定版Godotを導入し、CIと同じ検査を実行するローカルCIを追加
+# 133. CIへ固定版Godotを導入し、CIと同じ検査を実行するローカルCIとPythonの整形を追加
 
 これまでのCIにはGodotがなく、Godot版のテスト（-m godotで573件）とGodot版のE2Eは、CIで常にskipになっていました。CIの成功はGodot版の動作を保証せず、ローカルでもCIと同じ検査の組を一度に実行する手段がありませんでした。
 
@@ -28,10 +28,12 @@ tools/local-ci/script/run_local_ci.pyは、CIのtest・godot・project-integrity
 
 tests/test_local_ci.pyは、CIのワークフローの検査コマンドのうちローカルCIにないものがあれば失敗します。CIだけに検査が追加され、ローカルの確認から漏れることを防ぎます。開発者と実装AIは、push前にKADOKA_GODOT_EXECUTABLEを設定してローカルCIを実行してください（docs/context/WORKFLOW.mdのValidation）。
 
+Pythonの整形には、固定版のRuff 0.15.22を導入しました（tools/format/requirements.txt、設定はpyproject.tomlの[tool.ruff]で、行の上限はCIのflake8の報告と同じ127文字）。tools/format/script/format_changed.pyは、比較元（Pull Requestの対象ブランチ、既定はorigin/main）との共通祖先から作業ツリーまでに新しく追加されたPythonファイルだけを整形し、--checkでは書き換えずに整形漏れを報告します。既存ファイルを丸ごと整形すると、他の作業者が編集中の行まで書き換えるため対象にしません。比較元が見つからない場合は、対象なしの成功ではなく終了コード2で失敗します。CIのproject-integrityジョブとローカルCIは同じ--checkを実行します。このブランチで追加した9件のPythonファイルを整形しました。GDScriptのformatterは未導入で、残件です。
+
 検証結果はローカルCIの完了後に追記します。
 
-変更したファイル: .github/workflows/python-app.yml、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
-追加したファイル: tests/conftest.py、tests/test_local_ci.py、tools/local-ci/script/run_local_ci.py。
+変更したファイル: .github/workflows/python-app.yml、pyproject.toml、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
+追加したファイル: tests/{conftest,test_local_ci,test_format_changed}.py、tools/local-ci/script/run_local_ci.py、tools/format/{requirements.txt,script/format_changed.py}。
 
 # 132. Godot版のタイトル画面とセーブ選択、Godot版E2E実行基盤を追加
 

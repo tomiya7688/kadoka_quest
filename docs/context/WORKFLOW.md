@@ -43,7 +43,7 @@ Use these compact outputs to narrow the working set. Do not load their complete 
 1. Run the smallest relevant focused tests first. Use `affected-tests` as a candidate selector, not as proof that no other tests can be affected.
 2. If it reports `fallback: broader`, or shared/core/public contracts changed, expand validation to the subsystem or full suite.
 3. Machine-checkable architecture rules and tracked generated-doc freshness are enforced by the `project-integrity` CI job; do not duplicate those rules as task-specific prose unless an exception needs human judgment.
-4. Run the required full completion checks before reporting completion. Before pushing, run `python tools/local-ci/script/run_local_ci.py` with `KADOKA_GODOT_EXECUTABLE` set: it runs the same commands as the `Python quality` CI workflow, including the Godot job, and fails when any Godot test is skipped. Exit code 3 means some jobs were not run; report them as **Unverified**.
+4. After implementing, run `python tools/format/script/format_changed.py` to format the Python files you added, then run the required full completion checks before reporting completion. Before pushing, run `python tools/local-ci/script/run_local_ci.py` with `KADOKA_GODOT_EXECUTABLE` set: it runs the same commands as the `Python quality` CI workflow, including the Godot job, and fails when any Godot test is skipped. Exit code 3 means some jobs were not run; report them as **Unverified**.
 5. Report any materially relevant area not checked as **Unverified** instead of continuing open-ended exploration merely for reassurance.
 
 Keep development utilities under `tools/<tool-name>/script/`; tool-specific config/support files stay inside that tool directory.
