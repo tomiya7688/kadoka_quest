@@ -64,7 +64,7 @@ headless SDLのクリック/キーボードと本番renderer/semantic commandを
 
 ## Godot版のE2E
 
-Godot版のE2Eは、Python版のharnessとは別に `godot_harness.py` と `gdscript/tests/e2e_driver.gd` が実行します。開発者は、`KADOKA_GODOT_EXECUTABLE` にGodot 4.7.2のコンソール実行ファイルを設定してから、次のコマンドを実行してください。Godotが見つからない環境では、Godot版のE2Eはskipになります。skipはGodot版のE2Eが成功したことを意味しません。
+Godot版のE2Eは、Python版のharnessとは別に `godot_harness.py` と `gdscript/tests/e2e_driver.gd` が実行します。開発者は、`KADOKA_GODOT_EXECUTABLE` にGodot 4.7.2のコンソール実行ファイルを設定してから、次のコマンドを実行してください。Godotが見つからない環境では、Godot版のE2Eはskipになります。skipはGodot版のE2Eが成功したことを意味しません。CIの`godot`ジョブと`tools/local-ci/script/run_local_ci.py`は`KADOKA_REQUIRE_GODOT=1`で実行するため、Godot版のE2Eがskipになると失敗します。
 
 ```text
 python -m pytest tests/e2e/test_godot_title_journeys.py tests/e2e/test_godot_harness.py -q --basetemp=<専用の一時ディレクトリ>

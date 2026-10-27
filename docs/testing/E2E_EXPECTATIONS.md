@@ -52,7 +52,7 @@ python tools/e2e-catalog/script/check_e2e_catalog.py --missing
 
 ## Godot版 / ゲーム操作
 
-Godot版のE2Eは `tests/e2e/godot_harness.py` が実行します。harnessは実行ごとに新しいGodotプロセスを `--headless --fixed-fps 60` で起動し、`gdscript/tests/e2e_driver.gd` がproject.godotのrun/main_sceneを本番と同じ方法で開きます。driverは `Input.parse_input_event` でキーと確定文字を送り、画面の状態を読み取るだけで、ゲーム状態を直接書き換えません。再起動は同じ専用保存先で新しいGodotプロセスを起動する操作です。Godotが未設定の環境では各テストがskipになり、skipを成功として扱いません。
+Godot版のE2Eは `tests/e2e/godot_harness.py` が実行します。harnessは実行ごとに新しいGodotプロセスを `--headless --fixed-fps 60` で起動し、`gdscript/tests/e2e_driver.gd` がproject.godotのrun/main_sceneを本番と同じ方法で開きます。driverは `Input.parse_input_event` でキーと確定文字を送り、画面の状態を読み取るだけで、ゲーム状態を直接書き換えません。再起動は同じ専用保存先で新しいGodotプロセスを起動する操作です。CIのPython quality workflowの`godot`ジョブは、公式のGodot 4.7.2をSHA-512で確認して導入し、`KADOKA_REQUIRE_GODOT=1`で`-m godot`のテストを実行します。この設定では、Godotがない場合やGodotを理由にskipされたテストがある場合に失敗になります。Godotが未設定のローカル環境では各テストがskipになり、skipを成功として扱いません。
 
 | ID | 機能/画面 | Given | When | Then | Persistence | E2E | Status | 理由/次の担当 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

@@ -16,6 +16,23 @@
 
 ```
 
+# 133. CIへ固定版Godotを導入し、CIと同じ検査を実行するローカルCIを追加
+
+これまでのCIにはGodotがなく、Godot版のテスト（-m godotで573件）とGodot版のE2Eは、CIで常にskipになっていました。CIの成功はGodot版の動作を保証せず、ローカルでもCIと同じ検査の組を一度に実行する手段がありませんでした。
+
+CIのPython quality workflowへgodotジョブを追加しました。godotジョブは、公式リリースのGodot 4.7.2のLinux版を取得し、公式のSHA512-SUMS.txtと同じ値をワークフローに固定してsha512sumで照合してから、資源のimportと`python -m pytest -m godot`を実行します。版を上げる開発者は、GODOT_VERSIONとGODOT_SHA512を同時に更新してください。
+
+tests/conftest.pyは、実Godotの設定を参照するテストファイルのテストへgodotマーカーを付けます。環境変数KADOKA_REQUIRE_GODOT=1の実行では、Godotの実行ファイルが見つからなければテストを始める前に使用エラーで止まり、Godotを理由にskipされたテストがあれば全体を失敗にします。この設定がない通常のローカル実行では、従来どおりGodotなしのテストをskipにします。
+
+tools/local-ci/script/run_local_ci.pyは、CIのtest・godot・project-integrity・package-integrityの各ジョブと同じ検査コマンドを、実行中のPythonと指定したGodotで順に実行します。Godotの指定や必要な道具（pytest・flake8・build・twine・UPD checker）がなければ、何も実行せずに導入方法を表示して終了コード2を返します。パッケージ検査は一時フォルダへbuildし、開発者のdist/にある配布物を変更しません。--skipで除いたジョブは未実行として表示し、全体を成功にはしません（終了コード3）。CIのtestジョブはPython 3.10と3.14で実行しますが、ローカルCIは実行中のPythonの版だけを使います。Windows distribution workflowの配布物ビルドとsmokeは、ローカルCIに含みません。
+
+tests/test_local_ci.pyは、CIのワークフローの検査コマンドのうちローカルCIにないものがあれば失敗します。CIだけに検査が追加され、ローカルの確認から漏れることを防ぎます。開発者と実装AIは、push前にKADOKA_GODOT_EXECUTABLEを設定してローカルCIを実行してください（docs/context/WORKFLOW.mdのValidation）。
+
+検証結果はローカルCIの完了後に追記します。
+
+変更したファイル: .github/workflows/python-app.yml、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
+追加したファイル: tests/conftest.py、tests/test_local_ci.py、tools/local-ci/script/run_local_ci.py。
+
 # 132. Godot版のタイトル画面とセーブ選択、Godot版E2E実行基盤を追加
 
 Issue #77とタイトル画面の子Issue #191の方針に沿って、Godot版にタイトル画面を追加しました。ver#117の時点で、Godot版はタイトル画面がなく、起動するとセーブ名defaultのフィールドから始まっていました。利用者は、保存済みの冒険を選んで再開することも、新しいセーブ名で始めることもできませんでした。番号はPR #256の#130とCodexの作業中の#131を避けて#132にしました。
