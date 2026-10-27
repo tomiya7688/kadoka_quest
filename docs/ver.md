@@ -34,7 +34,11 @@ CIでGodotのテストを実行すると、既存の二つのテスト（test_gd
 
 検証結果（Windows、Python 3.14.7 / Godot 4.7.2、作業フォルダ・一時領域はEドライブ）: ローカルCIで、flake8・Godotのimport・整形確認・プロジェクト規則・宣言コメント（452ファイル・3645宣言・エラー0）・REPO_MAP・UPD checker・クラス図・runtime性能・Player検証・パッケージのbuild/twine/導入/importが成功しました。Godot必須の全体pytestは1362件成功・3件失敗・skip 0件でした（56分25秒）。失敗は上記の性能テスト2件と、Python版E2Eのworkerの30秒上限超過1件で、いずれも負荷による時間超過です。性能テスト2件は修正後に単独で成功し、E2Eの1件は単独の再実行で成功しました。CIのtestジョブのPython 3.10と、Windows distribution workflowは、ローカルCIでは実行していません。
 
-変更したファイル: .github/workflows/python-app.yml、pyproject.toml、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
+作業後のレビューは、Codex Luna・Claude Haiku・Antigravityが4資料すべてに返答しました。Continue・Qwen Codeは90秒の上限で応答がなく、Julesはセッション作成が400 FAILED_PRECONDITIONで失敗し、Grokは運用手順の保留指示により依頼していません。PRではCodeRabbitへ依頼し、Copilotへの依頼はGitHubに登録されませんでした。記録はE:/projects/.review-work/kadokaquest/ci-godot-local-ci/review-record.mdにあります。
+
+レビューの指摘から、次を直しました。tests/conftest.pyは、skipの判定をskipの理由だけに限定しました。以前はファイルの場所まで照合していたため、作業フォルダ名にgodotを含むだけで無関係なskipまで失敗にするおそれがありました。モジュール単位のskipも記録し、成功またはテストなしの終了だけを失敗へ変え、中断や内部エラーの終了コードは残します。skipの理由にGodotを含むマーカーを持つテストにもgodotマーカーを付けます。ローカルCIは、Godotの版が4.7.2であることを確認してから始め、パッケージ検査ではPYTHONPATHを除いて、導入したwheelからimportしたことを確かめます。--skip godotでは、Godotのテストを含む全体pytestも未実行として報告します。整形の道具は、日本語のファイル名を対象から落とさないようcore.quotepath=falseでGitを実行し、Ruffがない場合は整形漏れと区別して終了コード2を返します。ワークフローとローカルCIのずれ検出は、runブロックの空行・コメント・行継続を正しく扱います。CIのGodotの取得には再試行を加えました。また、PRの自動レビュー（Codex）の指摘により、Linux/macOSで隠しフォルダになるドット始まりのセーブ名がタイトルのセーブ一覧から消える不具合を直し、E2EのKQ-G07を追加しました。
+
+変更したファイル: .github/workflows/python-app.yml、pyproject.toml、gdscript/data/field_save_store.gd、gdscript/tests/run_title_probe.gd、tests/{test_gdscript_title,test_gdscript_cure_heal_action,test_gdscript_session_status}.py、tests/e2e/test_godot_title_journeys.py、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
 追加したファイル: tests/{conftest,test_local_ci,test_format_changed}.py、tools/local-ci/script/run_local_ci.py、tools/format/{requirements.txt,script/format_changed.py}。
 
 # 132. Godot版のタイトル画面とセーブ選択、Godot版E2E実行基盤を追加

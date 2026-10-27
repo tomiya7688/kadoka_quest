@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[3]
 #     job: CIのジョブID。test・godot・project-integrity・package-integrityのいずれかです（str）
 #     name: 報告に表示する検査名（str）
 #     command: CIのrunに書かれたコマンドそのもの。pythonは実行中のPythonへ置き換えて実行します（str）
+#     covers: この検査が代わりに満たす別のジョブID。--skipでそのジョブを除いた場合も未実行にします（tuple[str, ...]）
 #   ]
 # }
 @dataclass(frozen=True)
@@ -40,6 +41,7 @@ class LocalCiStep:
     job: str
     name: str
     command: str
+    covers: tuple[str, ...] = ()
 
 
 STEPS = (
@@ -52,7 +54,7 @@ STEPS = (
     ),
     LocalCiStep("godot", "Godot import", '"$KADOKA_GODOT_EXECUTABLE" --headless --path gdscript --editor --import --quit'),
     # CIのtestジョブ（Godotなし）とgodotジョブ（-m godot）を、Godot必須の一回の全体実行でまとめて満たします。
-    LocalCiStep("test", "pytest (all, Godot required)", "python -m pytest"),
+    LocalCiStep("test", "pytest (all, Godot required)", "python -m pytest", covers=("godot",)),
     LocalCiStep(
         "project-integrity", "format check (added Python files)", "python tools/format/script/format_changed.py --check"
     ),
@@ -72,6 +74,8 @@ STEPS = (
     LocalCiStep("project-integrity", "Player project validation", "python developer_launcher.py --validate-project"),
 )
 PACKAGE_COMMANDS = ("python -m build", "python -m twine check dist/*")
+# CIのgodotジョブが導入する版です。版を上げるときは.github/workflows/python-app.ymlのGODOT_VERSIONと同時に更新してください。
+EXPECTED_GODOT_VERSION = "4.7.2.stable"
 # UPD checkerはCIと同じく上流mainから、RuffはCIと同じ固定版をrequirementsで導入します。
 REQUIRED_MODULES = {
     "pytest": "pytest",
@@ -119,6 +123,23 @@ def run_step(step: LocalCiStep, godot: str, environment: dict[str, str]) -> tupl
 
 
 # {
+#   責務: [godot_version: 指定したGodotを起動して版の文字列を返し、起動できない場合はNoneを返します]
+#   処理: [1: --headless --versionを実行し、成功時は標準出力の最後の行を返します]
+#   引数: [godot: Godotの実行ファイルのパス（str）]
+#   戻り値: [result: 例「4.7.2.stable.official.ed1daf0bf」。起動・応答できなければNone（str | None）]
+# }
+def godot_version(godot: str) -> str | None:
+    try:
+        completed = subprocess.run(
+            [godot, "--headless", "--version"], capture_output=True, text=True, timeout=120, check=False
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    lines = completed.stdout.strip().splitlines()
+    return lines[-1].strip() if completed.returncode == 0 and lines else None
+
+
+# {
 #   責務: [build_and_install_package: package-integrityジョブと同じく、sdistとwheelを作ってtwineで検査し、wheelを独立した仮想環境へ入れてリポジトリ外からimportします]
 #   処理: [
 #     1: 開発者のdist/にある配布物を混ぜないよう、一時フォルダへbuildし、そのファイルだけをtwineで検査します
@@ -130,6 +151,8 @@ def run_step(step: LocalCiStep, godot: str, environment: dict[str, str]) -> tupl
 # }
 def build_and_install_package(environment: dict[str, str]) -> tuple[int, float]:
     started = time.monotonic()
+    # 開発者のPYTHONPATHが作業ツリーのsrcを指していると、導入したwheelではなくsrcをimportして誤って成功するため除きます。
+    isolated = {key: value for key, value in environment.items() if key not in ("PYTHONPATH", "PYTHONHOME")}
     with tempfile.TemporaryDirectory(prefix="kadoka-local-ci-package-") as folder:
         output = Path(folder) / "dist"
         venv = Path(folder) / "venv"
@@ -142,11 +165,23 @@ def build_and_install_package(environment: dict[str, str]) -> tuple[int, float]:
             (lambda: [str(python), "-m", "pip", "install", "--quiet", *map(str, output.glob("*.whl"))], Path(folder)),
             ([str(python), "-m", "pip", "check"], Path(folder)),
             # import確認はリポジトリ外で実行し、作業ツリーのsrcを誤って読み込まないようにします。
-            ([str(python), "-c", "import kadoka_quest; print(kadoka_quest.__file__)"], Path(folder)),
+            (
+                [
+                    str(python),
+                    "-c",
+                    "import pathlib, sys, kadoka_quest; path = pathlib.Path(kadoka_quest.__file__).resolve(); "
+                    "assert pathlib.Path(sys.prefix).resolve() in path.parents, path; print(path)",
+                ],
+                Path(folder),
+            ),
         ]
         for command, cwd in steps:
             arguments = command() if callable(command) else command
-            completed = subprocess.run(arguments, cwd=cwd, env=environment, check=False)
+            # buildがwheelを作らなかった場合、pip installを対象なしで呼ぶのではなく理由を示して失敗にします。
+            if arguments[1:4] == ["-m", "pip", "install"] and not any(output.glob("*.whl")):
+                print(f"[ERROR] {output}にwheelがありません。")
+                return 1, time.monotonic() - started
+            completed = subprocess.run(arguments, cwd=cwd, env=isolated, check=False)
             if completed.returncode:
                 return completed.returncode, time.monotonic() - started
     return 0, time.monotonic() - started
@@ -165,7 +200,7 @@ def missing_tools() -> list[str]:
 # {
 #   責務: [main: CIと同じ検査を順に実行し、成功・失敗・未実行の一覧と、全体の判定を表示します]
 #   処理: [
-#     1: Godotの実行ファイルと必要な道具を確認し、足りなければ何も実行せずに理由と対処を表示します
+#     1: Godotの実行ファイル・版と必要な道具を確認し、足りなければ何も実行せずに理由と対処を表示します
 #     2: KADOKA_REQUIRE_GODOT=1とCIと同じSDLの設定で、選んだ検査とパッケージの検査を順に実行します
 #     3: --skipで除いた検査は未実行として表示し、失敗があれば1、未実行だけなら3、全成功なら0を返します
 #   ]
@@ -195,10 +230,14 @@ def main(argv: list[str] | None = None) -> int:
             "CIと同じくGodotの検査を必須にするため、Godotなしでは実行しません。"
         )
         return 2
+    version = godot_version(godot)
+    if version is None or not version.startswith(EXPECTED_GODOT_VERSION):
+        print(f"[ERROR] {godot}の版は{version}です。CIと同じGodot {EXPECTED_GODOT_VERSION}を指定してください。")
+        return 2
     missing = missing_tools()
     if missing:
         print(
-            f"[ERROR] 次の道具が{sys.executable}にありません。導入してから再実行してください: "
+            f"[ERROR] 次の道具が{sys.executable}にありません。リポジトリ直下で導入してから再実行してください: "
             f"{sys.executable} -m pip install {' '.join(missing)}"
         )
         return 2
@@ -214,8 +253,9 @@ def main(argv: list[str] | None = None) -> int:
     environment.pop("KADOKA_GDSCRIPT_SAVE_NAME", None)
     results: list[tuple[str, str, float]] = []
     for step in STEPS:
-        label = f"[{step.job}] {step.name}"
-        if step.job in args.skip:
+        label = f"[{'+'.join((step.job, *step.covers))}] {step.name}"
+        # Godotのテストを含む全体pytestは、testとgodotのどちらを除いても未実行として報告します。
+        if step.job in args.skip or any(job in args.skip for job in step.covers):
             results.append(("NOT RUN", label, 0.0))
             continue
         print(f"\n=== {label}", flush=True)

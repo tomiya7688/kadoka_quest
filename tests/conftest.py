@@ -79,8 +79,11 @@ def _uses_godot(path: Path) -> bool:
 
 
 # {
-#   責務: [pytest_collection_modifyitems: 実Godotを参照するファイルのテストへgodotマーカーを付けます]
-#   処理: [1: 収集した各テストのファイルを判定し、Godotを使うファイルのテストへマーカーを追加します]
+#   責務: [pytest_collection_modifyitems: 実Godotを参照するファイルのテストと、Godotを理由にしたskip条件を持つテストへgodotマーカーを付けます]
+#   処理: [
+#     1: 各テストのファイルがGodotの設定を参照していればマーカーを付けます
+#     2: ファイルに参照がなくても、skipif/skipマーカーの理由にGodotが含まれるテストにはマーカーを付けます
+#   ]
 #   引数: [
 #     config: pytestの設定（pytest.Config）
 #     items: 収集したテストの一覧（list[pytest.Item]）
@@ -89,27 +92,66 @@ def _uses_godot(path: Path) -> bool:
 # }
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     for item in items:
-        if _uses_godot(Path(str(item.fspath))):
+        # 共通の判定関数を別モジュールから読み込むテストも、skipの理由からGodotの検査として選びます。
+        reasons = " ".join(
+            str(mark.kwargs.get("reason", "")) for mark in item.iter_markers() if mark.name in ("skip", "skipif")
+        )
+        if _uses_godot(Path(item.path)) or "godot" in reasons.lower():
             item.add_marker(pytest.mark.godot)
 
 
 # {
-#   責務: [pytest_runtest_logreport: Godotが必須の実行で、Godotを理由にskipされたテストを記録します]
-#   処理: [1: skipの理由にGodotが含まれる結果だけを、node IDと理由の組で記録します]
-#   引数: [report: 一つのテスト段階の結果（pytest.TestReport）]
+#   責務: [skip_reason: skipされた結果から、ファイルの場所を除いたskipの理由だけを取り出します]
+#   処理: [1: pytestのskip結果の(ファイル, 行, 理由)の組から理由を返し、組でなければ文字列化した値を返します]
+#   引数: [report: skipされたテストまたは収集の結果（pytest.TestReport | pytest.CollectReport）]
+#   戻り値: [result: skipの理由（str）]
+# }
+def skip_reason(report: pytest.TestReport | pytest.CollectReport) -> str:
+    # ファイルの場所を含めて照合すると、作業フォルダ名にgodotを含むだけで無関係なskipまで失敗にするためです。
+    longrepr = report.longrepr
+    if isinstance(longrepr, tuple) and len(longrepr) == 3:
+        return str(longrepr[2])
+    return str(longrepr)
+
+
+# {
+#   責務: [record_godot_skip: Godotが必須の実行で、理由にGodotを含むskipを記録します]
+#   処理: [1: skipされた結果の理由にGodotが含まれる場合だけ、node IDと理由の組で記録します]
+#   引数: [report: テストまたは収集の結果（pytest.TestReport | pytest.CollectReport）]
 #   戻り値: [result: なし（None）]
 # }
-def pytest_runtest_logreport(report: pytest.TestReport) -> None:
+def record_godot_skip(report: pytest.TestReport | pytest.CollectReport) -> None:
     if not godot_required() or not report.skipped:
         return
-    reason = str(report.longrepr)
+    reason = skip_reason(report)
     if "godot" in reason.lower():
         _godot_skips.append(f"{report.nodeid}: {reason}")
 
 
 # {
-#   責務: [pytest_sessionfinish: Godotが必須の実行でGodotを理由にしたskipがあれば、全体の結果を失敗にします]
-#   処理: [1: 記録したskipを表示し、終了コードを失敗へ変えます]
+#   責務: [pytest_runtest_logreport: Godotが必須の実行で、テストの段階でGodotを理由にskipされたテストを記録します]
+#   処理: [1: 結果をrecord_godot_skipへ渡します]
+#   引数: [report: 一つのテスト段階の結果（pytest.TestReport）]
+#   戻り値: [result: なし（None）]
+# }
+def pytest_runtest_logreport(report: pytest.TestReport) -> None:
+    record_godot_skip(report)
+
+
+# {
+#   責務: [pytest_collectreport: Godotが必須の実行で、収集の段階でモジュールごとGodotを理由にskipされたものを記録します]
+#   処理: [1: 結果をrecord_godot_skipへ渡します]
+#   引数: [report: 一つの収集単位の結果（pytest.CollectReport）]
+#   戻り値: [result: なし（None）]
+# }
+def pytest_collectreport(report: pytest.CollectReport) -> None:
+    # pytest.skip(allow_module_level=True)はテスト段階の報告に現れないため、収集の報告も確認します。
+    record_godot_skip(report)
+
+
+# {
+#   責務: [pytest_sessionfinish: Godotが必須の実行でGodotを理由にしたskipがあれば、成功またはテストなしだった全体の結果を失敗にします]
+#   処理: [1: 記録したskipを表示し、終了コードが成功かテストなしの場合だけ失敗へ変えます。中断や内部エラーの終了コードは残します]
 #   引数: [
 #     session: pytestの実行全体（pytest.Session）
 #     exitstatus: pytestが決めた終了コード（int）
@@ -122,4 +164,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         print(f"\n[ERROR] {REQUIRE_VARIABLE}=1ですが、Godotを理由に{len(_godot_skips)}件がskipされました。")
         for line in _godot_skips[:20]:
             print("  " + line)
-        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+        # モジュールごとskipされるとテストなし（終了コード5）になるため、それも失敗へ変えます。
+        if session.exitstatus in (pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED):
+            session.exitstatus = pytest.ExitCode.TESTS_FAILED

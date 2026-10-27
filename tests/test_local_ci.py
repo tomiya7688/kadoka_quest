@@ -35,7 +35,6 @@ SETUP_PREFIXES = (
     "chmod ",
     '"$executable"',
     '"$GITHUB_WORKSPACE/',
-    '"https://',
 )
 _spec = importlib.util.spec_from_file_location("run_local_ci", ROOT / "tools/local-ci/script/run_local_ci.py")
 local_ci = importlib.util.module_from_spec(_spec)
@@ -45,10 +44,11 @@ _spec.loader.exec_module(local_ci)
 
 
 # {
-#   責務: [workflow_commands: CIのワークフローのrunに書かれたコマンドを、一行ずつ取り出します]
+#   責務: [workflow_commands: CIのワークフローのrunに書かれたコマンドを、一コマンドずつ取り出します]
 #   処理: [
 #     1: run: |の後のより深い字下げの行と、run:に続く一行のコマンドを集めます
-#     2: 前後の引用符と行継続の記号を除きます
+#     2: ブロック内の空行とコメント行を飛ばし、行末のバックスラッシュで続く行は一つのコマンドへつなぎます
+#     3: 一行のrunでは前後の引用符を除きます
 #   ]
 #   引数: [text: ワークフローのYAML本文（str）]
 #   戻り値: [result: 出現順のコマンド一覧（list[str]）]
@@ -56,13 +56,24 @@ _spec.loader.exec_module(local_ci)
 def workflow_commands(text: str) -> list[str]:
     commands: list[str] = []
     block_indent: int | None = None
+    pending = ""
     for line in text.splitlines():
         indent = len(line) - len(line.lstrip())
         stripped = line.strip()
-        # 複数行のrunブロックは、run:より深い字下げが続く間だけを読みます。
+        # 複数行のrunブロックは、run:より深い字下げが続く間だけを読み、空行ではブロックを終えません。
         if block_indent is not None:
-            if stripped and indent > block_indent:
-                commands.append(stripped.rstrip("\\").strip())
+            if not stripped:
+                continue
+            if indent > block_indent:
+                if stripped.startswith("#"):
+                    continue
+                # 行末のバックスラッシュで続く行は、シェルが一つのコマンドとして実行するためつなぎます。
+                continued = stripped.endswith("\\")
+                part = stripped.removesuffix("\\").strip()
+                pending = f"{pending} {part}".strip()
+                if not continued:
+                    commands.append(pending)
+                    pending = ""
                 continue
             block_indent = None
         if stripped.startswith("run:") or stripped.startswith("- run:"):
@@ -98,6 +109,27 @@ def test_every_ci_verification_command_runs_locally():
 
 
 # {
+#   責務: [test_workflow_commands_join_continuations_and_skip_blank_and_comment_lines: runブロックの空行・コメント・行継続を正しく扱い、空行の後のコマンドを落とさないことを確認します]
+#   処理: [1: 空行・コメント・行継続・引用符付きの一行runを含む本文から、コマンドの一覧を確認します]
+#   引数: []
+#   戻り値: [result: なし（None）]
+# }
+def test_workflow_commands_join_continuations_and_skip_blank_and_comment_lines():
+    text = (
+        "      - name: Example\n"
+        "        run: |\n"
+        "          first --flag \\\n"
+        '            "second part"\n'
+        "\n"
+        "          # comment\n"
+        "          third\n"
+        "      - name: Single\n"
+        "        run: 'quoted command'\n"
+    )
+    assert workflow_commands(text) == ['first --flag "second part"', "third", "quoted command"]
+
+
+# {
 #   責務: [test_ci_pins_and_verifies_godot: CIのGodotジョブが版とSHA-512を固定し、Godotを必須にしていることを確認します]
 #   処理: [1: ワークフロー本文に固定版・ハッシュ検証・Godot必須・godotマーカーの実行があることを確認します]
 #   引数: []
@@ -109,11 +141,13 @@ def test_ci_pins_and_verifies_godot():
     assert "sha512sum --check --strict" in text
     assert 'KADOKA_REQUIRE_GODOT: "1"' in text
     assert "python -m pytest -m godot" in text
+    # ローカルCIが確認するGodotの版は、CIが導入する版と同じでなければなりません。
+    assert local_ci.EXPECTED_GODOT_VERSION.replace(".stable", "-stable") in text
 
 
 # {
-#   責務: [run_pytest_on: tests/conftest.pyの複製と一つのテストファイルを一時フォルダへ置き、別プロセスのpytestで実行します]
-#   処理: [1: conftestの複製と指定したテストを書き、指定した環境変数でpytestを起動して結果を返します]
+#   責務: [run_pytest_on: tests/conftest.pyの複製とテストファイルtest_sample.pyを一時フォルダへ置き、そのフォルダ全体を別プロセスのpytestで実行します]
+#   処理: [1: conftestの複製と指定したテストを書き、親のPYTEST_ADDOPTSを除いた指定の環境変数でpytestを起動して結果を返します。呼出元が置いた他のテストファイルも収集されます]
 #   引数: [
 #     folder: 一時フォルダ（Path）
 #     source: テストファイルの本文（str）
@@ -127,6 +161,8 @@ def run_pytest_on(folder: Path, source: str, environment: dict[str, str | None],
     (folder / "test_sample.py").write_text(source, encoding="utf-8")
     # WindowsのコンソールでもpytestとconftestのUTF-8の日本語を、そのまま読めるようにします。
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    # 親のpytestの追加引数で、子のpytestの収集や結果が変わらないようにします。
+    env.pop("PYTEST_ADDOPTS", None)
     for key, value in environment.items():
         if value is None:
             env.pop(key, None)
@@ -173,6 +209,33 @@ def test_godot_skip_fails_only_when_godot_is_required(tmp_path):
 
 
 # {
+#   責務: [test_unrelated_skip_in_godot_named_folder_is_not_counted: フォルダ名にgodotを含むだけの、Godotと無関係なskipを失敗にしないことを確認します]
+#   処理: [1: godotを含む名前のフォルダで、理由にGodotを含まないskipを必須の設定で実行し、成功の終了コードを確認します]
+#   引数: [tmp_path: 一時フォルダ（Path）]
+#   戻り値: [result: なし（None）]
+# }
+def test_unrelated_skip_in_godot_named_folder_is_not_counted(tmp_path):
+    folder = tmp_path / "godot-title-screen"
+    folder.mkdir()
+    source = "import pytest\n@pytest.mark.skip(reason='needs network')\ndef test_other():\n    pass\n"
+    result = run_pytest_on(folder, source, {"KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": sys.executable})
+    assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
+
+
+# {
+#   責務: [test_module_level_godot_skip_fails_when_required: 収集の段階でモジュールごとGodotを理由にskipした場合も、Godotが必須の実行では失敗にすることを確認します]
+#   処理: [1: allow_module_level付きのskipを必須の設定で実行し、失敗の終了コードと案内を確認します]
+#   引数: [tmp_path: 一時フォルダ（Path）]
+#   戻り値: [result: なし（None）]
+# }
+def test_module_level_godot_skip_fails_when_required(tmp_path):
+    source = "import pytest\npytest.skip('Godot is not configured', allow_module_level=True)\n"
+    result = run_pytest_on(tmp_path, source, {"KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": sys.executable})
+    assert result.returncode == pytest.ExitCode.TESTS_FAILED, result.stdout + result.stderr
+    assert "Godotを理由に1件がskipされました" in result.stdout
+
+
+# {
 #   責務: [test_missing_godot_stops_required_run_before_tests: Godotが必須なのに実行ファイルがない場合、テストを始める前に使用エラーで止まることを確認します]
 #   処理: [1: 存在しない実行ファイルを指定して必須の設定で実行し、使用エラーの終了コードを確認します]
 #   引数: [tmp_path: 一時フォルダ（Path）]
@@ -185,6 +248,8 @@ def test_missing_godot_stops_required_run_before_tests(tmp_path):
         {"KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": str(tmp_path / "missing-godot"), "PATH": ""},
     )
     assert result.returncode == pytest.ExitCode.USAGE_ERROR, result.stdout + result.stderr
+    # 別の原因の使用エラーと区別するため、Godotが見つからない案内も確認します。
+    assert "Godotの実行ファイルが見つかりません" in result.stdout + result.stderr
 
 
 # {
@@ -203,6 +268,7 @@ def test_godot_marker_selects_only_godot_files(tmp_path):
         "godot",
         "--collect-only",
     )
+    assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
     assert "test_port" in result.stdout and "test_plain" not in result.stdout, result.stdout
 
 
@@ -235,3 +301,65 @@ def test_resolve_command_uses_current_python_and_godot():
     assert local_ci.resolve_command("flake8 . --count", "godot")[:3] == [sys.executable, "-m", "flake8"]
     godot = r"E:\tools\Godot 4\godot.exe"
     assert local_ci.resolve_command('"$KADOKA_GODOT_EXECUTABLE" --headless', godot) == [godot, "--headless"]
+
+
+# {
+#   責務: [prepared_local_ci: ローカルCIの起動前の確認を通し、各検査の実行を記録する代役へ差し替えます]
+#   処理: [
+#     1: Godotの指定・版・道具の確認を成功へ差し替えます
+#     2: 各検査とパッケージ検査を、受け取った環境変数を記録して成功を返す代役へ差し替えます
+#   ]
+#   引数: [monkeypatch: 関数と環境変数を一時的に差し替えるpytestの道具]
+#   戻り値: [result: 実行した検査名と環境変数の組の一覧（list[tuple[str, dict]]）]
+# }
+@pytest.fixture
+def prepared_local_ci(monkeypatch):
+    calls: list[tuple[str, dict]] = []
+    monkeypatch.setenv("KADOKA_GODOT_EXECUTABLE", sys.executable)
+    monkeypatch.setenv("KADOKA_GDSCRIPT_SAVE_NAME", "default")
+    monkeypatch.setattr(local_ci, "godot_version", lambda godot: local_ci.EXPECTED_GODOT_VERSION + ".official")
+    monkeypatch.setattr(local_ci, "missing_tools", lambda: [])
+    monkeypatch.setattr(local_ci, "run_step", lambda step, godot, env: calls.append((step.name, env)) or (0, 0.0))
+    monkeypatch.setattr(local_ci, "build_and_install_package", lambda env: calls.append(("package", env)) or (0, 0.0))
+    return calls
+
+
+# {
+#   責務: [test_local_ci_requires_godot_for_pytest: ローカルCIが全体pytestへKADOKA_REQUIRE_GODOT=1を渡し、タイトルを飛ばすセーブ名の指定を外すことを確認します]
+#   処理: [1: 全検査を代役で実行し、終了コード0と全体pytestの環境変数を確認します]
+#   引数: [prepared_local_ci: 実行した検査名と環境変数の記録（list[tuple[str, dict]]）]
+#   戻り値: [result: なし（None）]
+# }
+def test_local_ci_requires_godot_for_pytest(prepared_local_ci):
+    assert local_ci.main([]) == 0
+    environment = dict(prepared_local_ci)["pytest (all, Godot required)"]
+    assert environment["KADOKA_REQUIRE_GODOT"] == "1"
+    assert environment["KADOKA_GODOT_EXECUTABLE"] == sys.executable
+    assert "KADOKA_GDSCRIPT_SAVE_NAME" not in environment
+
+
+# {
+#   責務: [test_skipping_godot_job_also_skips_full_pytest: --skip godotで、Godotのテストを含む全体pytestも未実行として報告することを確認します]
+#   処理: [1: --skip godotで実行し、終了コード3と、全体pytestとGodotのimportが実行されないことを確認します]
+#   引数: [prepared_local_ci: 実行した検査名と環境変数の記録（list[tuple[str, dict]]）]
+#   戻り値: [result: なし（None）]
+# }
+def test_skipping_godot_job_also_skips_full_pytest(prepared_local_ci):
+    assert local_ci.main(["--skip", "godot"]) == 3
+    executed = {name for name, _ in prepared_local_ci}
+    assert "pytest (all, Godot required)" not in executed and "Godot import" not in executed
+
+
+# {
+#   責務: [test_local_ci_rejects_different_godot_version: CIと異なる版のGodotでは、検査を一つも実行せずに準備不足として止まることを確認します]
+#   処理: [1: 版の確認を別の版へ差し替えてmainを呼び、終了コード2と、検査が実行されないことを確認します]
+#   引数: [
+#     prepared_local_ci: 実行した検査名と環境変数の記録（list[tuple[str, dict]]）
+#     monkeypatch: 版の確認を差し替えるpytestの道具
+#   ]
+#   戻り値: [result: なし（None）]
+# }
+def test_local_ci_rejects_different_godot_version(prepared_local_ci, monkeypatch):
+    monkeypatch.setattr(local_ci, "godot_version", lambda godot: "4.6.0.stable.official")
+    assert local_ci.main([]) == 2
+    assert prepared_local_ci == []

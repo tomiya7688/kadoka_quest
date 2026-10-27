@@ -81,7 +81,7 @@ func resolve_profile(name: String) -> Dictionary:
 #   責務: [list_profiles: タイトル画面の「つづきから」で選べる、保存先直下の名前付きセーブを列挙します。読み書きはしません]
 #   処理: [
 #     1: 保存先がまだない場合は、セーブなしの成功として空の一覧を返します
-#     2: 保存先直下のフォルダごとに、resolve_profileと同じ名前・リンク検査を行い、state.jsonがあるものだけを残します
+#     2: 隠しフォルダを含む保存先直下のフォルダごとに、resolve_profileと同じ名前・リンク検査を行い、state.jsonがあるものだけを残します
 #     3: 選べないフォルダの理由を警告へ残し、名前を大文字小文字を区別しない自然順で並べて返します
 #   ]
 #   引数: []
@@ -96,6 +96,8 @@ func list_profiles() -> Dictionary:
 	var directory := DirAccess.open(root)
 	if directory == null:
 		return {"ok": false, "error": "read_failed", "message": "保存先を開けません: " + root}
+	# validate_nameはドットで始まる名前を許すため、Linux/macOSで隠しフォルダになるセーブも一覧に含めます。
+	directory.include_hidden = true
 	var names: Array[String] = []
 	var warnings: Array[String] = []
 	# 読込時と同じ検査を通らないフォルダは、一覧へ出しても開けないため除外します。

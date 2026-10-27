@@ -206,3 +206,29 @@ def test_godot_new_game_rejects_existing_save_name(tmp_path):
     assert "同じ名前" in rejected["title"]["message"]
     assert checkpoints["final"]["title"]["page"] == "home"
     assert runner.saved_files() == before
+
+
+# {
+#   責務: [test_godot_dot_prefixed_save_survives_restart: KQ-G07 ドットで始まるセーブ名で始めて保存した冒険が、再起動後のつづきからの一覧に表示され、再開できることを確認します]
+#   処理: [
+#     1: Given 空の専用保存先、When はじめからで「.adventure」を始めてメニューから保存します
+#     2: When Godotを再起動してつづきからで選びます。Then 一覧に.adventureがあり、保存した位置から始まります
+#   ]
+#   引数: [tmp_path: 実セーブと分離した一時フォルダ（Path）]
+#   戻り値: [result: なし（None）]
+# }
+def test_godot_dot_prefixed_save_survives_restart(tmp_path):
+    # Linux/macOSではドットで始まるフォルダが隠しフォルダになるため、一覧から漏れないことを確かめます。
+    runner = GodotScenarioRunner(tmp_path)
+    saved = runner.run([*new_game_steps(".adventure", saves_exist=False), *SAVE_IN_MENU])["final"]["field"]
+    assert ".adventure" in runner.saved_states()
+    resumed = runner.run(
+        [
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "wait_scene", "name": "FieldApplication"},
+        ]
+    )
+    assert resumed["initial"]["title"]["profiles"] == [".adventure"]
+    field = resumed["final"]["field"]
+    assert (field["profile"], field["x"], field["y"]) == (".adventure", saved["x"], saved["y"])

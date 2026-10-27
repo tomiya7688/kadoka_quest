@@ -24,8 +24,6 @@ where = ["src"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 
-
-
 [tool.ruff]
 # CIのflake8の形式報告と同じ127文字を上限にします。整形対象はtools/format/script/format_changed.pyが選びます。
 line-length = 127

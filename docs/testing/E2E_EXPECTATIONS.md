@@ -62,6 +62,7 @@ Godot版のE2Eは `tests/e2e/godot_harness.py` が実行します。harnessは�
 | KQ-G04 | Godot同名セーブの拒否 | 「冒険A」を保存済み | 再起動してはじめからで同じ「冒険A」を入力して決定し、Escで戻る | タイトル画面のセーブ名入力に留まり、同じ名前の理由を表示する。Escで最初の枠へ戻り、保存先のファイルは変わらない | no | `tests/e2e/test_godot_title_journeys.py::test_godot_new_game_rejects_existing_save_name` | covered | Godot版タイトル（#191） |
 | KQ-G05 | Godot牧場台帳・編成 | 所有個体が2体以上の保存済みセーブ | フィールドのメニューからなかま・パーティを開き、編成を変えて保存、再起動 | 台帳と編成画面に所有個体を表示し、保存した編成を再起動後も復元する | yes | - | missing | 既存のGodot画面probeはあるが、起動画面からの実入力E2E未対応。Godot E2E harnessで追加する |
 | KQ-G06 | Godot湧き場の暗号入力 | 湧き場の前にいる保存済みセーブ | 調べて暗号画面を開き、仮想かなで7文字を入力して確定、保存して再起動 | 一致したときだけ仲間が増え、再起動後も所有している。取消では保存データを変えない | yes | - | missing | 既存のGodot暗号probeはあるが、起動画面からの実入力E2E未対応。Godot E2E harnessで追加する |
+| KQ-G07 | Godotドットで始まるセーブ名 | 空の専用保存先 | はじめからで「.adventure」を始めて保存し、再起動してつづきからで選ぶ | Linux/macOSで隠しフォルダになる名前でも一覧に表示され、保存した位置から再開する | yes | `tests/e2e/test_godot_title_journeys.py::test_godot_dot_prefixed_save_survives_restart` | covered | Godot版タイトル（#191）。PR #257のレビュー指摘への回帰 |
 
 ## Developer / 制作操作
 

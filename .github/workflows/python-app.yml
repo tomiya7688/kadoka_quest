@@ -95,7 +95,7 @@ jobs:
       - name: Install pinned Godot
         run: |
           archive="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
-          curl --fail --location --silent --show-error --output "$RUNNER_TEMP/$archive" \
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors --output "$RUNNER_TEMP/$archive" \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/${archive}"
           echo "${GODOT_SHA512}  $RUNNER_TEMP/$archive" | sha512sum --check --strict
           unzip -q "$RUNNER_TEMP/$archive" -d "$RUNNER_TEMP/godot"

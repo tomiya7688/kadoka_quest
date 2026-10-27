@@ -89,7 +89,8 @@ func _run() -> void:
 func _check_store(save_root: String) -> void:
 	var listed: Dictionary = SaveStore.new(save_root).list_profiles()
 	_check(listed["ok"], "保存先の列挙が成功")
-	_check(listed.get("names", []) == ["alpha", "冒険2", "冒険10"], "state.jsonのあるセーブだけを自然順で列挙: %s" % str(listed.get("names")))
+	# ドットで始まるセーブはLinux/macOSで隠しフォルダになりますが、作成できるため一覧にも含めます。
+	_check(listed.get("names", []) == [".adventure", "alpha", "冒険2", "冒険10"], "state.jsonのあるセーブだけを、隠しフォルダも含めて自然順で列挙: %s" % str(listed.get("names")))
 	_check(listed.get("warnings", []).size() == 1, "40文字を超えるフォルダ名を警告へ残す")
 	var missing: Dictionary = SaveStore.new(save_root.path_join("missing_root")).list_profiles()
 	_check(missing["ok"] and missing["names"].is_empty(), "保存先がない初回起動は空の一覧")
@@ -124,7 +125,7 @@ func _check_layout(view: Control) -> void:
 func _check_navigation(view: Control) -> void:
 	await process_frame
 	_check(view.continue_button.has_focus(), "セーブがある場合はつづきからを最初に選択")
-	_check(view.profile_list.item_count == 3 and view.profile_list.get_item_text(2) == "冒険10", "セーブ一覧を列挙順で表示")
+	_check(view.profile_list.item_count == 4 and view.profile_list.get_item_text(3) == "冒険10", "セーブ一覧を列挙順で表示")
 	view.open_page("profiles")
 	await process_frame
 	_check(view.profiles.visible and view.profile_list.has_focus(), "つづきからでセーブ一覧へフォーカス")

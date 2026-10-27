@@ -38,7 +38,7 @@ def git(repository: Path, *args: str) -> None:
 #   処理: [
 #     1: mainへ整形されていない既存ファイルをコミットします
 #     2: 作業ブランチでコミット済みの追加、indexだけの追加、未追跡の追加、既存ファイルの変更を作ります
-#     3: 道具が使うリポジトリ直下を一時リポジトリへ差し替えます
+#     3: 日本語名の未追跡ファイルを加え、道具が使うリポジトリ直下を一時リポジトリへ差し替えます
 #   ]
 #   引数: [
 #     tmp_path: 一時フォルダ（Path）
@@ -48,9 +48,13 @@ def git(repository: Path, *args: str) -> None:
 # }
 @pytest.fixture
 def repository(tmp_path, monkeypatch):
+    # Gitのフックなどから実行された場合も、別のリポジトリや利用者の署名設定を使わないようにします。
+    for variable in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+        monkeypatch.delenv(variable, raising=False)
     git(tmp_path, "init", "--initial-branch=main")
     git(tmp_path, "config", "user.email", "test@example.invalid")
     git(tmp_path, "config", "user.name", "test")
+    git(tmp_path, "config", "commit.gpgsign", "false")
     (tmp_path / "existing.py").write_text(UNFORMATTED, encoding="utf-8")
     git(tmp_path, "add", "existing.py")
     git(tmp_path, "commit", "-m", "base")
@@ -62,6 +66,8 @@ def repository(tmp_path, monkeypatch):
     git(tmp_path, "add", "staged.py")
     (tmp_path / "untracked.py").write_text(UNFORMATTED, encoding="utf-8")
     (tmp_path / "notes.txt").write_text("not python\n", encoding="utf-8")
+    # Gitが既定で引用符付きの8進表記にする日本語名も、対象から漏れないことを確かめます。
+    (tmp_path / "日本語.py").write_text(UNFORMATTED, encoding="utf-8")
     # 既存ファイルは変更しても対象にせず、他の作業者の行を書き換えないことを確かめます。
     (tmp_path / "existing.py").write_text(UNFORMATTED + "y = 1\n", encoding="utf-8")
     monkeypatch.setattr(format_changed, "ROOT", tmp_path)
@@ -75,7 +81,7 @@ def repository(tmp_path, monkeypatch):
 #   戻り値: [result: なし（None）]
 # }
 def test_only_added_python_files_are_targets(repository):
-    assert format_changed.added_python_files("main") == ["committed.py", "staged.py", "untracked.py"]
+    assert format_changed.added_python_files("main") == ["committed.py", "staged.py", "untracked.py", "日本語.py"]
 
 
 # {
@@ -94,7 +100,8 @@ def test_check_fails_then_format_fixes_without_touching_existing(repository):
     assert (repository / "committed.py").read_text(encoding="utf-8") == UNFORMATTED
     assert format_changed.main(["--base", "main"]) == 0
     assert format_changed.main(["--check", "--base", "main"]) == 0
-    assert (repository / "committed.py").read_text(encoding="utf-8") == 'x = {"a": 1}\n'
+    for name in ("committed.py", "staged.py", "untracked.py", "日本語.py"):
+        assert (repository / name).read_text(encoding="utf-8") == 'x = {"a": 1}\n', name
     assert (repository / "existing.py").read_text(encoding="utf-8") == existing_before
 
 
@@ -119,3 +126,22 @@ def test_default_base_follows_pull_request_target(monkeypatch):
     assert format_changed.default_base() == "origin/main"
     monkeypatch.setenv("GITHUB_BASE_REF", "release")
     assert format_changed.default_base() == "origin/release"
+
+
+# {
+#   責務: [test_missing_ruff_fails_with_setup_code: Ruffが導入されていない場合に、整形漏れと区別できる終了コード2と導入方法を返すことを確認します]
+#   処理: [1: Ruffのモジュール探索を見つからない結果へ差し替えて--checkを実行し、終了コードと案内を確認します]
+#   引数: [
+#     repository: 一時Gitリポジトリのフォルダ（Path）
+#     monkeypatch: モジュール探索を一時的に差し替えるpytestの道具
+#     capsys: 標準出力を取得するpytestの道具
+#   ]
+#   戻り値: [result: なし（None）]
+# }
+def test_missing_ruff_fails_with_setup_code(repository, monkeypatch, capsys):
+    original = format_changed.importlib.util.find_spec
+    monkeypatch.setattr(
+        format_changed.importlib.util, "find_spec", lambda name, *args: None if name == "ruff" else original(name, *args)
+    )
+    assert format_changed.main(["--check", "--base", "main"]) == 2
+    assert "tools/format/requirements.txt" in capsys.readouterr().out

@@ -20,15 +20,15 @@ from test_gdscript_bootstrap import GODOT, ROOT
 # {
 #   責務: [prepare_saves: 列挙・順序・除外の確認に使うセーブフォルダを専用の一時保存先へ作ります]
 #   処理: [
-#     1: state.jsonを持つ三つのセーブと、state.jsonのないフォルダを作ります
+#     1: state.jsonを持つ四つのセーブと、state.jsonのないフォルダを作ります
 #     2: 40文字を超える名前のフォルダを作ります
 #   ]
 #   引数: [save_root: Godotへ渡す専用の一時保存先（Path）]
 #   戻り値: [result: 作成した全ファイルの相対パスと内容の対応（dict[str, bytes]）]
 # }
 def prepare_saves(save_root: Path) -> dict[str, bytes]:
-    # 自然順の確認のため、「冒険10」が「冒険2」より後に並ぶ名前を用意します。
-    for name in ("alpha", "冒険2", "冒険10", "あ" * 41):
+    # 自然順の確認のため「冒険10」が「冒険2」より後に並ぶ名前と、Linux/macOSで隠しフォルダになるドット始まりの名前を用意します。
+    for name in (".adventure", "alpha", "冒険2", "冒険10", "あ" * 41):
         folder = save_root / name
         folder.mkdir(parents=True)
         (folder / "state.json").write_text('{"schema_version": 1}\n', encoding="utf-8")

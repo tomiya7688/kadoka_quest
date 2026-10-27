@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
@@ -18,12 +19,15 @@ ROOT = Path(__file__).resolve().parents[3]
 
 # {
 #   責務: [git_lines: リポジトリ直下でGitコマンドを実行し、出力を空行なしの行一覧で返します]
-#   処理: [1: Gitを実行し、失敗した場合は標準エラーを含む例外を送出します]
+#   処理: [1: パスを引用符付きの8進表記にしない設定でGitを実行し、失敗した場合は標準エラーを含む例外を送出します]
 #   引数: [args: Gitへ渡すサブコマンドとオプション（str）]
 #   戻り値: [result: 出力の各行（list[str]）]
 # }
 def git_lines(*args: str) -> list[str]:
-    completed = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=False)
+    # 既定のcore.quotepath=trueでは日本語のファイル名が引用符付きの8進表記で出力され、対象から黙って外れるため無効にします。
+    completed = subprocess.run(
+        ["git", "-c", "core.quotepath=false", *args], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=False
+    )
     if completed.returncode:
         raise RuntimeError(completed.stderr.strip() or f"git {' '.join(args)} failed")
     return [line for line in completed.stdout.splitlines() if line.strip()]
@@ -57,6 +61,7 @@ def added_python_files(base: str) -> list[str]:
         *git_lines("ls-files", "--others", "--exclude-standard"),
     ]
     # 既存ファイルの全体整形は他の作業者の行まで書き換えるため、追加したファイルだけを対象にします。
+    # 既存ファイルの移動（Gitの判定はR）も、移動前の行を書き換えないよう対象にしません。
     return sorted({path for path in candidates if path.endswith(".py") and (ROOT / path).is_file()})
 
 
@@ -67,7 +72,7 @@ def added_python_files(base: str) -> list[str]:
 #     2: 対象がなければ対象なしとして成功し、あれば実行中のPythonのRuffへ渡してその終了コードを返します
 #   ]
 #   引数: [argv: コマンドライン引数。省略時はsys.argvを使います（list[str] | None）]
-#   戻り値: [result: Ruffの終了コード。比較元が見つからない場合は2です（int）]
+#   戻り値: [result: Ruffの終了コード。比較元が見つからない場合とRuffが導入されていない場合は2です（int）]
 # }
 def main(argv: list[str] | None = None) -> int:
     # Windowsのコンソールでも日本語の案内を文字化けさせないよう、標準出力をUTF-8にそろえます。
@@ -87,6 +92,13 @@ def main(argv: list[str] | None = None) -> int:
     if not files:
         print(f"[OK] {base}からの追加Pythonファイルはありません。")
         return 0
+    # Ruffがないことによる失敗を、整形漏れの失敗（終了コード1）と区別します。
+    if importlib.util.find_spec("ruff") is None:
+        print(
+            f"[ERROR] {sys.executable}にRuffがありません。リポジトリ直下で次を実行してください: "
+            f"{sys.executable} -m pip install -r tools/format/requirements.txt"
+        )
+        return 2
     print(f"{'check' if args.check else 'format'}: {base}から追加した{len(files)}件のPythonファイル")
     command = [sys.executable, "-m", "ruff", "format", *(["--check", "--diff"] if args.check else []), *files]
     return subprocess.run(command, cwd=ROOT, check=False).returncode
