@@ -1,4 +1,5 @@
 """Godot版タイトル画面のセーブ選択・新規開始・フィールドへの切替を、専用の一時保存先と実Godotで検証します。"""
+
 # {
 #   責務: [test_gdscript_title: タイトル画面の実Godotプローブを、実セーブと分離した保存先で起動して結果を確認します]
 #   フィールド: []
@@ -32,10 +33,7 @@ def prepare_saves(save_root: Path) -> dict[str, bytes]:
         folder.mkdir(parents=True)
         (folder / "state.json").write_text('{"schema_version": 1}\n', encoding="utf-8")
     (save_root / "フォルダだけ").mkdir()
-    return {
-        str(path.relative_to(save_root)): path.read_bytes()
-        for path in save_root.rglob("*") if path.is_file()
-    }
+    return {str(path.relative_to(save_root)): path.read_bytes() for path in save_root.rglob("*") if path.is_file()}
 
 
 # {
@@ -54,13 +52,19 @@ def prepare_saves(save_root: Path) -> dict[str, bytes]:
 def run_title_probe(mode: str, save_root: Path, work: Path) -> dict:
     # 共用の起動関数はセーブ名を固定してタイトルを飛ばすため、この検査では環境変数を外します。
     environment = {key: value for key, value in os.environ.items() if key != "KADOKA_GDSCRIPT_SAVE_NAME"}
-    environment.update(KADOKA_CONTENT_ROOT=str(ROOT), KADOKA_GDSCRIPT_SAVE_ROOT=str(save_root),
-                       KADOKA_SAVE_DIR=str(work / "python-saves"))
+    environment.update(
+        KADOKA_CONTENT_ROOT=str(ROOT), KADOKA_GDSCRIPT_SAVE_ROOT=str(save_root), KADOKA_SAVE_DIR=str(work / "python-saves")
+    )
     completed = subprocess.run(
-        [str(GODOT), "--headless", "--path", str(ROOT / "gdscript"), "--script", "res://tests/run_title_probe.gd",
-         "--", mode],
-        cwd=work, env=environment, text=True, encoding="utf-8", errors="replace", capture_output=True,
-        timeout=60, check=False,
+        [str(GODOT), "--headless", "--path", str(ROOT / "gdscript"), "--script", "res://tests/run_title_probe.gd", "--", mode],
+        cwd=work,
+        env=environment,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        timeout=60,
+        check=False,
     )
     assert "SCRIPT ERROR" not in completed.stderr, completed.stderr
     assert "ERROR:" not in completed.stderr, completed.stderr

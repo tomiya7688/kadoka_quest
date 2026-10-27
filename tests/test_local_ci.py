@@ -1,4 +1,5 @@
 """ローカルCIがCIのワークフローと同じ検査を実行し、Godotが必須の実行でskipを成功扱いにしないことを検証します。"""
+
 # {
 #   責務: [test_local_ci: CIのワークフローとローカルCIの検査コマンドのずれ、Godot必須時のskip・未設定の失敗、godotマーカーの付与を検証します]
 #   フィールド: [
@@ -21,8 +22,21 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/python-app.yml"
-SETUP_PREFIXES = ("python -m pip", "python -m venv", ".package-venv/", "cd ", "archive=", "curl ", "echo ", "unzip ",
-                  "executable=", "chmod ", '"$executable"', '"$GITHUB_WORKSPACE/', '"https://')
+SETUP_PREFIXES = (
+    "python -m pip",
+    "python -m venv",
+    ".package-venv/",
+    "cd ",
+    "archive=",
+    "curl ",
+    "echo ",
+    "unzip ",
+    "executable=",
+    "chmod ",
+    '"$executable"',
+    '"$GITHUB_WORKSPACE/',
+    '"https://',
+)
 _spec = importlib.util.spec_from_file_location("run_local_ci", ROOT / "tools/local-ci/script/run_local_ci.py")
 local_ci = importlib.util.module_from_spec(_spec)
 # dataclassは定義中にsys.modulesから自分のモジュールを引くため、実行前に登録します。
@@ -70,8 +84,11 @@ def workflow_commands(text: str) -> list[str]:
 #   戻り値: [result: なし（None）]
 # }
 def test_every_ci_verification_command_runs_locally():
-    verification = [command for command in workflow_commands(WORKFLOW.read_text(encoding="utf-8"))
-                    if not command.startswith(SETUP_PREFIXES)]
+    verification = [
+        command
+        for command in workflow_commands(WORKFLOW.read_text(encoding="utf-8"))
+        if not command.startswith(SETUP_PREFIXES)
+    ]
     local = {step.command for step in local_ci.STEPS} | set(local_ci.PACKAGE_COMMANDS)
     # CIの-m godotはGodotのテストだけを選びます。ローカルのGodot必須の全体pytestはその全件を含みます。
     covered_by_full_pytest = {"python -m pytest -m godot"}
@@ -115,9 +132,17 @@ def run_pytest_on(folder: Path, source: str, environment: dict[str, str | None],
             env.pop(key, None)
         else:
             env[key] = value
-    return subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", str(folder), *arguments],
-                          cwd=folder, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                          timeout=120, check=False)
+    return subprocess.run(
+        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", str(folder), *arguments],
+        cwd=folder,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=120,
+        check=False,
+    )
 
 
 SKIPPING_TEST = (
@@ -140,8 +165,7 @@ SKIPPING_TEST = (
 # }
 def test_godot_skip_fails_only_when_godot_is_required(tmp_path):
     # 実在するファイルなら起動前の確認を通るため、Godotの代わりにPythonの実行ファイルを指定します。
-    required = run_pytest_on(tmp_path, SKIPPING_TEST,
-                             {"KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": sys.executable})
+    required = run_pytest_on(tmp_path, SKIPPING_TEST, {"KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": sys.executable})
     assert required.returncode == pytest.ExitCode.TESTS_FAILED, required.stdout + required.stderr
     assert "Godotを理由に1件がskipされました" in required.stdout
     optional = run_pytest_on(tmp_path, SKIPPING_TEST, {"KADOKA_REQUIRE_GODOT": None})
@@ -155,8 +179,11 @@ def test_godot_skip_fails_only_when_godot_is_required(tmp_path):
 #   戻り値: [result: なし（None）]
 # }
 def test_missing_godot_stops_required_run_before_tests(tmp_path):
-    result = run_pytest_on(tmp_path, SKIPPING_TEST, {
-        "KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": str(tmp_path / "missing-godot"), "PATH": ""})
+    result = run_pytest_on(
+        tmp_path,
+        SKIPPING_TEST,
+        {"KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": str(tmp_path / "missing-godot"), "PATH": ""},
+    )
     assert result.returncode == pytest.ExitCode.USAGE_ERROR, result.stdout + result.stderr
 
 
@@ -168,8 +195,14 @@ def test_missing_godot_stops_required_run_before_tests(tmp_path):
 # }
 def test_godot_marker_selects_only_godot_files(tmp_path):
     (tmp_path / "test_plain.py").write_text("def test_plain():\n    pass\n", encoding="utf-8")
-    result = run_pytest_on(tmp_path, "GODOT = 'godot'\ndef test_port():\n    pass\n", {"KADOKA_REQUIRE_GODOT": None},
-                           "-m", "godot", "--collect-only")
+    result = run_pytest_on(
+        tmp_path,
+        "GODOT = 'godot'\ndef test_port():\n    pass\n",
+        {"KADOKA_REQUIRE_GODOT": None},
+        "-m",
+        "godot",
+        "--collect-only",
+    )
     assert "test_port" in result.stdout and "test_plain" not in result.stdout, result.stdout
 
 

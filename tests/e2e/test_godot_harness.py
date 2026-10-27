@@ -1,4 +1,5 @@
 """Godot版E2E harnessが、未知の操作や到達しない画面を成功扱いにしないことを検証します。"""
+
 # {
 #   責務: [test_godot_harness: Godot版E2E harnessとe2e_driver.gdの失敗の扱いと、起動画面・入力経路の前提を検証します]
 #   フィールド: []

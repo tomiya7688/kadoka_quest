@@ -1,4 +1,5 @@
 """CIのPython quality workflowと同じ検査を、Godotを必須にしてローカルで順に実行します。"""
+
 # {
 #   責務: [run_local_ci: .github/workflows/python-app.ymlの各ジョブと同じコマンドを、実Godotを必須にしてローカルで実行し、成功・失敗・未実行を区別して報告します]
 #   フィールド: [
@@ -44,26 +45,42 @@ class LocalCiStep:
 STEPS = (
     LocalCiStep("test", "flake8 syntax", "flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics"),
     # CIと同じく、形式の指摘は件数を表示するだけで失敗にしません。
-    LocalCiStep("test", "flake8 style report (non-blocking)",
-                "flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics"),
+    LocalCiStep(
+        "test",
+        "flake8 style report (non-blocking)",
+        "flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics",
+    ),
     LocalCiStep("godot", "Godot import", '"$KADOKA_GODOT_EXECUTABLE" --headless --path gdscript --editor --import --quit'),
     # CIのtestジョブ（Godotなし）とgodotジョブ（-m godot）を、Godot必須の一回の全体実行でまとめて満たします。
     LocalCiStep("test", "pytest (all, Godot required)", "python -m pytest"),
+    LocalCiStep(
+        "project-integrity", "format check (added Python files)", "python tools/format/script/format_changed.py --check"
+    ),
     LocalCiStep("project-integrity", "project rules", "python tools/project-integrity/script/check_project_rules.py"),
     LocalCiStep("project-integrity", "declaration comments", "python tools/comment-check/script/check_comments.py"),
     LocalCiStep("project-integrity", "repo map", "python tools/code-docs/script/generate_repo_map.py --check"),
     LocalCiStep("project-integrity", "UPD checker", "python tools/upd-commander/script/check.py"),
-    LocalCiStep("project-integrity", "application class diagram",
-                "python tools/code-docs/script/generate_class_diagram.py --source src/kadoka_quest/application"
-                " --output docs/generated/application_class_diagram.mmd --check"),
-    LocalCiStep("project-integrity", "runtime performance",
-                "python tools/performance-check/script/check_runtime_performance.py"),
+    LocalCiStep(
+        "project-integrity",
+        "application class diagram",
+        "python tools/code-docs/script/generate_class_diagram.py --source src/kadoka_quest/application"
+        " --output docs/generated/application_class_diagram.mmd --check",
+    ),
+    LocalCiStep(
+        "project-integrity", "runtime performance", "python tools/performance-check/script/check_runtime_performance.py"
+    ),
     LocalCiStep("project-integrity", "Player project validation", "python developer_launcher.py --validate-project"),
 )
 PACKAGE_COMMANDS = ("python -m build", "python -m twine check dist/*")
-# UPD checkerはCIと同じく上流mainからrequirementsで導入します。
-REQUIRED_MODULES = {"pytest": "pytest", "flake8": "flake8", "build": "build", "twine": "twine",
-                    "upd_commander_checker": "-r tools/upd-commander/requirements.txt"}
+# UPD checkerはCIと同じく上流mainから、RuffはCIと同じ固定版をrequirementsで導入します。
+REQUIRED_MODULES = {
+    "pytest": "pytest",
+    "flake8": "flake8",
+    "build": "build",
+    "twine": "twine",
+    "upd_commander_checker": "-r tools/upd-commander/requirements.txt",
+    "ruff": "-r tools/format/requirements.txt",
+}
 
 
 # {
@@ -160,8 +177,9 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     jobs = sorted({step.job for step in STEPS} | {"package-integrity"})
-    parser.add_argument("--skip", action="append", default=[], choices=jobs,
-                        help="未実行として報告するジョブ。全体の判定は成功になりません")
+    parser.add_argument(
+        "--skip", action="append", default=[], choices=jobs, help="未実行として報告するジョブ。全体の判定は成功になりません"
+    )
     parser.add_argument("--list", action="store_true", help="実行する検査の一覧だけを表示します")
     args = parser.parse_args(argv)
     if args.list:
@@ -172,17 +190,27 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     godot = os.environ.get("KADOKA_GODOT_EXECUTABLE") or shutil.which("godot") or shutil.which("godot4")
     if not godot or not Path(godot).is_file():
-        print("[ERROR] KADOKA_GODOT_EXECUTABLEへGodot 4.7.2のコンソール実行ファイルを設定してください。"
-              "CIと同じくGodotの検査を必須にするため、Godotなしでは実行しません。")
+        print(
+            "[ERROR] KADOKA_GODOT_EXECUTABLEへGodot 4.7.2のコンソール実行ファイルを設定してください。"
+            "CIと同じくGodotの検査を必須にするため、Godotなしでは実行しません。"
+        )
         return 2
     missing = missing_tools()
     if missing:
-        print(f"[ERROR] 次の道具が{sys.executable}にありません。導入してから再実行してください: "
-              f"{sys.executable} -m pip install {' '.join(missing)}")
+        print(
+            f"[ERROR] 次の道具が{sys.executable}にありません。導入してから再実行してください: "
+            f"{sys.executable} -m pip install {' '.join(missing)}"
+        )
         return 2
     # CIのenvと同じ設定に、Godotの検査をskipで終わらせない設定を加えます。
-    environment = dict(os.environ, KADOKA_GODOT_EXECUTABLE=godot, KADOKA_REQUIRE_GODOT="1",
-                       SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy", PYGAME_HIDE_SUPPORT_PROMPT="1")
+    environment = dict(
+        os.environ,
+        KADOKA_GODOT_EXECUTABLE=godot,
+        KADOKA_REQUIRE_GODOT="1",
+        SDL_VIDEODRIVER="dummy",
+        SDL_AUDIODRIVER="dummy",
+        PYGAME_HIDE_SUPPORT_PROMPT="1",
+    )
     environment.pop("KADOKA_GDSCRIPT_SAVE_NAME", None)
     results: list[tuple[str, str, float]] = []
     for step in STEPS:

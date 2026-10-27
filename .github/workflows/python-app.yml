@@ -47,7 +47,7 @@ jobs:
       - name: Install project and test tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install . flake8 pytest
+          python -m pip install . flake8 pytest -r tools/format/requirements.txt
           python -m pip check
 
       - name: Lint for syntax and undefined names
@@ -122,6 +122,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 整形確認は比較元ブランチとの差分で追加ファイルを選ぶため、比較元の履歴も取得します。
+          fetch-depth: 0
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -129,6 +132,11 @@ jobs:
           python-version: "3.10"
           cache: pip
           cache-dependency-path: pyproject.toml
+
+      - name: Check formatting of added Python files
+        run: |
+          python -m pip install -r tools/format/requirements.txt
+          python tools/format/script/format_changed.py --check
 
       - name: Install latest architecture checker
         run: |

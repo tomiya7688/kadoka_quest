@@ -1,4 +1,5 @@
 """Godot版のE2Eシナリオを、実セーブと分離した保存先で本物のGodotプロセスとして実行します。"""
+
 # {
 #   責務: [godot_harness: Godot版の起動画面へ実入力を送るシナリオを、実行ごとに新しいGodotプロセスで起動し、同じ専用保存先を再起動の間で引き継ぎます]
 #   フィールド: [
@@ -39,7 +40,13 @@ def ensure_imported(work: Path) -> None:
         return
     completed = subprocess.run(
         [str(GODOT), "--headless", "--path", str(PROJECT_ROOT / "gdscript"), "--editor", "--import", "--quit"],
-        cwd=work, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600, check=False,
+        cwd=work,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=600,
+        check=False,
     )
     if completed.returncode or "SCRIPT ERROR" in completed.stderr:
         raise RuntimeError(f"Godot import failed ({completed.returncode}):\n{completed.stdout}\n{completed.stderr}")
@@ -93,14 +100,33 @@ class GodotScenarioRunner:
         request.write_text(json.dumps({"steps": steps}, ensure_ascii=False), encoding="utf-8")
         # KADOKA_GDSCRIPT_SAVE_NAMEがあるとタイトルを飛ばすため、利用者と同じ起動になるよう外します。
         environment = {key: value for key, value in os.environ.items() if key != "KADOKA_GDSCRIPT_SAVE_NAME"}
-        environment.update(KADOKA_CONTENT_ROOT=str(PROJECT_ROOT), KADOKA_GDSCRIPT_SAVE_ROOT=str(self.save_root),
-                           KADOKA_SAVE_DIR=str(self.root / "python-saves"))
+        environment.update(
+            KADOKA_CONTENT_ROOT=str(PROJECT_ROOT),
+            KADOKA_GDSCRIPT_SAVE_ROOT=str(self.save_root),
+            KADOKA_SAVE_DIR=str(self.root / "python-saves"),
+        )
         # 固定fpsでフレームごとの経過時間を一定にし、長押しの反復回数を実行速度に依存させません。
         completed = subprocess.run(
-            [str(GODOT), "--headless", "--fixed-fps", "60", "--path", str(PROJECT_ROOT / "gdscript"),
-             "--script", DRIVER, "--", str(request)],
-            cwd=self.root, env=environment, capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=self.timeout, check=False,
+            [
+                str(GODOT),
+                "--headless",
+                "--fixed-fps",
+                "60",
+                "--path",
+                str(PROJECT_ROOT / "gdscript"),
+                "--script",
+                DRIVER,
+                "--",
+                str(request),
+            ],
+            cwd=self.root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=self.timeout,
+            check=False,
         )
         result = None
         for line in completed.stdout.splitlines():
@@ -109,7 +135,9 @@ class GodotScenarioRunner:
         if result is None or "SCRIPT ERROR" in completed.stderr or "ERROR:" in completed.stderr:
             raise RuntimeError(f"Godot E2E failed ({completed.returncode}):\n{completed.stdout[-2000:]}\n{completed.stderr}")
         if not result["ok"] or completed.returncode:
-            raise RuntimeError(f"Godot E2E step failed: {result.get('error')}\n{json.dumps(result.get('checkpoints'), ensure_ascii=False)}")
+            raise RuntimeError(
+                f"Godot E2E step failed: {result.get('error')}\n{json.dumps(result.get('checkpoints'), ensure_ascii=False)}"
+            )
         return result["checkpoints"]
 
     # {
@@ -123,7 +151,8 @@ class GodotScenarioRunner:
             return {}
         return {
             folder.name: json.loads((folder / "state.json").read_text(encoding="utf-8"))
-            for folder in sorted(self.save_root.iterdir()) if (folder / "state.json").is_file()
+            for folder in sorted(self.save_root.iterdir())
+            if (folder / "state.json").is_file()
         }
 
     # {
@@ -135,5 +164,8 @@ class GodotScenarioRunner:
     def saved_files(self) -> dict[str, bytes]:
         if not self.save_root.is_dir():
             return {}
-        return {path.relative_to(self.save_root).as_posix(): path.read_bytes()
-                for path in sorted(self.save_root.rglob("*")) if path.is_file()}
+        return {
+            path.relative_to(self.save_root).as_posix(): path.read_bytes()
+            for path in sorted(self.save_root.rglob("*"))
+            if path.is_file()
+        }

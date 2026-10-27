@@ -1,4 +1,5 @@
 """Godotを使うテストへgodotマーカーを付け、Godotが必須の実行ではGodot不在によるskipを失敗にします。"""
+
 # {
 #   責務: [conftest: 実Godotを起動するテストを-m godotで選べるようにし、KADOKA_REQUIRE_GODOT=1の実行でGodotの未設定やskipを成功扱いにしないようにします]
 #   フィールド: [
@@ -56,7 +57,8 @@ def pytest_configure(config: pytest.Config) -> None:
     # 全テストをskipしたうえで成功と表示する前に、設定の誤りとして止めます。
     if godot_required() and find_godot() is None:
         raise pytest.UsageError(
-            f"{REQUIRE_VARIABLE}=1ですが、KADOKA_GODOT_EXECUTABLEまたはPATHにGodotの実行ファイルが見つかりません。")
+            f"{REQUIRE_VARIABLE}=1ですが、KADOKA_GODOT_EXECUTABLEまたはPATHにGodotの実行ファイルが見つかりません。"
+        )
 
 
 # {

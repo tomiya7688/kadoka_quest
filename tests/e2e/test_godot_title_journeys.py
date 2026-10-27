@@ -1,4 +1,5 @@
 """Godot版のタイトル画面からの起動・新規開始・保存・再起動・セーブ選択を、実入力と実プロセスの再起動で検証します。"""
+
 # {
 #   責務: [test_godot_title_journeys: E2EカタログKQ-G01〜G04のGiven/When/Thenを、本番の起動画面へ送る実入力と、同じ専用保存先でのGodot再起動で検証します]
 #   フィールド: [
@@ -29,8 +30,13 @@ SAVE_IN_MENU = [{"kind": "key", "key": "ESCAPE"}, {"kind": "key", "key": "DOWN"}
 def new_game_steps(name: str, *, saves_exist: bool) -> list[dict]:
     # セーブがある場合は最初の選択が「つづきから」なので、一つ下の「はじめから」へ移ります。
     moves = [{"kind": "key", "key": "DOWN"}] if saves_exist else []
-    return [*moves, {"kind": "key", "key": "ENTER"}, {"kind": "text", "value": name},
-            {"kind": "key", "key": "ENTER"}, {"kind": "wait_scene", "name": "FieldApplication"}]
+    return [
+        *moves,
+        {"kind": "key", "key": "ENTER"},
+        {"kind": "text", "value": name},
+        {"kind": "key", "key": "ENTER"},
+        {"kind": "wait_scene", "name": "FieldApplication"},
+    ]
 
 
 # {
@@ -44,17 +50,23 @@ def new_game_steps(name: str, *, saves_exist: bool) -> list[dict]:
 # }
 def test_godot_launch_without_saves_offers_only_new_game(tmp_path):
     runner = GodotScenarioRunner(tmp_path)
-    checkpoints = runner.run([
-        {"kind": "key", "key": "ESCAPE"},
-        {"kind": "snapshot", "label": "home_escape"},
-        {"kind": "key", "key": "ENTER"},
-        {"kind": "snapshot", "label": "new_page"},
-        {"kind": "key", "key": "ESCAPE"},
-    ])
+    checkpoints = runner.run(
+        [
+            {"kind": "key", "key": "ESCAPE"},
+            {"kind": "snapshot", "label": "home_escape"},
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "snapshot", "label": "new_page"},
+            {"kind": "key", "key": "ESCAPE"},
+        ]
+    )
     initial = checkpoints["initial"]
     assert initial["scene"] == "TitleApplication"
-    assert initial["title"] == {"page": "home", "message": initial["title"]["message"],
-                                "continue_disabled": True, "profiles": []}
+    assert initial["title"] == {
+        "page": "home",
+        "message": initial["title"]["message"],
+        "continue_disabled": True,
+        "profiles": [],
+    }
     assert initial["focus"] == "Button:はじめから"
     # 最初の枠のEscは何も切り替えず、はじめからの決定でセーブ名入力へ進みます。
     assert checkpoints["home_escape"]["title"]["page"] == "home"
@@ -77,33 +89,46 @@ def test_godot_launch_without_saves_offers_only_new_game(tmp_path):
 # }
 def test_godot_new_game_save_and_restart_resumes_position(tmp_path):
     runner = GodotScenarioRunner(tmp_path)
-    first = runner.run([
-        *new_game_steps("冒険A", saves_exist=False),
-        {"kind": "snapshot", "label": "started"},
-        {"kind": "hold", "key": "RIGHT", "frames": 20},
-        {"kind": "frames", "count": 30},
-        *SAVE_IN_MENU,
-    ])
+    first = runner.run(
+        [
+            *new_game_steps("冒険A", saves_exist=False),
+            {"kind": "snapshot", "label": "started"},
+            {"kind": "hold", "key": "RIGHT", "frames": 20},
+            {"kind": "frames", "count": 30},
+            *SAVE_IN_MENU,
+        ]
+    )
     started, saved = first["started"]["field"], first["final"]["field"]
     assert started["profile"] == "冒険A" and started["map_id"] == "starting_town"
     assert saved["x"] != started["x"] and saved["direction"] == "right"
     assert saved["status"] == "保存しました: 冒険A"
     state = runner.saved_states()["冒険A"]
     assert (state["map_id"], state["player"]["x"], state["player"]["y"], state["player"]["direction"]) == (
-        saved["map_id"], saved["x"], saved["y"], saved["direction"])
+        saved["map_id"],
+        saved["x"],
+        saved["y"],
+        saved["direction"],
+    )
     # 同じ保存先で新しいGodotプロセスを起動し、タイトル画面から再開します。
-    second = runner.run([
-        {"kind": "key", "key": "ENTER"},
-        {"kind": "snapshot", "label": "profiles"},
-        {"kind": "key", "key": "ENTER"},
-        {"kind": "wait_scene", "name": "FieldApplication"},
-    ])
+    second = runner.run(
+        [
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "snapshot", "label": "profiles"},
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "wait_scene", "name": "FieldApplication"},
+        ]
+    )
     assert second["initial"]["title"]["profiles"] == ["冒険A"]
     assert second["initial"]["focus"] == "Button:つづきから"
     assert second["profiles"]["focus"] == "ItemList:冒険A"
     resumed = second["final"]["field"]
     assert (resumed["profile"], resumed["map_id"], resumed["x"], resumed["y"], resumed["direction"]) == (
-        "冒険A", saved["map_id"], saved["x"], saved["y"], saved["direction"])
+        "冒険A",
+        saved["map_id"],
+        saved["x"],
+        saved["y"],
+        saved["direction"],
+    )
 
 
 # {
@@ -119,26 +144,34 @@ def test_godot_new_game_save_and_restart_resumes_position(tmp_path):
 def test_godot_continue_selects_one_of_several_saves(tmp_path):
     runner = GodotScenarioRunner(tmp_path)
     near = runner.run([*new_game_steps("冒険2", saves_exist=False), *SAVE_IN_MENU])["final"]["field"]
-    far = runner.run([
-        *new_game_steps("冒険10", saves_exist=True),
-        {"kind": "hold", "key": "RIGHT", "frames": 20},
-        {"kind": "frames", "count": 30},
-        *SAVE_IN_MENU,
-    ])["final"]["field"]
+    far = runner.run(
+        [
+            *new_game_steps("冒険10", saves_exist=True),
+            {"kind": "hold", "key": "RIGHT", "frames": 20},
+            {"kind": "frames", "count": 30},
+            *SAVE_IN_MENU,
+        ]
+    )["final"]["field"]
     assert (near["x"], near["y"]) != (far["x"], far["y"])
     before = runner.saved_files()
-    loaded = runner.run([
-        {"kind": "key", "key": "ENTER"},
-        {"kind": "key", "key": "DOWN"},
-        {"kind": "snapshot", "label": "selected"},
-        {"kind": "key", "key": "ENTER"},
-        {"kind": "wait_scene", "name": "FieldApplication"},
-    ])
+    loaded = runner.run(
+        [
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "key", "key": "DOWN"},
+            {"kind": "snapshot", "label": "selected"},
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "wait_scene", "name": "FieldApplication"},
+        ]
+    )
     assert loaded["initial"]["title"]["profiles"] == ["冒険2", "冒険10"]
     assert loaded["selected"]["focus"] == "ItemList:冒険10"
     resumed = loaded["final"]["field"]
     assert (resumed["profile"], resumed["x"], resumed["y"], resumed["direction"]) == (
-        "冒険10", far["x"], far["y"], far["direction"])
+        "冒険10",
+        far["x"],
+        far["y"],
+        far["direction"],
+    )
     # 再開は読み込みだけで、選んだセーブも選ばなかったセーブも書き換えません。
     assert runner.saved_files() == before
 
@@ -156,15 +189,17 @@ def test_godot_new_game_rejects_existing_save_name(tmp_path):
     runner = GodotScenarioRunner(tmp_path)
     runner.run([*new_game_steps("冒険A", saves_exist=False), *SAVE_IN_MENU])
     before = runner.saved_files()
-    checkpoints = runner.run([
-        {"kind": "key", "key": "DOWN"},
-        {"kind": "key", "key": "ENTER"},
-        {"kind": "text", "value": "冒険A"},
-        {"kind": "key", "key": "ENTER"},
-        {"kind": "frames", "count": 10},
-        {"kind": "snapshot", "label": "rejected"},
-        {"kind": "key", "key": "ESCAPE"},
-    ])
+    checkpoints = runner.run(
+        [
+            {"kind": "key", "key": "DOWN"},
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "text", "value": "冒険A"},
+            {"kind": "key", "key": "ENTER"},
+            {"kind": "frames", "count": 10},
+            {"kind": "snapshot", "label": "rejected"},
+            {"kind": "key", "key": "ESCAPE"},
+        ]
+    )
     rejected = checkpoints["rejected"]
     assert rejected["scene"] == "TitleApplication"
     assert rejected["title"]["page"] == "new"
