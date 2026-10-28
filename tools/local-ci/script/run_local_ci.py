@@ -75,7 +75,8 @@ STEPS = (
 )
 PACKAGE_COMMANDS = ("python -m build", "python -m twine check dist/*")
 # CIのgodotジョブが導入する版です。版を上げるときは.github/workflows/python-app.ymlのGODOT_VERSIONと同時に更新してください。
-EXPECTED_GODOT_VERSION = "4.7.2.stable"
+# mono版は別のビルドのため、公式の標準版（official）まで照合します。
+EXPECTED_GODOT_VERSION = "4.7.2.stable.official"
 # UPD checkerはCIと同じく上流mainから、RuffはCIと同じ固定版をrequirementsで導入します。
 REQUIRED_MODULES = {
     "pytest": "pytest",
@@ -231,7 +232,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
     version = godot_version(godot)
-    if version is None or not version.startswith(EXPECTED_GODOT_VERSION):
+    if version is None:
+        print(f"[ERROR] {godot}を起動できないか、--versionに応答しません。Godot {EXPECTED_GODOT_VERSION}を指定してください。")
+        return 2
+    if not version.startswith(EXPECTED_GODOT_VERSION):
         print(f"[ERROR] {godot}の版は{version}です。CIと同じGodot {EXPECTED_GODOT_VERSION}を指定してください。")
         return 2
     missing = missing_tools()

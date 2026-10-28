@@ -62,6 +62,10 @@ def workflow_commands(text: str) -> list[str]:
         stripped = line.strip()
         # 複数行のrunブロックは、run:より深い字下げが続く間だけを読み、空行ではブロックを終えません。
         if block_indent is not None:
+            # 継続中に空行やコメントが来た場合は、シェルと同じく継続を終えて、それまでの部分を一つのコマンドにします。
+            if (not stripped or (indent > block_indent and stripped.startswith("#"))) and pending:
+                commands.append(pending)
+                pending = ""
             if not stripped:
                 continue
             if indent > block_indent:
@@ -75,6 +79,10 @@ def workflow_commands(text: str) -> list[str]:
                     commands.append(pending)
                     pending = ""
                 continue
+            # ブロックが継続の途中で終わった場合も、残った部分を次のブロックへつなげずに確定します。
+            if pending:
+                commands.append(pending)
+                pending = ""
             block_indent = None
         if stripped.startswith("run:") or stripped.startswith("- run:"):
             value = stripped.split("run:", 1)[1].strip()
@@ -82,6 +90,8 @@ def workflow_commands(text: str) -> list[str]:
                 block_indent = indent
             elif value:
                 commands.append(value.strip("'"))
+    if pending:
+        commands.append(pending)
     return commands
 
 
@@ -127,6 +137,9 @@ def test_workflow_commands_join_continuations_and_skip_blank_and_comment_lines()
         "        run: 'quoted command'\n"
     )
     assert workflow_commands(text) == ['first --flag "second part"', "third", "quoted command"]
+    # ブロックの最後が継続のまま終わっても、次のブロックのコマンドへつなげません。
+    dangling = "        run: |\n          last \\\n      - name: Next\n        run: next\n"
+    assert workflow_commands(dangling) == ["last", "next"]
 
 
 # {
@@ -142,7 +155,7 @@ def test_ci_pins_and_verifies_godot():
     assert 'KADOKA_REQUIRE_GODOT: "1"' in text
     assert "python -m pytest -m godot" in text
     # ローカルCIが確認するGodotの版は、CIが導入する版と同じでなければなりません。
-    assert local_ci.EXPECTED_GODOT_VERSION.replace(".stable", "-stable") in text
+    assert f"GODOT_VERSION: {local_ci.EXPECTED_GODOT_VERSION.split('.stable')[0]}-stable" in text
 
 
 # {
@@ -233,6 +246,34 @@ def test_module_level_godot_skip_fails_when_required(tmp_path):
     result = run_pytest_on(tmp_path, source, {"KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": sys.executable})
     assert result.returncode == pytest.ExitCode.TESTS_FAILED, result.stdout + result.stderr
     assert "Godotを理由に1件がskipされました" in result.stdout
+
+
+# {
+#   責務: [test_positional_godot_skip_reason_selects_godot_marker: 理由を位置引数で渡したskipマーカーも、Godotの検査としてgodotマーカーで選ばれることを確認します]
+#   処理: [1: Godotの設定を参照しないファイルに、位置引数の理由にGodotを含むskipを置き、-m godotで選ばれてskipされることを確認します]
+#   引数: [tmp_path: 一時フォルダ（Path）]
+#   戻り値: [result: なし（None）]
+# }
+def test_positional_godot_skip_reason_selects_godot_marker(tmp_path):
+    source = "import pytest\n@pytest.mark.skip('Godot is not configured')\ndef test_port():\n    pass\n"
+    result = run_pytest_on(tmp_path, source, {"KADOKA_REQUIRE_GODOT": None}, "-m", "godot")
+    assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
+    assert "1 skipped" in result.stdout and "deselected" not in result.stdout
+
+
+# {
+#   責務: [test_godot_xfail_is_not_counted_as_skip: 理由にGodotを含むxfailは期待どおりの失敗なので、Godotが必須の実行でも失敗にしないことを確認します]
+#   処理: [1: 理由にGodotを含むxfailを必須の設定で実行し、成功の終了コードを確認します]
+#   引数: [tmp_path: 一時フォルダ（Path）]
+#   戻り値: [result: なし（None）]
+# }
+def test_godot_xfail_is_not_counted_as_skip(tmp_path):
+    # 失敗の表示にもGodotを含め、xfailを除かなければ記録されてしまう条件にします。
+    source = (
+        "import pytest\n@pytest.mark.xfail(reason='Godot port is pending')\ndef test_port():\n    assert False, 'Godot port'\n"
+    )
+    result = run_pytest_on(tmp_path, source, {"KADOKA_REQUIRE_GODOT": "1", "KADOKA_GODOT_EXECUTABLE": sys.executable})
+    assert result.returncode == pytest.ExitCode.OK, result.stdout + result.stderr
 
 
 # {
@@ -345,9 +386,14 @@ def test_local_ci_requires_godot_for_pytest(prepared_local_ci):
 #   戻り値: [result: なし（None）]
 # }
 def test_skipping_godot_job_also_skips_full_pytest(prepared_local_ci):
+    # 検査名が変わって空振りしないよう、除かない実行で同じ名前が実行されることも確かめます。
+    assert local_ci.main([]) == 0
+    assert {"pytest (all, Godot required)", "Godot import"} <= {name for name, _ in prepared_local_ci}
+    prepared_local_ci.clear()
     assert local_ci.main(["--skip", "godot"]) == 3
     executed = {name for name, _ in prepared_local_ci}
     assert "pytest (all, Godot required)" not in executed and "Godot import" not in executed
+    assert "flake8 syntax" in executed
 
 
 # {
@@ -360,6 +406,7 @@ def test_skipping_godot_job_also_skips_full_pytest(prepared_local_ci):
 #   戻り値: [result: なし（None）]
 # }
 def test_local_ci_rejects_different_godot_version(prepared_local_ci, monkeypatch):
-    monkeypatch.setattr(local_ci, "godot_version", lambda godot: "4.6.0.stable.official")
-    assert local_ci.main([]) == 2
+    for version in ("4.6.0.stable.official", "4.7.2.stable.mono.official", None):
+        monkeypatch.setattr(local_ci, "godot_version", lambda godot, version=version: version)
+        assert local_ci.main([]) == 2, version
     assert prepared_local_ci == []

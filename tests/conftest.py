@@ -94,7 +94,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     for item in items:
         # 共通の判定関数を別モジュールから読み込むテストも、skipの理由からGodotの検査として選びます。
         reasons = " ".join(
-            str(mark.kwargs.get("reason", "")) for mark in item.iter_markers() if mark.name in ("skip", "skipif")
+            str(mark.kwargs.get("reason") or (mark.args[0] if mark.name == "skip" and mark.args else ""))
+            for mark in item.iter_markers()
+            if mark.name in ("skip", "skipif")
         )
         if _uses_godot(Path(item.path)) or "godot" in reasons.lower():
             item.add_marker(pytest.mark.godot)
@@ -116,12 +118,13 @@ def skip_reason(report: pytest.TestReport | pytest.CollectReport) -> str:
 
 # {
 #   責務: [record_godot_skip: Godotが必須の実行で、理由にGodotを含むskipを記録します]
-#   処理: [1: skipされた結果の理由にGodotが含まれる場合だけ、node IDと理由の組で記録します]
+#   処理: [1: xfailを除き、skipされた結果の理由にGodotが含まれる場合だけ、node IDと理由の組で記録します]
 #   引数: [report: テストまたは収集の結果（pytest.TestReport | pytest.CollectReport）]
 #   戻り値: [result: なし（None）]
 # }
 def record_godot_skip(report: pytest.TestReport | pytest.CollectReport) -> None:
-    if not godot_required() or not report.skipped:
+    # xfailもskippedとして報告されるため、期待どおりの失敗をGodotのskipと数えないよう除きます。
+    if not godot_required() or not report.skipped or hasattr(report, "wasxfail"):
         return
     reason = skip_reason(report)
     if "godot" in reason.lower():
