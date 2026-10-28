@@ -235,7 +235,8 @@ def main(argv: list[str] | None = None) -> int:
     if version is None:
         print(f"[ERROR] {godot}を起動できないか、--versionに応答しません。Godot {EXPECTED_GODOT_VERSION}を指定してください。")
         return 2
-    if not version.startswith(EXPECTED_GODOT_VERSION):
+    # 公式版の出力は「4.7.2.stable.official.<コミット>」なので、期待版のあとは区切りの点だけを許します。
+    if version != EXPECTED_GODOT_VERSION and not version.startswith(EXPECTED_GODOT_VERSION + "."):
         print(f"[ERROR] {godot}の版は{version}です。CIと同じGodot {EXPECTED_GODOT_VERSION}を指定してください。")
         return 2
     missing = missing_tools()

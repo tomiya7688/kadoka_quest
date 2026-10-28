@@ -13,6 +13,7 @@ from __future__ import annotations
 import importlib.util
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -155,7 +156,9 @@ def test_ci_pins_and_verifies_godot():
     assert 'KADOKA_REQUIRE_GODOT: "1"' in text
     assert "python -m pytest -m godot" in text
     # ローカルCIが確認するGodotの版は、CIが導入する版と同じでなければなりません。
-    assert f"GODOT_VERSION: {local_ci.EXPECTED_GODOT_VERSION.split('.stable')[0]}-stable" in text
+    # 部分一致では別の版やコメント内の記述でも通るため、GODOT_VERSIONの行全体を照合します。
+    expected = re.escape(local_ci.EXPECTED_GODOT_VERSION.split(".stable")[0] + "-stable")
+    assert re.search(rf"^\s*GODOT_VERSION:\s*{expected}\s*$", text, re.MULTILINE)
 
 
 # {
@@ -406,7 +409,7 @@ def test_skipping_godot_job_also_skips_full_pytest(prepared_local_ci):
 #   戻り値: [result: なし（None）]
 # }
 def test_local_ci_rejects_different_godot_version(prepared_local_ci, monkeypatch):
-    for version in ("4.6.0.stable.official", "4.7.2.stable.mono.official", None):
+    for version in ("4.6.0.stable.official", "4.7.2.stable.mono.official", "4.7.2.stable.official-custom", None):
         monkeypatch.setattr(local_ci, "godot_version", lambda godot, version=version: version)
         assert local_ci.main([]) == 2, version
     assert prepared_local_ci == []
