@@ -101,7 +101,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print(f"{'check' if args.check else 'format'}: {base}から追加した{len(files)}件のPythonファイル")
     command = [sys.executable, "-m", "ruff", "format", *(["--check", "--diff"] if args.check else []), *files]
-    return subprocess.run(command, cwd=ROOT, check=False).returncode
+    # 引数はリストでshellを通さず、対象はGitが列挙したリポジトリ内のファイル名だけです。
+    return subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+        command, cwd=ROOT, check=False
+    ).returncode
 
 
 if __name__ == "__main__":

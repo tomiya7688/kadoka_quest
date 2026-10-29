@@ -119,7 +119,10 @@ def resolve_command(command: str, godot: str) -> list[str]:
 # }
 def run_step(step: LocalCiStep, godot: str, environment: dict[str, str]) -> tuple[int, float]:
     started = time.monotonic()
-    completed = subprocess.run(resolve_command(step.command, godot), cwd=ROOT, env=environment, check=False)
+    # コマンドはこのファイルの固定のSTEPSだけで、引数はリストでshellを通しません。
+    completed = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+        resolve_command(step.command, godot), cwd=ROOT, env=environment, check=False
+    )
     return completed.returncode, time.monotonic() - started
 
 
@@ -131,7 +134,8 @@ def run_step(step: LocalCiStep, godot: str, environment: dict[str, str]) -> tupl
 # }
 def godot_version(godot: str) -> str | None:
     try:
-        completed = subprocess.run(
+        # 実行ファイルは開発者が設定したKADOKA_GODOT_EXECUTABLEで、引数は固定のリストです。
+        completed = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
             [godot, "--headless", "--version"], capture_output=True, text=True, timeout=120, check=False
         )
     except (OSError, subprocess.TimeoutExpired):
@@ -182,7 +186,10 @@ def build_and_install_package(environment: dict[str, str]) -> tuple[int, float]:
             if arguments[1:4] == ["-m", "pip", "install"] and not any(output.glob("*.whl")):
                 print(f"[ERROR] {output}にwheelがありません。")
                 return 1, time.monotonic() - started
-            completed = subprocess.run(arguments, cwd=cwd, env=isolated, check=False)
+            # 引数は上の固定の手順と一時フォルダの成果物から作るリストで、shellを通しません。
+            completed = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+                arguments, cwd=cwd, env=isolated, check=False
+            )
             if completed.returncode:
                 return completed.returncode, time.monotonic() - started
     return 0, time.monotonic() - started
