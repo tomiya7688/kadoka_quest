@@ -38,6 +38,10 @@ CIでGodotのテストを実行すると、既存の二つのテスト（test_gd
 
 レビューの指摘から、次を直しました。tests/conftest.pyは、skipの判定をskipの理由だけに限定しました。以前はファイルの場所まで照合していたため、作業フォルダ名にgodotを含むだけで無関係なskipまで失敗にするおそれがありました。モジュール単位のskipも記録し、成功またはテストなしの終了だけを失敗へ変え、中断や内部エラーの終了コードは残します。skipの理由にGodotを含むマーカーを持つテストにもgodotマーカーを付けます。ローカルCIは、Godotの版が4.7.2であることを確認してから始め、パッケージ検査ではPYTHONPATHを除いて、導入したwheelからimportしたことを確かめます。--skip godotでは、Godotのテストを含む全体pytestも未実行として報告します。整形の道具は、日本語のファイル名を対象から落とさないようcore.quotepath=falseでGitを実行し、Ruffがない場合は整形漏れと区別して終了コード2を返します。ワークフローとローカルCIのずれ検出は、runブロックの空行・コメント・行継続を正しく扱います。CIのGodotの取得には再試行を加えました。また、PRの自動レビュー（Codex）の指摘により、Linux/macOSで隠しフォルダになるドット始まりのセーブ名がタイトルのセーブ一覧から消える不具合を直し、E2EのKQ-G07を追加しました。
 
+修正の再確認（第2回・第3回）の指摘から、さらに次を直しました。skipマーカーの理由を位置引数で渡した場合も、Godotのテストとしてgodotマーカーを付けます。理由にGodotを含むxfailは、期待どおりの失敗なのでGodotのskipと数えません。ローカルCIは、Godotの--versionが公式の標準版の「4.7.2.stable.official」か、そのあとに点とコミットが続く場合だけ受け付け、mono版などは終了コード2で止めます。--versionに応答しない場合は、版の不一致と別の案内を表示します。ワークフローとローカルCIのずれ検出は、行継続の途中で空行・コメント・ブロック終端・ファイル末尾が来た場合も、それまでの部分を一つのコマンドとして確定します。CIのGODOT_VERSIONは行全体で照合します。CODEMAPには、CIのgodotジョブがKADOKA_REQUIRE_GODOT=1で実行されることを明記しました（CodeRabbitの指摘）。追加した二つのテストは、修正前のconftestで失敗し、修正後に成功することを確認しました。
+
+修正後のローカルCI（HEAD 1b98af3）では、Godot必須の全体pytestが1351件成功・24件失敗・skip 0件で、それ以外のすべての検査が成功しました（全体pytestは1時間15分）。24件はすべてPython版のE2Eとアプリのsmokeで、レビューCLIと並行した負荷によるworkerのsubprocess.TimeoutExpiredです。Godot版のテストとE2Eは全件成功しました。該当の3ファイルとtests/test_local_ci.pyを最終HEADで単独に再実行し、43件すべてが成功しました。
+
 変更したファイル: .github/workflows/python-app.yml、pyproject.toml、gdscript/data/field_save_store.gd、gdscript/tests/run_title_probe.gd、tests/{test_gdscript_title,test_gdscript_cure_heal_action,test_gdscript_session_status}.py、tests/e2e/test_godot_title_journeys.py、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
 追加したファイル: tests/{conftest,test_local_ci,test_format_changed}.py、tools/local-ci/script/run_local_ci.py、tools/format/{requirements.txt,script/format_changed.py}。
 
