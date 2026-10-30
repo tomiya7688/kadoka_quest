@@ -211,8 +211,9 @@ def test_godot_new_game_rejects_existing_save_name(tmp_path):
 # {
 #   責務: [test_godot_dot_prefixed_save_survives_restart: KQ-G07 ドットで始まるセーブ名で始めて保存した冒険が、再起動後のつづきからの一覧に表示され、再開できることを確認します]
 #   処理: [
-#     1: Given 空の専用保存先、When はじめからで「.adventure」を始めてメニューから保存します
-#     2: When Godotを再起動してつづきからで選びます。Then 一覧に.adventureがあり、保存した位置から始まります
+#     1: Given 空の専用保存先、When はじめからで「.adventure」を始め、右へ移動してメニューから保存します
+#     2: Then state.jsonが移動後の地図・座標・向きになります
+#     3: When Godotを再起動してつづきからで選びます。Then 一覧に.adventureがあり、保存した位置から始まります
 #   ]
 #   引数: [tmp_path: 実セーブと分離した一時フォルダ（Path）]
 #   戻り値: [result: なし（None）]
@@ -220,8 +221,25 @@ def test_godot_new_game_rejects_existing_save_name(tmp_path):
 def test_godot_dot_prefixed_save_survives_restart(tmp_path):
     # Linux/macOSではドットで始まるフォルダが隠しフォルダになるため、一覧から漏れないことを確かめます。
     runner = GodotScenarioRunner(tmp_path)
-    saved = runner.run([*new_game_steps(".adventure", saves_exist=False), *SAVE_IN_MENU])["final"]["field"]
-    assert ".adventure" in runner.saved_states()
+    first = runner.run(
+        [
+            *new_game_steps(".adventure", saves_exist=False),
+            {"kind": "snapshot", "label": "started"},
+            {"kind": "hold", "key": "RIGHT", "frames": 20},
+            {"kind": "frames", "count": 30},
+            *SAVE_IN_MENU,
+        ]
+    )
+    # 初期位置のまま保存すると、読込に失敗して初期位置で始まった場合と区別できないため、移動してから保存します。
+    started, saved = first["started"]["field"], first["final"]["field"]
+    assert saved["x"] != started["x"] and saved["direction"] == "right"
+    state = runner.saved_states()[".adventure"]
+    assert (state["map_id"], state["player"]["x"], state["player"]["y"], state["player"]["direction"]) == (
+        saved["map_id"],
+        saved["x"],
+        saved["y"],
+        saved["direction"],
+    )
     resumed = runner.run(
         [
             {"kind": "key", "key": "ENTER"},
@@ -231,4 +249,10 @@ def test_godot_dot_prefixed_save_survives_restart(tmp_path):
     )
     assert resumed["initial"]["title"]["profiles"] == [".adventure"]
     field = resumed["final"]["field"]
-    assert (field["profile"], field["x"], field["y"]) == (".adventure", saved["x"], saved["y"])
+    assert (field["profile"], field["map_id"], field["x"], field["y"], field["direction"]) == (
+        ".adventure",
+        saved["map_id"],
+        saved["x"],
+        saved["y"],
+        saved["direction"],
+    )
