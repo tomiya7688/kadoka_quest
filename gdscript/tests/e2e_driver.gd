@@ -8,8 +8,17 @@
 extends SceneTree
 
 const KEYS := {
-	"ENTER": KEY_ENTER, "ESCAPE": KEY_ESCAPE, "TAB": KEY_TAB, "SPACE": KEY_SPACE, "BACKSPACE": KEY_BACKSPACE,
-	"UP": KEY_UP, "DOWN": KEY_DOWN, "LEFT": KEY_LEFT, "RIGHT": KEY_RIGHT, "F5": KEY_F5, "F9": KEY_F9,
+	"ENTER": KEY_ENTER,
+	"ESCAPE": KEY_ESCAPE,
+	"TAB": KEY_TAB,
+	"SPACE": KEY_SPACE,
+	"BACKSPACE": KEY_BACKSPACE,
+	"UP": KEY_UP,
+	"DOWN": KEY_DOWN,
+	"LEFT": KEY_LEFT,
+	"RIGHT": KEY_RIGHT,
+	"F5": KEY_F5,
+	"F9": KEY_F9,
 }
 var checkpoints: Dictionary = {}
 
@@ -55,8 +64,13 @@ func _run() -> void:
 		var step: Variant = steps[index]
 		var error: String = await _perform(step) if step is Dictionary else "操作は辞書で指定してください。"
 		if not error.is_empty():
-			_finish({"ok": false, "error": "操作%d（%s）: %s" % [index, str(step.get("kind", "")) if step is Dictionary else "", error],
-				"checkpoints": checkpoints})
+			_finish(
+				{
+					"ok": false,
+					"error": "操作%d（%s）: %s" % [index, str(step.get("kind", "")) if step is Dictionary else "", error],
+					"checkpoints": checkpoints
+				}
+			)
 			return
 	checkpoints["final"] = _observe()
 	_finish({"ok": true, "checkpoints": checkpoints})
@@ -168,13 +182,23 @@ func _observe() -> Dictionary:
 		var names: Array = []
 		for index in view.profile_list.item_count:
 			names.append(view.profile_list.get_item_text(index))
-		observation["title"] = {"page": view.page, "message": view.message.text,
-			"continue_disabled": view.continue_button.disabled, "profiles": names}
+		observation["title"] = {
+			"page": view.page,
+			"message": view.message.text,
+			"continue_disabled": view.continue_button.disabled,
+			"profiles": names
+		}
 	elif scene != null and scene.get("session") != null:
 		var session = scene.session
-		observation["field"] = {"profile": scene.profile_name, "map_id": session.world.get("id", ""),
-			"x": session.x, "y": session.y, "direction": session.direction, "status": scene.status.text,
-			"menu_visible": scene.chrome.menu.visible}
+		observation["field"] = {
+			"profile": scene.profile_name,
+			"map_id": session.world.get("id", ""),
+			"x": session.x,
+			"y": session.y,
+			"direction": session.direction,
+			"status": scene.status.text,
+			"menu_visible": scene.chrome.menu.visible
+		}
 	return observation
 
 

@@ -1,12 +1,16 @@
-"""作業ブランチで追加したPythonファイルだけを、固定版のRuffで整形または整形確認します。"""
+"""作業ブランチで追加したPythonファイルとGDScriptファイルだけを、固定版のRuffとgdformatで整形または整形確認します。"""
 
 # {
-#   責務: [format_changed: 比較元ブランチとの差分で新しく追加されたPythonファイルを選び、固定版Ruffのformatで整形、または--checkで書き換えずに整形漏れを検出します]
-#   フィールド: [ROOT: Gitコマンドを実行するリポジトリ直下のパス（Path）]
+#   責務: [format_changed: 比較元ブランチとの差分で新しく追加されたPythonファイルとGDScriptファイルを選び、拡張子ごとの固定版formatterで整形、または--checkで書き換えずに整形漏れを検出します]
+#   フィールド: [
+#     ROOT: Gitコマンドを実行するリポジトリ直下のパス（Path）
+#     FORMATTERS: 拡張子ごとのformatter。Pythonの.pyはRuff、GDScriptの.gdはgdtoolkitのgdformatです（tuple[Formatter, ...]）
+#   ]
 # }
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import importlib.util
 import os
 from pathlib import Path
@@ -15,6 +19,43 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+# {
+#   責務: [Formatter: 一つの言語の整形対象の拡張子と、そのformatterを実行中のPythonから起動する方法を保持します]
+#   フィールド: [
+#     name: 案内に表示するformatterの名前（str）
+#     suffix: 整形対象のファイルの拡張子（str）
+#     module: formatterが導入済みか確かめるPythonモジュール名（str）
+#     arguments: 実行中のPythonの後ろに付ける、整形する場合のformatterの起動引数（tuple[str, ...]）
+#   ]
+# }
+@dataclass(frozen=True)
+class Formatter:
+    name: str
+    suffix: str
+    module: str
+    arguments: tuple[str, ...]
+
+    # {
+    #   責務: [command: 対象ファイルを整形する、または--checkで書き換えずに確認するコマンドを作ります]
+    #   処理: [1: 実行中のPython・起動引数・確認用の引数・対象ファイルを並べます]
+    #   引数: [
+    #     self: 起動引数argumentsを保持するFormatter
+    #     check: 書き換えずに整形漏れを差分付きで報告するか（bool）
+    #     files: リポジトリ直下からの相対パスの整形対象（list[str]）
+    #   ]
+    #   戻り値: [result: subprocessへ渡す引数の一覧（list[str]）]
+    # }
+    def command(self, check: bool, files: list[str]) -> list[str]:
+        return [sys.executable, *self.arguments, *(["--check", "--diff"] if check else []), *files]
+
+
+# 行の上限は、Ruffの設定（pyproject.tomlの[tool.ruff]）とCIのflake8の報告と同じ127文字にそろえます。
+FORMATTERS = (
+    Formatter("Ruff", ".py", "ruff", ("-m", "ruff", "format")),
+    Formatter("gdformat", ".gd", "gdtoolkit", ("-m", "gdtoolkit.formatter", "--line-length=127")),
+)
 
 
 # {
@@ -45,15 +86,18 @@ def default_base() -> str:
 
 
 # {
-#   責務: [added_python_files: 比較元との共通祖先から現在の作業ツリーまでに、新しく追加されたPythonファイルを列挙します]
+#   責務: [added_files: 比較元との共通祖先から現在の作業ツリーまでに、新しく追加された指定拡張子のファイルを列挙します]
 #   処理: [
-#     1: 共通祖先からHEADまでのコミット、indexへの追加、未追跡のファイルから、追加された.pyを集めます
+#     1: 共通祖先からHEADまでのコミット、indexへの追加、未追跡のファイルから、指定拡張子の追加ファイルを集めます
 #     2: 既存ファイルの変更は含めず、存在するファイルだけを重複なく並べて返します
 #   ]
-#   引数: [base: 比較元のGit参照名（str）]
+#   引数: [
+#     base: 比較元のGit参照名（str）
+#     suffix: 対象にするファイルの拡張子。例えばPythonは".py"です（str）
+#   ]
 #   戻り値: [result: リポジトリ直下からの相対パスの一覧（list[str]）]
 # }
-def added_python_files(base: str) -> list[str]:
+def added_files(base: str, suffix: str) -> list[str]:
     merge_base = git_lines("merge-base", base, "HEAD")[0]
     candidates = [
         *git_lines("diff", "--name-only", "--diff-filter=A", merge_base, "HEAD"),
@@ -62,17 +106,34 @@ def added_python_files(base: str) -> list[str]:
     ]
     # 既存ファイルの全体整形は他の作業者の行まで書き換えるため、追加したファイルだけを対象にします。
     # 既存ファイルの移動（Gitの判定はR）も、移動前の行を書き換えないよう対象にしません。
-    return sorted({path for path in candidates if path.endswith(".py") and (ROOT / path).is_file()})
+    return sorted({path for path in candidates if path.endswith(suffix) and (ROOT / path).is_file()})
 
 
 # {
-#   責務: [main: 追加したPythonファイルをRuffで整形、または--checkで整形漏れを報告します]
+#   責務: [restore_lf_line_endings: 整形前に改行がLFだけだったファイルで、formatterがCRLFへ変えた改行をLFへ戻します]
+#   処理: [1: 指定ファイルを読み、CRLFがあればLFへ置き換えて書き戻します。CRLFがなければ書き込みません]
+#   引数: [files: 整形前にCRLFを含まなかった、リポジトリ直下からの相対パス（list[str]）]
+#   戻り値: [result: なし（None）]
+# }
+def restore_lf_line_endings(files: list[str]) -> None:
+    # gdformatはWindowsで改行をCRLFにして書き込み、リポジトリには改行を正規化する.gitattributesがないため、
+    # 戻さないと整形した行以外もすべて変更としてコミットされます。
+    for path in files:
+        content = (ROOT / path).read_bytes()
+        if b"\r\n" in content:
+            (ROOT / path).write_bytes(content.replace(b"\r\n", b"\n"))
+
+
+# {
+#   責務: [main: 追加したPythonファイルをRuffで、GDScriptファイルをgdformatで整形、または--checkで整形漏れを報告します]
 #   処理: [
-#     1: 比較元を決め、追加されたPythonファイルを集めます
-#     2: 対象がなければ対象なしとして成功し、あれば実行中のPythonのRuffへ渡してその終了コードを返します
+#     1: 比較元を決め、formatterごとに追加ファイルを集めます。対象がなければ対象なしとして成功します
+#     2: 対象のある言語のformatterが導入されているかを、実行前にすべて確かめます
+#     3: formatterごとに実行し、整形した場合は、整形前にLFだけだったファイルの改行をLFへ戻します
+#     4: 一つでも失敗すれば、最初に失敗したformatterの終了コードを返します
 #   ]
 #   引数: [argv: コマンドライン引数。省略時はsys.argvを使います（list[str] | None）]
-#   戻り値: [result: Ruffの終了コード。比較元が見つからない場合とRuffが導入されていない場合は2です（int）]
+#   戻り値: [result: formatterの終了コード。比較元が見つからない場合とformatterが導入されていない場合は2です（int）]
 # }
 def main(argv: list[str] | None = None) -> int:
     # Windowsのコンソールでも日本語の案内を文字化けさせないよう、標準出力をUTF-8にそろえます。
@@ -84,27 +145,38 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     base = args.base or default_base()
     try:
-        files = added_python_files(base)
+        targets = [(formatter, added_files(base, formatter.suffix)) for formatter in FORMATTERS]
     except RuntimeError as error:
         # 比較元がないまま対象なしで成功すると、整形漏れを見逃すため失敗にします。
         print(f"[ERROR] 比較元{base}との差分を調べられません: {error}")
         return 2
-    if not files:
-        print(f"[OK] {base}からの追加Pythonファイルはありません。")
+    targets = [(formatter, files) for formatter, files in targets if files]
+    if not targets:
+        print(f"[OK] {base}からの追加Python・GDScriptファイルはありません。")
         return 0
-    # Ruffがないことによる失敗を、整形漏れの失敗（終了コード1）と区別します。
-    if importlib.util.find_spec("ruff") is None:
+    # formatterがないことによる失敗を整形漏れの失敗（終了コード1）と区別し、一部の言語だけ整形した状態で止めないよう先に確かめます。
+    missing = [formatter.name for formatter, _ in targets if importlib.util.find_spec(formatter.module) is None]
+    if missing:
         print(
-            f"[ERROR] {sys.executable}にRuffがありません。リポジトリ直下で次を実行してください: "
+            f"[ERROR] {sys.executable}に{'・'.join(missing)}がありません。リポジトリ直下で次を実行してください: "
             f"{sys.executable} -m pip install -r tools/format/requirements.txt"
         )
         return 2
-    print(f"{'check' if args.check else 'format'}: {base}から追加した{len(files)}件のPythonファイル")
-    command = [sys.executable, "-m", "ruff", "format", *(["--check", "--diff"] if args.check else []), *files]
-    # 引数はリストでshellを通さず、対象はGitが列挙したリポジトリ内のファイル名だけです。
-    return subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
-        command, cwd=ROOT, check=False
-    ).returncode
+    result = 0
+    for formatter, files in targets:
+        print(
+            f"{'check' if args.check else 'format'}: {base}から追加した{len(files)}件の{formatter.suffix}ファイル（{formatter.name}）"
+        )
+        lf_files = [path for path in files if b"\r\n" not in (ROOT / path).read_bytes()]
+        # 引数はリストでshellを通さず、対象はGitが列挙したリポジトリ内のファイル名だけです。
+        code = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
+            formatter.command(args.check, files), cwd=ROOT, check=False
+        ).returncode
+        if not args.check:
+            restore_lf_line_endings(lf_files)
+        # 後の言語の整形漏れも同じ実行で報告するため、失敗しても残りのformatterを実行します。
+        result = result or code
+    return result
 
 
 if __name__ == "__main__":

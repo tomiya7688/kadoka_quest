@@ -28,7 +28,7 @@ tools/local-ci/script/run_local_ci.pyは、CIのtest・godot・project-integrity
 
 tests/test_local_ci.pyは、CIのワークフローの検査コマンドのうちローカルCIにないものがあれば失敗します。CIだけに検査が追加され、ローカルの確認から漏れることを防ぎます。開発者と実装AIは、push前にKADOKA_GODOT_EXECUTABLEを設定してローカルCIを実行してください（docs/context/WORKFLOW.mdのValidation）。
 
-Pythonの整形には、固定版のRuff 0.15.22を導入しました（tools/format/requirements.txt、設定はpyproject.tomlの[tool.ruff]で、行の上限はCIのflake8の報告と同じ127文字）。tools/format/script/format_changed.pyは、比較元（Pull Requestの対象ブランチ、既定はorigin/main）との共通祖先から作業ツリーまでに新しく追加されたPythonファイルだけを整形し、--checkでは書き換えずに整形漏れを報告します。既存ファイルを丸ごと整形すると、他の作業者が編集中の行まで書き換えるため対象にしません。比較元が見つからない場合は、対象なしの成功ではなく終了コード2で失敗します。CIのproject-integrityジョブとローカルCIは同じ--checkを実行します。このブランチで追加した9件のPythonファイルを整形しました。GDScriptのformatterは未導入で、残件です。
+Pythonの整形には、固定版のRuff 0.15.22を導入しました（tools/format/requirements.txt、設定はpyproject.tomlの[tool.ruff]で、行の上限はCIのflake8の報告と同じ127文字）。tools/format/script/format_changed.pyは、比較元（Pull Requestの対象ブランチ、既定はorigin/main）との共通祖先から作業ツリーまでに新しく追加されたPythonファイルだけを整形し、--checkでは書き換えずに整形漏れを報告します。既存ファイルを丸ごと整形すると、他の作業者が編集中の行まで書き換えるため対象にしません。比較元が見つからない場合は、対象なしの成功ではなく終了コード2で失敗します。CIのproject-integrityジョブとローカルCIは同じ--checkを実行します。このブランチで追加した9件のPythonファイルを整形しました。GDScriptの整形には、固定版のgdtoolkit 4.5.0のgdformatを同じrequirementsへ追加しました。format_changed.pyは、追加した.pyをRuffで、追加した.gdをgdformat（行の上限127文字）で整形し、--checkでは両方の整形漏れを報告します。gdformatはWindowsで改行をCRLFにして書き込み、リポジトリには改行を正規化する.gitattributesがないため、format_changed.pyは整形前にLFだけだったファイルの改行をLFへ戻します。既存の133件の.gdファイルのうち108件はgdformatで書き換わるため、Pythonと同じく追加したファイルだけを対象にします。このブランチで追加した4件の.gdファイルを整形し、e2e_driver.gdとrun_title_probe.gdの長い行が折り返されました。
 
 CIでGodotのテストを実行すると、既存の二つのテスト（test_gdscript_cure_heal_actionとtest_gdscript_session_statusの性能検証器のテスト）が、20〜80反復の少数回の実測を3000us上限ごと検証器へ渡していたため、機械の負荷で失敗していました（ローカルで3449us・8614us）。ほかの性能テストと同じく、実測の時間は有限の非負値だけを確かめ、検証器の内容の確認には上限内の合成時間を使うように直しました。3000us上限は標準の性能CLIが判定し、検証器が3001usと-1usを拒否する確認は維持しています。
 
@@ -44,6 +44,7 @@ CIでGodotのテストを実行すると、既存の二つのテスト（test_gd
 
 変更したファイル: .github/workflows/python-app.yml、pyproject.toml、gdscript/data/field_save_store.gd、gdscript/tests/run_title_probe.gd、tests/{test_gdscript_title,test_gdscript_cure_heal_action,test_gdscript_session_status}.py、tests/e2e/test_godot_title_journeys.py、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
 追加したファイル: tests/{conftest,test_local_ci,test_format_changed}.py、tools/local-ci/script/run_local_ci.py、tools/format/{requirements.txt,script/format_changed.py}。
+整形したGDScriptファイル: gdscript/tests/{e2e_driver,run_title_probe}.gd（処理は変更していません）。
 
 # 132. Godot版のタイトル画面とセーブ選択、Godot版E2E実行基盤を追加
 

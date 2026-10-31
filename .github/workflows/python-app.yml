@@ -133,7 +133,7 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - name: Check formatting of added Python files
+      - name: Check formatting of added Python and GDScript files
         run: |
           python -m pip install -r tools/format/requirements.txt
           python tools/format/script/format_changed.py --check

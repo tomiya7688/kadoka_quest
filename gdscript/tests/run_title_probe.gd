@@ -90,7 +90,10 @@ func _check_store(save_root: String) -> void:
 	var listed: Dictionary = SaveStore.new(save_root).list_profiles()
 	_check(listed["ok"], "保存先の列挙が成功")
 	# ドットで始まるセーブはLinux/macOSで隠しフォルダになりますが、作成できるため一覧にも含めます。
-	_check(listed.get("names", []) == [".adventure", "alpha", "冒険2", "冒険10"], "state.jsonのあるセーブだけを、隠しフォルダも含めて自然順で列挙: %s" % str(listed.get("names")))
+	_check(
+		listed.get("names", []) == [".adventure", "alpha", "冒険2", "冒険10"],
+		"state.jsonのあるセーブだけを、隠しフォルダも含めて自然順で列挙: %s" % str(listed.get("names"))
+	)
 	_check(listed.get("warnings", []).size() == 1, "40文字を超えるフォルダ名を警告へ残す")
 	var missing: Dictionary = SaveStore.new(save_root.path_join("missing_root")).list_profiles()
 	_check(missing["ok"] and missing["names"].is_empty(), "保存先がない初回起動は空の一覧")
@@ -168,7 +171,9 @@ func _check_rejections(title: Control) -> void:
 #   戻り値: [result: なし]
 # }
 func _finish() -> void:
-	print("KADOKA_CONTRACT_RESULT=" + Marshalls.utf8_to_base64(JSON.stringify({"ok": failures.is_empty(), "failures": failures})))
+	print(
+		"KADOKA_CONTRACT_RESULT=" + Marshalls.utf8_to_base64(JSON.stringify({"ok": failures.is_empty(), "failures": failures}))
+	)
 	quit(0 if failures.is_empty() else 1)
 
 

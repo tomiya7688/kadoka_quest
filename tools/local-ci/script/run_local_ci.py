@@ -56,7 +56,9 @@ STEPS = (
     # CIのtestジョブ（Godotなし）とgodotジョブ（-m godot）を、Godot必須の一回の全体実行でまとめて満たします。
     LocalCiStep("test", "pytest (all, Godot required)", "python -m pytest", covers=("godot",)),
     LocalCiStep(
-        "project-integrity", "format check (added Python files)", "python tools/format/script/format_changed.py --check"
+        "project-integrity",
+        "format check (added Python and GDScript files)",
+        "python tools/format/script/format_changed.py --check",
     ),
     LocalCiStep("project-integrity", "project rules", "python tools/project-integrity/script/check_project_rules.py"),
     LocalCiStep("project-integrity", "declaration comments", "python tools/comment-check/script/check_comments.py"),
@@ -77,7 +79,7 @@ PACKAGE_COMMANDS = ("python -m build", "python -m twine check dist/*")
 # CIのgodotジョブが導入する版です。版を上げるときは.github/workflows/python-app.ymlのGODOT_VERSIONと同時に更新してください。
 # mono版は別のビルドのため、公式の標準版（official）まで照合します。
 EXPECTED_GODOT_VERSION = "4.7.2.stable.official"
-# UPD checkerはCIと同じく上流mainから、RuffはCIと同じ固定版をrequirementsで導入します。
+# UPD checkerはCIと同じく上流mainから、Ruffとgdformat（gdtoolkit）はCIと同じ固定版をrequirementsで導入します。
 REQUIRED_MODULES = {
     "pytest": "pytest",
     "flake8": "flake8",
@@ -85,6 +87,7 @@ REQUIRED_MODULES = {
     "twine": "twine",
     "upd_commander_checker": "-r tools/upd-commander/requirements.txt",
     "ruff": "-r tools/format/requirements.txt",
+    "gdtoolkit": "-r tools/format/requirements.txt",
 }
 
 
