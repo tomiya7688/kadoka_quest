@@ -42,7 +42,7 @@ CIでGodotのテストを実行すると、既存の二つのテスト（test_gd
 
 修正後のローカルCI（HEAD 1b98af3）では、Godot必須の全体pytestが1351件成功・24件失敗・skip 0件で、それ以外のすべての検査が成功しました（全体pytestは1時間15分）。24件はすべてPython版のE2Eとアプリのsmokeで、レビューCLIと並行した負荷によるworkerのsubprocess.TimeoutExpiredです。Godot版のテストとE2Eは全件成功しました。該当の3ファイルとtests/test_local_ci.pyを最終HEADで単独に再実行し、43件すべてが成功しました。
 
-変更したファイル: .github/workflows/python-app.yml、pyproject.toml、gdscript/data/field_save_store.gd、gdscript/tests/run_title_probe.gd、tests/{test_gdscript_title,test_gdscript_cure_heal_action,test_gdscript_session_status}.py、tests/e2e/test_godot_title_journeys.py、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
+変更したファイル: .github/workflows/{python-app,windows-distribution}.yml（Windowsのテスト前にもtools/format/requirements.txtを導入）、tests/test_ci_test_runner.py、pyproject.toml、gdscript/data/field_save_store.gd、gdscript/tests/run_title_probe.gd、tests/{test_gdscript_title,test_gdscript_cure_heal_action,test_gdscript_session_status}.py、tests/e2e/test_godot_title_journeys.py、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
 追加したファイル: tests/{conftest,test_local_ci,test_format_changed}.py、tools/local-ci/script/run_local_ci.py、tools/format/{requirements.txt,script/format_changed.py}。
 整形したGDScriptファイル: gdscript/tests/{e2e_driver,run_title_probe}.gd（処理は変更していません）。
 
