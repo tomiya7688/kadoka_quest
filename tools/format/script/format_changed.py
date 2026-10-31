@@ -167,7 +167,8 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{'check' if args.check else 'format'}: {base}から追加した{len(files)}件の{formatter.suffix}ファイル（{formatter.name}）"
         )
-        lf_files = [path for path in files if b"\r\n" not in (ROOT / path).read_bytes()]
+        # --checkはファイルを書き換えないため、改行を戻す対象は整形する場合だけ調べます。
+        lf_files = [] if args.check else [path for path in files if b"\r\n" not in (ROOT / path).read_bytes()]
         # 引数はリストでshellを通さず、対象はGitが列挙したリポジトリ内のファイル名だけです。
         code = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
             formatter.command(args.check, files), cwd=ROOT, check=False

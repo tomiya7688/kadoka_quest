@@ -6,11 +6,13 @@
 #     UNFORMATTED: Ruffが書き換える形の短いPythonコード（str）
 #     UNFORMATTED_GD: gdformatが書き換える形の、改行がLFだけの短いGDScriptコード（str）
 #     FORMATTERS_INSTALLED: tools/format/requirements.txtのRuffとgdtoolkitが両方とも導入されているか（bool）
+#     SKIP_WITHOUT_FORMATTERS: 実formatterを使うテストを省略するか。CI（環境変数CIあり）では導入漏れを見逃さないよう省略しません（bool）
 #   ]
 # }
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -27,6 +29,7 @@ _spec.loader.exec_module(format_changed)
 UNFORMATTED = "x = {  'a':1 }\n"
 UNFORMATTED_GD = 'extends Node\nvar x={  "a":1 }\n'
 FORMATTERS_INSTALLED = all(importlib.util.find_spec(module) is not None for module in ("ruff", "gdtoolkit"))
+SKIP_WITHOUT_FORMATTERS = not FORMATTERS_INSTALLED and not os.environ.get("CI")
 
 
 # {
@@ -75,11 +78,14 @@ def repository(tmp_path, monkeypatch):
     git(tmp_path, "add", "committed.py", "committed.gd")
     git(tmp_path, "commit", "-m", "add")
     (tmp_path / "staged.py").write_text(UNFORMATTED, encoding="utf-8")
-    git(tmp_path, "add", "staged.py")
+    (tmp_path / "staged.gd").write_bytes(UNFORMATTED_GD.encode("utf-8"))
+    git(tmp_path, "add", "staged.py", "staged.gd")
     (tmp_path / "untracked.py").write_text(UNFORMATTED, encoding="utf-8")
+    (tmp_path / "untracked.gd").write_bytes(UNFORMATTED_GD.encode("utf-8"))
     (tmp_path / "notes.txt").write_text("not python\n", encoding="utf-8")
     # Gitが既定で引用符付きの8進表記にする日本語名も、対象から漏れないことを確かめます。
     (tmp_path / "日本語.py").write_text(UNFORMATTED, encoding="utf-8")
+    (tmp_path / "日本語.gd").write_bytes(UNFORMATTED_GD.encode("utf-8"))
     # 既存ファイルは変更しても対象にせず、他の作業者の行を書き換えないことを確かめます。
     (tmp_path / "existing.py").write_text(UNFORMATTED + "y = 1\n", encoding="utf-8")
     (tmp_path / "existing.gd").write_bytes((UNFORMATTED_GD + "var y=1\n").encode("utf-8"))
@@ -95,7 +101,7 @@ def repository(tmp_path, monkeypatch):
 # }
 def test_only_added_files_are_targets(repository):
     assert format_changed.added_files("main", ".py") == ["committed.py", "staged.py", "untracked.py", "日本語.py"]
-    assert format_changed.added_files("main", ".gd") == ["committed.gd"]
+    assert format_changed.added_files("main", ".gd") == ["committed.gd", "staged.gd", "untracked.gd", "日本語.gd"]
 
 
 # {
@@ -108,20 +114,40 @@ def test_only_added_files_are_targets(repository):
 #   引数: [repository: 一時Gitリポジトリのフォルダ（Path）]
 #   戻り値: [result: なし（None）]
 # }
-@pytest.mark.skipif(not FORMATTERS_INSTALLED, reason="tools/format/requirements.txtのRuffとgdtoolkitが必要です")
+@pytest.mark.skipif(SKIP_WITHOUT_FORMATTERS, reason="tools/format/requirements.txtのRuffとgdtoolkitが必要です")
 def test_check_fails_then_format_fixes_without_touching_existing(repository):
     existing_before = (repository / "existing.py").read_text(encoding="utf-8")
     existing_gd_before = (repository / "existing.gd").read_bytes()
     assert format_changed.main(["--check", "--base", "main"]) != 0
     assert (repository / "committed.py").read_text(encoding="utf-8") == UNFORMATTED
+    assert (repository / "committed.gd").read_bytes() == UNFORMATTED_GD.encode("utf-8")
     assert format_changed.main(["--base", "main"]) == 0
     assert format_changed.main(["--check", "--base", "main"]) == 0
     for name in ("committed.py", "staged.py", "untracked.py", "日本語.py"):
         assert (repository / name).read_text(encoding="utf-8") == 'x = {"a": 1}\n', name
     assert (repository / "existing.py").read_text(encoding="utf-8") == existing_before
     # gdformatはWindowsでCRLFを書き込むため、道具がLFへ戻したことをバイト単位で確かめます。
-    assert (repository / "committed.gd").read_bytes() == b'extends Node\nvar x = {"a": 1}\n'
+    for name in ("committed.gd", "staged.gd", "untracked.gd", "日本語.gd"):
+        assert (repository / name).read_bytes() == b'extends Node\nvar x = {"a": 1}\n', name
     assert (repository / "existing.gd").read_bytes() == existing_gd_before
+
+
+# {
+#   責務: [test_check_detects_unformatted_gdscript_alone: Pythonの追加ファイルが整形済みでも、GDScriptの追加ファイルだけの整形漏れを--checkが失敗として報告し、ファイルを書き換えないことを確認します]
+#   処理: [
+#     1: 追加ファイルをすべて整形してから、追加したGDScriptファイル一つだけを整形前の内容へ戻します
+#     2: --checkが失敗し、戻したGDScriptファイルの内容が変わらないことを確認します
+#   ]
+#   引数: [repository: 一時Gitリポジトリのフォルダ（Path）]
+#   戻り値: [result: なし（None）]
+# }
+@pytest.mark.skipif(SKIP_WITHOUT_FORMATTERS, reason="tools/format/requirements.txtのRuffとgdtoolkitが必要です")
+def test_check_detects_unformatted_gdscript_alone(repository):
+    # Pythonの整形漏れがあると、gdformatの確認が働かなくても--checkが失敗してしまうため、先にすべて整形します。
+    assert format_changed.main(["--base", "main"]) == 0
+    (repository / "committed.gd").write_bytes(UNFORMATTED_GD.encode("utf-8"))
+    assert format_changed.main(["--check", "--base", "main"]) != 0
+    assert (repository / "committed.gd").read_bytes() == UNFORMATTED_GD.encode("utf-8")
 
 
 # {
@@ -156,11 +182,13 @@ def test_default_base_follows_pull_request_target(monkeypatch):
 #     capsys: 標準出力を取得するpytestの道具
 #     module: 見つからない結果へ差し替えるformatterのPythonモジュール名（str）
 #     name: 案内に表示されるはずのformatterの名前（str）
+#     other: 導入済みのため、案内に表示されないはずのもう一方のformatterの名前（str）
 #   ]
 #   戻り値: [result: なし（None）]
 # }
-@pytest.mark.parametrize(("module", "name"), [("ruff", "Ruff"), ("gdtoolkit", "gdformat")])
-def test_missing_formatter_fails_with_setup_code(repository, monkeypatch, capsys, module, name):
+@pytest.mark.skipif(SKIP_WITHOUT_FORMATTERS, reason="tools/format/requirements.txtのRuffとgdtoolkitが必要です")
+@pytest.mark.parametrize(("module", "name", "other"), [("ruff", "Ruff", "gdformat"), ("gdtoolkit", "gdformat", "Ruff")])
+def test_missing_formatter_fails_with_setup_code(repository, monkeypatch, capsys, module, name, other):
     original = format_changed.importlib.util.find_spec
     monkeypatch.setattr(
         format_changed.importlib.util, "find_spec", lambda target, *args: None if target == module else original(target, *args)
@@ -168,3 +196,5 @@ def test_missing_formatter_fails_with_setup_code(repository, monkeypatch, capsys
     assert format_changed.main(["--check", "--base", "main"]) == 2
     output = capsys.readouterr().out
     assert name in output and "がありません" in output and "tools/format/requirements.txt" in output
+    # 足りない道具だけを案内し、導入済みの道具まで足りないと表示しないことを確かめます。
+    assert other not in output
