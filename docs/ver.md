@@ -16,6 +16,55 @@
 
 ```
 
+# 133. CIへ固定版Godotを導入し、CIと同じ検査を実行するローカルCIとPythonの整形を追加
+
+これまでのCIにはGodotがなく、Godot版のテスト（-m godotで573件）とGodot版のE2Eは、CIで常にskipになっていました。CIの成功はGodot版の動作を保証せず、ローカルでもCIと同じ検査の組を一度に実行する手段がありませんでした。
+
+CIのPython quality workflowへgodotジョブを追加しました。godotジョブは、公式リリースのGodot 4.7.2のLinux版を取得し、公式のSHA512-SUMS.txtと同じ値をワークフローに固定してsha512sumで照合してから、資源のimportと`python -m pytest -m godot`を実行します。版を上げる開発者は、GODOT_VERSIONとGODOT_SHA512を同時に更新してください。
+
+tests/conftest.pyは、実Godotの設定を参照するテストファイルのテストへgodotマーカーを付けます。環境変数KADOKA_REQUIRE_GODOT=1の実行では、Godotの実行ファイルが見つからなければテストを始める前に使用エラーで止まり、Godotを理由にskipされたテストがあれば全体を失敗にします。この設定がない通常のローカル実行では、従来どおりGodotなしのテストをskipにします。
+
+tools/local-ci/script/run_local_ci.pyは、CIのtest・godot・project-integrity・package-integrityの各ジョブと同じ検査コマンドを、実行中のPythonと指定したGodotで順に実行します。Godotの指定や必要な道具（pytest・flake8・build・twine・UPD checker）がなければ、何も実行せずに導入方法を表示して終了コード2を返します。パッケージ検査は一時フォルダへbuildし、開発者のdist/にある配布物を変更しません。--skipで除いたジョブは未実行として表示し、全体を成功にはしません（終了コード3）。CIのtestジョブはPython 3.10と3.14で実行しますが、ローカルCIは実行中のPythonの版だけを使います。Windows distribution workflowの配布物ビルドとsmokeは、ローカルCIに含みません。
+
+tests/test_local_ci.pyは、CIのワークフローの検査コマンドのうちローカルCIにないものがあれば失敗します。CIだけに検査が追加され、ローカルの確認から漏れることを防ぎます。開発者と実装AIは、push前にKADOKA_GODOT_EXECUTABLEを設定してローカルCIを実行してください（docs/context/WORKFLOW.mdのValidation）。
+
+Pythonの整形には、固定版のRuff 0.15.22を導入しました（tools/format/requirements.txt、設定はpyproject.tomlの[tool.ruff]で、行の上限はCIのflake8の報告と同じ127文字）。tools/format/script/format_changed.pyは、比較元（Pull Requestの対象ブランチ、既定はorigin/main）との共通祖先から作業ツリーまでに新しく追加されたPythonファイルだけを整形し、--checkでは書き換えずに整形漏れを報告します。既存ファイルを丸ごと整形すると、他の作業者が編集中の行まで書き換えるため対象にしません。比較元が見つからない場合は、対象なしの成功ではなく終了コード2で失敗します。CIのproject-integrityジョブとローカルCIは同じ--checkを実行します。このブランチで追加した9件のPythonファイルを整形しました。GDScriptの整形には、固定版のgdtoolkit 4.5.0のgdformatを同じrequirementsへ追加しました。format_changed.pyは、追加した.pyをRuffで、追加した.gdをgdformat（行の上限127文字）で整形し、--checkでは両方の整形漏れを報告します。gdformatはWindowsで改行をCRLFにして書き込み、リポジトリには改行を正規化する.gitattributesがないため、format_changed.pyは整形前にLFだけだったファイルの改行をLFへ戻します。既存の133件の.gdファイルのうち108件はgdformatで書き換わるため、Pythonと同じく追加したファイルだけを対象にします。このブランチで追加した4件の.gdファイルを整形し、e2e_driver.gdとrun_title_probe.gdの長い行が折り返されました。
+
+CIでGodotのテストを実行すると、既存の二つのテスト（test_gdscript_cure_heal_actionとtest_gdscript_session_statusの性能検証器のテスト）が、20〜80反復の少数回の実測を3000us上限ごと検証器へ渡していたため、機械の負荷で失敗していました（ローカルで3449us・8614us）。ほかの性能テストと同じく、実測の時間は有限の非負値だけを確かめ、検証器の内容の確認には上限内の合成時間を使うように直しました。3000us上限は標準の性能CLIが判定し、検証器が3001usと-1usを拒否する確認は維持しています。
+
+検証結果（Windows、Python 3.14.7 / Godot 4.7.2、作業フォルダ・一時領域はEドライブ）: ローカルCIで、flake8・Godotのimport・整形確認・プロジェクト規則・宣言コメント（452ファイル・3645宣言・エラー0）・REPO_MAP・UPD checker・クラス図・runtime性能・Player検証・パッケージのbuild/twine/導入/importが成功しました。Godot必須の全体pytestは1362件成功・3件失敗・skip 0件でした（56分25秒）。失敗は上記の性能テスト2件と、Python版E2Eのworkerの30秒上限超過1件で、いずれも負荷による時間超過です。性能テスト2件は修正後に単独で成功し、E2Eの1件は単独の再実行で成功しました。CIのtestジョブのPython 3.10と、Windows distribution workflowは、ローカルCIでは実行していません。
+
+作業後のレビューは、Codex Luna・Claude Haiku・Antigravityが4資料すべてに返答しました。Continue・Qwen Codeは90秒の上限で応答がなく、Julesはセッション作成が400 FAILED_PRECONDITIONで失敗し、Grokは運用手順の保留指示により依頼していません。PRではCodeRabbitへ依頼し、Copilotへの依頼はGitHubに登録されませんでした。記録はE:/projects/.review-work/kadokaquest/ci-godot-local-ci/review-record.mdにあります。
+
+レビューの指摘から、次を直しました。tests/conftest.pyは、skipの判定をskipの理由だけに限定しました。以前はファイルの場所まで照合していたため、作業フォルダ名にgodotを含むだけで無関係なskipまで失敗にするおそれがありました。モジュール単位のskipも記録し、成功またはテストなしの終了だけを失敗へ変え、中断や内部エラーの終了コードは残します。skipの理由にGodotを含むマーカーを持つテストにもgodotマーカーを付けます。ローカルCIは、Godotの版が4.7.2であることを確認してから始め、パッケージ検査ではPYTHONPATHを除いて、導入したwheelからimportしたことを確かめます。--skip godotでは、Godotのテストを含む全体pytestも未実行として報告します。整形の道具は、日本語のファイル名を対象から落とさないようcore.quotepath=falseでGitを実行し、Ruffがない場合は整形漏れと区別して終了コード2を返します。ワークフローとローカルCIのずれ検出は、runブロックの空行・コメント・行継続を正しく扱います。CIのGodotの取得には再試行を加えました。また、PRの自動レビュー（Codex）の指摘により、Linux/macOSで隠しフォルダになるドット始まりのセーブ名がタイトルのセーブ一覧から消える不具合を直し、E2EのKQ-G07を追加しました。
+
+修正の再確認（第2回・第3回）の指摘から、さらに次を直しました。skipマーカーの理由を位置引数で渡した場合も、Godotのテストとしてgodotマーカーを付けます。理由にGodotを含むxfailは、期待どおりの失敗なのでGodotのskipと数えません。ローカルCIは、Godotの--versionが公式の標準版の「4.7.2.stable.official」か、そのあとに点とコミットが続く場合だけ受け付け、mono版などは終了コード2で止めます。--versionに応答しない場合は、版の不一致と別の案内を表示します。ワークフローとローカルCIのずれ検出は、行継続の途中で空行・コメント・ブロック終端・ファイル末尾が来た場合も、それまでの部分を一つのコマンドとして確定します。CIのGODOT_VERSIONは行全体で照合します。CODEMAPには、CIのgodotジョブがKADOKA_REQUIRE_GODOT=1で実行されることを明記しました（CodeRabbitの指摘）。追加した二つのテストは、修正前のconftestで失敗し、修正後に成功することを確認しました。
+
+修正後のローカルCI（HEAD 1b98af3）では、Godot必須の全体pytestが1351件成功・24件失敗・skip 0件で、それ以外のすべての検査が成功しました（全体pytestは1時間15分）。24件はすべてPython版のE2Eとアプリのsmokeで、レビューCLIと並行した負荷によるworkerのsubprocess.TimeoutExpiredです。Godot版のテストとE2Eは全件成功しました。該当の3ファイルとtests/test_local_ci.pyを最終HEADで単独に再実行し、43件すべてが成功しました。
+
+変更したファイル: .github/workflows/{python-app,windows-distribution}.yml（Windowsのテスト前にもtools/format/requirements.txtを導入）、tests/test_ci_test_runner.py、pyproject.toml、gdscript/data/field_save_store.gd、gdscript/tests/run_title_probe.gd、tests/{test_gdscript_title,test_gdscript_cure_heal_action,test_gdscript_session_status}.py、tests/e2e/test_godot_title_journeys.py、docs/{CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/testing/E2E_EXPECTATIONS.md、tests/e2e/README.md、tools/README.md。
+追加したファイル: tests/{conftest,test_local_ci,test_format_changed}.py、tools/local-ci/script/run_local_ci.py、tools/format/{requirements.txt,script/format_changed.py}。
+整形したGDScriptファイル: gdscript/tests/{e2e_driver,run_title_probe}.gd（処理は変更していません）。
+
+# 132. Godot版のタイトル画面とセーブ選択、Godot版E2E実行基盤を追加
+
+Issue #77とタイトル画面の子Issue #191の方針に沿って、Godot版にタイトル画面を追加しました。ver#117の時点で、Godot版はタイトル画面がなく、起動するとセーブ名defaultのフィールドから始まっていました。利用者は、保存済みの冒険を選んで再開することも、新しいセーブ名で始めることもできませんでした。番号はPR #256の#130とCodexの作業中の#131を避けて#132にしました。
+
+Godot版の起動画面はgdscript/scenes/title.tscnです。タイトル画面は「KADOKA QUEST」の見出しと、「つづきから」「はじめから」「おわる」を黒地白枠で表示します。「つづきから」は保存済みセーブの一覧を表示し、選んだセーブの保存位置からフィールドを始めます。「はじめから」はセーブ名の入力欄を表示し、新しいセーブ名ではじまりの街からフィールドを始めます。セーブがない場合、タイトル画面は「つづきから」を無効にし、「はじめから」を最初に選択します。
+
+保存先のfield_save_store.gdへlist_profilesを追加しました。list_profilesは保存先直下のフォルダのうち、resolve_profileと同じ名前・リンク検査を通り、state.jsonを持つセーブだけを自然順で返します。保存先がない初回起動は空の一覧として成功し、規則に合わないフォルダは警告件数として画面下部に表示します。list_profilesはファイルを書き込みません。
+
+title_view.gdは表示と選択のシグナルだけを担当し、保存やセーブ名の検査を行いません。title_application.gdは、セーブ名を保存先の規則で検査し、40文字超の名前と、保存先に同じ名前のフォルダがある名前を拒否してから、フィールド画面へセーブ名を渡して切り替えます。state.jsonのないフォルダも拒否するのは、残っている個体や所持品を新しい冒険へ混ぜないためです。Windowsでは大文字小文字だけが違う名前も同じフォルダとして拒否します。切替は一度だけ行い、同じフレームの二回目の要求ではフィールドを二つ作りません。新しいセーブのフォルダは、フィールドで最初に保存したときに作られます。環境変数KADOKA_GDSCRIPT_SAVE_NAMEを指定した起動では、従来の自動実行と検査のため、タイトル画面を表示せずにフィールドから始めます。保存先の既定値user://savedataは、field_save_store.gdのconfigured_rootへまとめ、タイトル画面とフィールド画面が同じ保存先を使うようにしました。
+
+Godot版のE2E実行基盤を新しく作りました。tests/e2e/godot_harness.pyは、実行ごとに新しいGodotプロセスを--headless --fixed-fps 60で起動し、同じ専用保存先を再起動の間で引き継ぎます。gdscript/tests/e2e_driver.gdは、project.godotのrun/main_sceneを本番と同じ方法で開き、Input.parse_input_eventでキーと確定文字を送り、画面の状態を読み取るだけで記録します。driverは保存・移動・画面切替のメソッドを直接呼ばず、未知の操作や到達しない画面を操作番号付きの失敗にします。E2Eカタログへ「Godot版 / ゲーム操作」の節を追加し、KQ-G01〜G04（セーブなしの起動、新規開始・保存・再起動、複数セーブの選択、同名セーブの拒否）をtests/e2e/test_godot_title_journeys.pyでcoveredにしました。既存のGodot画面のうち、牧場台帳・編成（KQ-G05）と湧き場の暗号入力（KQ-G06）は、起動画面からの実入力E2Eがないためmissingとして登録しました。カタログ検査はG始まりのIDを受け付けるようにしました。CIにはGodotがないため、CIではGodot版のE2Eがskipになります。CIへのGodot導入は#205の範囲です。
+
+描画用のrender_pixel_ui.gdへ、セーブなしのタイトル・セーブ名入力・保存後のセーブ一覧の三画面を追加しました。フィールドからタイトル画面へ戻る操作、セーブの別名保存・削除、Godot版の戦闘画面は未対応です。保存JSONの形式、Python版のタイトル画面、ゲーム処理は変更していません。
+
+検証結果（Python 3.14.7 / pygame-ce 2.5.8 / Godot 4.7.2、専用の一時保存先とpytest一時領域）: 自己レビューで見つけた四件（再開拒否の理由が一覧の読み直しで消える、二回目の切替要求でフィールドを二つ作れる、state.jsonのない同名フォルダを新しい冒険へ取り込む、保存先の既定値の重複）を修正し、プローブへ回帰確認を追加しました。タイトルの集中テスト3件は、実Godotで既存セーブの再開・新規開始・不正名と同名フォルダの拒否・二回目の切替の拒否・フォーカス・Esc・画面内配置・保存先の不変を確認して成功しました。既存のbootstrap16件と、白黒UIのプローブも成功しました。自己レビューの修正後、タイトル・起動・保存・教会・編成の関連63件・468サブテストが成功しました（4分50秒）。Godot版のE2Eは、タイトルの4シナリオとharnessの失敗検査2件が実Godotで成功し、同じ4シナリオを2回実行して同じ結果になりました。既存のPython版E2Eを含むtests/e2eの31件も成功し、E2Eカタログはcovered16・missing27・intentionally-not-e2e1でエラーなしです。ローカル全体テストは1345件成功・3件失敗・26452サブテスト成功でした（1時間8分17秒。同じ機械で別の作業が並行していました）。失敗は、治療付き回復と状態付きSessionの少数回の時間計測（3000us上限に対して3684us）と、編成テストのGodot起動の30秒超過です。三件ともタイトル画面の変更と関係しない経路で、単独の再実行で成功しました（状態付きSessionは再実行1回目3243usで失敗し、2回目で成功）。E2E実行基盤の追加後の最終の全体テストは、1353件成功・1件失敗・26452サブテスト成功でした（53分14秒）。失敗は、前回も負荷で揺れた状態付きSessionの少数回の時間計測で、タイトル画面とE2E実行基盤はこの経路を変更していません。PR #257のCIは9件すべて成功しました。宣言コメントは447ファイル・3613宣言・エラー0、プロジェクト規則と差分空白検査も成功しました。実OpenGLレンダラーでタイトル三画面のPNGを描画して配置を確認しました。実際のウィンドウ操作・IME・ゲームパッド・配布exportは未検証です。
+
+変更したファイル: gdscript/data/field_save_store.gd、gdscript/application/field_application.gd、gdscript/project.godot、gdscript/tests/render_pixel_ui.gd、tests/{test_gdscript_bootstrap,test_e2e_catalog}.py、tests/e2e/README.md、tools/e2e-catalog/script/check_e2e_catalog.py、docs/{GAME_GUI,CODEMAP,ver}.md、docs/testing/E2E_EXPECTATIONS.md。
+追加したファイル: gdscript/application/title_application.gd、gdscript/ui/title_view.gd、gdscript/scenes/title.tscn、gdscript/tests/{run_title_probe,e2e_driver}.gd、tests/test_gdscript_title.py、tests/e2e/{godot_harness,test_godot_title_journeys,test_godot_harness}.py（各.gd.uidを含む）。
+
 # 129. main統合レビューで見つかった評価セーブ・戦闘保存・サンプル再生成を修正
 
 PR [#253](https://github.com/tomiya7688/kadoka_quest/pull/253)の追加レビュー五件を修正しました。評価CLIは通常プレイ用のKADOKA_SAVE_DIRを継承していても、--save-dirまたはレポート隣の評価専用保存先をゲームimport前に設定します。調査イベントへ近づいただけでは試行済みにせず、調査コマンドまで候補に残します。接触遷移で移動前後の座標が同じでも、マップが変わっていれば通行不能と誤認しません。

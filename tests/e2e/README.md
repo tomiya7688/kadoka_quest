@@ -61,3 +61,19 @@ checkpointの `saved_profiles` は名前別の実保存JSON、`active_save` は�
 各子プロセスは `KADOKA_SAVE_DIR` / `KADOKA_SAVEDATA_ROOT` / `KADOKA_IMPORT_DIR` を新しいrun領域へ設定し、親の利用者セーブ先を上書きする。ゲームimportの前に設定するため、全テスト実行中に親でpath定数が既にimport済みでも影響しない。data/assetsは既定では正規リポジトリを読む。削除や利用者の実セーブ操作は行わない。
 
 headless SDLのクリック/キーボードと本番renderer/semantic commandを実行するsource E2Eであり、実ウィンドウの視認性・マウス操作、ピクセル完全一致、Player/Developer EXE、OSの実プロセス起動を検証したとは主張しない。外部管理アプリの起動は明示的な失敗にし、偽の成功結果や実プロセスを返さない。複数アプリ用driverは #204、simulationの本番依存解決は #214。harnessだけでsimulation hookを追加することはしない。
+
+## Godot版のE2E
+
+Godot版のE2Eは、Python版のharnessとは別に `godot_harness.py` と `gdscript/tests/e2e_driver.gd` が実行します。開発者は、`KADOKA_GODOT_EXECUTABLE` にGodot 4.7.2のコンソール実行ファイルを設定してから、次のコマンドを実行してください。Godotが見つからない環境では、Godot版のE2Eはskipになります。skipはGodot版のE2Eが成功したことを意味しません。CIの`godot`ジョブと`tools/local-ci/script/run_local_ci.py`は`KADOKA_REQUIRE_GODOT=1`で実行するため、Godot版のE2Eがskipになると失敗します。
+
+```text
+python -m pytest tests/e2e/test_godot_title_journeys.py tests/e2e/test_godot_harness.py -q --basetemp=<専用の一時ディレクトリ>
+```
+
+- `godot_harness.py`: `GodotScenarioRunner` は、テストごとの専用フォルダと専用の保存先を所有します。`run(steps)` を呼ぶたびに、新しいGodotプロセスを `--headless --fixed-fps 60` で起動します。二回目以降の `run` は同じ保存先を使うため、利用者がゲームを終了して起動し直す操作と同じ再起動になります。`KADOKA_GDSCRIPT_SAVE_NAME` を外して起動するため、利用者と同じくタイトル画面から始まります。新しいcheckoutでは、最初の実行前に資源のimportを一度だけ行います。
+- `e2e_driver.gd`: project.godotの `run/main_scene` を読み込み、本番の起動と同じく現在の画面に設定します。操作は `Input.parse_input_event` へキーと確定文字を送るだけで、保存・移動・画面切替のメソッドを直接呼びません。観測は画面の状態を読み取るだけです。
+- `saved_states()` は各セーブの state.json を、`saved_files()` は保存先の全ファイルを読みます。再開しただけでセーブが変わらないことの比較に使います。
+
+操作は `key`（ENTER・ESCAPE・TAB・SPACE・BACKSPACE・方向キー・F5・F9）、`text`（IMEを通さない確定文字）、`hold`（keyとframes）、`frames`（count）、`wait_scene`（nameとmax_frames）、`snapshot`（一意なlabel）です。`initial` と `final` は自動で記録します。未知の操作、未対応のキー、上限までに切り替わらない画面、重複したlabelは、操作番号付きの失敗になります。
+
+Godot版のE2Eは、headlessのGodotで実際の起動画面・入力経路・保存先・プロセスの再起動を検証します。実ウィンドウの表示、IME、物理ゲームパッド、配布exportを検証したとは主張しません。
