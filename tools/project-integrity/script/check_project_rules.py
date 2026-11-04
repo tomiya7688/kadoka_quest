@@ -11,6 +11,7 @@ import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CORE_ROOT = REPO_ROOT / "src" / "kadoka_quest" / "core"
+SOURCE_ROOT = REPO_ROOT / "src"
 FORBIDDEN_CORE_IMPORTS = {
     "pygame",
     "pathlib",
@@ -111,6 +112,98 @@ def core_boundary_errors(root: Path = CORE_ROOT) -> list[str]:
     return errors
 
 
+
+# {
+#   責務: [class_base_name: Pythonクラス定義の基底型式から、リポジトリ内クラス照合に使う末尾の型名を取り出します]
+#   処理: [
+#     1: 単純名ならその識別子を返します
+#     2: 属性参照なら末尾属性名を返します
+#     3: それ以外の式は静的に安全に解決できないため空文字を返します
+#   ]
+#   引数: [node: クラス定義の基底型を表すASTノード（ast.expr）]
+#   戻り値: [result: 照合可能な基底クラス名、または空文字（str）]
+# }
+def class_base_name(node: ast.expr) -> str:
+    # 呼び出し等を推測して誤検出せず、宣言から明示的に読める型名だけを扱う。
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return ""
+
+
+# {
+#   責務: [class_is_abstract: PythonクラスがABC系の基底またはabstractmethod宣言を持つ明示的な抽象クラスか判定します]
+#   処理: [
+#     1: ABC基底またはABCMetaメタクラスを確認します
+#     2: クラス直下のメソッドにabstractmethodデコレータがあれば抽象クラスと判定します
+#   ]
+#   引数: [node: 検査対象のクラス定義（ast.ClassDef）]
+#   戻り値: [result: 明示的な抽象クラスならTrue、それ以外はFalse（bool）]
+# }
+def class_is_abstract(node: ast.ClassDef) -> bool:
+    # 明示的なABC宣言だけを例外にし、名前やdocstringから抽象性を推測しない。
+    if any(class_base_name(base) == "ABC" for base in node.bases):
+        return True
+    for keyword in node.keywords:
+        if keyword.arg == "metaclass" and class_base_name(keyword.value) == "ABCMeta":
+            return True
+    for member in node.body:
+        if not isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in member.decorator_list:
+            if class_base_name(decorator) == "abstractmethod":
+                return True
+    return False
+
+
+# {
+#   責務: [concrete_inheritance_chain_errors: リポジトリ所有Pythonコードから具象クラス起点の三段以上の継承を静的検出します]
+#   処理: [
+#     1: 対象配下のPythonファイルを解析し、重複しないクラス名・基底名・抽象性を収集します
+#     2: C→B→Aの順でリポジトリ所有クラスを解決します
+#     3: 起点Aが具象クラスなら規約違反としてCの宣言位置を診断します
+#   ]
+#   引数: [root: 検査対象のリポジトリ所有Pythonソースの基準ディレクトリ（Path）]
+#   戻り値: [result: 具象クラス起点の連続継承に対する診断一覧（list[str]）]
+# }
+def concrete_inheritance_chain_errors(root: Path = SOURCE_ROOT) -> list[str]:
+    # 同名クラスを誤って別モジュール間で結び付けないため、名前が一意な宣言だけを自動判定に使う。
+    definitions: dict[str, list[tuple[Path, ast.ClassDef]]] = {}
+    for path in sorted(root.rglob("*.py")):
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        except (OSError, SyntaxError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                definitions.setdefault(node.name, []).append((path, node))
+
+    unique = {name: values[0] for name, values in definitions.items() if len(values) == 1}
+    errors: list[str] = []
+    for child_name, (child_path, child) in unique.items():
+        for child_base in child.bases:
+            middle_name = class_base_name(child_base)
+            middle_entry = unique.get(middle_name)
+            if middle_entry is None:
+                continue
+            _, middle = middle_entry
+            for middle_base in middle.bases:
+                root_name = class_base_name(middle_base)
+                root_entry = unique.get(root_name)
+                if root_entry is None:
+                    continue
+                _, root_class = root_entry
+                if class_is_abstract(root_class):
+                    continue
+                shown_path = display_path(child_path, root)
+                errors.append(
+                    f"{shown_path}:{child.lineno}: concrete inheritance chain is prohibited: "
+                    f"{root_name} -> {middle_name} -> {child_name}"
+                )
+    return errors
+
+
 # {
 #   責務: [required_path_errors: プロジェクトの必須パスが存在するか確認します]
 #   処理: [1: プロジェクトの必須パスが存在するか確認します]
@@ -125,14 +218,14 @@ def required_path_errors(repo_root: Path = REPO_ROOT) -> list[str]:
 
 
 # {
-#   責務: [check: 必須パスとcoreの依存境界の診断をまとめます]
-#   処理: [1: 必須パスとcoreの依存境界の診断をまとめます]
+#   責務: [check: 必須パス・core依存境界・具象クラス起点の連続継承の診断をまとめます]
+#   処理: [1: 必須パス・core依存境界・継承規約の診断をまとめます]
 #   引数: []
-#   戻り値: [result: 必須パス欠落とcore境界違反の診断一覧（list[str]）]
+#   戻り値: [result: 必須パス欠落・core境界違反・継承規約違反の診断一覧（list[str]）]
 # }
 def check() -> list[str]:
     # パス検査と依存検査は別関数に保ち、公開入口では結果だけを統合する。
-    return [*required_path_errors(), *core_boundary_errors()]
+    return [*required_path_errors(), *core_boundary_errors(), *concrete_inheritance_chain_errors()]
 
 
 # {
