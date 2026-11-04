@@ -16,6 +16,23 @@
 
 ```
 
+# 130. 速度強化の明示抽選値による期間選択と、共同開発ワークフロー・共有スキルの整備
+
+speed_buff_contractへchoose_durationを追加しました。choose_durationは、quote_buffが返した期間条件と、乱数の所有者が一回だけ引いた抽選値duration_rollから、付与する一期間を返します。choose_durationは乱数を生成せず、同じ条件と同じ抽選値からは常に同じ期間を返すため、再送時に期間を引き直しません。
+
+Pythonの_buff_durationと同じく、範囲期間だけが抽選値を必須とし、固定期間は下限、無期限はnullを抽選値なしで返します。固定期間と無期限へ抽選値を渡した場合は、乱数の余分な消費としてunexpected_speed_buff_duration_rollで拒否します。範囲外・bool・文字列・小数部分・非有限・null・精度超過の抽選値は上下限へ丸めずに拒否し、quote_buffが返さない期間条件も部分成功なしで拒否します。
+
+Python比較では、quote_buffの期間条件から選んだ期間と、同じ戻り値を返すrandintを渡した実Pythonの期間を照合し、randintを呼ぶ条件と上下限も確認しました。実乱数源・行動票ごとの抽選値の保持・対象選択・MP実消費・Sessionへのピオラ行動・AI・戦闘画面は未接続です。Pythonゲーム処理、保存JSON、画像、既存の白黒GUIは変更しません。
+
+GDScript移行単位の表と段落にあった「未push」の状態は、PR #253のmainマージ後も更新されていませんでした。表の状態をmain反映済みへ更新し、マージ後に状態を更新する手順を追加しました。
+
+利用者・Codex・Claude Code・GitHub Copilot・ChatGPTが並行して開発するため、共有ワークフローを全実装AI向けに書き直しました。リモート同期スクリプトは、リモートの全ブランチを取得し、mainへ未統合で最近14日以内に更新されたブランチを表示します。作業者は、作業開始時とコミット・push直前にこのスクリプトを実行し、進行中の単位を重複させないでください。Claude Code用のCLAUDE.md、GitHub Copilot用の.github/copilot-instructions.md、Codex用とClaude Code用の共有スキルkadoka-taskを追加しました。各入口はAGENTS.mdとワークフローへ案内するだけで、規約本文を複写しません。tests/test_agent_shared_rules.pyは、入口の案内先と二つの共有スキルの一致を検査します。
+
+検証結果（Python 3.14.7 / pygame-ce 2.5.8 / Godot 4.7.2、専用一時保存先と専用pytest一時領域）: 速度強化の関連集中テスト24件・2039サブテストが実Godotで成功しました。ローカル全体テストは1351件成功・2件失敗・26519サブテスト成功でした（42分59秒）。失敗の一件はAGENTS.mdの6000バイト上限超過で、本作業の追記を短縮して再実行し成功しました。もう一件は治療付き回復の少数回実測が全体実行中に3191us/3000usとなったもので、本作業はこの経路を変更しておらず、単独の再実行で成功しました。標準の速度強化予測性能は28.81us/3000us、標準runtime性能も全て上限内でした。宣言コメントは441ファイル・3579宣言・エラー0、プロジェクト規則と差分空白検査も成功しました。実GUIとGDScript配布exportは未検証です。choose_durationはSessionへ未接続のため、性能CLIの計測対象は追加していません。
+
+変更したファイル: gdscript/engine/speed_buff_contract.gd、gdscript/tests/run_magic_skill_probe.gd、tools/remote-context/script/sync_remote_context.py、tests/test_remote_context.py、AGENTS.md、tools/README.md、docs/{GDScript速度強化スキル予測契約,CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/ワークフロー/{ワークフロー,GDScript移行実装単位}.md。
+追加したファイル: tests/test_gdscript_speed_buff_duration.py、tests/test_agent_shared_rules.py、CLAUDE.md、.github/copilot-instructions.md、.agents/skills/kadoka-task/SKILL.md、.claude/skills/kadoka-task/SKILL.md。
+
 # 129. main統合レビューで見つかった評価セーブ・戦闘保存・サンプル再生成を修正
 
 PR [#253](https://github.com/tomiya7688/kadoka_quest/pull/253)の追加レビュー五件を修正しました。評価CLIは通常プレイ用のKADOKA_SAVE_DIRを継承していても、--save-dirまたはレポート隣の評価専用保存先をゲームimport前に設定します。調査イベントへ近づいただけでは試行済みにせず、調査コマンドまで候補に残します。接触遷移で移動前後の座標が同じでも、マップが変わっていれば通行不能と誤認しません。

@@ -10,7 +10,7 @@ Read the [developer rules index](../開発者向け/README.md) and its mandatory
    Follow the [Issue priority policy](../ワークフロー/Issue優先度方針.md): P0 is reserved for emergencies; normal work uses P1 through P4. Check dependencies before implementing the returned candidate.
    During active GDScript migration, prefer gdscript-tagged P1 units and consult [migration units](../ワークフロー/GDScript移行実装単位.md) before repeating locally implemented work.
 2. Extract the task's **Goal / Required / Acceptance** from the Issue before broad exploration.
-3. Run `python tools/remote-context/script/sync_remote_context.py` before implementation to fetch and summarize remote changes.
+3. Run `python tools/remote-context/script/sync_remote_context.py` before implementation and again before commit/push. It fetches remote changes and lists recent unmerged branches from other contributors; do not duplicate a unit already in progress there.
 4. Read the selected Issue and only its Read scope / related routing information.
 5. Search or use an index first; read full files second. Expand to additional source, tests, docs, or full diffs only when required evidence is missing.
 6. Once Goal / Required / Acceptance and the working set are sufficient to implement safely, stop exploring.
