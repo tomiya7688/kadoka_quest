@@ -155,7 +155,7 @@ class ProjectIntegrityTests(unittest.TestCase):
         self.assertEqual(errors, [])
 
     # {
-    #   責務: [test_gdscript_concrete_inheritance_chain_rejects_production_third_level: production GDScriptの具象script三段継承を拒否することを確認します]
+    #   責務: [test_gdscript_concrete_inheritance_chain_rejects_production_third_level: GDScriptの禁止多段継承を検出する]
     #   処理: [1: 一時GDScript projectへA→B→Cを定義し、Cを継承規約違反として検出することを確認します]
     #   引数: [self: 共通checkerを保持するテストケース]
     #   戻り値: [result: なし（None）。違反を検出しなければassertionで失敗します]
@@ -173,7 +173,7 @@ class ProjectIntegrityTests(unittest.TestCase):
         self.assertIn("a.gd -> b.gd -> c.gd", errors[0])
 
     # {
-    #   責務: [test_gdscript_concrete_inheritance_chain_allows_abstract_root_and_test_fixture: GDScriptのabstract起点とtests fixtureを許可することを確認します]
+    #   責務: [test_gdscript_concrete_inheritance_chain_allows_abstract_root_and_test_fixture: 抽象起点とtest fixtureを許可する]
     #   処理: [
     #     1: abstractなA→B→Cを定義します
     #     2: tests配下にも具象A→B→C相当のfixtureを置き、production診断が空になることを確認します
