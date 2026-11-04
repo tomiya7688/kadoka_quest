@@ -155,6 +155,48 @@ class ProjectIntegrityTests(unittest.TestCase):
         self.assertEqual(errors, [])
 
     # {
+    #   責務: [test_gdscript_concrete_inheritance_chain_rejects_production_third_level: production GDScriptの具象script三段継承を拒否することを確認します]
+    #   処理: [1: 一時GDScript projectへA→B→Cを定義し、Cを継承規約違反として検出することを確認します]
+    #   引数: [self: 共通checkerを保持するテストケース]
+    #   戻り値: [result: なし（None）。違反を検出しなければassertionで失敗します]
+    # }
+    def test_gdscript_concrete_inheritance_chain_rejects_production_third_level(self) -> None:
+        # res://の明示script継承だけを使い、Godotを起動せず静的にproduction規約を確認します。
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "a.gd").write_text("extends RefCounted\n", encoding="utf-8")
+            (root / "b.gd").write_text('extends "res://a.gd"\n', encoding="utf-8")
+            (root / "c.gd").write_text('extends "res://b.gd"\n', encoding="utf-8")
+            errors = self.checker.gdscript_concrete_inheritance_chain_errors(root)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIn("a.gd -> b.gd -> c.gd", errors[0])
+
+    # {
+    #   責務: [test_gdscript_concrete_inheritance_chain_allows_abstract_root_and_test_fixture: GDScriptのabstract起点とtests fixtureを許可することを確認します]
+    #   処理: [
+    #     1: abstractなA→B→Cを定義します
+    #     2: tests配下にも具象A→B→C相当のfixtureを置き、production診断が空になることを確認します
+    #   ]
+    #   引数: [self: 共通checkerを保持するテストケース]
+    #   戻り値: [result: なし（None）。許可ケースを誤検出すればassertionで失敗します]
+    # }
+    def test_gdscript_concrete_inheritance_chain_allows_abstract_root_and_test_fixture(self) -> None:
+        # 規約本文の抽象起点と検証fixtureの二つの例外を、同じ一時projectで固定します。
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "a.gd").write_text("@abstract\nextends RefCounted\n", encoding="utf-8")
+            (root / "b.gd").write_text('extends "res://a.gd"\n', encoding="utf-8")
+            (root / "c.gd").write_text('extends "res://b.gd"\n', encoding="utf-8")
+            test_root = root / "tests"
+            test_root.mkdir()
+            (test_root / "base.gd").write_text('extends "res://b.gd"\n', encoding="utf-8")
+            (test_root / "child.gd").write_text('extends "res://tests/base.gd"\n', encoding="utf-8")
+            errors = self.checker.gdscript_concrete_inheritance_chain_errors(root)
+
+        self.assertEqual(errors, [])
+
+    # {
     #   責務: [test_command_payload_contract_accepts_only_plain_json_like_data: コマンドはJSON互換の通常データを受理し、Objectやtupleを拒否することを確認します]
     #   処理: [1: 正常なネスト辞書の受理と、非対応値を持つ要求のTypeErrorを照合します]
     #   引数: [self: コマンドの値境界を検査するテストケース]
