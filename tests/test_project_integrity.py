@@ -1,5 +1,5 @@
 # {
-#   責務: [test_project_integrity: 共有文書の必須パス・coreの依存境界・プレーンなコマンド・生成索引の鮮度を検証します]
+#   責務: [test_project_integrity: 共有文書の必須パス・coreの依存境界・継承規約・プレーンなコマンド・生成索引の鮮度を検証します]
 #   フィールド: []
 # }
 from __future__ import annotations
@@ -89,6 +89,112 @@ class ProjectIntegrityTests(unittest.TestCase):
         self.assertEqual(len(errors), 2)
         self.assertTrue(any("core must not import pygame" in error for error in errors))
         self.assertTrue(any("core must not perform file I/O" in error for error in errors))
+
+    # {
+    #   責務: [test_concrete_inheritance_chain_rejects_third_level_from_concrete_root: 具象クラス起点の三段継承をcheckerが拒否することを確認します]
+    #   処理: [1: 一時ソースへA→B→Cを定義し、Cの宣言を継承規約違反として検出することを確認します]
+    #   引数: [self: 共通checkerを保持するテストケース]
+    #   戻り値: [result: なし（None）。違反を検出しなければassertionで失敗します]
+    # }
+    def test_concrete_inheritance_chain_rejects_third_level_from_concrete_root(self) -> None:
+        # 実装コードを変更せず、具象A→B→Cだけを含む最小fixtureで禁止規則を固定します。
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "chain.py").write_text(
+                "class A:\n    pass\n\nclass B(A):\n    pass\n\nclass C(B):\n    pass\n",
+                encoding="utf-8",
+            )
+            errors = self.checker.concrete_inheritance_chain_errors(root)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIn("A -> B -> C", errors[0])
+
+    # {
+    #   責務: [test_concrete_inheritance_chain_allows_abstract_root: 抽象クラス起点のA→B→Cは当該禁止規則の対象外であることを確認します]
+    #   処理: [1: ABCを継承する抽象AとB→Cを一時ソースへ定義し、継承規約診断が空になることを確認します]
+    #   引数: [self: 共通checkerを保持するテストケース]
+    #   戻り値: [result: なし（None）。許可ケースを誤検出すればassertionで失敗します]
+    # }
+    def test_concrete_inheritance_chain_allows_abstract_root(self) -> None:
+        # 抽象起点はレビュー対象ではあっても、この多段継承禁止の機械検査では拒否しません。
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "chain.py").write_text(
+                "from abc import ABC, abstractmethod\n\n"
+                "class A(ABC):\n"
+                "    @abstractmethod\n"
+                "    def run(self):\n"
+                "        raise NotImplementedError\n\n"
+                "class B(A):\n"
+                "    def run(self):\n"
+                "        return 1\n\n"
+                "class C(B):\n"
+                "    pass\n",
+                encoding="utf-8",
+            )
+            errors = self.checker.concrete_inheritance_chain_errors(root)
+
+        self.assertEqual(errors, [])
+
+    # {
+    #   責務: [test_concrete_inheritance_chain_allows_single_concrete_inheritance: 具象クラスから一段だけ継承するA→Bは当該禁止規則の対象外であることを確認します]
+    #   処理: [1: 一時ソースへA→Bだけを定義し、継承規約診断が空になることを確認します]
+    #   引数: [self: 共通checkerを保持するテストケース]
+    #   戻り値: [result: なし（None）。一段継承を誤検出すればassertionで失敗します]
+    # }
+    def test_concrete_inheritance_chain_allows_single_concrete_inheritance(self) -> None:
+        # 規約本文どおり、具象クラスの一段継承そのものはこのcheckerでは禁止しません。
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "chain.py").write_text(
+                "class A:\n    pass\n\nclass B(A):\n    pass\n",
+                encoding="utf-8",
+            )
+            errors = self.checker.concrete_inheritance_chain_errors(root)
+
+        self.assertEqual(errors, [])
+
+    # {
+    #   責務: [test_gdscript_concrete_inheritance_chain_rejects_production_third_level: GDScriptの禁止多段継承を検出する]
+    #   処理: [1: 一時GDScript projectへA→B→Cを定義し、Cを継承規約違反として検出することを確認します]
+    #   引数: [self: 共通checkerを保持するテストケース]
+    #   戻り値: [result: なし（None）。違反を検出しなければassertionで失敗します]
+    # }
+    def test_gdscript_concrete_inheritance_chain_rejects_production_third_level(self) -> None:
+        # res://の明示script継承だけを使い、Godotを起動せず静的にproduction規約を確認します。
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "a.gd").write_text("extends RefCounted\n", encoding="utf-8")
+            (root / "b.gd").write_text('extends "res://a.gd"\n', encoding="utf-8")
+            (root / "c.gd").write_text('extends "res://b.gd"\n', encoding="utf-8")
+            errors = self.checker.gdscript_concrete_inheritance_chain_errors(root)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIn("a.gd -> b.gd -> c.gd", errors[0])
+
+    # {
+    #   責務: [test_gdscript_concrete_inheritance_chain_allows_abstract_root_and_test_fixture: 抽象起点とtest fixtureを許可する]
+    #   処理: [
+    #     1: abstractなA→B→Cを定義します
+    #     2: tests配下にも具象A→B→C相当のfixtureを置き、production診断が空になることを確認します
+    #   ]
+    #   引数: [self: 共通checkerを保持するテストケース]
+    #   戻り値: [result: なし（None）。許可ケースを誤検出すればassertionで失敗します]
+    # }
+    def test_gdscript_concrete_inheritance_chain_allows_abstract_root_and_test_fixture(self) -> None:
+        # 規約本文の抽象起点と検証fixtureの二つの例外を、同じ一時projectで固定します。
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "a.gd").write_text("@abstract\nextends RefCounted\n", encoding="utf-8")
+            (root / "b.gd").write_text('extends "res://a.gd"\n', encoding="utf-8")
+            (root / "c.gd").write_text('extends "res://b.gd"\n', encoding="utf-8")
+            test_root = root / "tests"
+            test_root.mkdir()
+            (test_root / "base.gd").write_text('extends "res://b.gd"\n', encoding="utf-8")
+            (test_root / "child.gd").write_text('extends "res://tests/base.gd"\n', encoding="utf-8")
+            errors = self.checker.gdscript_concrete_inheritance_chain_errors(root)
+
+        self.assertEqual(errors, [])
 
     # {
     #   責務: [test_command_payload_contract_accepts_only_plain_json_like_data: コマンドはJSON互換の通常データを受理し、Objectやtupleを拒否することを確認します]
