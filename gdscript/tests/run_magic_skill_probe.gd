@@ -51,7 +51,7 @@ func _initialize() -> void:
 #     2: 専用要求で選択した魔法・HP回復・速度強化の純粋APIを呼びます
 #     3: 返却値を改変した後に再実行し、元の定義と予測が変わらないことを確認します
 #   ]
-#   引数: [request: prepare/quote操作と定義または数値要求。self_damage・drain_mp・heal・speed_buffは各専用契約を選びます（Dictionary）]
+#   引数: [request: prepare/quote操作と定義または数値要求。speed_buffだけはchoose_duration操作で期間条件と抽選値も受け付けます。self_damage・drain_mp・heal・speed_buffは各専用契約を選びます（Dictionary）]
 #   戻り値: [result: 選択した契約の予測または拒否と、入力保持・結果独立性の観測（Dictionary）]
 # }
 func _run_case(request: Dictionary) -> Dictionary:
@@ -83,7 +83,7 @@ func _run_case(request: Dictionary) -> Dictionary:
 # {
 #   責務: [_invoke_contract: 専用要求の魔法・HP回復・速度強化区分と操作名から、純粋契約のAPIへ委譲します]
 #   処理: [1: 契約区分を一意に確認し、prepareまたは対応する予測APIを呼びます]
-#   引数: [request: prepare/quote操作と定義または数値要求。self_damage・drain_mp・heal・speed_buffの複数同時指定は拒否します（Dictionary）]
+#   引数: [request: prepare/quote操作と定義または数値要求。speed_buffだけはchoose_duration操作も選べます。self_damage・drain_mp・heal・speed_buffの複数同時指定は拒否します（Dictionary）]
 #   戻り値: [result: 選択した純粋契約の結果、または未対応のプローブ操作名に対する拒否（Dictionary）]
 # }
 func _invoke_contract(request: Dictionary) -> Dictionary:
@@ -96,6 +96,8 @@ func _invoke_contract(request: Dictionary) -> Dictionary:
 				return SpeedBuffContract.prepare(request.get("document"), request.get("skill_id"))
 			"quote":
 				return SpeedBuffContract.quote_buff(request.get("definition"), request.get("request"))
+			"choose_duration":
+				return SpeedBuffContract.choose_duration(request.get("condition"), request.get("request"))
 		return {"ok": false, "reason": "invalid_probe_operation"}
 	if request.get("heal", false):
 		match request.get("operation"):
