@@ -227,9 +227,8 @@ func _enter_world(world: Dictionary, entry: Dictionary) -> void:
 #   戻り値: [result: なし。画面状態または要求先を更新します。]
 # }
 func _setup_persistence() -> void:
-	var save_root := OS.get_environment("KADOKA_GDSCRIPT_SAVE_ROOT")
-	if save_root.is_empty():
-		save_root = "user://savedata"
+	# タイトル画面のセーブ一覧と同じ保存先を使います。
+	var save_root := SaveStore.configured_root()
 	var configured_name := OS.get_environment("KADOKA_GDSCRIPT_SAVE_NAME")
 	if not configured_name.is_empty():
 		profile_name = configured_name

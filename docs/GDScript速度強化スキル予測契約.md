@@ -38,7 +38,29 @@
 
 Pythonの期間処理は一部の不正期間を無期限へ読み替え、三要素以上の配列では先頭二要素だけを使います。本契約は、その不正入力の読み替えや余分な要素の無視を引き継がず、理由付き拒否に限定します。対応する有限単値・二要素範囲の補正は実Pythonと照合します。
 
-範囲のmaximumは抽選時の上端も含みます。本契約は乱数源を呼ばず、範囲内の一期間を選択しません。固定期間と無期限の場合も、実付与を実行するわけではありません。
+範囲のmaximumは抽選時の上端も含みます。quote_buffは乱数源を呼ばず、範囲内の一期間を選択しません。固定期間と無期限の場合も、quote_buffは実付与を実行しません。期間の選択は次節のchoose_durationが担当します。
+
+## 明示抽選値による一期間の選択
+
+Pythonの`_buff_duration`は、範囲期間のときだけ`randint(minimum, maximum)`を一回呼び、固定期間と無期限では乱数を消費しません。Godotで期間を選ぶ前に、乱数の所有者と再試行時の扱いを分けておく必要があります。
+
+開発者は、quote_buffが返したduration条件と、乱数の所有者が一回だけ引いた値を`choose_duration(condition, {"duration_roll": 4})`へ渡してください。choose_durationは乱数を生成せず、同じ条件と同じ抽選値からは常に同じ期間を返します。乱数の所有者は、上下限を含む`minimum`～`maximum`の整数を一回だけ引き、同じ行動の再送では同じ値を渡してください。行動票ごとの抽選値の保持は、ピオラ行動をSessionへ接続する後続単位が担当します。
+
+| 期間条件のmode | 要求のduration_roll | choose_durationの結果 |
+| --- | --- | --- |
+| untimed | 指定しないでください | mode=untimed、duration=nullを返します。 |
+| fixed | 指定しないでください | mode=fixed、duration=minimumを返します。 |
+| range | 必須です。minimum以上maximum以下の整数、または整数値のfloatで指定してください | mode=range、duration=duration_rollを返します。 |
+
+正規ピオラの条件`{"mode": "range", "minimum": 3, "maximum": 6}`と抽選値4では、choose_durationは次の辞書を返します。
+
+```json
+{"ok": true, "scope": "speed_buff_duration", "mode": "range", "duration": 4}
+```
+
+choose_durationは、範囲外の抽選値を上下限へ丸めず、`invalid_speed_buff_duration_roll`で拒否します。bool・文字列・小数部分・非有限値・null・精度上限を超える抽選値も同じ理由で拒否します。範囲で抽選値がない場合は`missing_speed_buff_duration_roll`、固定期間と無期限で抽選値がある場合は、乱数の余分な消費を防ぐため`unexpected_speed_buff_duration_roll`を返します。要求が辞書でない場合は`invalid_duration_request`、duration_roll以外のキーがある場合は`unsupported_duration_request`を返します。
+
+choose_durationは、quote_buffが返す三形式以外の期間条件を`invalid_speed_buff_duration_condition`で拒否します。拒否する条件は、キーの過不足、未知のmode、上下限を持つ無期限、上下限が異なる固定期間、1未満の下限、下限未満の上限、整数でない上下限です。拒否結果はok=falseとreasonだけを持ち、期間を部分的に返しません。choose_durationは、速度倍率・残り期間・MP・予約・セーブを変更しません。
 
 ## 正規ピオラの結果と失敗
 
@@ -64,12 +86,12 @@ Pythonの期間処理は一部の不正期間を無期限へ読み替え、三�
 本契約には利用者が直接操作する画面はありません。開発者はリポジトリルートでKADOKA_GODOT_EXECUTABLEへ使用できるGodotを設定し、実セーブと独立した保存先を指定して次のテストを実行してください。
 
 ```text
-python -m pytest tests/test_gdscript_speed_buff.py
+python -m pytest tests/test_gdscript_speed_buff.py tests/test_gdscript_speed_buff_duration.py
 python tools/performance-check/script/check_gdscript_speed_buff.py
 ```
 
-実Godotプローブは正規定義・互換MOD・MP境界・拒否・入力不変・返却値の独立性を確認します。Python比較は実際の_buff_durationへ明示した乱数戻り値を渡し、抽選上下限と単値補正を照合します。
+実Godotプローブは正規定義・互換MOD・MP境界・拒否・入力不変・返却値の独立性を確認します。Python比較は実際の_buff_durationへ明示した乱数戻り値を渡し、抽選上下限と単値補正を照合します。期間選択の比較は、quote_buffの条件からchoose_durationが選んだ期間と、同じ戻り値を返すrandintを渡したPythonの期間を照合し、randintを呼ぶ条件と上下限も確認します。
 
 標準性能CLIは20000回・7サンプル・2000回事前実行で予測一回を測り、中央値3000us以内と固定予測・元MP10・入力保持・反復条件を要求します。Godot未指定は終了コード2の未検証です。少数回のテスト実測や検証器テストの合成時間は、標準性能検査の成功証拠と区別します。
 
-期間抽選・対象選択・習得/装備確認・MP実消費・予約付き行動への接続・AI・戦闘画面は未接続です。既存の魔法・HP回復入口は引き続き速度強化定義を拒否します。保存JSONとPythonゲーム処理は変更しません。
+実乱数源からの抽選・行動票ごとの抽選値の保持・対象選択・習得/装備確認・MP実消費・予約付き行動への接続・AI・戦闘画面は未接続です。既存の魔法・HP回復入口は引き続き速度強化定義を拒否します。保存JSONとPythonゲーム処理は変更しません。

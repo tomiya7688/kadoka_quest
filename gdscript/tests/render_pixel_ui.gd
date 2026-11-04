@@ -16,11 +16,12 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 # {
-#   責務: [_run: 実セーブへの書込を拒否し、フィールドと既存モーダルの描画結果を保存します。]
+#   責務: [_run: 実セーブへの書込を拒否し、タイトル画面・フィールド・既存モーダルの描画結果を保存します。]
 #   処理: [
 #     1: 隔離保存先と描画ドライバーを確認します。
-#     2: 実Sceneを起動し、隔離プロフィールで既存画面を順に表示します。
-#     3: 描画結果をPNGへ保存してGodotを終了します。
+#     2: セーブがない状態のタイトル画面とセーブ名入力を描画します。
+#     3: 実Sceneを起動し、隔離プロフィールで既存画面を順に表示します。
+#     4: 保存後のタイトル画面のセーブ一覧を描画し、Godotを終了します。
 #   ]
 #   引数: []
 #   戻り値: [result: なし]
@@ -35,6 +36,14 @@ func _run() -> void:
 		return
 	DirAccess.make_dir_recursive_absolute(capture_root)
 	root.size = Vector2i(960, 540)
+	# セーブがない初回起動のタイトル画面と、セーブ名の入力画面を先に描画します。
+	var title = load("res://scenes/title.tscn").instantiate()
+	root.add_child(title)
+	await _capture("title")
+	title.view.open_page("new")
+	await _capture("title_new")
+	title.queue_free()
+	await process_frame
 	var scene = load("res://scenes/field.tscn").instantiate()
 	root.add_child(scene)
 	await process_frame
@@ -61,9 +70,17 @@ func _run() -> void:
 	await _capture("dialogue")
 	scene.open_password_input()
 	await _capture("password")
-	print("KADOKA_PIXEL_RENDER_RESULT=" + capture_root)
 	scene.queue_free()
 	await process_frame
+	# フィールドで保存した隔離プロフィールが、タイトル画面のセーブ一覧に表示されることを描画します。
+	title = load("res://scenes/title.tscn").instantiate()
+	root.add_child(title)
+	await process_frame
+	title.view.open_page("profiles")
+	await _capture("title_profiles")
+	title.queue_free()
+	await process_frame
+	print("KADOKA_PIXEL_RENDER_RESULT=" + capture_root)
 	quit(0)
 
 # {

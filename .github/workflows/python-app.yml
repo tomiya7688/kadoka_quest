@@ -1,6 +1,6 @@
 # {
 #   責務: [python-app: Pythonの品質・構造・パッケージをCIで検証する]
-#   フィールド: [jobs: テストとproject/package integrityの検証ジョブ]
+#   フィールド: [jobs: Pythonテスト・固定版Godotでのテスト/E2E・project/package integrityの検証ジョブ。ローカルではtools/local-ci/script/run_local_ci.pyが同じコマンドを実行します]
 # }
 name: Python quality
 
@@ -47,7 +47,7 @@ jobs:
       - name: Install project and test tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install . flake8 pytest
+          python -m pip install . flake8 pytest -r tools/format/requirements.txt
           python -m pip check
 
       - name: Lint for syntax and undefined names
@@ -58,6 +58,57 @@ jobs:
 
       - name: Run tests
         run: python -m pytest
+
+  godot:
+    name: Test Godot port and E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+      PYGAME_HIDE_SUPPORT_PROMPT: "1"
+      GODOT_VERSION: 4.7.2-stable
+      # 公式リリースのSHA512-SUMS.txtにあるLinux版の値です。版を上げるときは値も更新してください。
+      GODOT_SHA512: 9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
+      # Godotが見つからない、またはGodotを理由にskipされたテストがある場合は失敗にします。
+      KADOKA_REQUIRE_GODOT: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+
+      - name: Install project and test tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install . pytest
+          python -m pip check
+
+      - name: Install pinned Godot
+        run: |
+          archive="Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/${archive}"
+          echo "${GODOT_SHA512}  $RUNNER_TEMP/$archive" | sha512sum --check --strict
+          unzip -q "$RUNNER_TEMP/$archive" -d "$RUNNER_TEMP/godot"
+          executable="$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          chmod +x "$executable"
+          "$executable" --headless --version
+          echo "KADOKA_GODOT_EXECUTABLE=$executable" >> "$GITHUB_ENV"
+
+      - name: Import Godot resources
+        run: '"$KADOKA_GODOT_EXECUTABLE" --headless --path gdscript --editor --import --quit'
+
+      - name: Run Godot tests and E2E
+        run: python -m pytest -m godot
 
   project-integrity:
     name: Validate game data and architecture
@@ -71,6 +122,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 整形確認は比較元ブランチとの差分で追加ファイルを選ぶため、比較元の履歴も取得します。
+          fetch-depth: 0
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -78,6 +132,11 @@ jobs:
           python-version: "3.10"
           cache: pip
           cache-dependency-path: pyproject.toml
+
+      - name: Check formatting of added Python and GDScript files
+        run: |
+          python -m pip install -r tools/format/requirements.txt
+          python tools/format/script/format_changed.py --check
 
       - name: Install latest architecture checker
         run: |
