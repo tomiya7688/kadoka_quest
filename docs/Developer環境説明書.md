@@ -59,6 +59,8 @@ Developer画面の左側はPlayerコンテンツ編集領域である。
 
 Skill / Item / Asset / Balance等の編集機能は、追加時も同じDeveloper環境へ統合する。
 
+Map Editorでステージを新規作成・改修する場合は、[ステージ・ワールド設計](開発者向け/ステージ設計.md)を先に確認する。ステージの役割、主導線、ランドマーク、景観方針、実装順をそこで共有し、Map Editorの操作方法とステージ設計を混在させない。景観Objectは #215 の実装後に利用し、現行Map Editorで未対応のObject契約を先行して作成しない。
+
 ## Player Workflow
 
 Developer画面の右側は制作結果をPlayerとして確認する領域である。
