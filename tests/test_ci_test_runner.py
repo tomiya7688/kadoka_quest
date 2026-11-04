@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 # }
 class CITestConfigurationTests(unittest.TestCase):
     # {
-    #   責務: [test_windows_ci_installs_pytest_and_runs_complete_suite: WindowsのCIがpytestを導入し、テストを限定せず起動することを確認します]
-    #   処理: [1: ワークフローを読み、依存導入と全体起動を確認して失敗無視と旧起動方式を拒否します]
+    #   責務: [test_windows_ci_installs_pytest_and_runs_complete_suite: WindowsのCIがpytestと整形の道具を導入し、テストを限定せず起動することを確認します]
+    #   処理: [1: ワークフローを読み、pytestとtools/format/requirements.txtの導入と全体起動を確認して失敗無視と旧起動方式を拒否します]
     #   引数: [self: CI設定を検証するテストケース]
     #   戻り値: [result: なし（None）]
     # }
@@ -25,6 +25,8 @@ class CITestConfigurationTests(unittest.TestCase):
         # pytest形式のテストをunittestだけで取りこぼす回帰と、依存不足を防ぎます。
         workflow = (ROOT / ".github/workflows/windows-distribution.yml").read_text(encoding="utf-8")
         self.assertIn("python -m pip install pytest", workflow)
+        # CIではtests/test_format_changed.pyが実際のRuffとgdformatを必須にするため、導入漏れで失敗しないことを確かめます。
+        self.assertIn("-r tools/format/requirements.txt", workflow)
         self.assertRegex(workflow, r"(?m)^        run: python -m pytest[ \t]*$")
         self.assertNotIn("python -m unittest discover", workflow)
         self.assertNotIn("continue-on-error", workflow)
