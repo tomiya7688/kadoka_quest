@@ -134,20 +134,12 @@ def class_base_name(node: ast.expr) -> str:
 
 # {
 #   責務: [class_is_abstract: PythonクラスがABC系の基底またはabstractmethod宣言を持つ明示的な抽象クラスか判定します]
-#   処理: [
-#     1: ABC基底またはABCMetaメタクラスを確認します
-#     2: クラス直下のメソッドにabstractmethodデコレータがあれば抽象クラスと判定します
-#   ]
+#   処理: [1: クラス直下のメソッドにabstractmethodデコレータがあれば抽象クラスと判定します]
 #   引数: [node: 検査対象のクラス定義（ast.ClassDef）]
 #   戻り値: [result: 明示的な抽象クラスならTrue、それ以外はFalse（bool）]
 # }
 def class_is_abstract(node: ast.ClassDef) -> bool:
-    # 明示的なABC宣言だけを例外にし、名前やdocstringから抽象性を推測しない。
-    if any(class_base_name(base) == "ABC" for base in node.bases):
-        return True
-    for keyword in node.keywords:
-        if keyword.arg == "metaclass" and class_base_name(keyword.value) == "ABCMeta":
-            return True
+    # ABC/ABCMetaを指定しただけでは抽象メソッドがなければ生成可能なので、abstractmethod宣言を実際の判定条件にする。
     for member in node.body:
         if not isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
