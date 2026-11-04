@@ -50,6 +50,12 @@ def test_repository_catalog_keeps_major_flows_explicitly_missing():
     assert {"KQ-P02", "KQ-P11", "KQ-P19", "KQ-P20", "KQ-P25", "KQ-P29", "KQ-P30", "KQ-D06"} <= {
         row["ID"] for row in rows
     }
+    # Godot版のタイトル画面のシナリオは、Godot用harnessのE2Eテストを参照するcoveredとして登録します。
+    godot = {row["ID"]: row for row in rows if row["ID"].startswith("KQ-G")}
+    assert {"KQ-G01", "KQ-G02", "KQ-G03", "KQ-G04"} <= set(godot)
+    for scenario in ("KQ-G01", "KQ-G02", "KQ-G03", "KQ-G04"):
+        assert godot[scenario]["Status"] == "covered"
+        assert godot[scenario]["E2E"].startswith("`tests/e2e/test_godot_title_journeys.py::")
 
 
 # {
