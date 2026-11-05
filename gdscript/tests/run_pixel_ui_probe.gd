@@ -68,6 +68,7 @@ func _run() -> void:
 #   処理: [
 #     1: 通知を設定して表示時間の手前まで進め、通知が残ることを確認します
 #     2: 別の通知へ変えると表示時間が数え直され、最後に決めた時間を過ぎると空になることを確認します
+#     3: 直前と同じ文字列を設定し直しても数え直さないことを確認します
 #   ]
 #   引数: [chrome: 検査するフィールドの表示部品]
 #   戻り値: [result: なし]
@@ -84,6 +85,13 @@ func _check_notice(chrome: Control) -> void:
 	_check(chrome.status.text.is_empty(), "表示時間を過ぎた通知は消える")
 	chrome.advance_notice(10.0)
 	_check(chrome.status.text.is_empty(), "空の結果欄は空のまま")
+	# Labelのtext代入は監視できないため、直前と同じ文字列の再通知は数え直さない仕様を固定します。
+	chrome.status.text = "目の前に調べるものはありません。"
+	chrome.advance_notice(0.0)
+	chrome.advance_notice(chrome.NOTICE_SECONDS - 1.0)
+	chrome.status.text = "目の前に調べるものはありません。"
+	chrome.advance_notice(1.5)
+	_check(chrome.status.text.is_empty(), "同じ文字列の再通知は表示時間を数え直さない")
 
 # {
 #   責務: [_check_roster: 空の台帳から編成ボタンへフォーカスでき、Tabを阻害しないことを確認します。]
