@@ -174,7 +174,7 @@ func _build_dialogue() -> void:
 	dialogue_choices = VBoxContainer.new()
 	column.add_child(dialogue_choices)
 	dismiss_button = Style.button("とじる  [Esc]")
-	dismiss_button.pressed.connect(dialogue.hide)
+	dismiss_button.pressed.connect(close_dialogue)
 	column.add_child(dismiss_button)
 	dialogue.hide()
 
