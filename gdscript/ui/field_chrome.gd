@@ -5,6 +5,8 @@
 #     status: 保存結果や操作結果を表示するLabel
 #     menu: 探索を一時停止する操作パネル
 #     dialogue: 会話本文を独立表示するパネル
+#     dialogue_choices: 会話の選択肢ボタンを縦に並べる列
+#     dismiss_button: 選択肢がない会話を閉じるボタン
 #     menu_button: メニューを開閉する操作ボタン
 #     NOTICE_SECONDS: 結果欄の通知を表示し続ける秒数
 #     notice_text: 秒数を数え始めた時点の結果欄の文字列
@@ -18,6 +20,7 @@ const NOTICE_SECONDS := 6.0
 signal roster_requested
 signal save_requested
 signal load_requested
+signal choice_selected(index: int)
 var title: Label
 var status: Label
 var menu: PanelContainer
@@ -25,6 +28,8 @@ var dialogue: PanelContainer
 var menu_button: Button
 var dialogue_name: Label
 var dialogue_text: Label
+var dialogue_choices: VBoxContainer
+var dismiss_button: Button
 var menu_actions: Array[Control] = []
 var notice_text := ""
 var notice_remaining := 0.0
@@ -166,25 +171,65 @@ func _build_dialogue() -> void:
 	dialogue_text = Label.new()
 	dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(dialogue_text)
-	var dismiss := Style.button("とじる  [Esc]")
-	dismiss.pressed.connect(dialogue.hide)
-	column.add_child(dismiss)
+	dialogue_choices = VBoxContainer.new()
+	column.add_child(dialogue_choices)
+	dismiss_button = Style.button("とじる  [Esc]")
+	dismiss_button.pressed.connect(close_dialogue)
+	column.add_child(dismiss_button)
 	dialogue.hide()
 
 # {
-#   責務: [show_dialogue: 会話結果の話者と本文を専用パネルへ表示します。]
-#   処理: [1: 与えられた会話文字列を表示し本文スクロールを先頭へ戻します。]
+#   責務: [show_dialogue: 会話結果の話者・本文・選択肢を専用パネルへ表示します。]
+#   処理: [
+#     1: 話者名が空なら話者名の行を隠し、本文を表示して本文スクロールを先頭へ戻します
+#     2: 前回の選択肢を取り除き、選択肢があれば順に並べて先頭へフォーカスし、閉じるボタンを隠します
+#   ]
 #   引数: [
-#     speaker: 会話結果の話者名
+#     speaker: 会話結果の話者名。空の文字列なら話者名を表示しません
 #     text: 会話結果の本文
+#     choices: 利用者へ表示する選択肢の文字列の並び。省略または空なら閉じるボタンだけを表示します
 #   ]
 #   戻り値: [result: なし]
 # }
-func show_dialogue(speaker: String, text: String) -> void:
+func show_dialogue(speaker: String, text: String, choices: Array = []) -> void:
 	dialogue_name.text = speaker
+	dialogue_name.visible = not speaker.is_empty()
 	dialogue_text.text = text
 	(dialogue.get_child(0) as ScrollContainer).scroll_vertical = 0
+	for old in dialogue_choices.get_children():
+		dialogue_choices.remove_child(old)
+		old.queue_free()
+	var buttons: Array[Control] = []
+	for index in choices.size():
+		var button := Style.button(str(choices[index]))
+		button.pressed.connect(_select_choice.bind(index))
+		dialogue_choices.add_child(button)
+		buttons.append(button)
+	dismiss_button.visible = buttons.is_empty()
 	dialogue.show()
+	if not buttons.is_empty():
+		Style.cycle_focus(buttons)
+		buttons[0].grab_focus.call_deferred()
+
+# {
+#   責務: [_select_choice: 会話の選択肢が選ばれたことを通知し、会話パネルを閉じます。]
+#   処理: [1: 選ばれた順番をchoice_selectedで通知してから、会話パネルを隠します。]
+#   引数: [index: 選ばれた選択肢の0始まりの順番]
+#   戻り値: [result: なし]
+# }
+func _select_choice(index: int) -> void:
+	choice_selected.emit(index)
+	close_dialogue()
+
+# {
+#   責務: [close_dialogue: 会話パネルを隠し、会話中に持っていた入力フォーカスを解放します。]
+#   処理: [1: 現在のControlフォーカスを解放して会話パネルを隠します。]
+#   引数: []
+#   戻り値: [result: なし]
+# }
+func close_dialogue() -> void:
+	get_viewport().gui_release_focus()
+	dialogue.hide()
 
 # {
 #   責務: [toggle_menu: 操作メニューを開閉し、開いた場合は先頭ボタンへフォーカスします。]

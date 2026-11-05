@@ -364,7 +364,8 @@ func _input(event: InputEvent) -> void:
 		return
 	if not roster_view.visible and not party_view.visible and not preset_view.visible and event.physical_keycode == KEY_ESCAPE and not event.echo:
 		if chrome.dialogue.visible:
-			chrome.dialogue.hide()
+			# 選択肢のボタンへ残ったフォーカスを手放してから会話枠を閉じます。
+			chrome.close_dialogue()
 		else:
 			chrome.toggle_menu()
 		keyboard.reset()
