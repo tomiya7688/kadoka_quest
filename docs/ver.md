@@ -33,6 +33,16 @@ GDScript移行単位の表と段落にあった「未push」の状態は、PR #2
 変更したファイル: gdscript/engine/speed_buff_contract.gd、gdscript/tests/run_magic_skill_probe.gd、tools/remote-context/script/sync_remote_context.py、tests/test_remote_context.py、AGENTS.md、tools/README.md、docs/{GDScript速度強化スキル予測契約,CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/ワークフロー/{ワークフロー,GDScript移行実装単位}.md。
 追加したファイル: tests/test_gdscript_speed_buff_duration.py、tests/test_agent_shared_rules.py、CLAUDE.md、.github/copilot-instructions.md、.agents/skills/kadoka-task/SKILL.md、.claude/skills/kadoka-task/SKILL.md。
 
+# 135. Godot版の会話枠を話者名の省略と選択肢に対応させる
+
+Issue #77と会話UIの子Issue #193に沿って、Godot版の会話枠に話者名の省略と選択肢を加えました。ver#134の時点でGodot版の会話枠は、話者名・本文・閉じるボタンだけで、選択肢を持てませんでした。話者名のない地の文でも空の名前の行が残りました。
+
+gdscript/ui/field_chrome.gdのshow_dialogueは、第三引数で選択肢の文字列の並びを受け取ります。話者名が空なら名前の行を隠し、選択肢があれば順に並べて先頭へフォーカスし、閉じるボタンを隠します。選択肢を決定すると、選ばれた0始まりの順番をchoice_selectedで通知して会話枠を閉じます。次の会話を表示する時は前回の選択肢を取り除きます。EscはEscとして通知なしで閉じ、フォーカスも手放します。既存の呼出し（話者名と本文だけ）は、選択肢を省略して従来どおり動作します。
+
+検証: gdscript/tests/run_pixel_ui_probe.gdへ、話者名なしの表示、選択肢の数・フォーカス・画面内配置、選択の通知と会話枠の閉鎖、次の会話への持ち越しがないことの7件を追加し、実Godot 4.7.2で成功しました。未対応: 選択結果に応じた会話の分岐・イベント実行（呼出し側の仕様が未定です）、一文字ずつの文字送り、実ウィンドウでの見え方。
+
+変更したファイル: gdscript/ui/field_chrome.gd、gdscript/application/field_application.gd、gdscript/tests/run_pixel_ui_probe.gd、docs/{GAME_GUI,ver}.md。
+
 # 134. Godot版のフィールド結果欄を一時通知にする
 
 Issue #77とフィールドHUDの子Issue #192に沿って、Godot版のフィールドの結果欄を一時通知にしました。ver#133の時点でGodot版のフィールドは、座標やデバッグキーを表示しない最小の表示でしたが、保存結果や調べた結果が次の通知まで画面下部に残り続けました。利用者は、古い通知を消す方法がなく、ゲーム世界を広く見られませんでした。
