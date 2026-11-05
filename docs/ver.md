@@ -33,6 +33,18 @@ GDScript移行単位の表と段落にあった「未push」の状態は、PR #2
 変更したファイル: gdscript/engine/speed_buff_contract.gd、gdscript/tests/run_magic_skill_probe.gd、tools/remote-context/script/sync_remote_context.py、tests/test_remote_context.py、AGENTS.md、tools/README.md、docs/{GDScript速度強化スキル予測契約,CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/ワークフロー/{ワークフロー,GDScript移行実装単位}.md。
 追加したファイル: tests/test_gdscript_speed_buff_duration.py、tests/test_agent_shared_rules.py、CLAUDE.md、.github/copilot-instructions.md、.agents/skills/kadoka-task/SKILL.md、.claude/skills/kadoka-task/SKILL.md。
 
+# 134. Godot版のフィールド結果欄を一時通知にする
+
+Issue #77とフィールドHUDの子Issue #192に沿って、Godot版のフィールドの結果欄を一時通知にしました。ver#133の時点でGodot版のフィールドは、座標やデバッグキーを表示しない最小の表示でしたが、保存結果や調べた結果が次の通知まで画面下部に残り続けました。利用者は、古い通知を消す方法がなく、ゲーム世界を広く見られませんでした。
+
+gdscript/ui/field_chrome.gdは、結果欄の文字列が変わった時点から6秒を数え、過ぎたら結果欄を空にします。別の通知へ変わると6秒を数え直します。経過の進め方は公開メソッドadvance_noticeに分け、実時間を待たずに検証できます。結果欄のLabel（status）と文字列は変えていないため、既存のprobeとE2Eが結果欄を読む方法は変わりません。
+
+検証: gdscript/tests/run_pixel_ui_probe.gdへ、通知が6秒の手前まで残ること、新しい通知で数え直すこと、過ぎると消えること、空のままであることの4件を追加しました。実Godot 4.7.2で関連テストを実行しました。結果は検証欄を参照してください。
+
+未対応（#192の残り）: 仲間の最小表示は、今回は追加していません。受け入れ条件の「仲間情報を必要最小限にする」は、現状の表示が仲間を含まないことで満たしています。実ウィンドウでの見え方と、Python版のフィールドHUDは未確認・対象外です。
+
+変更したファイル: gdscript/ui/field_chrome.gd、gdscript/tests/run_pixel_ui_probe.gd、docs/{GAME_GUI,ver}.md。
+
 # 133. CIへ固定版Godotを導入し、CIと同じ検査を実行するローカルCIとPythonの整形を追加
 
 これまでのCIにはGodotがなく、Godot版のテスト（-m godotで573件）とGodot版のE2Eは、CIで常にskipになっていました。CIの成功はGodot版の動作を保証せず、ローカルでもCIと同じ検査の組を一度に実行する手段がありませんでした。
