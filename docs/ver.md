@@ -33,6 +33,16 @@ GDScript移行単位の表と段落にあった「未push」の状態は、PR #2
 変更したファイル: gdscript/engine/speed_buff_contract.gd、gdscript/tests/run_magic_skill_probe.gd、tools/remote-context/script/sync_remote_context.py、tests/test_remote_context.py、AGENTS.md、tools/README.md、docs/{GDScript速度強化スキル予測契約,CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/ワークフロー/{ワークフロー,GDScript移行実装単位}.md。
 追加したファイル: tests/test_gdscript_speed_buff_duration.py、tests/test_agent_shared_rules.py、CLAUDE.md、.github/copilot-instructions.md、.agents/skills/kadoka-task/SKILL.md、.claude/skills/kadoka-task/SKILL.md。
 
+# 136. Godot版の戦闘画面の表示部品を追加する
+
+Issue #77と戦闘UIの子Issue #194に沿って、Godot版の戦闘画面の表示部品を追加しました。ver#135の時点でGodot版には戦闘Sessionの数値契約だけがあり、戦闘を表示する画面がありませんでした。Python版の戦闘UIは、Godot版が完成するまで変更しません。
+
+gdscript/ui/battle_view.gdのshow_stateは、戦闘Sessionのsnapshot・状態異常のsnapshot・コマンド名・ログを受け取り、敵モンスターを上段の主役、味方の資源とコマンドを下段、ログを最下部に表示します。コマンドを選ぶとcommand_selectedで順番を通知します。戦闘ルールは変更せず、行動の解決や戦闘シーンへの接続も行いません。
+
+検証: gdscript/tests/run_battle_view_probe.gdで、配置・倒れた/逃げた個体・状態・HP/MP・ログ・フォーカス・通知・再表示の持ち越しなしを実Godot 4.7.2で確認しました。未対応: 戦闘シーンとフィールドからの遷移、行動対象の選択、演出、実ウィンドウでの見え方、Python版の戦闘UI。
+
+変更したファイル: gdscript/ui/battle_view.gd、gdscript/tests/run_battle_view_probe.gd、tests/test_gdscript_battle_view.py、docs/{GAME_GUI,ver}.md。
+
 # 134. Godot版のフィールド結果欄を一時通知にする
 
 Issue #77とフィールドHUDの子Issue #192に沿って、Godot版のフィールドの結果欄を一時通知にしました。ver#133の時点でGodot版のフィールドは、座標やデバッグキーを表示しない最小の表示でしたが、保存結果や調べた結果が次の通知まで画面下部に残り続けました。利用者は、古い通知を消す方法がなく、ゲーム世界を広く見られませんでした。
