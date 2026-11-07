@@ -52,6 +52,7 @@ func _run() -> void:
 	var dialogue_scroll := chrome.dialogue.get_child(0) as ScrollContainer
 	_check(dialogue_scroll.get_v_scroll_bar().max_value > dialogue_scroll.size.y, "長い会話をスクロール可能")
 	chrome.dialogue.hide()
+	_check_notice(chrome)
 	await _check_roster(surface)
 	await _check_party(surface)
 	await _check_presets(surface)
@@ -61,6 +62,36 @@ func _run() -> void:
 	surface.queue_free()
 	await process_frame
 	quit(0 if failures.is_empty() else 1)
+
+# {
+#   責務: [_check_notice: フィールドの結果欄が通知を一時表示し、新しい通知で表示時間が延びることを確認します。]
+#   処理: [
+#     1: 通知を設定して表示時間の手前まで進め、通知が残ることを確認します
+#     2: 別の通知へ変えると表示時間が数え直され、最後に決めた時間を過ぎると空になることを確認します
+#     3: 直前と同じ文字列を設定し直しても数え直さないことを確認します
+#   ]
+#   引数: [chrome: 検査するフィールドの表示部品]
+#   戻り値: [result: なし]
+# }
+func _check_notice(chrome: Control) -> void:
+	chrome.status.text = "保存しました: 冒険A"
+	chrome.advance_notice(0.0)
+	chrome.advance_notice(chrome.NOTICE_SECONDS - 1.0)
+	_check(chrome.status.text == "保存しました: 冒険A", "通知は表示時間の手前まで残る")
+	chrome.status.text = "読み込みました: 冒険A"
+	chrome.advance_notice(chrome.NOTICE_SECONDS - 1.0)
+	_check(chrome.status.text == "読み込みました: 冒険A", "新しい通知は表示時間を数え直す")
+	chrome.advance_notice(1.5)
+	_check(chrome.status.text.is_empty(), "表示時間を過ぎた通知は消える")
+	chrome.advance_notice(10.0)
+	_check(chrome.status.text.is_empty(), "空の結果欄は空のまま")
+	# Labelのtext代入は監視できないため、直前と同じ文字列の再通知は数え直さない仕様を固定します。
+	chrome.status.text = "目の前に調べるものはありません。"
+	chrome.advance_notice(0.0)
+	chrome.advance_notice(chrome.NOTICE_SECONDS - 1.0)
+	chrome.status.text = "目の前に調べるものはありません。"
+	chrome.advance_notice(1.5)
+	_check(chrome.status.text.is_empty(), "同じ文字列の再通知は表示時間を数え直さない")
 
 # {
 #   責務: [_check_roster: 空の台帳から編成ボタンへフォーカスでき、Tabを阻害しないことを確認します。]

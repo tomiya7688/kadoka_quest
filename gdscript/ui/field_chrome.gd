@@ -6,11 +6,15 @@
 #     menu: 探索を一時停止する操作パネル
 #     dialogue: 会話本文を独立表示するパネル
 #     menu_button: メニューを開閉する操作ボタン
+#     NOTICE_SECONDS: 結果欄の通知を表示し続ける秒数
+#     notice_text: 秒数を数え始めた時点の結果欄の文字列
+#     notice_remaining: 結果欄の通知を消すまでの残り秒数
 #   ]
 # }
 extends Control
 
 const Style = preload("res://ui/pixel_theme.gd")
+const NOTICE_SECONDS := 6.0
 signal roster_requested
 signal save_requested
 signal load_requested
@@ -22,6 +26,37 @@ var menu_button: Button
 var dialogue_name: Label
 var dialogue_text: Label
 var menu_actions: Array[Control] = []
+var notice_text := ""
+var notice_remaining := 0.0
+
+# {
+#   責務: [_process: 結果欄の通知を表示してからの経過時間を進めます。]
+#   処理: [1: 描画フレームの経過秒数をadvance_noticeへ渡します。]
+#   引数: [delta: 前のフレームからの経過秒数]
+#   戻り値: [result: なし]
+# }
+func _process(delta: float) -> void:
+	advance_notice(delta)
+
+# {
+#   責務: [advance_notice: 結果欄の通知を一時表示にし、決めた秒数を過ぎたら空にして、世界の表示面積を広げます。]
+#   処理: [
+#     1: 結果欄の文字列が前回と違えば、新しい通知として残り秒数を設定し直します
+#     2: 文字列が空でなければ経過秒数を引き、残りがなくなったら文字列を空にします
+#   ]
+#   引数: [delta: 進める秒数]
+#   戻り値: [result: なし]
+# }
+func advance_notice(delta: float) -> void:
+	if status.text != notice_text:
+		notice_text = status.text
+		notice_remaining = NOTICE_SECONDS
+	if notice_text.is_empty():
+		return
+	notice_remaining -= delta
+	if notice_remaining <= 0.0:
+		status.text = ""
+		notice_text = ""
 
 # {
 #   責務: [_ready: フィールドに重ねるHUDと閉じた操作パネルを作ります。]
