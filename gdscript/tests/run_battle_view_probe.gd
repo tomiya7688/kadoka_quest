@@ -90,7 +90,9 @@ func _run() -> void:
 	await process_frame
 	_check(view.command_buttons.is_empty() and view.log_label.text == "" and enemy_h > 0.0, "再表示でコマンドとログを持ち越さない")
 	print("KADOKA_BATTLE_VIEW_RESULT=" + JSON.stringify({"ok": failures.is_empty(), "failures": failures}))
-	print("KADOKA_CONTRACT_RESULT=" + Marshalls.utf8_to_base64(JSON.stringify({"ok": failures.is_empty(), "failures": failures})))
+	print(
+		"KADOKA_CONTRACT_RESULT=" + Marshalls.utf8_to_base64(JSON.stringify({"ok": failures.is_empty(), "failures": failures}))
+	)
 	surface.queue_free()
 	await process_frame
 	quit(0 if failures.is_empty() else 1)

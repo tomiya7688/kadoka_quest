@@ -24,7 +24,12 @@ from test_gdscript_bootstrap import GODOT, ROOT, run_godot
 def test_real_godot_battle_view_layout_and_commands(tmp_path):
     imported = subprocess.run(
         [str(GODOT), "--headless", "--path", str(ROOT / "gdscript"), "--editor", "--import", "--quit"],
-        cwd=tmp_path, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
         check=False,
     )
     assert imported.returncode == 0, imported.stdout + imported.stderr
