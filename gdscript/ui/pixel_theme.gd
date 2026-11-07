@@ -25,6 +25,7 @@ const PixelButton = preload("res://ui/pixel_button.gd")
 #   戻り値: [result: 画面ツリーで共有するTheme]
 # }
 static func create() -> Theme:
+	ensure_gamepad_actions()
 	var result := Theme.new()
 	# FontFileを複製し、他の利用者のフォント設定を変えずに16px格子へ揃えます。
 	var font := load("res://assets/fonts/DotGothic16-Regular.ttf").duplicate() as FontFile
@@ -66,6 +67,24 @@ static func create() -> Theme:
 		result.set_stylebox("grabber_highlight", type_name, frame(FOCUS, 3, 3))
 		result.set_stylebox("grabber_pressed", type_name, frame(FOCUS, 3, 3))
 	return result
+
+# {
+#   責務: [ensure_gamepad_actions: 決定とキャンセルへゲームパッドのボタンを割り当て(InputMapを変更し、既にあれば何もしません)、キーボードと同じ選択操作を保証します。]
+#   処理: [1: ui_acceptとui_cancelにゲームパッド入力が無い時だけ、下ボタン(A)と右ボタン(B)を追加します。]
+#   引数: []
+#   戻り値: [result: なし]
+# }
+static func ensure_gamepad_actions() -> void:
+	# 一部の実行環境ではui_accept/ui_cancelの既定にゲームパッドが含まれないため補います。
+	for pair in [["ui_accept", JOY_BUTTON_A], ["ui_cancel", JOY_BUTTON_B]]:
+		var has_pad := false
+		for event in InputMap.action_get_events(pair[0]):
+			has_pad = has_pad or event is InputEventJoypadButton
+		if not has_pad:
+			var button := InputEventJoypadButton.new()
+			button.button_index = pair[1]
+			InputMap.action_add_event(pair[0], button)
+
 
 # {
 #   責務: [frame: 黒い背景と角丸のない指定色の枠を作ります。]
