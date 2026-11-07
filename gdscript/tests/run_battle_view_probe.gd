@@ -89,6 +89,9 @@ func _run() -> void:
 	view.show_state(session, {}, [], [])
 	await process_frame
 	_check(view.command_buttons.is_empty() and view.log_label.text == "" and enemy_h > 0.0, "再表示でコマンドとログを持ち越さない")
+	view.show_state({"teams": {"enemies": [null, 3, _member("e9", "ゴースト", 1, 0)], "allies": []}}, {"teams": null}, [], [])
+	await process_frame
+	_check(view.enemy_cards.size() == 1 and view.ally_rows.is_empty(), "辞書でない個体と不正な状態異常を無視して描画")
 	print("KADOKA_BATTLE_VIEW_RESULT=" + JSON.stringify({"ok": failures.is_empty(), "failures": failures}))
 	print(
 		"KADOKA_CONTRACT_RESULT=" + Marshalls.utf8_to_base64(JSON.stringify({"ok": failures.is_empty(), "failures": failures}))

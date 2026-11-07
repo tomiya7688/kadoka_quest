@@ -83,11 +83,15 @@ func show_state(session: Dictionary, statuses: Dictionary, commands: Array, log_
 	_clear(_ally_column, ally_rows)
 	_clear(_command_column, command_buttons)
 	var teams: Dictionary = session.get("teams", {})
-	for member: Dictionary in teams.get("enemies", []):
+	for member: Variant in teams.get("enemies", []):
+		if not member is Dictionary:
+			continue
 		var card := _member_box(member, statuses, "enemies", true)
 		_enemy_row.add_child(card)
 		enemy_cards.append(card)
-	for member: Dictionary in teams.get("allies", []):
+	for member: Variant in teams.get("allies", []):
+		if not member is Dictionary:
+			continue
 		var row := _member_box(member, statuses, "allies", false)
 		_ally_column.add_child(row)
 		ally_rows.append(row)
@@ -155,7 +159,7 @@ func _member_box(member: Dictionary, statuses: Dictionary, side: String, large: 
 	box.add_child(name_label)
 	box.add_child(_bar("HP", member.get("hp", 0), stats.get("hp", 0)))
 	box.add_child(_bar("MP", member.get("mp", 0), stats.get("mp", 0)))
-	var effects: Array = statuses.get("teams", {}).get(side, {}).get(identity.get("id", ""), [])
+	var effects: Array = _effects_of(statuses, side, identity.get("id", ""))
 	if not effects.is_empty():
 		var line := Label.new()
 		line.text = " ".join(PackedStringArray(effects.map(_effect_name)))
@@ -197,6 +201,23 @@ func _bar(caption: String, current: int, maximum: int) -> Control:
 	number.text = "%d/%d" % [current, maximum]
 	line.add_child(number)
 	return line
+
+
+# {
+#   責務: [_effects_of: 状態異常snapshotから一体分の状態の並びを取り出し、型が合わない値は空として扱います。]
+#   処理: [1: 陣営→個体idの順に辞書か確かめて辿り、配列でなければ空の並びを返します。]
+#   引数: [
+#     statuses: 状態異常のsnapshot
+#     side: allies または enemies
+#     id: 個体id
+#   ]
+#   戻り値: [result: 状態の並び]
+# }
+func _effects_of(statuses: Dictionary, side: String, id: Variant) -> Array:
+	var teams: Variant = statuses.get("teams", {})
+	var side_map: Variant = teams.get(side, {}) if teams is Dictionary else {}
+	var list: Variant = side_map.get(id, []) if side_map is Dictionary else []
+	return list if list is Array else []
 
 
 # {
