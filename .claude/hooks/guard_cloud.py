@@ -21,7 +21,7 @@ NET_RE = re.compile(r"curl|wget|https?://|\bgh\s|git\s+push", re.I)
 # 責務: [ deny: 理由をstderrへ出して終了コード2で拒否する ]
 # 処理: [ 1: 理由を出力する, 2: 終了コード2で終了する ]
 # 引数: [ msg: 拒否理由 ]
-# 戻り値: [ ]
+# 戻り値: [ なし: 値を返さない（Noneを返す） ]
 # }
 def deny(msg):
     sys.stderr.write("[guard] " + msg + "\n")
@@ -44,7 +44,7 @@ def is_external(tool, cmd):
 # 責務: [ main: 標準入力のツール呼び出しを検査し、違反なら拒否する ]
 # 処理: [ 1: 入力JSONを読む, 2: sleep待ちを検査する, 3: 任意の遮断文字列を外部送信系で検査する ]
 # 引数: [ ]
-# 戻り値: [ ]
+# 戻り値: [ なし: 値を返さない（Noneを返す） ]
 # }
 def main():
     try:
