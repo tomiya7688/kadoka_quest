@@ -33,6 +33,16 @@ GDScript移行単位の表と段落にあった「未push」の状態は、PR #2
 変更したファイル: gdscript/engine/speed_buff_contract.gd、gdscript/tests/run_magic_skill_probe.gd、tools/remote-context/script/sync_remote_context.py、tests/test_remote_context.py、AGENTS.md、tools/README.md、docs/{GDScript速度強化スキル予測契約,CODEMAP,ver}.md、docs/context/WORKFLOW.md、docs/ワークフロー/{ワークフロー,GDScript移行実装単位}.md。
 追加したファイル: tests/test_gdscript_speed_buff_duration.py、tests/test_agent_shared_rules.py、CLAUDE.md、.github/copilot-instructions.md、.agents/skills/kadoka-task/SKILL.md、.claude/skills/kadoka-task/SKILL.md。
 
+# 137. Godot版の選択フォーカス規則を検査する
+
+Issue #77と選択フォーカスの子Issue #196に沿って、Godot版の選択部品が同じ規則で判別できることを検査しました。ボタン・入力欄・一覧のフォーカス輪郭は共通テーマで黄色(#FFE66D)に揃っていましたが、検査がなく、キーボードとゲームパッドの操作も確認していませんでした。
+
+実Godot 4.7.2で調べると、ui_acceptとui_cancelにはゲームパッド入力が割り当てられておらず、上下左右だけが動かせる状態でした。pixel_theme.gdのensure_gamepad_actionsが、テーマの生成時に決定へ下ボタン(A)、キャンセルへ右ボタン(B)を補います。既にゲームパッド入力がある環境では何も変えません。
+
+検証: gdscript/tests/run_focus_probe.gdで、輪郭の色・幅・内容を隠さないこと、未選択の枠が黄色でないこと、移動操作のキーボードとゲームパッドの割り当て、Tab循環を確認しました。未対応: 実ゲームパッドでの操作、各画面ごとの個別確認、戦闘・結果画面への適用。
+
+変更したファイル: gdscript/ui/pixel_theme.gd、docs/{GAME_GUI,ver}.md。追加したファイル: gdscript/tests/run_focus_probe.gd、tests/test_gdscript_focus.py。
+
 # 134. Godot版のフィールド結果欄を一時通知にする
 
 Issue #77とフィールドHUDの子Issue #192に沿って、Godot版のフィールドの結果欄を一時通知にしました。ver#133の時点でGodot版のフィールドは、座標やデバッグキーを表示しない最小の表示でしたが、保存結果や調べた結果が次の通知まで画面下部に残り続けました。利用者は、古い通知を消す方法がなく、ゲーム世界を広く見られませんでした。
