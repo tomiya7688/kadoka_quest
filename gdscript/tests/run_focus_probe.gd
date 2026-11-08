@@ -39,8 +39,10 @@ func _run() -> void:
 		_check(focus.border_color == Style.FOCUS, type_name + "のフォーカス色が共通の黄色")
 		_check(not focus.draw_center, type_name + "のフォーカスが内容を隠さない")
 		_check(focus.get_border_width(SIDE_LEFT) >= 2, type_name + "のフォーカス枠が2px以上")
-	_check((theme.get_stylebox("selected_focus", "ItemList") as StyleBoxFlat).border_color == Style.FOCUS, "一覧の選択中の行が黄色の枠")
-	_check(theme.get_stylebox("normal", "Button").border_color != Style.FOCUS, "未選択のボタンは黄色以外の枠")
+	var selected := theme.get_stylebox("selected_focus", "ItemList") as StyleBoxFlat
+	_check(selected != null and selected.border_color == Style.FOCUS, "一覧の選択中の行が黄色の枠")
+	var normal := theme.get_stylebox("normal", "Button") as StyleBoxFlat
+	_check(normal != null and normal.border_color != Style.FOCUS, "未選択のボタンは黄色以外の枠")
 	for action in ["ui_up", "ui_down", "ui_left", "ui_right", "ui_accept", "ui_cancel"]:
 		var has_key := false
 		var has_pad := false
@@ -49,6 +51,12 @@ func _run() -> void:
 			has_pad = has_pad or event is InputEventJoypadButton or event is InputEventJoypadMotion
 		_check(has_key, action + "にキーボード入力がある")
 		_check(has_pad, action + "にゲームパッド入力がある")
+	# 補う入力が決定=下ボタン(A)、キャンセル=右ボタン(B)であることを個別に確かめる。
+	for pair in [["ui_accept", JOY_BUTTON_A], ["ui_cancel", JOY_BUTTON_B]]:
+		var found := false
+		for event in InputMap.action_get_events(pair[0]):
+			found = found or (event is InputEventJoypadButton and event.button_index == pair[1])
+		_check(found, pair[0] + "に既定のゲームパッドボタンがある")
 	var surface := Control.new()
 	surface.theme = theme
 	root.add_child(surface)
