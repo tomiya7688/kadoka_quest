@@ -53,6 +53,7 @@ func _run() -> void:
 	_check(dialogue_scroll.get_v_scroll_bar().max_value > dialogue_scroll.size.y, "長い会話をスクロール可能")
 	chrome.dialogue.hide()
 	_check_notice(chrome)
+	await _check_dialogue_choices(chrome)
 	await _check_roster(surface)
 	await _check_party(surface)
 	await _check_presets(surface)
@@ -62,6 +63,36 @@ func _run() -> void:
 	surface.queue_free()
 	await process_frame
 	quit(0 if failures.is_empty() else 1)
+
+# {
+#   責務: [_check_dialogue_choices: 会話枠が話者名なしの本文と、選択肢の表示・フォーカス・選択通知に対応することを確認します。]
+#   処理: [
+#     1: 話者名が空なら話者名の行が隠れ、選択肢がなければ閉じるボタンが出ることを確認します
+#     2: 選択肢を表示して先頭へフォーカスし、二番目を押すと順番が通知されて会話枠が閉じることを確認します
+#     3: 次の会話で前回の選択肢が残らないことを確認します
+#   ]
+#   引数: [chrome: 検査するフィールドの表示部品]
+#   戻り値: [result: なし]
+# }
+func _check_dialogue_choices(chrome: Control) -> void:
+	chrome.show_dialogue("", "風がふいている。")
+	await process_frame
+	_check(not chrome.dialogue_name.visible and chrome.dismiss_button.visible, "話者名なしでは名前の行を隠し閉じるボタンを出す")
+	var picked: Array[int] = []
+	chrome.choice_selected.connect(func(index: int): picked.append(index))
+	chrome.show_dialogue("まる", "どうする？", ["はなす", "たたかう", "にげる"])
+	await process_frame
+	_check(chrome.dialogue_name.visible and not chrome.dismiss_button.visible, "選択肢があるときは話者名を出し閉じるボタンを隠す")
+	_check(chrome.dialogue_choices.get_child_count() == 3, "選択肢を三つ並べる")
+	_check(chrome.dialogue_choices.get_child(0).has_focus(), "先頭の選択肢へフォーカス")
+	_check(chrome.dialogue.get_global_rect().end.x <= 960, "会話枠の右端が画面内")
+	(chrome.dialogue_choices.get_child(1) as Button).pressed.emit()
+	await process_frame
+	_check(picked == [1] and not chrome.dialogue.visible, "二番目の選択を通知して会話枠を閉じる")
+	chrome.show_dialogue("まる", "また会ったね。")
+	await process_frame
+	_check(chrome.dialogue_choices.get_child_count() == 0 and chrome.dismiss_button.visible, "次の会話へ前回の選択肢を持ち越さない")
+	chrome.dialogue.hide()
 
 # {
 #   責務: [_check_notice: フィールドの結果欄が通知を一時表示し、新しい通知で表示時間が延びることを確認します。]
